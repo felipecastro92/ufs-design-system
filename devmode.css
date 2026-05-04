@@ -2,7 +2,15 @@
    Dev Mode — UFS Design System
    ========================================================================== */
 
-/* Toggle FAB */
+:root {
+  --dev-panel-w: 420px;
+  --dev-panel-mobile-h: 50vh;
+}
+
+/* ==========================================================================
+   Toggle FAB
+   ========================================================================== */
+
 .devmode-fab {
   position: fixed;
   top: 18px;
@@ -19,7 +27,9 @@
   cursor: pointer;
   user-select: none;
   font-family: 'JetBrains Mono', 'Courier New', monospace;
+  transition: right 0.3s cubic-bezier(0.4,0,0.2,1), top 0.3s cubic-bezier(0.4,0,0.2,1);
 }
+
 .devmode-label {
   font-size: 10px;
   font-weight: 700;
@@ -28,6 +38,7 @@
   color: #a6adc8;
   white-space: nowrap;
 }
+
 .devmode-switch {
   width: 34px;
   height: 18px;
@@ -38,6 +49,7 @@
   flex-shrink: 0;
 }
 .devmode-switch.on { background: #a6e3a1; }
+
 .devmode-thumb {
   position: absolute;
   top: 2px;
@@ -51,30 +63,122 @@
 }
 .devmode-switch.on .devmode-thumb { transform: translateX(16px); background: #fff; }
 
-/* Dev panels */
-.dev-panel {
-  display: none;
-  margin: 6px 0 20px;
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid #313244;
+/* FAB shifts left of panel when open (desktop) */
+body.dev-mode .devmode-fab {
+  right: calc(var(--dev-panel-w) + 18px);
+}
+
+/* ==========================================================================
+   Side panel
+   ========================================================================== */
+
+.dev-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--dev-panel-w);
+  height: 100vh;
   background: #1e1e2e;
+  border-left: 1px solid #313244;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
   font-family: 'JetBrains Mono', 'Courier New', monospace;
 }
-body.dev-mode .dev-panel { display: block; }
 
-.dev-panel-hdr {
+body.dev-mode .dev-sidebar { transform: translateX(0); }
+
+/* Page content shifts left of panel (desktop) */
+body {
+  transition: padding-right 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+body.dev-mode {
+  padding-right: var(--dev-panel-w);
+}
+
+/* Panel header */
+.dev-sidebar-hdr {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 9px 14px;
+  padding: 14px 16px;
   background: #181825;
   border-bottom: 1px solid #313244;
+  flex-shrink: 0;
 }
-.dev-panel-meta { display: flex; align-items: baseline; gap: 10px; min-width: 0; overflow: hidden; }
-.dev-component-name { font-size: 12px; font-weight: 700; color: #cba6f7; white-space: nowrap; flex-shrink: 0; }
-.dev-file-path { font-size: 11px; color: #45475a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.dev-sidebar-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #a6adc8;
+}
+
+.dev-sidebar-close {
+  background: none;
+  border: none;
+  color: #585b70;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 18px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  font-family: inherit;
+}
+.dev-sidebar-close:hover { color: #cdd6f4; background: rgba(255,255,255,0.05); }
+
+/* Scrollable body */
+.dev-sidebar-body {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #313244 transparent;
+}
+.dev-sidebar-body::-webkit-scrollbar { width: 4px; }
+.dev-sidebar-body::-webkit-scrollbar-thumb { background: #313244; border-radius: 2px; }
+
+/* ==========================================================================
+   Component sections inside the panel
+   ========================================================================== */
+
+.dev-section {
+  border-bottom: 2px solid #313244;
+}
+.dev-section:last-child { border-bottom: none; }
+
+.dev-section-hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px 10px;
+  background: #181825;
+}
+
+.dev-section-meta { min-width: 0; }
+
+.dev-section-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #cba6f7;
+  white-space: nowrap;
+}
+
+.dev-section-file {
+  display: block;
+  font-size: 10px;
+  color: #45475a;
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .dev-copy-btn {
   flex-shrink: 0;
   background: #313244;
@@ -89,15 +193,17 @@ body.dev-mode .dev-panel { display: block; }
   border-radius: 5px;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
 }
 .dev-copy-btn:hover { background: #45475a; }
 .dev-copy-btn.copied { color: #a6e3a1; }
 
 .dev-code {
+  display: block;
   margin: 0;
   padding: 14px 16px;
   color: #cdd6f4;
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.75;
   overflow-x: auto;
   white-space: pre;
@@ -113,3 +219,32 @@ body.dev-mode .dev-panel { display: block; }
 .dev-code .t-cm  { color: #45475a; font-style: italic; }
 .dev-code .t-va  { color: #fab387; }
 .dev-code .t-vl  { color: #fab387; }
+
+/* ==========================================================================
+   Mobile — panel slides in from top, pushes content down
+   ========================================================================== */
+
+@media (max-width: 767px) {
+  .dev-sidebar {
+    width: 100%;
+    height: var(--dev-panel-mobile-h);
+    top: 0;
+    right: 0;
+    left: 0;
+    transform: translateY(-100%);
+    border-left: none;
+    border-bottom: 1px solid #313244;
+  }
+
+  body.dev-mode .dev-sidebar { transform: translateY(0); }
+
+  body.dev-mode {
+    padding-right: 0;
+    padding-top: var(--dev-panel-mobile-h);
+  }
+
+  body.dev-mode .devmode-fab {
+    right: 18px;
+    top: calc(var(--dev-panel-mobile-h) + 12px);
+  }
+}
