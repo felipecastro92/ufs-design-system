@@ -540,6 +540,12 @@
 
   <!-- Variant switcher -->
   <div class="variant-switcher">
+    <span class="variant-label">Past Orders</span>
+    <div class="variant-options">
+      <button class="variant-btn active" id="v-orders-3">3 orders</button>
+      <button class="variant-btn" id="v-orders-15">15 orders</button>
+    </div>
+    <span class="variant-sep"></span>
     <span class="variant-label">Chef Rewards</span>
     <div class="variant-options">
       <button class="variant-btn active" id="v-rewards-full">Rewards available</button>
@@ -684,8 +690,8 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </span>
             </button>
-            <div class="p-card-body">
-              <div class="orders-grid">
+            <div class="p-card-body" id="past-orders-body">
+              <div class="orders-grid" id="past-orders-grid">
 
                 <!-- Order 1 — Dispatched -->
                 <a href="profile-order-detail.html" class="order-card">
@@ -749,6 +755,7 @@
                 </a>
 
               </div><!-- /orders-grid -->
+              <button class="btn btn-secondary btn-full" id="load-more-btn" style="display:none;">Load more orders</button>
             </div><!-- /p-card-body -->
           </div><!-- /My Past Orders p-card -->
 
@@ -961,6 +968,94 @@
        JAVASCRIPT
   ========================================================================== -->
   <script>
+    // Past Orders variant switcher
+    (function() {
+      var grid       = document.getElementById('past-orders-grid');
+      var loadMoreBtn = document.getElementById('load-more-btn');
+      var btn3       = document.getElementById('v-orders-3');
+      var btn15      = document.getElementById('v-orders-15');
+
+      var imgs = [
+        'https://www.webstaurantstore.com/images/products/medium/551252/2992575.jpg',
+        'https://www.webstaurantstore.com/images/products/medium/551268/2629213.jpg',
+        'https://www.webstaurantstore.com/images/products/medium/551121/2628329.jpg',
+        'https://www.webstaurantstore.com/images/products/medium/710184/2453493.jpg',
+        'https://www.webstaurantstore.com/images/products/medium/552843/2992572.jpg'
+      ];
+
+      function thumb(i) { return '<div class="order-thumb"><img src="' + imgs[i % imgs.length] + '" alt="" /></div>'; }
+      function overflow(n) { return '<div class="order-thumb-overflow">+' + n + '</div>'; }
+
+      function card(num, date, items, total, status, thumbCount, extra) {
+        var cls = status === 'Dispatched' ? 'status-dispatched' : status === 'Preparing' ? 'status-preparing' : 'status-delivered';
+        var t = ''; for (var i = 0; i < thumbCount; i++) t += thumb(i);
+        if (extra) t += overflow(extra);
+        return '<a href="profile-order-detail.html" class="order-card">'
+          + '<span class="order-status ' + cls + '">' + status + '</span>'
+          + '<div class="order-card-top">'
+          +   '<p class="order-num">' + num + '</p>'
+          +   '<p class="order-date">Placed on ' + date + '</p>'
+          +   '<div class="order-items-row"><span>' + items + ' items</span><span>$' + total + ' COP</span></div>'
+          + '</div>'
+          + '<div class="order-thumbs">' + t + '</div>'
+          + '<span class="btn btn-secondary btn-full">View details</span>'
+          + '</a>';
+      }
+
+      var allOrders = [
+        card('UFS-09904-3', '28 Aug 2025',  3,  '443.400',   'Dispatched', 3, 0),
+        card('UFS-84903-4', '09 Sep 2025',  7,  '350.300',   'Preparing',  4, 3),
+        card('UFS-73479-2', '04 Aug 2025', 12, '1.450.900',  'Delivered',  4, 8),
+        card('UFS-11234-5', '15 Jul 2025',  5,  '620.500',   'Delivered',  4, 1),
+        card('UFS-33891-1', '02 Jul 2025',  9,  '890.750',   'Delivered',  4, 5),
+        card('UFS-47201-8', '18 Jun 2025',  2,  '215.000',   'Delivered',  2, 0),
+        card('UFS-55634-2', '30 May 2025', 14, '2.100.300',  'Delivered',  4, 10),
+        card('UFS-62187-9', '12 May 2025',  6,  '540.200',   'Delivered',  4, 2),
+        card('UFS-71045-3', '25 Apr 2025',  8,  '760.100',   'Delivered',  4, 4),
+        card('UFS-82390-6', '10 Apr 2025',  4,  '380.000',   'Delivered',  4, 0),
+        card('UFS-90234-7', '22 Mar 2025', 11, '1.230.500',  'Delivered',  4, 7),
+        card('UFS-14567-4', '08 Mar 2025',  3,  '290.800',   'Delivered',  3, 0),
+        card('UFS-23891-0', '15 Feb 2025',  7,  '680.400',   'Delivered',  4, 3),
+        card('UFS-38204-5', '01 Feb 2025',  5,  '495.700',   'Delivered',  4, 1),
+        card('UFS-49012-3', '18 Jan 2025',  9,  '925.300',   'Delivered',  4, 5)
+      ];
+
+      var original3 = grid.innerHTML;
+      var loaded = 0;
+
+      function renderPage(count) {
+        var slice = allOrders.slice(loaded, loaded + count);
+        slice.forEach(function(html) { grid.insertAdjacentHTML('beforeend', html); });
+        loaded += slice.length;
+        loadMoreBtn.style.display = loaded >= allOrders.length ? 'none' : '';
+      }
+
+      function activatePaginated() {
+        grid.innerHTML = '';
+        loaded = 0;
+        renderPage(6);
+        loadMoreBtn.style.display = '';
+        btn15.classList.add('active');
+        btn3.classList.remove('active');
+      }
+
+      function restoreOriginal() {
+        grid.innerHTML = original3;
+        loaded = 0;
+        loadMoreBtn.style.display = 'none';
+        btn3.classList.add('active');
+        btn15.classList.remove('active');
+      }
+
+      loadMoreBtn.addEventListener('click', function() {
+        var remaining = allOrders.length - loaded;
+        renderPage(Math.min(6, remaining));
+      });
+
+      btn15.addEventListener('click', activatePaginated);
+      btn3.addEventListener('click',  restoreOriginal);
+    }());
+
     // Chef Rewards variant switcher
     (function() {
       var body     = document.getElementById('rewards-body');
