@@ -73,19 +73,19 @@
     .btn {
       display: inline-flex; align-items: center; justify-content: center;
       gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
-      border-radius: var(--radius-xs);
+      border-radius: var(--radius-md);
       font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
       white-space: nowrap; line-height: 1;
-      cursor: pointer; border: 2px solid transparent;
+      cursor: pointer; border: 1.5px solid transparent;
       transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
       text-decoration: none; position: relative; flex-shrink: 0;
       user-select: none; vertical-align: middle;
     }
     .btn:focus-visible { outline: 2px solid var(--color-orange-700); outline-offset: 3px; }
     .btn:active:not(:disabled) { transform: translateY(1px); }
-    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary { background: var(--color-orange-700); color: var(--color-salt); border-color: var(--color-orange-700); }
     .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
-    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary { background: transparent; color: var(--color-orange-700); border-color: var(--color-orange-700); }
     .btn-secondary:hover:not(:disabled) { background: var(--color-orange-100); }
     .btn-full { width: 100%; justify-content: center; }
 
@@ -422,7 +422,7 @@
       position: relative; z-index: 1;
     }
     .loyalty-pill {
-
+      background: var(--color-salt);
       border: 1px solid var(--color-gold);
       border-radius: var(--radius-full);
       padding: var(--space-3); display: flex; align-items: center; gap: var(--space-2);
@@ -500,8 +500,52 @@
       .footer-bottom { flex-direction: column; align-items: flex-start; gap: var(--space-2); margin-top: var(--space-10); }
     }
   </style>
+  <style>
+    /* ── Variant switcher ──────────────────────────────────────────────────── */
+    .variant-switcher {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      background: var(--color-brand-dark); color: var(--color-salt);
+      padding: 8px 16px;
+      font-family: var(--font-family); font-size: 12px; font-weight: 500;
+      white-space: nowrap; user-select: none;
+    }
+    .variant-sep { width: 1px; height: 20px; background: rgba(255,255,255,0.2); margin: 0 4px; }
+    .variant-label { opacity: 0.55; letter-spacing: 0.3px; text-transform: uppercase; font-size: 11px; }
+    .variant-options {
+      display: flex; gap: 2px;
+      background: rgba(255,255,255,0.1); border-radius: var(--radius-full);
+      padding: 3px;
+    }
+    .variant-btn {
+      height: 26px; padding: 0 14px; border-radius: var(--radius-full);
+      border: none; cursor: pointer; font-family: var(--font-family);
+      font-size: 12px; font-weight: 600; background: transparent;
+      color: rgba(255,255,255,0.55); transition: background 0.15s, color 0.15s;
+    }
+    .variant-btn.active { background: var(--color-salt); color: var(--color-brand-dark); }
+
+    /* ── Rewards empty state ───────────────────────────────────────────────── */
+    .rewards-empty {
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--space-3); padding: var(--space-4) var(--space-2);
+      text-align: center;
+    }
+    .rewards-empty-icon { width: 64px; height: 64px; opacity: 0.2; display: flex; align-items: center; justify-content: center; }
+    .rewards-empty-title { font-size: var(--text-h4-size); font-weight: var(--text-h4-w); line-height: var(--text-h4-lh); color: var(--color-brand-dark); }
+    .rewards-empty-desc { font-size: var(--text-body-sm-size); font-weight: 400; line-height: var(--text-body-sm-lh); color: #757575; max-width: 260px; }
+    .rewards-empty-desc strong { font-weight: 600; color: var(--color-brand-dark); }
+  </style>
 </head>
 <body>
+
+  <!-- Variant switcher -->
+  <div class="variant-switcher">
+    <span class="variant-label">Chef Rewards</span>
+    <div class="variant-options">
+      <button class="variant-btn active" id="v-rewards-full">Rewards available</button>
+      <button class="variant-btn" id="v-rewards-empty">No rewards yet</button>
+    </div>
+  </div>
 
   <!-- Dev Mode toggle -->
   <div class="devmode-fab" id="devmode-fab" role="switch" aria-checked="false" aria-label="Toggle dev mode" tabindex="0">
@@ -787,7 +831,7 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
               </span>
             </button>
-            <div class="p-card-body">
+            <div class="p-card-body" id="rewards-body">
 
               <!-- Loyalty points card -->
               <div class="loyalty-card">
@@ -917,6 +961,34 @@
        JAVASCRIPT
   ========================================================================== -->
   <script>
+    // Chef Rewards variant switcher
+    (function() {
+      var body     = document.getElementById('rewards-body');
+      var btnFull  = document.getElementById('v-rewards-full');
+      var btnEmpty = document.getElementById('v-rewards-empty');
+
+      var coinSvg = '<svg width="64" height="64" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#FF9E00"/><circle cx="22" cy="23" r="8.5" fill="#FF9E00" stroke="#FF9E00"/></svg>';
+
+      var loyaltyCardFull = '<div class="loyalty-card"><div class="loyalty-title">Loyalty Points</div><div class="loyalty-pill"><svg width="33" height="33" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/><circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/></svg><span class="loyalty-num">24.320</span></div><div class="loyalty-expiry">Expiring: 31 Dec 2026</div></div>';
+
+      var loyaltyCardEmpty = '<div class="loyalty-card"><div class="loyalty-title">Loyalty Points</div><div class="loyalty-pill"><svg width="33" height="33" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/><circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/></svg><span class="loyalty-num">340</span></div></div>';
+
+      var rewardsList = '<p class="rewards-hdr">8 Rewards available for you</p><div class="rewards-list"><div class="reward-item"><div class="reward-thumb"><img src="https://www.webstaurantstore.com/images/products/medium/657139/2376550.jpg" alt="Metal Tongs" /></div><div class="reward-info"><p class="reward-name">Metal Tongs</p><span class="reward-pts"><img src="icons/coin.svg" class="reward-pts-coin icon-gold" alt="" aria-hidden="true" />2.030</span></div></div><div class="reward-item"><div class="reward-thumb"><img src="https://www.webstaurantstore.com/images/products/medium/78466/3057648.jpg" alt="Disposable Piping Bag" /></div><div class="reward-info"><p class="reward-name">Disposable Piping Bag - Ibill- 30cm (10pc)</p><span class="reward-pts"><img src="icons/coin.svg" class="reward-pts-coin icon-gold" alt="" aria-hidden="true" />2.030</span></div></div><div class="reward-item"><div class="reward-thumb"><img src="https://www.webstaurantstore.com/images/products/medium/613399/2186741.jpg" alt="Terry Dishcloth" /></div><div class="reward-info"><p class="reward-name">Terry Dishcloth</p><span class="reward-pts"><img src="icons/coin.svg" class="reward-pts-coin icon-gold" alt="" aria-hidden="true" />2.030</span></div></div><div class="reward-item"><div class="reward-thumb"><img src="https://www.webstaurantstore.com/images/products/medium/403885/3006147.jpg" alt="Paring Knife" /></div><div class="reward-info"><p class="reward-name">Tramontina 3" (8cm) Paring Knife &mdash; GREY</p><span class="reward-pts"><img src="icons/coin.svg" class="reward-pts-coin icon-gold" alt="" aria-hidden="true" />2.030</span></div></div><button class="rewards-view-all">View all available rewards</button></div><button class="btn btn-primary btn-full">Redeem your points</button><p class="rewards-disclaimer">*Rewards can only be redeemed by placing an order</p>';
+
+      var rewardsEmpty = '<div class="rewards-empty"><p class="rewards-empty-title">Keep earning to unlock rewards</p><p class="rewards-empty-desc">You need <strong>1.690 more points</strong> to access your first reward. Place an order and start earning.</p><a href="#" class="btn btn-primary btn-full">Browse products</a><p class="rewards-disclaimer">*Earn points with every purchase</p></div>';
+
+      function setRewardsVariant(empty) {
+        body.innerHTML = empty
+          ? loyaltyCardEmpty + rewardsEmpty
+          : loyaltyCardFull  + rewardsList;
+        btnEmpty.classList.toggle('active', empty);
+        btnFull.classList.toggle('active', !empty);
+      }
+
+      btnFull.addEventListener('click',  function() { setRewardsVariant(false); });
+      btnEmpty.addEventListener('click', function() { setRewardsVariant(true);  });
+    }());
+
     // Accordion — one section open at a time (mobile only)
     document.querySelectorAll('.p-card-hdr').forEach(function(hdr) {
       hdr.addEventListener('click', function() {
