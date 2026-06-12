@@ -546,6 +546,7 @@
     <div class="variant-options">
       <button class="variant-btn active" id="v-orders-3">3 orders</button>
       <button class="variant-btn" id="v-orders-15">15 orders</button>
+      <button class="variant-btn" id="v-orders-empty">No orders yet</button>
     </div>
     <span class="variant-sep"></span>
     <span class="variant-label">Chef Rewards</span>
@@ -758,6 +759,24 @@
 
               </div><!-- /orders-grid -->
               <button class="btn btn-ghost btn-full" id="load-more-btn" style="display:none;">Load more orders</button>
+
+              <div class="wishlist-empty" id="orders-empty-state" style="display:none;">
+                <div class="wishlist-empty-illus" aria-hidden="true">
+                  <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                    <rect x="18" y="12" width="44" height="56" rx="4" fill="#E2DFE0"/>
+                    <rect x="26" y="24" width="10" height="10" rx="2" fill="#CBC5C7"/>
+                    <rect x="40" y="26" width="14" height="3" rx="1" fill="#CBC5C7"/>
+                    <rect x="40" y="31" width="10" height="3" rx="1" fill="#CBC5C7"/>
+                    <rect x="26" y="40" width="10" height="10" rx="2" fill="#CBC5C7"/>
+                    <rect x="40" y="42" width="14" height="3" rx="1" fill="#CBC5C7"/>
+                    <rect x="40" y="47" width="10" height="3" rx="1" fill="#CBC5C7"/>
+                    <rect x="26" y="58" width="28" height="3" rx="1" fill="#989495"/>
+                  </svg>
+                </div>
+                <p class="wishlist-empty-title">No orders yet</p>
+                <p class="wishlist-empty-desc">Your order history will appear here once you place your first order.</p>
+                <a href="#" class="btn btn-primary">Browse products</a>
+              </div>
             </div><!-- /p-card-body -->
           </div><!-- /My Past Orders p-card -->
 
@@ -972,10 +991,12 @@
   <script>
     // Past Orders variant switcher
     (function() {
-      var grid       = document.getElementById('past-orders-grid');
+      var grid        = document.getElementById('past-orders-grid');
       var loadMoreBtn = document.getElementById('load-more-btn');
-      var btn3       = document.getElementById('v-orders-3');
-      var btn15      = document.getElementById('v-orders-15');
+      var emptyState  = document.getElementById('orders-empty-state');
+      var btn3        = document.getElementById('v-orders-3');
+      var btn15       = document.getElementById('v-orders-15');
+      var btnEmpty    = document.getElementById('v-orders-empty');
 
       var imgs = [
         'https://www.webstaurantstore.com/images/products/medium/551252/2992575.jpg',
@@ -1032,21 +1053,37 @@
         loadMoreBtn.style.display = loaded >= allOrders.length ? 'none' : '';
       }
 
+      function setAllBtnsInactive() {
+        btn3.classList.remove('active');
+        btn15.classList.remove('active');
+        btnEmpty.classList.remove('active');
+      }
+
       function activatePaginated() {
+        emptyState.style.display = 'none';
         grid.innerHTML = '';
         loaded = 0;
         renderPage(6);
         loadMoreBtn.style.display = '';
+        setAllBtnsInactive();
         btn15.classList.add('active');
-        btn3.classList.remove('active');
       }
 
       function restoreOriginal() {
+        emptyState.style.display = 'none';
         grid.innerHTML = original3;
         loaded = 0;
         loadMoreBtn.style.display = 'none';
+        setAllBtnsInactive();
         btn3.classList.add('active');
-        btn15.classList.remove('active');
+      }
+
+      function showEmpty() {
+        grid.innerHTML = '';
+        loadMoreBtn.style.display = 'none';
+        emptyState.style.display = '';
+        setAllBtnsInactive();
+        btnEmpty.classList.add('active');
       }
 
       loadMoreBtn.addEventListener('click', function() {
@@ -1054,8 +1091,9 @@
         renderPage(Math.min(6, remaining));
       });
 
-      btn15.addEventListener('click', activatePaginated);
-      btn3.addEventListener('click',  restoreOriginal);
+      btn15.addEventListener('click',    activatePaginated);
+      btn3.addEventListener('click',     restoreOriginal);
+      btnEmpty.addEventListener('click', showEmpty);
     }());
 
     // Chef Rewards variant switcher
