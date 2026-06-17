@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Builder — UFS Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================
+       DS TOKENS
+    ================================================================ */
+    :root {
+      --color-brand-primary:     #FF5A00;
+      --color-brand-dark:        #221D37;
+      --color-accessible-orange: #D14900;
+      --color-smoke:             #94889D;
+      --color-salt:              #FFFFFF;
+      --color-success:           #81BC2A;
+      --color-error:             #D0021B;
+
+      --color-orange-100: #FFDECC;
+      --color-orange-500: #FF5A00;
+      --color-orange-700: #BF4400;
+
+      --color-squid-500: #221D37;
+      --color-squid-700: #1A1629;
+      --color-squid-900: #0F0D19;
+
+      --color-mushroom-100: #F5F3F4;
+      --color-mushroom-200: #EAE7E9;
+      --color-mushroom-300: #E2DFE0;
+      --color-mushroom-500: #CBC5C7;
+      --color-mushroom-700: #989495;
+      --color-mushroom-900: #5B595A;
+
+      --font-family: 'Unilever Shilling', 'Plus Jakarta Sans', system-ui, sans-serif;
+
+      --text-caption-sm-size: 12px; --text-caption-sm-ls: 0.4px;
+
+      --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px;
+      --radius-lg: 16px; --radius-full: 9999px;
+
+      --shadow-sm: 0 4px 8px rgba(0,0,0,0.10);
+      --shadow-md: 0 8px 16px rgba(0,0,0,0.12);
+      --shadow-lg: 0 20px 60px rgba(0,0,0,0.22);
+    }
+
+    /* ================================================================
+       RESET
+    ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-family);
+      font-size: 16px; line-height: 24px;
+      color: var(--color-brand-dark);
+      background: var(--color-mushroom-100);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden; height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; }
+    img { display: block; }
+
+    /* ================================================================
+       HEADER
+    ================================================================ */
+    .pb-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: 52px; background: var(--color-squid-900);
+      display: flex; align-items: center; padding: 0 16px; gap: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .pb-back {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.45);
+      padding: 5px 10px; border-radius: var(--radius-xs);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: color 0.15s, border-color 0.15s; white-space: nowrap;
+    }
+    .pb-back:hover { color: white; border-color: rgba(255,255,255,0.25); }
+    .pb-header-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.1); }
+    .pb-header-title {
+      font-size: 13px; font-weight: 700; color: white; flex: 1;
+    }
+    .pb-header-subtitle {
+      font-size: 12px; color: rgba(255,255,255,0.35); margin-left: 6px; font-weight: 400;
+    }
+    .pb-header-actions { display: flex; align-items: center; gap: 10px; }
+
+    /* Viewport toggle */
+    .pb-vp-toggle {
+      display: flex; background: rgba(255,255,255,0.07);
+      border-radius: var(--radius-xs); padding: 3px; gap: 2px;
+    }
+    .pb-vp-btn {
+      width: 32px; height: 26px; border: none; cursor: pointer;
+      border-radius: 3px; display: flex; align-items: center; justify-content: center;
+      background: transparent; color: rgba(255,255,255,0.35); transition: all 0.15s;
+    }
+    .pb-vp-btn.is-active { background: rgba(255,255,255,0.14); color: white; }
+    .pb-vp-btn:hover:not(.is-active) { color: rgba(255,255,255,0.7); }
+
+    /* Section count badge */
+    .pb-count-badge {
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.07); border-radius: var(--radius-full);
+      padding: 3px 10px; letter-spacing: 0.2px;
+    }
+    .pb-count-badge span { color: white; }
+
+    .pb-clear-btn {
+      font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.4);
+      background: transparent; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: var(--radius-xs); padding: 5px 12px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pb-clear-btn:hover { color: #ff7070; border-color: rgba(255,80,80,0.3); }
+
+    /* ================================================================
+       LAYOUT
+    ================================================================ */
+    .pb-layout {
+      display: flex;
+      margin-top: 52px;
+      height: calc(100vh - 52px);
+    }
+
+    /* ================================================================
+       COMPONENT PANEL
+    ================================================================ */
+    .pb-panel {
+      width: 244px; flex-shrink: 0;
+      background: white;
+      border-right: 1px solid var(--color-mushroom-300);
+      display: flex; flex-direction: column;
+      overflow-y: auto; overflow-x: hidden;
+    }
+    .pb-panel::-webkit-scrollbar { width: 3px; }
+    .pb-panel::-webkit-scrollbar-thumb { background: var(--color-mushroom-300); border-radius: 2px; }
+
+    .pb-panel-header {
+      padding: 18px 16px 14px;
+      border-bottom: 1px solid var(--color-mushroom-200);
+    }
+    .pb-panel-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: 4px;
+    }
+    .pb-panel-desc { font-size: 12px; color: var(--color-mushroom-700); line-height: 18px; }
+
+    .pb-library { padding: 12px 10px; display: flex; flex-direction: column; gap: 6px; }
+
+    .pb-lib-item {
+      border: 1.5px solid var(--color-mushroom-300);
+      border-radius: var(--radius-sm); padding: 8px 8px 10px;
+      cursor: grab; transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      background: var(--color-mushroom-100); user-select: none;
+    }
+    .pb-lib-item:hover {
+      border-color: var(--color-brand-primary);
+      box-shadow: 0 0 0 3px rgba(255,90,0,0.1);
+      background: white;
+    }
+    .pb-lib-item.is-dragging { opacity: 0.5; }
+    .pb-lib-item:active { cursor: grabbing; }
+
+    /* Library thumbnails */
+    .pb-lib-thumb {
+      height: 44px; border-radius: 4px; overflow: hidden; margin-bottom: 8px;
+    }
+    .pb-lib-thumb--nav { background: var(--color-squid-700); display: flex; flex-direction: column; }
+    .pb-lib-util-bar { height: 10px; background: var(--color-squid-900); }
+    .pb-lib-nav-bar {
+      flex: 1; background: var(--color-brand-dark);
+      display: flex; align-items: center; padding: 0 8px; gap: 6px;
+    }
+    .pb-lib-logo-dot {
+      width: 22px; height: 7px; background: var(--color-brand-primary);
+      border-radius: 2px; flex-shrink: 0;
+    }
+    .pb-lib-nav-links { display: flex; gap: 4px; flex: 1; }
+    .pb-lib-nav-link { height: 4px; background: rgba(255,255,255,0.2); border-radius: 1px; flex: 1; }
+
+    .pb-lib-thumb--hero {
+      background: linear-gradient(135deg, #3b1e08, #7a3a10);
+      display: flex; align-items: center; padding: 0 10px;
+    }
+    .pb-lib-hero-lines { display: flex; flex-direction: column; gap: 4px; }
+    .pb-lib-hero-lines::before {
+      content: ''; display: block; height: 6px; width: 100px;
+      background: rgba(255,255,255,0.85); border-radius: 2px;
+    }
+    .pb-lib-hero-lines::after {
+      content: ''; display: block; height: 4px; width: 70px;
+      background: rgba(255,255,255,0.35); border-radius: 2px;
+    }
+
+    .pb-lib-thumb--grid {
+      background: var(--color-mushroom-200); padding: 5px;
+      display: flex; align-items: center;
+    }
+    .pb-lib-grid-row { display: flex; gap: 3px; width: 100%; }
+    .pb-lib-grid-card {
+      flex: 1; background: white; border-radius: 2px; height: 34px;
+      border: 1px solid var(--color-mushroom-300);
+    }
+
+    .pb-lib-thumb--cta {
+      background: var(--color-brand-dark);
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 5px;
+    }
+    .pb-lib-cta-line { height: 5px; width: 80px; background: rgba(255,255,255,0.7); border-radius: 2px; }
+    .pb-lib-cta-btn { height: 10px; width: 44px; background: var(--color-brand-primary); border-radius: 2px; }
+
+    .pb-lib-thumb--footer {
+      background: var(--color-squid-900); padding: 5px 7px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .pb-lib-footer-cols { display: flex; gap: 5px; margin-bottom: 4px; }
+    .pb-lib-footer-col { flex: 1; background: rgba(255,255,255,0.07); border-radius: 2px; height: 22px; }
+    .pb-lib-footer-bar { height: 7px; background: rgba(255,255,255,0.04); border-radius: 2px; }
+
+    .pb-lib-label { font-size: 12px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 1px; }
+    .pb-lib-meta { font-size: 11px; color: var(--color-mushroom-700); }
+
+    /* ================================================================
+       CANVAS AREA
+    ================================================================ */
+    .pb-canvas-wrap {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      background: var(--color-mushroom-200);
+      display: flex; flex-direction: column;
+    }
+    .pb-canvas-wrap::-webkit-scrollbar { width: 6px; }
+    .pb-canvas-wrap::-webkit-scrollbar-thumb { background: var(--color-mushroom-500); border-radius: 3px; }
+
+    .pb-canvas-inner {
+      width: 100%; flex: 1;
+      transition: max-width 0.3s, margin 0.3s;
+    }
+    .pb-canvas-inner.is-mobile {
+      max-width: 390px;
+      margin: 24px auto;
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: 3px solid var(--color-squid-500);
+    }
+
+    /* Drop zone highlight when dragging from library */
+    .pb-canvas-inner.drop-active {
+      outline: 2px dashed var(--color-brand-primary);
+      outline-offset: -2px;
+    }
+
+    /* Empty state */
+    .pb-empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: calc(100vh - 52px);
+      padding: 40px; text-align: center;
+      pointer-events: none;
+    }
+    .pb-empty-icon {
+      width: 56px; height: 56px; background: var(--color-mushroom-300);
+      border-radius: var(--radius-md); display: flex; align-items: center;
+      justify-content: center; margin: 0 auto 18px; color: var(--color-mushroom-700);
+    }
+    .pb-empty-title { font-size: 17px; font-weight: 700; color: var(--color-mushroom-700); margin-bottom: 8px; }
+    .pb-empty-desc { font-size: 13px; color: var(--color-mushroom-700); max-width: 280px; line-height: 20px; }
+
+    /* ================================================================
+       PLACED SECTION
+    ================================================================ */
+    .pb-section { position: relative; }
+
+    /* Drop indicator lines */
+    .pb-section.drop-top::before {
+      content: ''; position: absolute; top: -2px; left: 0; right: 0;
+      height: 3px; background: var(--color-brand-primary); z-index: 200;
+      pointer-events: none;
+    }
+    .pb-section.drop-bottom::after {
+      content: ''; position: absolute; bottom: -2px; left: 0; right: 0;
+      height: 3px; background: var(--color-brand-primary); z-index: 200;
+      pointer-events: none;
+    }
+
+    /* Section toolbar */
+    .pb-section-bar {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 100;
+      height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 10px;
+      background: rgba(15,13,25,0.88); backdrop-filter: blur(10px);
+      opacity: 0; transition: opacity 0.15s; pointer-events: none;
+    }
+    .pb-section:hover .pb-section-bar { opacity: 1; pointer-events: all; }
+    .pb-section-bar:hover { opacity: 1; pointer-events: all; }
+
+    .pb-drag-handle {
+      width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+      cursor: grab; color: rgba(255,255,255,0.4); flex-shrink: 0; border-radius: 3px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .pb-drag-handle:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.08); }
+    .pb-drag-handle:active { cursor: grabbing; }
+
+    .pb-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; color: rgba(255,255,255,0.5); flex-shrink: 0;
+    }
+
+    .pb-spacer { flex: 1; }
+
+    .pb-var-group {
+      display: flex; gap: 1px; background: rgba(255,255,255,0.07);
+      border-radius: 4px; padding: 2px;
+    }
+    .pb-var-btn {
+      font-size: 11px; font-weight: 600; font-family: var(--font-family);
+      color: rgba(255,255,255,0.4); background: transparent; border: none;
+      border-radius: 3px; padding: 3px 10px; cursor: pointer; transition: all 0.15s;
+    }
+    .pb-var-btn:hover { color: rgba(255,255,255,0.8); }
+    .pb-var-btn.is-active { background: rgba(255,255,255,0.14); color: white; }
+
+    .pb-remove-btn {
+      width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+      background: transparent; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.35); border-radius: 3px; transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .pb-remove-btn:hover { background: rgba(220,50,50,0.25); color: #ff8080; }
+
+    /* ================================================================
+       UFS NAV (copied from DS)
+    ================================================================ */
+    .ufs-util {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 36px;
+      font-size: var(--text-caption-sm-size); font-weight: 500; letter-spacing: var(--text-caption-sm-ls);
+    }
+    .ufs-util--dark  { background: var(--color-squid-900); color: rgba(255,255,255,0.55); }
+    .ufs-util--light { background: var(--color-mushroom-200); color: var(--color-mushroom-900); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-util__links { display: flex; align-items: center; }
+    .ufs-util__link  { padding: 0 10px; cursor: pointer; white-space: nowrap; }
+    .ufs-util__link:first-child { padding-left: 0; }
+    .ufs-util__sep   { width: 1px; height: 10px; background: currentColor; opacity: 0.2; }
+    .ufs-util__right { display: flex; align-items: center; }
+    .ufs-util__lang  { display: flex; align-items: center; gap: 4px; cursor: pointer; font-weight: 600; font-size: 12px; }
+
+    .ufs-nav {
+      display: flex; align-items: center; padding: 0 32px; height: 68px; position: relative; z-index: 10;
+    }
+    .ufs-nav--dark  { background: var(--color-brand-dark); }
+    .ufs-nav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-nav--glass { background: transparent; }
+
+    .ufs-nav__logo { flex-shrink: 0; margin-right: 32px; }
+    .ufs-nav__logo img { height: 26px; }
+    .ufs-nav__links { display: flex; align-items: stretch; height: 100%; flex: 1; }
+    .ufs-nav__link {
+      display: flex; align-items: center; gap: 5px; padding: 0 14px;
+      font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+      border-bottom: 2px solid transparent;
+    }
+    .ufs-nav--dark  .ufs-nav__link { color: rgba(255,255,255,0.72); }
+    .ufs-nav--light .ufs-nav__link { color: var(--color-squid-500); }
+    .ufs-nav--glass .ufs-nav__link { color: rgba(255,255,255,0.85); }
+    .ufs-nav__actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+    .ufs-nav__icon-btn {
+      width: 40px; height: 40px; border: none; background: transparent; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; border-radius: var(--radius-xs);
+    }
+    .ufs-nav--dark  .ufs-nav__icon-btn img,
+    .ufs-nav--glass .ufs-nav__icon-btn img { filter: brightness(0) invert(1); }
+    .ufs-nav__badge {
+      position: absolute; top: 4px; right: 4px; min-width: 16px; height: 16px;
+      background: var(--color-brand-primary); color: white; font-size: 9px; font-weight: 700;
+      border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center;
+      padding: 0 3px;
+    }
+    .ufs-nav__account-dot {
+      position: absolute; bottom: 7px; right: 7px; width: 8px; height: 8px;
+      background: var(--color-success); border-radius: 50%; border: 1.5px solid white;
+    }
+
+    /* Mobile nav */
+    .ufs-nav__mobile-links { display: none; }
+    .pb-canvas-inner.is-mobile .ufs-nav__links { display: none; }
+    .pb-canvas-inner.is-mobile .ufs-nav__mobile-links { display: flex; align-items: center; margin-left: auto; }
+    .pb-canvas-inner.is-mobile .ufs-nav__actions { margin-left: 0; }
+    .pb-canvas-inner.is-mobile .ufs-nav { padding: 0 20px; }
+    .pb-canvas-inner.is-mobile .ufs-util { padding: 0 20px; }
+    .pb-canvas-inner.is-mobile .ufs-util__link { padding: 0 6px; font-size: 10px; }
+
+    /* ================================================================
+       HERO SECTION
+    ================================================================ */
+    .pb-hero { position: relative; overflow: hidden; }
+    .pb-hero--dark {
+      background: linear-gradient(160deg, #3b1e08 0%, #7a3a10 45%, #2a1a0a 100%);
+    }
+    .pb-hero--light { background: var(--color-mushroom-100); }
+    .pb-hero-inner { padding: 80px 64px; max-width: 640px; position: relative; z-index: 1; }
+    .pb-hero-overline {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px;
+    }
+    .pb-hero--dark  .pb-hero-overline { color: var(--color-brand-primary); }
+    .pb-hero--light .pb-hero-overline { color: var(--color-accessible-orange); }
+    .pb-hero-title { font-size: 48px; font-weight: 800; line-height: 56px; margin-bottom: 16px; }
+    .pb-hero--dark  .pb-hero-title { color: white; }
+    .pb-hero--light .pb-hero-title { color: var(--color-brand-dark); }
+    .pb-hero-body { font-size: 16px; line-height: 26px; margin-bottom: 32px; max-width: 480px; }
+    .pb-hero--dark  .pb-hero-body { color: rgba(255,255,255,0.65); }
+    .pb-hero--light .pb-hero-body { color: var(--color-mushroom-900); }
+    .pb-hero-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .pb-hero-btn-primary {
+      padding: 12px 28px; background: var(--color-brand-primary); color: white;
+      font-size: 14px; font-weight: 700; font-family: var(--font-family);
+      border: none; border-radius: var(--radius-sm); cursor: pointer;
+    }
+    .pb-hero-btn-ghost {
+      padding: 12px 28px; background: transparent;
+      font-size: 14px; font-weight: 700; font-family: var(--font-family);
+      border-radius: var(--radius-sm); cursor: pointer;
+    }
+    .pb-hero--dark  .pb-hero-btn-ghost { border: 1.5px solid rgba(255,255,255,0.5); color: rgba(255,255,255,0.85); }
+    .pb-hero--light .pb-hero-btn-ghost { border: 1.5px solid var(--color-brand-dark); color: var(--color-brand-dark); }
+    .pb-hero-img {
+      position: absolute; top: 0; right: 0; width: 50%; height: 100%; object-fit: cover;
+    }
+    .pb-canvas-inner.is-mobile .pb-hero-inner { padding: 48px 24px; }
+    .pb-canvas-inner.is-mobile .pb-hero-title { font-size: 28px; line-height: 36px; }
+    .pb-canvas-inner.is-mobile .pb-hero-img { display: none; }
+
+    /* ================================================================
+       PRODUCT GRID
+    ================================================================ */
+    .pb-products { padding: 60px 64px; background: var(--color-salt); }
+    .pb-products-header {
+      display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px;
+    }
+    .pb-products-title { font-size: 24px; font-weight: 800; color: var(--color-brand-dark); }
+    .pb-products-viewall { font-size: 13px; font-weight: 700; color: var(--color-brand-primary); cursor: pointer; }
+    .pb-products-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .pb-canvas-inner.is-mobile .pb-products { padding: 32px 16px; }
+    .pb-canvas-inner.is-mobile .pb-products-grid { grid-template-columns: repeat(2, 1fr); }
+
+    .pb-product-card {
+      border-radius: var(--radius-md); overflow: hidden;
+      border: 1px solid var(--color-mushroom-300); background: white;
+    }
+    .pb-product-img {
+      aspect-ratio: 1/1; overflow: hidden; position: relative;
+    }
+    .pb-product-img img { width: 100%; height: 100%; object-fit: cover; }
+    .pb-product-badge {
+      position: absolute; top: 10px; left: 10px;
+      background: var(--color-brand-primary); color: white;
+      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-full);
+      letter-spacing: 0.3px;
+    }
+    .pb-product-info { padding: 14px; }
+    .pb-product-brand { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: 3px; }
+    .pb-product-name { font-size: 14px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 2px; line-height: 20px; }
+    .pb-product-size { font-size: 12px; color: var(--color-mushroom-700); margin-bottom: 12px; }
+    .pb-product-footer { display: flex; align-items: center; justify-content: space-between; }
+    .pb-product-price { font-size: 16px; font-weight: 800; color: var(--color-brand-dark); }
+    .pb-product-add {
+      width: 32px; height: 32px; background: var(--color-brand-primary); color: white;
+      border: none; border-radius: var(--radius-xs); cursor: pointer; font-size: 20px;
+      display: flex; align-items: center; justify-content: center; font-family: var(--font-family);
+    }
+
+    /* ================================================================
+       CTA BANNER
+    ================================================================ */
+    .pb-cta { padding: 72px 64px; text-align: center; }
+    .pb-cta--dark  { background: var(--color-brand-dark); }
+    .pb-cta--light { background: var(--color-orange-100); }
+    .pb-cta-overline {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px;
+    }
+    .pb-cta--dark  .pb-cta-overline { color: var(--color-brand-primary); }
+    .pb-cta--light .pb-cta-overline { color: var(--color-accessible-orange); }
+    .pb-cta-title { font-size: 38px; font-weight: 800; line-height: 46px; margin-bottom: 14px; }
+    .pb-cta--dark  .pb-cta-title { color: white; }
+    .pb-cta--light .pb-cta-title { color: var(--color-brand-dark); }
+    .pb-cta-body { font-size: 16px; line-height: 26px; max-width: 500px; margin: 0 auto 32px; }
+    .pb-cta--dark  .pb-cta-body { color: rgba(255,255,255,0.6); }
+    .pb-cta--light .pb-cta-body { color: var(--color-mushroom-900); }
+    .pb-cta-btn {
+      display: inline-block; padding: 14px 36px;
+      background: var(--color-brand-primary); color: white;
+      font-size: 14px; font-weight: 700; font-family: var(--font-family);
+      border: none; border-radius: var(--radius-sm); cursor: pointer;
+    }
+    .pb-canvas-inner.is-mobile .pb-cta { padding: 48px 24px; }
+    .pb-canvas-inner.is-mobile .pb-cta-title { font-size: 26px; line-height: 34px; }
+
+    /* ================================================================
+       FOOTER
+    ================================================================ */
+    .pb-footer { background: var(--color-squid-900); color: white; }
+    .pb-footer-top { display: grid; grid-template-columns: 1fr 2.2fr; gap: 48px; padding: 48px 64px 40px; }
+    .pb-footer-logo { height: 24px; margin-bottom: 16px; }
+    .pb-footer-tagline { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 22px; max-width: 200px; }
+    .pb-footer-social { display: flex; gap: 10px; margin-top: 20px; }
+    .pb-footer-social-icon {
+      width: 32px; height: 32px; border-radius: var(--radius-xs);
+      background: rgba(255,255,255,0.07); display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .pb-footer-social-icon img { width: 16px; height: 16px; filter: brightness(0) invert(0.5); }
+    .pb-footer-cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .pb-footer-col-title {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+      color: rgba(255,255,255,0.35); margin-bottom: 14px;
+    }
+    .pb-footer-link {
+      font-size: 13px; color: rgba(255,255,255,0.55); margin-bottom: 9px; cursor: pointer; display: block;
+    }
+    .pb-footer-bottom {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 64px; border-top: 1px solid rgba(255,255,255,0.07);
+      font-size: 11px; color: rgba(255,255,255,0.28);
+    }
+    .pb-footer-bottom-links { display: flex; gap: 20px; }
+    .pb-canvas-inner.is-mobile .pb-footer-top { grid-template-columns: 1fr; padding: 32px 20px 24px; gap: 28px; }
+    .pb-canvas-inner.is-mobile .pb-footer-cols { grid-template-columns: repeat(2, 1fr); }
+    .pb-canvas-inner.is-mobile .pb-footer-bottom { padding: 14px 20px; flex-direction: column; gap: 6px; text-align: center; }
+
+  </style>
+</head>
+<body>
+
+  <!-- ============================================================
+       HEADER
+  ============================================================ -->
+  <header class="pb-header">
+    <a href="index-v2.html" class="pb-back">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 2L4 6l4 4"/>
+      </svg>
+      Design System
+    </a>
+    <div class="pb-header-divider"></div>
+    <div class="pb-header-title">
+      Page Builder
+      <span class="pb-header-subtitle">Webmaster preview tool</span>
+    </div>
+
+    <div class="pb-header-actions">
+      <div class="pb-count-badge" id="pb-count">Canvas is empty</div>
+
+      <div class="pb-vp-toggle">
+        <button class="pb-vp-btn is-active" onclick="PB.setViewport('desktop',this)" title="Desktop">
+          <svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="1" width="16" height="10" rx="1.5"/>
+            <path d="M6 13h6M9 11v2"/>
+          </svg>
+        </button>
+        <button class="pb-vp-btn" onclick="PB.setViewport('mobile',this)" title="Mobile (390px)">
+          <svg width="11" height="16" viewBox="0 0 11 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="1" y="1" width="9" height="14" rx="2"/>
+            <circle cx="5.5" cy="12.5" r="0.8" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+      </div>
+
+      <button class="pb-clear-btn" onclick="PB.clear()">Clear canvas</button>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       LAYOUT
+  ============================================================ -->
+  <div class="pb-layout">
+
+    <!-- Component Panel -->
+    <aside class="pb-panel">
+      <div class="pb-panel-header">
+        <div class="pb-panel-title">Page Sections</div>
+        <div class="pb-panel-desc">Drag a section onto the canvas to add it to your page.</div>
+      </div>
+
+      <div class="pb-library">
+
+        <!-- Navigation -->
+        <div class="pb-lib-item" data-type="nav">
+          <div class="pb-lib-thumb pb-lib-thumb--nav">
+            <div class="pb-lib-util-bar"></div>
+            <div class="pb-lib-nav-bar">
+              <div class="pb-lib-logo-dot"></div>
+              <div class="pb-lib-nav-links">
+                <div class="pb-lib-nav-link"></div>
+                <div class="pb-lib-nav-link"></div>
+                <div class="pb-lib-nav-link"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pb-lib-label">Navigation</div>
+          <div class="pb-lib-meta">Dark · Light · Glass</div>
+        </div>
+
+        <!-- Hero -->
+        <div class="pb-lib-item" data-type="hero">
+          <div class="pb-lib-thumb pb-lib-thumb--hero">
+            <div class="pb-lib-hero-lines"></div>
+          </div>
+          <div class="pb-lib-label">Hero / Banner</div>
+          <div class="pb-lib-meta">Dark · Light</div>
+        </div>
+
+        <!-- Product Grid -->
+        <div class="pb-lib-item" data-type="product-grid">
+          <div class="pb-lib-thumb pb-lib-thumb--grid">
+            <div class="pb-lib-grid-row">
+              <div class="pb-lib-grid-card"></div>
+              <div class="pb-lib-grid-card"></div>
+              <div class="pb-lib-grid-card"></div>
+              <div class="pb-lib-grid-card"></div>
+            </div>
+          </div>
+          <div class="pb-lib-label">Product Grid</div>
+          <div class="pb-lib-meta">Default</div>
+        </div>
+
+        <!-- CTA Banner -->
+        <div class="pb-lib-item" data-type="cta">
+          <div class="pb-lib-thumb pb-lib-thumb--cta">
+            <div class="pb-lib-cta-line"></div>
+            <div class="pb-lib-cta-btn"></div>
+          </div>
+          <div class="pb-lib-label">CTA Banner</div>
+          <div class="pb-lib-meta">Dark · Light</div>
+        </div>
+
+        <!-- Footer -->
+        <div class="pb-lib-item" data-type="footer">
+          <div class="pb-lib-thumb pb-lib-thumb--footer">
+            <div class="pb-lib-footer-cols">
+              <div class="pb-lib-footer-col"></div>
+              <div class="pb-lib-footer-col"></div>
+              <div class="pb-lib-footer-col"></div>
+            </div>
+            <div class="pb-lib-footer-bar"></div>
+          </div>
+          <div class="pb-lib-label">Footer</div>
+          <div class="pb-lib-meta">Dark</div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- Canvas -->
+    <main class="pb-canvas-wrap" id="pb-canvas-wrap">
+      <div class="pb-canvas-inner is-desktop" id="pb-canvas-inner">
+        <div id="pb-canvas"></div>
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    /* ================================================================
+       PAGE BUILDER ENGINE
+    ================================================================ */
+    const PB = {
+      sections: [],
+      viewport: 'desktop',
+
+      _dragType: null,   // type being dragged from library
+      _dragId:   null,   // id of section being reordered
+
+      VARIANTS: {
+        nav:            ['dark','light','glass'],
+        hero:           ['dark','light'],
+        'product-grid': [],
+        cta:            ['dark','light'],
+        footer:         [],
+      },
+
+      DEFAULT_VARIANT: {
+        nav: 'dark', hero: 'dark', 'product-grid': 'default', cta: 'dark', footer: 'dark',
+      },
+
+      LABELS: {
+        nav: 'Navigation', hero: 'Hero / Banner',
+        'product-grid': 'Product Grid', cta: 'CTA Banner', footer: 'Footer',
+      },
+
+      VAR_LABELS: { dark:'Dark', light:'Light', glass:'Glass', default:'Default' },
+
+      /* ── Init ──────────────────────────────────────────────── */
+      init() {
+        this.render();
+
+        // Library items — drag to canvas
+        document.querySelectorAll('.pb-lib-item').forEach(item => {
+          item.setAttribute('draggable', 'true');
+
+          item.addEventListener('dragstart', e => {
+            this._dragType = item.dataset.type;
+            this._dragId   = null;
+            e.dataTransfer.effectAllowed = 'copy';
+            item.classList.add('is-dragging');
+          });
+          item.addEventListener('dragend', () => {
+            item.classList.remove('is-dragging');
+            this._dragType = null;
+          });
+        });
+
+        // Canvas wrap — accept library drops at the end
+        const wrap = document.getElementById('pb-canvas-wrap');
+        wrap.addEventListener('dragover', e => {
+          e.preventDefault();
+          if (this._dragType) {
+            document.getElementById('pb-canvas-inner').classList.add('drop-active');
+          }
+        });
+        wrap.addEventListener('dragleave', e => {
+          if (!wrap.contains(e.relatedTarget)) {
+            document.getElementById('pb-canvas-inner').classList.remove('drop-active');
+          }
+        });
+        wrap.addEventListener('drop', e => {
+          e.preventDefault();
+          document.getElementById('pb-canvas-inner').classList.remove('drop-active');
+          if (this._dragType) {
+            this.addSection(this._dragType);
+            this._dragType = null;
+          }
+        });
+      },
+
+      /* ── State ─────────────────────────────────────────────── */
+      addSection(type, insertBeforeId) {
+        const id = 'sec-' + Date.now();
+        const variant = this.DEFAULT_VARIANT[type] || 'dark';
+        const sec = { id, type, variant };
+        if (insertBeforeId) {
+          const idx = this.sections.findIndex(s => s.id === insertBeforeId);
+          this.sections.splice(idx >= 0 ? idx : this.sections.length, 0, sec);
+        } else {
+          this.sections.push(sec);
+        }
+        this.render();
+      },
+
+      removeSection(id) {
+        this.sections = this.sections.filter(s => s.id !== id);
+        this.render();
+      },
+
+      setVariant(id, variant) {
+        const sec = this.sections.find(s => s.id === id);
+        if (sec) { sec.variant = variant; this.render(); }
+      },
+
+      setViewport(vp, btn) {
+        this.viewport = vp;
+        const inner = document.getElementById('pb-canvas-inner');
+        inner.className = 'pb-canvas-inner is-' + vp;
+        document.querySelectorAll('.pb-vp-btn').forEach(b => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
+      },
+
+      clear() {
+        if (!this.sections.length) return;
+        if (confirm('Remove all sections from the canvas?')) {
+          this.sections = [];
+          this.render();
+        }
+      },
+
+      /* ── Render ─────────────────────────────────────────────── */
+      render() {
+        const canvas = document.getElementById('pb-canvas');
+        const badge  = document.getElementById('pb-count');
+
+        if (!this.sections.length) {
+          canvas.innerHTML = `
+            <div class="pb-empty">
+              <div class="pb-empty-icon">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="7" height="5" rx="1"/>
+                  <rect x="14" y="3" width="7" height="5" rx="1"/>
+                  <rect x="3" y="11" width="18" height="5" rx="1"/>
+                  <rect x="3" y="19" width="18" height="2" rx="1"/>
+                </svg>
+              </div>
+              <div class="pb-empty-title">Start building your page</div>
+              <div class="pb-empty-desc">Drag sections from the left panel onto this canvas to compose your page layout.</div>
+            </div>`;
+          badge.innerHTML = 'Canvas is empty';
+          return;
+        }
+
+        const n = this.sections.length;
+        badge.innerHTML = `<span>${n}</span> section${n !== 1 ? 's' : ''}`;
+
+        canvas.innerHTML = this.sections.map(sec => this._sectionHTML(sec)).join('');
+
+        // Attach drag/drop events after render
+        this.sections.forEach(sec => this._bindSection(sec.id));
+      },
+
+      _sectionHTML(sec) {
+        const variants = this.VARIANTS[sec.type] || [];
+        const varHTML = variants.length > 1
+          ? `<div class="pb-var-group">${variants.map(v =>
+              `<button class="pb-var-btn${v === sec.variant ? ' is-active' : ''}" onclick="PB.setVariant('${sec.id}','${v}')">${this.VAR_LABELS[v]}</button>`
+            ).join('')}</div>`
+          : '';
+
+        return `
+          <div class="pb-section" id="pbs-${sec.id}">
+            <div class="pb-section-bar">
+              <div class="pb-drag-handle" id="dh-${sec.id}" title="Drag to reorder">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                  <circle cx="4" cy="3" r="1.3"/><circle cx="10" cy="3" r="1.3"/>
+                  <circle cx="4" cy="7" r="1.3"/><circle cx="10" cy="7" r="1.3"/>
+                  <circle cx="4" cy="11" r="1.3"/><circle cx="10" cy="11" r="1.3"/>
+                </svg>
+              </div>
+              <span class="pb-section-label">${this.LABELS[sec.type]}</span>
+              <div class="pb-spacer"></div>
+              ${varHTML}
+              <button class="pb-remove-btn" onclick="PB.removeSection('${sec.id}')" title="Remove section">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="1.5" y1="1.5" x2="10.5" y2="10.5"/>
+                  <line x1="10.5" y1="1.5" x2="1.5" y2="10.5"/>
+                </svg>
+              </button>
+            </div>
+            <div class="pb-section-content">${this._renderContent(sec)}</div>
+          </div>`;
+      },
+
+      _bindSection(id) {
+        const el     = document.getElementById('pbs-' + id);
+        const handle = document.getElementById('dh-' + id);
+        if (!el || !handle) return;
+
+        // Only draggable via handle
+        handle.addEventListener('mousedown', () => el.setAttribute('draggable', 'true'));
+        document.addEventListener('mouseup', () => el.setAttribute('draggable', 'false'), { once: true });
+
+        el.addEventListener('dragstart', e => {
+          if (el.getAttribute('draggable') !== 'true') { e.preventDefault(); return; }
+          this._dragId   = id;
+          this._dragType = null;
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', id);
+          requestAnimationFrame(() => el.classList.add('pb-section--dragging'));
+        });
+
+        el.addEventListener('dragend', () => {
+          el.setAttribute('draggable', 'false');
+          el.classList.remove('pb-section--dragging');
+          this._dragId = null;
+          document.querySelectorAll('.pb-section').forEach(e => e.classList.remove('drop-top','drop-bottom'));
+        });
+
+        el.addEventListener('dragover', e => {
+          if (!this._dragId && !this._dragType) return;
+          e.preventDefault(); e.stopPropagation();
+          const rect = el.getBoundingClientRect();
+          const isBefore = e.clientY < rect.top + rect.height / 2;
+          document.querySelectorAll('.pb-section').forEach(e => e.classList.remove('drop-top','drop-bottom'));
+          el.classList.add(isBefore ? 'drop-top' : 'drop-bottom');
+        });
+
+        el.addEventListener('dragleave', e => {
+          if (!el.contains(e.relatedTarget)) el.classList.remove('drop-top','drop-bottom');
+        });
+
+        el.addEventListener('drop', e => {
+          e.preventDefault(); e.stopPropagation();
+          const rect    = el.getBoundingClientRect();
+          const isBefore = e.clientY < rect.top + rect.height / 2;
+          el.classList.remove('drop-top','drop-bottom');
+
+          if (this._dragType) {
+            // Library drop at specific position
+            const newId  = 'sec-' + Date.now();
+            const newSec = { id: newId, type: this._dragType, variant: this.DEFAULT_VARIANT[this._dragType] || 'dark' };
+            const toIdx  = this.sections.findIndex(s => s.id === id);
+            this.sections.splice(isBefore ? toIdx : toIdx + 1, 0, newSec);
+            this._dragType = null;
+            document.getElementById('pb-canvas-inner').classList.remove('drop-active');
+            this.render();
+
+          } else if (this._dragId && this._dragId !== id) {
+            // Reorder
+            const fromIdx = this.sections.findIndex(s => s.id === this._dragId);
+            const [moved] = this.sections.splice(fromIdx, 1);
+            const toIdx   = this.sections.findIndex(s => s.id === id);
+            this.sections.splice(isBefore ? toIdx : toIdx + 1, 0, moved);
+            this._dragId = null;
+            this.render();
+          }
+        });
+      },
+
+      /* ── Section content ────────────────────────────────────── */
+      _renderContent(sec) {
+        switch (sec.type) {
+          case 'nav':          return this._nav(sec.variant);
+          case 'hero':         return this._hero(sec.variant);
+          case 'product-grid': return this._productGrid();
+          case 'cta':          return this._cta(sec.variant);
+          case 'footer':       return this._footer();
+          default:             return '<div style="padding:40px;text-align:center;color:#999">Unknown section</div>';
+        }
+      },
+
+      _nav(variant) {
+        const darkUtil  = variant === 'glass' ? 'ufs-util--dark" style="background:rgba(15,13,25,0.45)' : 'ufs-util--dark';
+        const lightUtil = 'ufs-util--light';
+        const utilClass = variant === 'light' ? lightUtil : darkUtil;
+        const chevron   = `<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`;
+
+        const wrap = variant === 'glass'
+          ? `style="background:linear-gradient(160deg,#3b1e08 0%,#7a3a10 50%,#2a1a0a 100%);position:relative"`
+          : '';
+
+        return `<div ${wrap}>
+          <div class="ufs-util ${utilClass}">
+            <div class="ufs-util__links">
+              <span class="ufs-util__link">About Us</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Contact</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Help &amp; Support</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Track Your Order</span>
+            </div>
+            <div class="ufs-util__right">
+              <div class="ufs-util__lang">EN ${chevron}</div>
+            </div>
+          </div>
+          <div class="ufs-nav ufs-nav--${variant}">
+            <div class="ufs-nav__logo"><img src="images/ufs-logo.png" alt="UFS" style="height:26px"></div>
+            <div class="ufs-nav__links">
+              <div class="ufs-nav__link">Products ${chevron}</div>
+              <div class="ufs-nav__link">Recipes ${chevron}</div>
+              <div class="ufs-nav__link">Training &amp; Inspiration ${chevron}</div>
+              <div class="ufs-nav__link">Promotions</div>
+            </div>
+            <div class="ufs-nav__mobile-links">
+              <button class="ufs-nav__icon-btn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${variant === 'light' ? '#221D37' : 'white'}" stroke-width="2" stroke-linecap="round">
+                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+              </button>
+            </div>
+            <div class="ufs-nav__actions">
+              <button class="ufs-nav__icon-btn"><img src="icons/Search.svg" alt="" style="width:20px;height:20px"></button>
+              <button class="ufs-nav__icon-btn" style="position:relative">
+                <img src="icons/cart.svg" alt="" style="width:20px;height:20px">
+                <span class="ufs-nav__badge">3</span>
+              </button>
+              <button class="ufs-nav__icon-btn" style="position:relative">
+                <img src="icons/profile.svg" alt="" style="width:20px;height:20px">
+                <span class="ufs-nav__account-dot"></span>
+              </button>
+            </div>
+          </div>
+          ${variant === 'glass' ? '<div style="height:80px"></div>' : ''}
+        </div>`;
+      },
+
+      _hero(variant) {
+        const img = `images/G_DSC_6099.jpg`;
+        const showImg = variant === 'dark' ? `<img class="pb-hero-img" src="${img}" alt="">` : '';
+        return `<div class="pb-hero pb-hero--${variant}">
+          <div class="pb-hero-inner">
+            <div class="pb-hero-overline">New Collection</div>
+            <h1 class="pb-hero-title">Crafted for<br>Professional Chefs</h1>
+            <p class="pb-hero-body">Professional-grade ingredients trusted by chefs worldwide. Discover the full UFS range and elevate every dish.</p>
+            <div class="pb-hero-actions">
+              <button class="pb-hero-btn-primary">Explore Products</button>
+              <button class="pb-hero-btn-ghost">Learn More</button>
+            </div>
+          </div>
+          ${showImg}
+        </div>`;
+      },
+
+      _productGrid() {
+        const products = [
+          { name: 'Knorr Professional Demi-Glace', brand: 'Knorr', size: '1 kg', price: '$18.90', img: 'images/banners/promo-1.jpg', badge: 'New' },
+          { name: 'Hellmann\'s Real Mayonnaise',    brand: 'Hellmann\'s', size: '3.78 L', price: '$24.50', img: 'images/banners/promo-2.jpg', badge: null },
+          { name: 'UFS Tomato Ketchup',             brand: 'UFS', size: '2 kg', price: '$12.00', img: 'images/banners/promo-3.jpg', badge: 'Sale' },
+          { name: 'Carte d\'Or Vanilla Cream',      brand: "Carte d'Or", size: '1.5 kg', price: '$21.80', img: 'images/banners/promo-4.jpg', badge: null },
+        ];
+        const cards = products.map(p => `
+          <div class="pb-product-card">
+            <div class="pb-product-img">
+              <img src="${p.img}" alt="${p.name}">
+              ${p.badge ? `<span class="pb-product-badge">${p.badge}</span>` : ''}
+            </div>
+            <div class="pb-product-info">
+              <div class="pb-product-brand">${p.brand}</div>
+              <div class="pb-product-name">${p.name}</div>
+              <div class="pb-product-size">${p.size}</div>
+              <div class="pb-product-footer">
+                <span class="pb-product-price">${p.price}</span>
+                <button class="pb-product-add">+</button>
+              </div>
+            </div>
+          </div>`).join('');
+
+        return `<div class="pb-products">
+          <div class="pb-products-header">
+            <h2 class="pb-products-title">Featured Products</h2>
+            <a class="pb-products-viewall">View all products →</a>
+          </div>
+          <div class="pb-products-grid">${cards}</div>
+        </div>`;
+      },
+
+      _cta(variant) {
+        return `<div class="pb-cta pb-cta--${variant}">
+          <div class="pb-cta-overline">Join the UFS Community</div>
+          <h2 class="pb-cta-title">Ready to elevate your kitchen?</h2>
+          <p class="pb-cta-body">Create a free account to access exclusive recipes, training resources, and professional pricing.</p>
+          <button class="pb-cta-btn">Get Started Today</button>
+        </div>`;
+      },
+
+      _footer() {
+        return `<footer class="pb-footer">
+          <div class="pb-footer-top">
+            <div>
+              <img src="images/ufs-logo.png" alt="UFS" class="pb-footer-logo">
+              <p class="pb-footer-tagline">Professional ingredients and inspiration for chefs who mean business.</p>
+              <div class="pb-footer-social">
+                <div class="pb-footer-social-icon"><img src="icons/instagram.svg" alt="Instagram"></div>
+                <div class="pb-footer-social-icon"><img src="icons/facebook.svg" alt="Facebook"></div>
+                <div class="pb-footer-social-icon"><img src="icons/linkedin.svg" alt="LinkedIn"></div>
+                <div class="pb-footer-social-icon"><img src="icons/youtube.svg" alt="YouTube"></div>
+              </div>
+            </div>
+            <div class="pb-footer-cols">
+              <div>
+                <div class="pb-footer-col-title">Products</div>
+                <a class="pb-footer-link">Sauces &amp; Condiments</a>
+                <a class="pb-footer-link">Dairy &amp; Fats</a>
+                <a class="pb-footer-link">Culinary Bases</a>
+                <a class="pb-footer-link">Desserts</a>
+              </div>
+              <div>
+                <div class="pb-footer-col-title">Explore</div>
+                <a class="pb-footer-link">Recipes</a>
+                <a class="pb-footer-link">Training</a>
+                <a class="pb-footer-link">Food Trends</a>
+                <a class="pb-footer-link">UFS Academy</a>
+              </div>
+              <div>
+                <div class="pb-footer-col-title">Company</div>
+                <a class="pb-footer-link">About Us</a>
+                <a class="pb-footer-link">Contact</a>
+                <a class="pb-footer-link">Help &amp; Support</a>
+                <a class="pb-footer-link">Track Your Order</a>
+              </div>
+            </div>
+          </div>
+          <div class="pb-footer-bottom">
+            <span>© 2025 Unilever Food Solutions. All rights reserved.</span>
+            <div class="pb-footer-bottom-links">
+              <span>Privacy Policy</span>
+              <span>Terms of Use</span>
+              <span>Cookie Settings</span>
+            </div>
+          </div>
+        </footer>`;
+      },
+    };
+
+    document.addEventListener('DOMContentLoaded', () => PB.init());
+  </script>
+</body>
+</html>

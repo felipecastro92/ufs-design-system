@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Navigation Option 1: Desktop — UFS Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ================================================================
+       DS TOKENS
+    ================================================================ */
+    :root {
+      --color-brand-primary:     #FF5A00;
+      --color-brand-dark:        #221D37;
+      --color-accessible-orange: #D14900;
+      --color-smoke:             #94889D;
+      --color-mushroom:          #CBC5C7;
+      --color-salt:              #FFFFFF;
+      --color-success:           #81BC2A;
+      --color-error:             #D0021B;
+
+      --color-orange-100: #FFDECC;
+      --color-orange-300: #FFA473;
+      --color-orange-500: #FF5A00;
+      --color-orange-700: #BF4400;
+      --color-orange-900: #732900;
+
+      --color-squid-100: #D3D2D7;
+      --color-squid-300: #858391;
+      --color-squid-500: #221D37;
+      --color-squid-700: #1A1629;
+      --color-squid-900: #0F0D19;
+
+      --color-mushroom-100: #F5F3F4;
+      --color-mushroom-200: #EAE7E9;
+      --color-mushroom-300: #E2DFE0;
+      --color-mushroom-500: #CBC5C7;
+      --color-mushroom-700: #989495;
+      --color-mushroom-900: #5B595A;
+
+      --font-family:        'Unilever Shilling', 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-family-mono:   'JetBrains Mono', 'Fira Code', monospace;
+
+      --text-nav-size:        16px;  --text-nav-lh:        24px;  --text-nav-w:         600;
+      --text-btn-size:        14px;  --text-btn-lh:        22px;  --text-btn-w:         600;
+      --text-body-size:       16px;  --text-body-lh:       24px;
+      --text-body-sm-size:    14px;  --text-body-sm-lh:    22px;
+      --text-caption-sm-size: 12px;  --text-caption-sm-lh: 16px;  --text-caption-sm-ls: 0.4px;
+      --text-overline-size:   14px;  --text-overline-lh:   18px;  --text-overline-w:    600;
+
+      --space-1: 4px;  --space-2: 8px;   --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px;  --space-7: 28px; --space-8: 32px;
+      --space-9: 36px; --space-10: 40px; --space-12: 48px;
+
+      --radius-xs: 4px; --radius-sm: 8px;   --radius-md: 12px;
+      --radius-lg: 16px; --radius-xl: 24px; --radius-full: 9999px;
+
+      --shadow-sm: 0 4px 8px rgba(0,0,0,0.10);
+      --shadow-md: 0 8px 16px rgba(0,0,0,0.12);
+      --shadow-lg: 0 16px 40px rgba(0,0,0,0.18);
+
+      --sidebar-width: 260px;
+      --content-max: 980px;
+    }
+
+    /* ================================================================
+       RESET & BASE
+    ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-family);
+      font-size: 16px;
+      line-height: 24px;
+      color: var(--color-brand-dark);
+      background: var(--color-mushroom-100);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    ul { list-style: none; }
+
+    /* ================================================================
+       SIDEBAR
+    ================================================================ */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--color-brand-dark);
+      position: fixed; top: 0; left: 0; height: 100vh;
+      overflow-y: auto;
+      display: flex; flex-direction: column; z-index: 200;
+    }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .sidebar-header { padding: 28px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .sidebar-logo { height: 32px; width: auto; object-fit: contain; margin-bottom: 14px; }
+    .sidebar-tagline { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--color-smoke); }
+    .sidebar-nav { padding: 20px 0; flex: 1; }
+    .sidebar-group { margin-bottom: 4px; }
+    .sidebar-group-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--color-smoke);
+      padding: 10px 24px 4px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding-right: 20px; cursor: pointer; user-select: none;
+    }
+    .sidebar-group-label:hover { color: var(--color-mushroom); }
+    .sidebar-chevron { width: 14px; height: 14px; flex-shrink: 0; transition: transform 0.2s; opacity: 0.5; }
+    .sidebar-group.collapsed .sidebar-chevron { transform: rotate(-90deg); }
+    .sidebar-group-links { overflow: hidden; max-height: 600px; transition: max-height 0.25s, opacity 0.2s; opacity: 1; }
+    .sidebar-group.collapsed .sidebar-group-links { max-height: 0; opacity: 0; }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 24px; font-size: 13px; font-weight: 500;
+      color: var(--color-mushroom);
+      transition: color 0.15s, background 0.15s;
+      border-left: 2px solid transparent; cursor: pointer;
+    }
+    .sidebar-link:hover { color: var(--color-salt); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,90,0,0.07); font-weight: 600; }
+    .nav-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 14px 24px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .sidebar-footer-text { font-size: 10px; color: var(--color-smoke); line-height: 1.5; }
+    .sidebar-back { display: flex; align-items: center; gap: 8px; padding: 14px 24px; font-size: 12px; font-weight: 600; color: var(--color-smoke); border-bottom: 1px solid rgba(255,255,255,0.07); transition: color 0.15s; }
+    .sidebar-back:hover { color: var(--color-salt); }
+    .sidebar-back svg { flex-shrink: 0; }
+
+    /* ================================================================
+       MAIN CONTENT
+    ================================================================ */
+    .content {
+      padding: 64px 40px 120px;
+      padding-left: calc(var(--sidebar-width) + 40px);
+      min-height: 100vh;
+    }
+    .content-inner { max-width: none; }
+
+    /* Page title */
+    .page-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-orange-700); margin-bottom: 8px; }
+    .page-title { font-size: 31px; font-weight: 700; line-height: 40px; color: var(--color-brand-dark); margin-bottom: 10px; }
+    .page-desc { font-size: 16px; line-height: 26px; color: var(--color-mushroom-900); max-width: 600px; margin-bottom: 56px; }
+
+    /* Section */
+    .exp-section { margin-bottom: 72px; }
+    .exp-section-title { font-size: 20px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 6px; }
+    .exp-section-desc { font-size: 14px; line-height: 22px; color: var(--color-mushroom-900); margin-bottom: 28px; }
+    .exp-section-rule { height: 1px; background: var(--color-mushroom-300); margin-bottom: 28px; }
+
+    /* Variant label */
+    .var-label { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: 8px; }
+    .var-note { font-size: 12px; color: var(--color-mushroom-700); margin-top: 8px; font-style: italic; }
+
+    /* Grid layouts */
+    .grid-2 { display: flex; flex-direction: column; gap: 32px; }
+    .grid-3 { display: flex; flex-direction: column; gap: 32px; }
+
+    /* Nav canvas */
+    .nav-canvas {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--color-mushroom-300);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+    .nav-canvas-body {
+      padding: 32px 40px;
+      min-height: 72px;
+    }
+    .nav-canvas-body--dark { background: var(--color-squid-700); }
+    .nav-canvas-body--light { background: var(--color-mushroom-200); }
+    .nav-canvas-body--food {
+      background: linear-gradient(160deg, #3b1e08 0%, #7a3a10 45%, #2a1a0a 100%);
+      min-height: 120px;
+    }
+
+    /* Tab switcher */
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; background: var(--color-mushroom-200); border-radius: var(--radius-sm); padding: 4px; width: fit-content; }
+    .tab-btn { padding: 8px 20px; border-radius: var(--radius-xs); font-size: 13px; font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--color-mushroom-900); transition: all 0.15s; }
+    .tab-btn.is-active { background: var(--color-salt); color: var(--color-brand-dark); box-shadow: var(--shadow-sm); }
+
+    /* Mobile frames row */
+    .mobile-row { display: flex; gap: 24px; align-items: flex-start; }
+    .mobile-col { flex: 1; min-width: 0; }
+    .mobile-frame {
+      width: 100%;
+      max-width: 320px;
+      border-radius: 28px;
+      border: 3px solid var(--color-squid-500);
+      overflow: hidden;
+      background: var(--color-mushroom-100);
+      position: relative;
+      box-shadow: var(--shadow-md);
+    }
+    .mobile-frame-inner { height: 520px; overflow: hidden; position: relative; background: var(--color-mushroom-100); }
+
+    /* ================================================================
+       UFS NAV COMPONENT — UTILITY BAR
+    ================================================================ */
+    .ufs-util {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 36px;
+      font-size: var(--text-caption-sm-size); font-weight: 500; letter-spacing: var(--text-caption-sm-ls);
+    }
+    .ufs-util--dark { background: var(--color-squid-900); color: rgba(255,255,255,0.55); }
+    .ufs-util--light { background: var(--color-mushroom-200); color: var(--color-mushroom-900); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-util__links { display: flex; align-items: center; gap: 0; }
+    .ufs-util__link { padding: 0 12px; cursor: pointer; transition: color 0.15s; white-space: nowrap; }
+    .ufs-util__link:first-child { padding-left: 0; }
+    .ufs-util--dark .ufs-util__link:hover { color: rgba(255,255,255,0.9); }
+    .ufs-util--light .ufs-util__link:hover { color: var(--color-brand-dark); }
+    .ufs-util__sep { width: 1px; height: 10px; background: currentColor; opacity: 0.2; }
+    .ufs-util__right { display: flex; align-items: center; gap: 12px; }
+
+    /* Lang in utility bar (Option A) */
+    .ufs-util__lang { display: flex; align-items: center; gap: 5px; cursor: pointer; font-weight: 600; font-size: 12px; transition: color 0.15s; }
+    .ufs-util__lang:hover { color: var(--color-brand-primary); }
+    .ufs-util__lang svg { flex-shrink: 0; }
+
+    /* ================================================================
+       UFS NAV COMPONENT — MAIN NAV
+    ================================================================ */
+    .ufs-nav {
+      display: flex; align-items: center;
+      padding: 0 32px; height: 68px;
+      position: relative; z-index: 10;
+      transition: height 0.3s, background 0.3s, box-shadow 0.3s;
+    }
+    .ufs-nav--dark  { background: var(--color-brand-dark); }
+    .ufs-nav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-nav--glass { background: rgba(34,29,55,0); }
+    .ufs-nav--shrunk { height: 52px; }
+    .ufs-nav--shrunk.ufs-nav--dark  { background: var(--color-brand-dark); box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+    .ufs-nav--shrunk.ufs-nav--light { background: rgba(255,255,255,0.96); backdrop-filter: blur(8px); box-shadow: var(--shadow-sm); }
+
+    /* Logo */
+    .ufs-nav__logo { flex-shrink: 0; margin-right: 36px; display: flex; align-items: center; }
+    .ufs-nav__logo img { height: 26px; display: block; }
+
+    /* Primary links */
+    .ufs-nav__links { display: flex; align-items: stretch; height: 100%; }
+    .ufs-nav__link {
+      display: flex; align-items: center; gap: 4px;
+      padding: 0 14px; height: 100%;
+      font-size: var(--text-nav-size); font-weight: var(--text-nav-w); line-height: var(--text-nav-lh);
+      cursor: pointer; position: relative;
+      transition: color 0.15s; white-space: nowrap;
+      border-bottom: 2px solid transparent;
+    }
+    .ufs-nav--dark  .ufs-nav__link { color: rgba(255,255,255,0.72); }
+    .ufs-nav--light .ufs-nav__link { color: var(--color-squid-500); }
+    .ufs-nav--glass .ufs-nav__link { color: rgba(255,255,255,0.8); }
+
+    .ufs-nav--dark  .ufs-nav__link:hover,
+    .ufs-nav--dark  .ufs-nav__link.is-active { color: #fff; border-bottom-color: var(--color-brand-primary); }
+    .ufs-nav--light .ufs-nav__link:hover,
+    .ufs-nav--light .ufs-nav__link.is-active { color: var(--color-orange-700); border-bottom-color: var(--color-orange-500); }
+    .ufs-nav--glass .ufs-nav__link:hover,
+    .ufs-nav--glass .ufs-nav__link.is-active { color: #fff; border-bottom-color: var(--color-brand-primary); }
+
+    .ufs-nav__link-chev { width: 11px; height: 11px; flex-shrink: 0; }
+
+    /* Actions area */
+    .ufs-nav__actions { display: flex; align-items: center; gap: 2px; margin-left: auto; }
+
+    /* Icon buttons */
+    .ufs-nav__icon-btn {
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-full); background: none; border: none; cursor: pointer;
+      position: relative; transition: background 0.15s; flex-shrink: 0;
+    }
+    .ufs-nav--dark  .ufs-nav__icon-btn { color: rgba(255,255,255,0.78); }
+    .ufs-nav--dark  .ufs-nav__icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .ufs-nav--light .ufs-nav__icon-btn { color: var(--color-squid-500); }
+    .ufs-nav--light .ufs-nav__icon-btn:hover { background: var(--color-mushroom-100); }
+    .ufs-nav--glass .ufs-nav__icon-btn { color: rgba(255,255,255,0.8); }
+    .ufs-nav--glass .ufs-nav__icon-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    /* Cart badge */
+    .ufs-nav__badge {
+      position: absolute; top: 4px; right: 4px;
+      background: var(--color-accessible-orange); color: #fff;
+      font-size: 9px; font-weight: 700; min-width: 16px; height: 16px;
+      border-radius: var(--radius-full); display: flex; align-items: center;
+      justify-content: center; padding: 0 3px; pointer-events: none;
+    }
+    .ufs-nav--light .ufs-nav__badge { border: 1.5px solid var(--color-salt); }
+    .ufs-nav--dark  .ufs-nav__badge { border: 1.5px solid var(--color-brand-dark); }
+
+    /* Account pulsing dot */
+    @keyframes pulse-dot {
+      0%   { box-shadow: 0 0 0 0   rgba(255,90,0,0.55); }
+      70%  { box-shadow: 0 0 0 5px rgba(255,90,0,0); }
+      100% { box-shadow: 0 0 0 0   rgba(255,90,0,0); }
+    }
+    .ufs-nav__account-dot {
+      position: absolute; bottom: 7px; right: 7px;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--color-brand-primary);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .ufs-nav--dark  .ufs-nav__account-dot { border: 1.5px solid var(--color-brand-dark); }
+    .ufs-nav--light .ufs-nav__account-dot { border: 1.5px solid var(--color-salt); }
+    .ufs-nav--glass .ufs-nav__account-dot { border: 1.5px solid transparent; }
+
+    /* Log in button (non-logged) */
+    .ufs-nav__login {
+      display: flex; align-items: center; gap: 6px;
+      padding: 0 14px 0 10px; height: 36px; border-radius: var(--radius-md);
+      font-size: var(--text-btn-size); font-weight: var(--text-btn-w); cursor: pointer;
+      border: 1.5px solid; transition: all 0.15s; white-space: nowrap;
+    }
+    .ufs-nav--dark  .ufs-nav__login { color: rgba(255,255,255,0.82); border-color: rgba(255,255,255,0.2); }
+    .ufs-nav--dark  .ufs-nav__login:hover { color: #fff; border-color: rgba(255,255,255,0.5); }
+    .ufs-nav--light .ufs-nav__login { color: var(--color-squid-500); border-color: var(--color-mushroom-300); }
+    .ufs-nav--light .ufs-nav__login:hover { border-color: var(--color-brand-primary); color: var(--color-brand-primary); }
+
+    /* Lang icon in main nav (Option B) */
+    .ufs-nav__lang-icon {
+      display: flex; align-items: center; gap: 5px; padding: 0 8px;
+      height: 36px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+    }
+    .ufs-nav--dark  .ufs-nav__lang-icon { color: rgba(255,255,255,0.7); }
+    .ufs-nav--dark  .ufs-nav__lang-icon:hover { background: rgba(255,255,255,0.08); color: #fff; }
+    .ufs-nav--light .ufs-nav__lang-icon { color: var(--color-squid-500); }
+    .ufs-nav--light .ufs-nav__lang-icon:hover { background: var(--color-mushroom-100); }
+
+    /* Lang pills (Option C) */
+    .ufs-nav__lang-pills { display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: var(--radius-sm); }
+    .ufs-nav--dark  .ufs-nav__lang-pills { background: rgba(255,255,255,0.07); }
+    .ufs-nav--light .ufs-nav__lang-pills { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); }
+    .ufs-nav__lang-pill { padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .ufs-nav--dark  .ufs-nav__lang-pill { color: rgba(255,255,255,0.5); }
+    .ufs-nav--dark  .ufs-nav__lang-pill:hover,
+    .ufs-nav--dark  .ufs-nav__lang-pill.is-active { background: rgba(255,255,255,0.12); color: #fff; }
+    .ufs-nav--light .ufs-nav__lang-pill { color: var(--color-mushroom-900); }
+    .ufs-nav--light .ufs-nav__lang-pill.is-active { background: var(--color-salt); color: var(--color-brand-dark); box-shadow: var(--shadow-sm); }
+
+    /* Divider in actions */
+    .ufs-nav__divider { width: 1px; height: 20px; background: currentColor; opacity: 0.12; margin: 0 6px; }
+
+    /* ================================================================
+       INLINE SEARCH
+    ================================================================ */
+    .ufs-search-inline-wrap { display: flex; align-items: center; flex: 1; overflow: hidden; }
+    .ufs-search-links-group { display: flex; align-items: stretch; height: 68px; transition: opacity 0.25s, transform 0.3s; }
+    .ufs-search-links-group.is-hidden { opacity: 0; pointer-events: none; transform: translateX(-12px); }
+    .ufs-search-field {
+      display: flex; align-items: center; gap: 10px; flex: 1;
+      max-width: 0; opacity: 0; pointer-events: none;
+      transition: max-width 0.35s, opacity 0.25s;
+      overflow: hidden;
+    }
+    .ufs-search-field.is-open { max-width: 600px; opacity: 1; pointer-events: all; }
+    .ufs-search-field input {
+      flex: 1; height: 40px; border-radius: var(--radius-md);
+      border: 1.5px solid; padding: 0 16px;
+      font-family: var(--font-family); font-size: 15px; outline: none;
+      white-space: nowrap;
+    }
+    .ufs-nav--dark .ufs-search-field input {
+      background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #fff;
+    }
+    .ufs-nav--dark .ufs-search-field input::placeholder { color: rgba(255,255,255,0.38); }
+    .ufs-nav--dark .ufs-search-field input:focus { border-color: rgba(255,255,255,0.45); }
+    .ufs-nav--light .ufs-search-field input {
+      background: var(--color-mushroom-100); border-color: var(--color-mushroom-300);
+      color: var(--color-brand-dark);
+    }
+    .ufs-nav--light .ufs-search-field input::placeholder { color: var(--color-mushroom-700); }
+    .ufs-nav--light .ufs-search-field input:focus { border-color: var(--color-brand-dark); }
+    .ufs-nav--light .ufs-search-links-group.is-hidden { opacity: 0; pointer-events: none; transform: translateX(-12px); }
+
+    /* ================================================================
+       OVERLAY SEARCH
+    ================================================================ */
+    .ufs-search-overlay {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--color-salt);
+      padding: 32px 40px 36px; z-index: 50;
+      border-top: 1px solid var(--color-mushroom-300);
+      box-shadow: var(--shadow-lg);
+      display: none;
+    }
+    .ufs-search-overlay.is-open { display: block; }
+    .ufs-search-overlay-inner { max-width: 680px; margin: 0 auto; }
+    .ufs-overlay-field {
+      display: flex; align-items: center; gap: 14px;
+      border-bottom: 2px solid var(--color-brand-dark); padding-bottom: 14px;
+      margin-bottom: 28px;
+    }
+    .ufs-overlay-field svg { color: var(--color-mushroom-700); flex-shrink: 0; }
+    .ufs-overlay-field input {
+      flex: 1; border: none; outline: none;
+      font-family: var(--font-family); font-size: 22px; font-weight: 600;
+      color: var(--color-brand-dark); background: transparent;
+    }
+    .ufs-overlay-field input::placeholder { color: var(--color-mushroom-500); font-weight: 400; }
+    .ufs-overlay-close { width: 36px; height: 36px; border-radius: var(--radius-full); background: var(--color-mushroom-200); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; color: var(--color-squid-500); }
+    .ufs-overlay-close:hover { background: var(--color-mushroom-300); }
+    .ufs-overlay-section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: 12px; }
+    .ufs-overlay-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ufs-overlay-chip {
+      padding: 7px 16px; border-radius: var(--radius-full);
+      border: 1.5px solid var(--color-mushroom-300); font-size: 13px;
+      font-weight: 500; color: var(--color-squid-500); cursor: pointer;
+      transition: all 0.15s;
+    }
+    .ufs-overlay-chip:hover { border-color: var(--color-brand-primary); color: var(--color-brand-primary); }
+
+    /* ================================================================
+       MEGAMENU
+    ================================================================ */
+    .ufs-megamenu {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--color-salt);
+      border-top: 2px solid var(--color-brand-primary);
+      box-shadow: var(--shadow-lg);
+      z-index: 100; display: none;
+    }
+    .ufs-megamenu.is-open { display: block; }
+
+    /* Layout A: 3 equal cols + promo */
+    .mm-a { display: grid; grid-template-columns: 1fr 1fr 1fr 260px; min-height: 320px; }
+
+    /* Layout B: featured wide col + 2 cols + promo */
+    .mm-b { display: grid; grid-template-columns: 1.8fr 1fr 1fr 260px; min-height: 320px; }
+
+    /* Layout C: icons row spans 3 cols, then 3 cols below + promo */
+    .mm-c { display: grid; grid-template-columns: 1fr 1fr 1fr 260px; min-height: 360px; }
+
+    .mm-col { padding: 28px 24px; border-right: 1px solid var(--color-mushroom-200); }
+    .mm-col:last-child { border-right: none; }
+
+    .mm-col-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 16px; display: block; }
+    .mm-links { display: flex; flex-direction: column; }
+    .mm-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 0; font-size: 14px; font-weight: 500;
+      color: var(--color-squid-500); border-bottom: 1px solid var(--color-mushroom-100);
+      cursor: pointer; transition: color 0.15s; gap: 8px;
+    }
+    .mm-link:last-child { border-bottom: none; }
+    .mm-link:hover { color: var(--color-brand-primary); }
+    .mm-link-arr { width: 14px; height: 14px; opacity: 0; transition: opacity 0.15s, transform 0.15s; flex-shrink: 0; }
+    .mm-link:hover .mm-link-arr { opacity: 1; transform: translateX(2px); }
+
+    /* Featured col (Layout B) */
+    .mm-featured { padding: 32px 28px; background: var(--color-mushroom-100); border-right: 1px solid var(--color-mushroom-200); display: flex; flex-direction: column; justify-content: center; }
+    .mm-feat-over { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 12px; }
+    .mm-feat-title { font-size: 24px; font-weight: 700; line-height: 1.25; letter-spacing: -0.3px; color: var(--color-brand-dark); margin-bottom: 12px; }
+    .mm-feat-body { font-size: 14px; line-height: 1.65; color: var(--color-mushroom-900); margin-bottom: 20px; max-width: 34ch; }
+    .mm-feat-cta { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; color: var(--color-orange-700); }
+    .mm-feat-cta:hover { color: var(--color-orange-900); }
+
+    /* Category icons row (Layout C) */
+    .mm-cats-row { grid-column: 1 / 4; display: flex; gap: 8px; padding: 16px 24px; background: var(--color-mushroom-100); border-bottom: 1px solid var(--color-mushroom-200); align-items: center; }
+    .mm-cat {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 10px 14px; border-radius: var(--radius-sm);
+      background: var(--color-salt); cursor: pointer;
+      transition: background 0.15s; min-width: 68px; text-align: center;
+      border: 1px solid var(--color-mushroom-200);
+    }
+    .mm-cat:hover { background: var(--color-orange-100); border-color: var(--color-orange-300); }
+    .mm-cat.is-active { background: var(--color-orange-100); border-color: var(--color-brand-primary); }
+    .mm-cat-icon { font-size: 22px; line-height: 1; }
+    .mm-cat-lbl { font-size: 11px; font-weight: 600; color: var(--color-squid-500); white-space: nowrap; }
+    .mm-cat.is-active .mm-cat-lbl { color: var(--color-orange-700); }
+
+    /* Promo column */
+    .mm-promo { background: var(--color-squid-500); display: flex; flex-direction: column; overflow: hidden; }
+    .mm-promo-img { width: 100%; aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--color-squid-700) 0%, #3d2060 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mm-promo-img-placeholder { font-size: 11px; letter-spacing: 0.6px; text-transform: uppercase; color: rgba(255,255,255,0.25); }
+    .mm-promo-body { padding: 20px; flex: 1; display: flex; flex-direction: column; }
+    .mm-promo-over { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .mm-promo-title { font-size: 16px; font-weight: 700; line-height: 1.4; color: #fff; margin-bottom: 12px; flex: 1; }
+    .mm-promo-cta { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: var(--color-brand-primary); }
+    .mm-promo-cta:hover { color: var(--color-orange-300); }
+
+    /* ================================================================
+       MOBILE NAV BAR
+    ================================================================ */
+    .ufs-mnav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; height: 56px; background: var(--color-brand-dark);
+      position: relative; z-index: 20; flex-shrink: 0;
+    }
+    .ufs-mnav__logo { height: 22px; display: block; }
+    .ufs-mnav__right { display: flex; align-items: center; gap: 0; }
+    .ufs-mnav__btn {
+      width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+      border-radius: var(--radius-full); background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.82); transition: background 0.15s; position: relative;
+    }
+    .ufs-mnav__btn:hover { background: rgba(255,255,255,0.1); }
+
+    /* Mobile search: Option A — persistent bar */
+    .ufs-msearch-bar { padding: 8px 16px 10px; background: var(--color-squid-700); flex-shrink: 0; }
+    .ufs-msearch-bar-inner { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 0 12px; height: 36px; }
+    .ufs-msearch-bar-inner svg { color: rgba(255,255,255,0.45); flex-shrink: 0; }
+    .ufs-msearch-bar-input { flex: 1; border: none; outline: none; font-family: var(--font-family); font-size: 14px; color: #fff; background: transparent; }
+    .ufs-msearch-bar-input::placeholder { color: rgba(255,255,255,0.38); }
+
+    /* Mobile search: Option B — expandable */
+    .ufs-msearch-expand { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; flex-shrink: 0; }
+    .ufs-msearch-expand.is-open { max-height: 60px; }
+    .ufs-msearch-expand-inner { padding: 8px 16px 10px; background: var(--color-squid-700); }
+    .ufs-msearch-expand-field { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); border-radius: var(--radius-md); padding: 0 12px; height: 36px; }
+    .ufs-msearch-expand-field svg { color: rgba(255,255,255,0.45); flex-shrink: 0; }
+    .ufs-msearch-expand-input { flex: 1; border: none; outline: none; font-family: var(--font-family); font-size: 14px; color: #fff; background: transparent; }
+    .ufs-msearch-expand-input::placeholder { color: rgba(255,255,255,0.38); }
+
+    /* Mobile search: Option C — overlay */
+    .ufs-msearch-overlay {
+      position: absolute; inset: 0; background: var(--color-salt);
+      z-index: 30; padding: 20px 16px; display: none; flex-direction: column; gap: 24px;
+    }
+    .ufs-msearch-overlay.is-open { display: flex; }
+    .ufs-msearch-ov-header { display: flex; align-items: center; gap: 12px; }
+    .ufs-msearch-ov-field { flex: 1; display: flex; align-items: center; gap: 10px; border-bottom: 2px solid var(--color-brand-dark); padding-bottom: 8px; }
+    .ufs-msearch-ov-field svg { color: var(--color-mushroom-700); flex-shrink: 0; }
+    .ufs-msearch-ov-input { flex: 1; border: none; outline: none; font-family: var(--font-family); font-size: 18px; font-weight: 600; color: var(--color-brand-dark); background: transparent; }
+    .ufs-msearch-ov-input::placeholder { color: var(--color-mushroom-500); font-weight: 400; }
+    .ufs-msearch-ov-close { width: 36px; height: 36px; border-radius: var(--radius-full); background: var(--color-mushroom-200); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--color-squid-500); }
+    .ufs-msearch-ov-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-mushroom-700); }
+    .ufs-msearch-ov-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+    .ufs-msearch-ov-chip { padding: 6px 14px; border-radius: var(--radius-full); border: 1.5px solid var(--color-mushroom-300); font-size: 13px; font-weight: 500; color: var(--color-squid-500); cursor: pointer; }
+
+    /* Mobile page body simulation */
+    .ufs-mpage-body { flex: 1; padding: 20px 16px; overflow: hidden; }
+    .ufs-mpage-line { height: 14px; background: var(--color-mushroom-300); border-radius: var(--radius-xs); margin-bottom: 10px; }
+    .ufs-mpage-line:nth-child(2) { width: 85%; }
+    .ufs-mpage-line:nth-child(3) { width: 70%; }
+    .ufs-mpage-card { height: 120px; background: var(--color-mushroom-200); border-radius: var(--radius-sm); margin: 16px 0; border: 1px solid var(--color-mushroom-300); }
+
+    /* ================================================================
+       MOBILE DRAWER
+    ================================================================ */
+    .ufs-drawer-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.45); z-index: 40; display: none; backdrop-filter: blur(2px); }
+    .ufs-drawer-backdrop.is-open { display: block; }
+    .ufs-drawer {
+      position: absolute; top: 0; right: 0; bottom: 0; width: 82%;
+      background: var(--color-salt); z-index: 50;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.25,0.1,0.25,1);
+      display: flex; flex-direction: column; overflow-y: auto;
+    }
+    .ufs-drawer.is-open { transform: translateX(0); }
+    .ufs-drawer-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--color-brand-dark); flex-shrink: 0; }
+    .ufs-drawer-logo { height: 22px; display: block; }
+    .ufs-drawer-close { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-full); background: rgba(255,255,255,0.1); border: none; cursor: pointer; color: rgba(255,255,255,0.8); transition: background 0.15s; }
+    .ufs-drawer-close:hover { background: rgba(255,255,255,0.18); }
+    .ufs-drawer-links { flex: 1; padding: 8px 0; }
+    .ufs-drawer-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; font-size: 15px; font-weight: 600;
+      color: var(--color-brand-dark); border-bottom: 1px solid var(--color-mushroom-100);
+      cursor: pointer; transition: color 0.15s;
+    }
+    .ufs-drawer-link:first-child { border-top: 1px solid var(--color-mushroom-100); }
+    .ufs-drawer-link:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-link svg { opacity: 0.3; flex-shrink: 0; }
+    .ufs-drawer-util { padding: 16px 20px; border-top: 1px solid var(--color-mushroom-200); }
+    .ufs-drawer-util-title { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: 10px; }
+    .ufs-drawer-util-link { font-size: 13px; font-weight: 500; color: var(--color-mushroom-900); padding: 6px 0; cursor: pointer; display: block; transition: color 0.15s; }
+    .ufs-drawer-util-link:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-footer { padding: 16px 20px; border-top: 1px solid var(--color-mushroom-200); display: flex; gap: 8px; flex-shrink: 0; }
+    .ufs-drawer-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 40px; border-radius: var(--radius-md); font-family: var(--font-family); font-size: 13px; font-weight: 600; cursor: pointer; }
+    .ufs-drawer-btn--primary { background: var(--color-orange-700); color: #fff; border: none; }
+    .ufs-drawer-btn--secondary { background: transparent; color: var(--color-squid-500); border: 1.5px solid var(--color-mushroom-300); }
+
+    /* ================================================================
+       DS ICON IMAGES
+    ================================================================ */
+    .ufs-icon { display: block; flex-shrink: 0; }
+    .ufs-icon--24 { width: 24px; height: 24px; }
+    .ufs-icon--20 { width: 20px; height: 20px; }
+    .ufs-icon--18 { width: 18px; height: 18px; }
+    .ufs-icon--16 { width: 16px; height: 16px; }
+    .ufs-icon--14 { width: 14px; height: 14px; }
+
+    /* Light nav: icons are black (correct as-is) */
+    .ufs-nav--light .ufs-icon { opacity: 0.75; }
+    .ufs-nav--light .ufs-nav__icon-btn:hover .ufs-icon { opacity: 1; }
+
+    /* Dark / glass nav: invert to white */
+    .ufs-nav--dark  .ufs-icon,
+    .ufs-nav--glass .ufs-icon { filter: brightness(0) invert(1); opacity: 0.78; }
+    .ufs-nav--dark  .ufs-nav__icon-btn:hover .ufs-icon,
+    .ufs-nav--glass .ufs-nav__icon-btn:hover .ufs-icon { opacity: 1; }
+
+    /* Mobile nav bar: invert to white */
+    .ufs-mnav .ufs-icon { filter: brightness(0) invert(1); opacity: 0.82; }
+    .ufs-mnav .ufs-mnav__btn:hover .ufs-icon { opacity: 1; }
+
+    /* Drawer, overlay, sidebar buttons */
+    .ufs-drawer-close .ufs-icon { filter: brightness(0) invert(1); opacity: 0.75; }
+    .ufs-drawer-close:hover .ufs-icon { opacity: 1; }
+    .ufs-drawer-btn .ufs-icon { filter: brightness(0) invert(1); opacity: 0.9; }
+    .ufs-overlay-close .ufs-icon { opacity: 0.6; }
+    .ufs-overlay-close:hover .ufs-icon { opacity: 1; }
+    .sidebar-back .ufs-icon { filter: brightness(0) invert(1); opacity: 0.45; }
+    .sidebar-back:hover .ufs-icon { opacity: 0.9; }
+
+    /* Mobile search field icons */
+    .ufs-msearch-bar-inner .ufs-icon,
+    .ufs-msearch-expand-field .ufs-icon { filter: brightness(0) invert(1); opacity: 0.45; }
+    .ufs-msearch-ov-field .ufs-icon { opacity: 0.55; }
+    .ufs-msearch-ov-close .ufs-icon { opacity: 0.6; }
+    .ufs-msearch-ov-close:hover .ufs-icon { opacity: 1; }
+
+    /* Overlay search field icon */
+    .ufs-overlay-field .ufs-icon { opacity: 0.5; }
+
+    /* Arrow as chevron on nav links — arrow.svg points right, rotate 90° = down */
+    .ufs-nav__link-chev { transform: rotate(90deg); transition: transform 0.2s; flex-shrink: 0; }
+    .ufs-nav__link.is-open .ufs-nav__link-chev { transform: rotate(-90deg); }
+    .ufs-nav--light .ufs-nav__link-chev { opacity: 0.4; }
+    .ufs-nav--dark  .ufs-nav__link-chev,
+    .ufs-nav--glass .ufs-nav__link-chev { filter: brightness(0) invert(1); opacity: 0.55; }
+
+    /* Megamenu link arrows */
+    .mm-link-arr { display: block; width: 14px; height: 14px; }
+    /* CTA arrows */
+    .mm-feat-cta .ufs-icon { filter: invert(29%) sepia(96%) saturate(850%) hue-rotate(13deg) brightness(91%); opacity: 1; }
+    .mm-promo-cta .ufs-icon { filter: brightness(0) invert(1); opacity: 0.9; }
+    /* Drawer button icons */
+    .ufs-drawer-btn--primary .ufs-icon { filter: brightness(0) invert(1); opacity: 0.9; }
+    .ufs-drawer-btn--secondary .ufs-icon { opacity: 0.75; }
+    /* Drawer link arrows */
+    .ufs-drawer-link .ufs-icon { opacity: 0.3; }
+
+    /* ================================================================
+       MINI PHONE PREVIEW (auto-injected after each desktop canvas)
+    ================================================================ */
+    .mini-phone {
+      border-radius: 20px;
+      border: 2.5px solid var(--color-squid-500);
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      max-width: 320px;
+      background: var(--color-mushroom-100);
+      flex-shrink: 0;
+    }
+    .mini-phone-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px; height: 48px; flex-shrink: 0;
+    }
+    .mini-phone-bar--dark  { background: var(--color-brand-dark); }
+    .mini-phone-bar--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+    .mini-phone-logo { height: 18px; display: block; object-fit: contain; }
+    .mini-phone-icons { display: flex; align-items: center; gap: 0; }
+    .mini-phone-btn {
+      width: 30px; height: 30px; display: flex; align-items: center;
+      justify-content: center; position: relative; cursor: default;
+    }
+    .mini-phone-body--dark  { background: var(--color-squid-700); }
+    .mini-phone-body--light { background: var(--color-mushroom-100); }
+    .mini-badge {
+      position: absolute; top: 3px; right: 3px;
+      background: var(--color-accessible-orange); color: #fff;
+      font-size: 7px; font-weight: 700; min-width: 13px; height: 13px;
+      border-radius: var(--radius-full); display: flex; align-items: center;
+      justify-content: center; padding: 0 2px; pointer-events: none;
+    }
+    .mini-dot-dark {
+      position: absolute; bottom: 5px; right: 5px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--color-brand-primary);
+      border: 1.5px solid var(--color-brand-dark);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .mini-dot-light {
+      position: absolute; bottom: 5px; right: 5px;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--color-brand-primary);
+      border: 1.5px solid var(--color-salt);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .mini-search-bar { padding: 6px 12px 8px; background: var(--color-squid-700); }
+    .mini-search-inner {
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.1); border-radius: var(--radius-sm);
+      padding: 0 10px; height: 28px;
+    }
+    .mini-search-placeholder { font-size: 10px; color: rgba(255,255,255,0.38); }
+
+    /* Layout: desktop canvas above, phone frame below */
+    .canvas-with-mobile {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .canvas-col { width: 100%; }
+    .canvas-col-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.6px;
+      text-transform: uppercase; color: var(--color-mushroom-700);
+      margin-bottom: 8px;
+    }
+
+    /* "Open Drawer" trigger button for demos */
+    .demo-trigger { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--color-squid-500); color: #fff; border: none; border-radius: var(--radius-sm); font-family: var(--font-family); font-size: 12px; font-weight: 600; cursor: pointer; margin: 12px 16px; transition: background 0.15s; }
+    .demo-trigger:hover { background: var(--color-squid-700); }
+  </style>
+</head>
+<body>
+
+  <!-- ================================================================
+       SIDEBAR
+  ================================================================ -->
+  <nav class="sidebar">
+    <a href="nav-exploration.html" class="sidebar-back">
+      <img class="ufs-icon ufs-icon--14" src="icons/arrow.svg" alt="" style="transform:rotate(180deg)"/>
+      Back to Nav Exploration
+    </a>
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <div class="sidebar-tagline">Option 1 — Desktop</div>
+    </div>
+    <div class="sidebar-nav">
+      <div class="sidebar-group">
+        <div class="sidebar-group-label" style="cursor:default">Sections</div>
+        <a href="#light-variant" class="sidebar-link active"><span class="nav-dot"></span> Light Variant</a>
+        <a href="#dark-variant" class="sidebar-link"><span class="nav-dot"></span> Dark Variant</a>
+        <a href="#glass-variant" class="sidebar-link"><span class="nav-dot"></span> Transparent / Glass</a>
+        <a href="#sticky-state" class="sidebar-link"><span class="nav-dot"></span> Sticky State</a>
+        <a href="#interactive-demo" class="sidebar-link"><span class="nav-dot"></span> Interactive Demo</a>
+        <a href="#megamenu-products" class="sidebar-link"><span class="nav-dot"></span> Megamenu — Products</a>
+        <a href="#megamenu-recipes" class="sidebar-link"><span class="nav-dot"></span> Megamenu — Recipes</a>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">UFS Navigation · Option 1<br/>© 2026 Unilever Food Solutions</div>
+    </div>
+  </nav>
+
+  <!-- ================================================================
+       MAIN CONTENT
+  ================================================================ -->
+  <main class="content">
+    <div class="content-inner">
+
+      <div class="page-eyebrow">Navigation Exploration</div>
+      <h1 class="page-title">Option 1 — Desktop</h1>
+      <p class="page-desc">Two-tier header: a slim secondary bar on top (About Us, Contact, Help &amp; Support, Track Your Order, Language selector) and a main nav below (Logo → Products, Recipes, Training &amp; Inspiration, Promotions → Search, Cart, Account).</p>
+
+      <!-- ============================================================
+           SECTION 1: LIGHT VARIANT
+      ============================================================ -->
+      <section class="exp-section" id="light-variant">
+        <h2 class="exp-section-title">Light Variant</h2>
+        <p class="exp-section-desc">Default state on a white background. Utility bar uses mushroom-200 with a bottom border. Main nav uses Salt with a bottom stroke.</p>
+        <div class="exp-section-rule"></div>
+
+        <div class="var-label">Default state</div>
+        <div class="nav-canvas">
+          <div class="ufs-util ufs-util--light">
+            <div class="ufs-util__links">
+              <span class="ufs-util__link">About Us</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Contact</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Help &amp; Support</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Track Your Order</span>
+            </div>
+            <div class="ufs-util__right">
+              <div class="ufs-util__lang" style="color:var(--color-mushroom-900)">
+                EN
+                <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/>
+              </div>
+            </div>
+          </div>
+          <div class="ufs-nav ufs-nav--light">
+            <div class="ufs-nav__logo">
+              <img src="images/ufs-logo.png" alt="UFS"/>
+            </div>
+            <div class="ufs-nav__links">
+              <div class="ufs-nav__link is-active">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Promotions</div>
+            </div>
+            <div class="ufs-nav__actions">
+              <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt="Search"/></button>
+              <button class="ufs-nav__icon-btn" style="position:relative">
+                <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="Cart"/>
+                <span class="ufs-nav__badge" style="border-color:white">3</span>
+              </button>
+              <button class="ufs-nav__icon-btn" style="position:relative">
+                <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/>
+                <span class="ufs-nav__account-dot" style="border-color:white"></span>
+              </button>
+            </div>
+          </div>
+          <div class="nav-canvas-body nav-canvas-body--light"></div>
+        </div>
+        <p class="var-note">Utility bar background: mushroom-200. Main nav background: salt. Both have 1 px bottom borders. Total two-tier height: 104 px.</p>
+      </section>
+
+      <!-- ============================================================
+           SECTION 2: DARK VARIANT
+      ============================================================ -->
+      <section class="exp-section" id="dark-variant">
+        <h2 class="exp-section-title">Dark Variant</h2>
+        <p class="exp-section-desc">Default state on a Squid Ink background. Secondary bar sits above the main nav. Language selector on the right of the utility bar.</p>
+        <div class="exp-section-rule"></div>
+
+        <div class="var-label">Default state</div>
+        <div class="nav-canvas">
+          <div class="ufs-util ufs-util--dark">
+            <div class="ufs-util__links">
+              <span class="ufs-util__link">About Us</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Contact</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Help &amp; Support</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Track Your Order</span>
+            </div>
+            <div class="ufs-util__right">
+              <div class="ufs-util__lang">
+                EN
+                <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/>
+              </div>
+            </div>
+          </div>
+          <div class="ufs-nav ufs-nav--dark">
+            <div class="ufs-nav__logo">
+              <img src="images/ufs-logo.png" alt="UFS"/>
+            </div>
+            <div class="ufs-nav__links">
+              <div class="ufs-nav__link is-active">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Promotions</div>
+            </div>
+            <div class="ufs-nav__actions">
+              <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt="Search"/></button>
+              <button class="ufs-nav__icon-btn" style="position:relative">
+                <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="Cart"/>
+                <span class="ufs-nav__badge">3</span>
+              </button>
+              <button class="ufs-nav__icon-btn" style="position:relative">
+                <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/>
+                <span class="ufs-nav__account-dot"></span>
+              </button>
+            </div>
+          </div>
+          <div class="nav-canvas-body nav-canvas-body--dark"></div>
+        </div>
+        <p class="var-note">Secondary bar background: squid-900. Main nav background: brand-dark. Total two-tier height: 104 px.</p>
+      </section>
+
+      <!-- ============================================================
+           SECTION 3: TRANSPARENT / GLASS
+      ============================================================ -->
+      <section class="exp-section" id="glass-variant">
+        <h2 class="exp-section-title">Transparent / Glass</h2>
+        <p class="exp-section-desc">Overlaid directly on a hero image. The nav has no background, letting the image show through. On scroll it transitions to the Dark variant with a shadow.</p>
+        <div class="exp-section-rule"></div>
+
+        <div class="var-label">Over hero image</div>
+        <div class="nav-canvas">
+          <div class="nav-canvas-body nav-canvas-body--food" style="padding:0;min-height:0">
+            <div class="ufs-util ufs-util--dark" style="background:rgba(15,13,25,0.45)">
+              <div class="ufs-util__links">
+                <span class="ufs-util__link">About Us</span>
+                <span class="ufs-util__sep"></span>
+                <span class="ufs-util__link">Contact</span>
+                <span class="ufs-util__sep"></span>
+                <span class="ufs-util__link">Help &amp; Support</span>
+                <span class="ufs-util__sep"></span>
+                <span class="ufs-util__link">Track Your Order</span>
+              </div>
+              <div class="ufs-util__right">
+                <div class="ufs-util__lang">
+                  EN
+                  <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/>
+                </div>
+              </div>
+            </div>
+            <div class="ufs-nav ufs-nav--glass">
+              <div class="ufs-nav__logo">
+                <img src="images/ufs-logo.png" alt="UFS"/>
+              </div>
+              <div class="ufs-nav__links">
+                <div class="ufs-nav__link is-active">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Promotions</div>
+              </div>
+              <div class="ufs-nav__actions">
+                <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt="Search"/></button>
+                <button class="ufs-nav__icon-btn" style="position:relative">
+                  <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="Cart"/>
+                  <span class="ufs-nav__badge">3</span>
+                </button>
+                <button class="ufs-nav__icon-btn" style="position:relative">
+                  <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/>
+                  <span class="ufs-nav__account-dot"></span>
+                </button>
+              </div>
+            </div>
+            <div style="height:120px"></div>
+          </div>
+        </div>
+        <p class="var-note">Secondary bar uses a semi-transparent dark overlay (rgba 45% opacity) so the hero image bleeds through both tiers. On scroll: both bars collapse into the Dark sticky nav.</p>
+      </section>
+
+      <!-- ============================================================
+           SECTION 4: STICKY STATE
+      ============================================================ -->
+      <section class="exp-section" id="sticky-state">
+        <h2 class="exp-section-title">Sticky State</h2>
+        <p class="exp-section-desc">On scroll the utility bar slides up and disappears. The main nav reduces to 52 px and gains a shadow. Shown in both colour treatments.</p>
+        <div class="exp-section-rule"></div>
+
+        <div style="margin-bottom:28px">
+          <div class="var-label">Light — Sticky (scrolled)</div>
+          <div class="nav-canvas">
+            <div class="ufs-nav ufs-nav--light ufs-nav--shrunk">
+              <div class="ufs-nav__logo">
+                <img src="images/ufs-logo.png" alt="UFS"/>
+              </div>
+              <div class="ufs-nav__links">
+                <div class="ufs-nav__link is-active">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Promotions</div>
+              </div>
+              <div class="ufs-nav__actions">
+                <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt=""/></button>
+                <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt=""/><span class="ufs-nav__badge" style="border-color:white">3</span></button>
+                <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt=""/><span class="ufs-nav__account-dot" style="border-color:white"></span></button>
+              </div>
+            </div>
+            <div class="nav-canvas-body nav-canvas-body--light"></div>
+          </div>
+          <p class="var-note">Frosted glass: rgba(255,255,255,0.96) + backdrop-filter: blur(8px). Nav height: 52 px.</p>
+        </div>
+
+        <div>
+          <div class="var-label">Dark — Sticky (scrolled)</div>
+          <div class="nav-canvas">
+            <div class="ufs-nav ufs-nav--dark ufs-nav--shrunk">
+              <div class="ufs-nav__logo">
+                <img src="images/ufs-logo.png" alt="UFS"/>
+              </div>
+              <div class="ufs-nav__links">
+                <div class="ufs-nav__link is-active">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Promotions</div>
+              </div>
+              <div class="ufs-nav__actions">
+                <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt=""/></button>
+                <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt=""/><span class="ufs-nav__badge">3</span></button>
+                <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt=""/><span class="ufs-nav__account-dot"></span></button>
+              </div>
+            </div>
+            <div class="nav-canvas-body nav-canvas-body--dark"></div>
+          </div>
+          <p class="var-note">Utility bar hidden. Nav height: 52 px. Shadow: 0 2px 12px rgba(0,0,0,0.3).</p>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           INTERACTIVE DEMO
+      ============================================================ -->
+      <section class="exp-section" id="interactive-demo">
+        <h2 class="exp-section-title">Interactive Demo</h2>
+        <p class="exp-section-desc">Click any nav item with a chevron to open its megamenu. Click the same item again or anywhere outside to close. Use the variant switcher to preview the nav in different colour treatments.</p>
+        <div class="exp-section-rule"></div>
+
+        <div class="tab-bar" style="margin-bottom:16px">
+          <button class="tab-btn is-active" onclick="demoSwitchVariant('dark',this)">Dark</button>
+          <button class="tab-btn" onclick="demoSwitchVariant('light',this)">Light</button>
+          <button class="tab-btn" onclick="demoSwitchVariant('glass',this)">Glass</button>
+        </div>
+
+        <div class="nav-canvas" style="overflow:visible;position:relative;isolation:isolate;height:400px;display:flex;flex-direction:column" id="demo-canvas">
+
+          <!-- Utility bar (hidden in glass via JS) -->
+          <div id="demo-util-dark" class="ufs-util ufs-util--dark">
+            <div class="ufs-util__links">
+              <span class="ufs-util__link">About Us</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Contact</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Help &amp; Support</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Track Your Order</span>
+            </div>
+            <div class="ufs-util__right">
+              <div class="ufs-util__lang">EN <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/></div>
+            </div>
+          </div>
+          <div id="demo-util-light" class="ufs-util ufs-util--light" style="display:none">
+            <div class="ufs-util__links">
+              <span class="ufs-util__link">About Us</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Contact</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Help &amp; Support</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Track Your Order</span>
+            </div>
+            <div class="ufs-util__right">
+              <div class="ufs-util__lang" style="color:var(--color-mushroom-900)">EN <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/></div>
+            </div>
+          </div>
+          <div id="demo-util-glass" class="ufs-util ufs-util--dark" style="display:none;background:rgba(15,13,25,0.45)">
+            <div class="ufs-util__links">
+              <span class="ufs-util__link">About Us</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Contact</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Help &amp; Support</span><span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Track Your Order</span>
+            </div>
+            <div class="ufs-util__right">
+              <div class="ufs-util__lang">EN <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/></div>
+            </div>
+          </div>
+
+          <!-- Hero background (glass only) -->
+          <div id="demo-hero-bg" class="nav-canvas-body nav-canvas-body--food" style="display:none;position:absolute;inset:0;z-index:-1;min-height:0;padding:0"></div>
+
+          <!-- Main nav -->
+          <div class="ufs-nav ufs-nav--dark" id="demo-nav" style="position:relative;z-index:10">
+            <div class="ufs-nav__logo"><img src="images/ufs-logo.png" alt="UFS"/></div>
+            <div class="ufs-nav__links">
+              <div class="ufs-nav__link" data-demo="products" onclick="demoToggle('products',this)">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link" data-demo="recipes" onclick="demoToggle('recipes',this)">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link" data-demo="training" onclick="demoToggle('training',this)">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link" onclick="demoClose()">Promotions</div>
+            </div>
+            <div class="ufs-nav__actions">
+              <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt=""/></button>
+              <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt=""/><span class="ufs-nav__badge">3</span></button>
+              <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt=""/><span class="ufs-nav__account-dot"></span></button>
+            </div>
+
+            <!-- Megamenu: Products -->
+            <div class="ufs-megamenu" id="demo-mm-products">
+              <div class="mm-a">
+                <div class="mm-col">
+                  <span class="mm-col-label">Sauces &amp; Condiments</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Ketchup &amp; Tomato Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Mayonnaise &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Hot Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Vinegars &amp; Marinades <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Pastes &amp; Purees <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Dairy &amp; Fats</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Butter &amp; Spreads <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Cream &amp; Creamers <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Cooking Oils <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Cheese Products <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Culinary Bases</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Stocks &amp; Bouillons <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Gravy &amp; Sauce Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Soups &amp; Broths <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Seasoning Blends <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Dessert Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-promo">
+                  <div class="mm-promo-img"><span class="mm-promo-img-placeholder">Product Image</span></div>
+                  <div class="mm-promo-body">
+                    <div class="mm-promo-over">New Arrival</div>
+                    <div class="mm-promo-title">Knorr Professional Demi-Glace — now in 1 L packs</div>
+                    <a class="mm-promo-cta">Explore range <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Megamenu: Recipes -->
+            <div class="ufs-megamenu" id="demo-mm-recipes">
+              <div class="mm-b">
+                <div class="mm-featured">
+                  <div class="mm-feat-over">Chef's Pick</div>
+                  <div class="mm-feat-title">20-Minute Weeknight Recipes</div>
+                  <div class="mm-feat-body">Fast, professional-quality dishes built around UFS pantry staples. New recipes added every week.</div>
+                  <a class="mm-feat-cta">Browse recipes <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Recipes</span>
+                  <div class="mm-links">
+                    <div class="mm-link">All Recipes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Starters &amp; Soups <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Mains &amp; Sides <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Desserts <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Sauces &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">By Cuisine</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Asian <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Mediterranean <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Latin American <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Classic European <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-promo">
+                  <div class="mm-promo-img"><span class="mm-promo-img-placeholder">Editorial Image</span></div>
+                  <div class="mm-promo-body">
+                    <div class="mm-promo-over">Trending Now</div>
+                    <div class="mm-promo-title">Mastering Umami: a free online module for chefs</div>
+                    <a class="mm-promo-cta">Start learning <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Megamenu: Training & Inspiration -->
+            <div class="ufs-megamenu" id="demo-mm-training">
+              <div class="mm-a">
+                <div class="mm-col">
+                  <span class="mm-col-label">Training</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Chef Training Videos <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Culinary Techniques <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Online Courses <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Certifications <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Inspiration</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Food Trends <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Menu Planning Tools <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Chef Spotlights <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Success Stories <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Resources</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Downloadable Guides <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Webinars &amp; Events <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">UFS Academy <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-promo">
+                  <div class="mm-promo-img"><span class="mm-promo-img-placeholder">Academy Image</span></div>
+                  <div class="mm-promo-body">
+                    <div class="mm-promo-over">Free Module</div>
+                    <div class="mm-promo-title">Mastering Umami: a free online module for chefs</div>
+                    <a class="mm-promo-cta">Start learning <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div><!-- /demo-nav -->
+          <div id="demo-body" class="nav-canvas-body nav-canvas-body--dark" style="flex:1;min-height:0"></div>
+        </div><!-- /demo-canvas -->
+      </section>
+
+      <!-- ============================================================
+           SECTION 5: MEGAMENU — PRODUCTS
+      ============================================================ -->
+      <section class="exp-section" id="megamenu-products">
+        <h2 class="exp-section-title">Megamenu — Products</h2>
+        <p class="exp-section-desc">Triggered by hovering or clicking "Products". Three content columns plus a promo panel on the right. A 2 px orange top border signals the active dropdown.</p>
+        <div class="exp-section-rule"></div>
+
+        <div class="nav-canvas" style="overflow:visible;padding-bottom:300px">
+          <div class="ufs-util ufs-util--dark">
+            <div class="ufs-util__links">
+              <span class="ufs-util__link">About Us</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Contact</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Help &amp; Support</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Track Your Order</span>
+            </div>
+            <div class="ufs-util__right">
+              <div class="ufs-util__lang">EN <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/></div>
+            </div>
+          </div>
+          <div class="ufs-nav ufs-nav--dark" style="position:relative">
+            <div class="ufs-nav__logo">
+              <img src="images/ufs-logo.png" alt="UFS"/>
+            </div>
+            <div class="ufs-nav__links">
+              <div class="ufs-nav__link is-active is-open">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Promotions</div>
+            </div>
+            <div class="ufs-nav__actions">
+              <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt=""/></button>
+              <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt=""/><span class="ufs-nav__badge">3</span></button>
+              <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt=""/><span class="ufs-nav__account-dot"></span></button>
+            </div>
+            <div class="ufs-megamenu is-open">
+              <div class="mm-a">
+                <div class="mm-col">
+                  <span class="mm-col-label">Sauces &amp; Condiments</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Ketchup &amp; Tomato Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Mayonnaise &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Hot Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Vinegars &amp; Marinades <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Pastes &amp; Purees <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Dairy &amp; Fats</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Butter &amp; Spreads <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Cream &amp; Creamers <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Cooking Oils <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Cheese Products <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Culinary Bases</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Stocks &amp; Bouillons <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Gravy &amp; Sauce Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Soups &amp; Broths <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Seasoning Blends <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Dessert Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-promo">
+                  <div class="mm-promo-img"><span class="mm-promo-img-placeholder">Product Image</span></div>
+                  <div class="mm-promo-body">
+                    <div class="mm-promo-over">New Arrival</div>
+                    <div class="mm-promo-title">Knorr Professional Demi-Glace — now in 1 L packs</div>
+                    <a class="mm-promo-cta">Explore range <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="var-note">Dark — active nav link gets the orange bottom border. Megamenu anchors full-width with a 2 px orange top border.</p>
+
+        <!-- Light megamenu -->
+        <div class="var-label" style="margin-top:32px">Light nav</div>
+        <div class="nav-canvas" style="overflow:visible;padding-bottom:300px">
+          <div class="ufs-util ufs-util--light">
+            <div class="ufs-util__links">
+              <span class="ufs-util__link">About Us</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Contact</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Help &amp; Support</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Track Your Order</span>
+            </div>
+            <div class="ufs-util__right">
+              <div class="ufs-util__lang" style="color:var(--color-mushroom-900)">EN <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/></div>
+            </div>
+          </div>
+          <div class="ufs-nav ufs-nav--light" style="position:relative">
+            <div class="ufs-nav__logo"><img src="images/ufs-logo.png" alt="UFS"/></div>
+            <div class="ufs-nav__links">
+              <div class="ufs-nav__link is-active is-open">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Promotions</div>
+            </div>
+            <div class="ufs-nav__actions">
+              <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt=""/></button>
+              <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt=""/><span class="ufs-nav__badge" style="border-color:white">3</span></button>
+              <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt=""/><span class="ufs-nav__account-dot" style="border-color:white"></span></button>
+            </div>
+            <div class="ufs-megamenu is-open">
+              <div class="mm-a">
+                <div class="mm-col">
+                  <span class="mm-col-label">Sauces &amp; Condiments</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Ketchup &amp; Tomato Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Mayonnaise &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Hot Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Vinegars &amp; Marinades <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Pastes &amp; Purees <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Dairy &amp; Fats</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Butter &amp; Spreads <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Cream &amp; Creamers <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Cooking Oils <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Cheese Products <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Culinary Bases</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Stocks &amp; Bouillons <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Gravy &amp; Sauce Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Soups &amp; Broths <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Seasoning Blends <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Dessert Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-promo">
+                  <div class="mm-promo-img"><span class="mm-promo-img-placeholder">Product Image</span></div>
+                  <div class="mm-promo-body">
+                    <div class="mm-promo-over">New Arrival</div>
+                    <div class="mm-promo-title">Knorr Professional Demi-Glace — now in 1 L packs</div>
+                    <a class="mm-promo-cta">Explore range <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="var-note">Light — megamenu panel is identical. Active link uses the orange underline on the light nav.</p>
+
+        <!-- Glass → Dark megamenu (Option B) -->
+        <div class="var-label" style="margin-top:32px">Transparent / Glass nav — megamenu open (Option B)</div>
+        <div class="nav-canvas" style="overflow:visible;padding-bottom:300px">
+          <div class="nav-canvas-body nav-canvas-body--food" style="padding:0;min-height:0">
+            <div class="ufs-util ufs-util--dark" style="background:rgba(15,13,25,0.45)">
+              <div class="ufs-util__links">
+                <span class="ufs-util__link">About Us</span>
+                <span class="ufs-util__sep"></span>
+                <span class="ufs-util__link">Contact</span>
+                <span class="ufs-util__sep"></span>
+                <span class="ufs-util__link">Help &amp; Support</span>
+                <span class="ufs-util__sep"></span>
+                <span class="ufs-util__link">Track Your Order</span>
+              </div>
+              <div class="ufs-util__right">
+                <div class="ufs-util__lang">EN <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/></div>
+              </div>
+            </div>
+            <div class="ufs-nav ufs-nav--dark" style="position:relative">
+              <div class="ufs-nav__logo"><img src="images/ufs-logo.png" alt="UFS"/></div>
+              <div class="ufs-nav__links">
+                <div class="ufs-nav__link is-active is-open">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                <div class="ufs-nav__link">Promotions</div>
+              </div>
+              <div class="ufs-nav__actions">
+                <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt=""/></button>
+                <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt=""/><span class="ufs-nav__badge">3</span></button>
+                <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt=""/><span class="ufs-nav__account-dot"></span></button>
+              </div>
+              <div class="ufs-megamenu is-open">
+                <div class="mm-a">
+                  <div class="mm-col">
+                    <span class="mm-col-label">Sauces &amp; Condiments</span>
+                    <div class="mm-links">
+                      <div class="mm-link">Ketchup &amp; Tomato Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Mayonnaise &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Hot Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Vinegars &amp; Marinades <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Pastes &amp; Purees <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    </div>
+                  </div>
+                  <div class="mm-col">
+                    <span class="mm-col-label">Dairy &amp; Fats</span>
+                    <div class="mm-links">
+                      <div class="mm-link">Butter &amp; Spreads <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Cream &amp; Creamers <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Cooking Oils <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Cheese Products <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    </div>
+                  </div>
+                  <div class="mm-col">
+                    <span class="mm-col-label">Culinary Bases</span>
+                    <div class="mm-links">
+                      <div class="mm-link">Stocks &amp; Bouillons <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Gravy &amp; Sauce Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Soups &amp; Broths <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Seasoning Blends <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                      <div class="mm-link">Dessert Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    </div>
+                  </div>
+                  <div class="mm-promo">
+                    <div class="mm-promo-img"><span class="mm-promo-img-placeholder">Product Image</span></div>
+                    <div class="mm-promo-body">
+                      <div class="mm-promo-over">New Arrival</div>
+                      <div class="mm-promo-title">Knorr Professional Demi-Glace — now in 1 L packs</div>
+                      <a class="mm-promo-cta">Explore range <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="var-note">Glass → Dark (Option B) — on megamenu open, the nav bar transitions from transparent to solid dark, keeping the header visually unified above the white panel.</p>
+      </section>
+
+      <!-- ============================================================
+           SECTION 6: MEGAMENU — RECIPES
+      ============================================================ -->
+      <section class="exp-section" id="megamenu-recipes">
+        <h2 class="exp-section-title">Megamenu — Recipes</h2>
+        <p class="exp-section-desc">Triggered by "Recipes". Featured left column gives prominence to a hero content piece, followed by recipe category columns and a promo panel.</p>
+        <div class="exp-section-rule"></div>
+
+        <div class="nav-canvas" style="overflow:visible;padding-bottom:300px">
+          <div class="ufs-util ufs-util--dark">
+            <div class="ufs-util__links">
+              <span class="ufs-util__link">About Us</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Contact</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Help &amp; Support</span>
+              <span class="ufs-util__sep"></span>
+              <span class="ufs-util__link">Track Your Order</span>
+            </div>
+            <div class="ufs-util__right">
+              <div class="ufs-util__lang">EN <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:9px;height:9px;transform:rotate(90deg)"/></div>
+            </div>
+          </div>
+          <div class="ufs-nav ufs-nav--dark" style="position:relative">
+            <div class="ufs-nav__logo">
+              <img src="images/ufs-logo.png" alt="UFS"/>
+            </div>
+            <div class="ufs-nav__links">
+              <div class="ufs-nav__link">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link is-active is-open">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+              <div class="ufs-nav__link">Promotions</div>
+            </div>
+            <div class="ufs-nav__actions">
+              <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt=""/></button>
+              <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt=""/><span class="ufs-nav__badge">3</span></button>
+              <button class="ufs-nav__icon-btn" style="position:relative"><img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt=""/><span class="ufs-nav__account-dot"></span></button>
+            </div>
+            <div class="ufs-megamenu is-open">
+              <div class="mm-b">
+                <div class="mm-featured">
+                  <div class="mm-feat-over">Chef's Pick</div>
+                  <div class="mm-feat-title">20-Minute Weeknight Recipes</div>
+                  <div class="mm-feat-body">Fast, professional-quality dishes built around UFS pantry staples. New recipes added every week.</div>
+                  <a class="mm-feat-cta">Browse recipes <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">Recipes</span>
+                  <div class="mm-links">
+                    <div class="mm-link">All Recipes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Starters &amp; Soups <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Mains &amp; Sides <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Desserts <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Sauces &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-col">
+                  <span class="mm-col-label">By Cuisine</span>
+                  <div class="mm-links">
+                    <div class="mm-link">Asian <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Mediterranean <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Latin American <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                    <div class="mm-link">Classic European <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+                  </div>
+                </div>
+                <div class="mm-promo">
+                  <div class="mm-promo-img"><span class="mm-promo-img-placeholder">Editorial Image</span></div>
+                  <div class="mm-promo-body">
+                    <div class="mm-promo-over">Trending Now</div>
+                    <div class="mm-promo-title">Mastering Umami: a free online module for chefs</div>
+                    <a class="mm-promo-cta">Start learning <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="var-note">Featured column (1.8x) gives editorial weight to a hero content piece. Right columns split by recipe type and cuisine.</p>
+      </section>
+
+    </div><!-- /content-inner -->
+  </main>
+
+  <script>
+    /* ================================================================
+       MINI PHONE AUTO-INJECTION
+    ================================================================ */
+    (function() {
+      function miniPhone(variant, opts) {
+        var hasBadge = opts && opts.hasBadge !== false;
+        var hasDot   = opts && opts.hasDot   !== false;
+        var hasSBar  = !!(opts && opts.hasSearchBar);
+        var isLight  = variant === 'light';
+        var barCls   = 'mini-phone-bar mini-phone-bar--' + (isLight ? 'light' : 'dark');
+        var bodyCls  = 'mini-phone-body mini-phone-body--' + (isLight ? 'light' : 'dark');
+        var icnSt    = 'display:block;width:14px;height:14px;' + (isLight ? 'opacity:0.7' : 'filter:brightness(0) invert(1);opacity:0.8');
+        var dotCls   = isLight ? 'mini-dot-light' : 'mini-dot-dark';
+
+        return '<div class="mini-phone">' +
+          '<div class="' + barCls + '">' +
+            '<img src="images/ufs-logo.png" alt="UFS" class="mini-phone-logo"/>' +
+            '<div class="mini-phone-icons">' +
+              '<div class="mini-phone-btn"><img src="icons/Search.svg" alt="" style="' + icnSt + '"></div>' +
+              '<div class="mini-phone-btn" style="position:relative">' +
+                '<img src="icons/cart.svg" alt="" style="' + icnSt + '">' +
+                (hasBadge ? '<span class="mini-badge">3</span>' : '') +
+              '</div>' +
+              '<div class="mini-phone-btn" style="position:relative">' +
+                '<img src="icons/profile.svg" alt="" style="' + icnSt + '">' +
+                (hasDot ? '<span class="' + dotCls + '"></span>' : '') +
+              '</div>' +
+              '<div class="mini-phone-btn"><img src="icons/menu.svg" alt="" style="' + icnSt + '"></div>' +
+            '</div>' +
+          '</div>' +
+          (hasSBar
+            ? '<div class="mini-search-bar"><div class="mini-search-inner">' +
+                '<img src="icons/Search.svg" style="display:block;width:11px;height:11px;filter:brightness(0) invert(1);opacity:0.45;flex-shrink:0">' +
+                '<span class="mini-search-placeholder">Search products, recipes…</span>' +
+              '</div></div>'
+            : '') +
+          '<div class="' + bodyCls + '" style="min-height:64px"></div>' +
+        '</div>';
+      }
+
+      document.querySelectorAll('.nav-canvas').forEach(function(canvas) {
+        /* Skip sticky/shrunk demos */
+        if (canvas.querySelector('.ufs-nav--shrunk')) return;
+        /* Skip canvases inside the mobile section */
+        if (canvas.closest('#mobile')) return;
+        /* Skip megamenu canvases — too tall for a useful mobile thumbnail */
+        if (canvas.querySelector('.ufs-megamenu')) return;
+
+        var isLight = !!canvas.querySelector('.ufs-nav--light');
+        var variant = isLight ? 'light' : 'dark';
+
+        var hasLoginBtn = !!canvas.querySelector('.ufs-nav__login');
+        var hasSBar     = !!canvas.querySelector('.ufs-search-field');
+
+        var mobileCol = document.createElement('div');
+        mobileCol.className = 'canvas-col';
+        mobileCol.innerHTML =
+          '<div class="canvas-col-label">Mobile</div>' +
+          miniPhone(variant, { hasBadge: !hasLoginBtn, hasDot: !hasLoginBtn, hasSearchBar: hasSBar });
+
+        /* Wrap the canvas in the desktop column */
+        var desktopCol = document.createElement('div');
+        desktopCol.className = 'canvas-col';
+        desktopCol.innerHTML = '<div class="canvas-col-label">Desktop</div>';
+        canvas.parentNode.insertBefore(desktopCol, canvas);
+        desktopCol.appendChild(canvas);
+
+        /* Create the side-by-side grid wrapper */
+        var grid = document.createElement('div');
+        grid.className = 'canvas-with-mobile';
+        desktopCol.parentNode.insertBefore(grid, desktopCol);
+        grid.appendChild(desktopCol);
+        grid.appendChild(mobileCol);
+      });
+    })();
+
+    /* ================================================================
+       SIDEBAR ACTIVE STATE
+    ================================================================ */
+    (function() {
+      var links = document.querySelectorAll('.sidebar-link[href^="#"]');
+      var sections = [];
+      links.forEach(function(l) {
+        var id = l.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ el: el, link: l });
+      });
+      function update() {
+        var scrollY = window.scrollY + 120;
+        var active = sections[0];
+        sections.forEach(function(s) { if (s.el.offsetTop <= scrollY) active = s; });
+        links.forEach(function(l) { l.classList.remove('active'); });
+        if (active) active.link.classList.add('active');
+      }
+      window.addEventListener('scroll', update, { passive: true });
+      update();
+    })();
+
+    /* ================================================================
+       PLACEHOLDER — no interactive search/drawer in this doc
+    ================================================================ */
+    function closeInlineSearch() {
+      void 0;
+    }
+
+    /* ================================================================
+       INTERACTIVE MEGAMENU DEMO
+    ================================================================ */
+    var _demoOpen = null;
+    var _demoVariant = 'dark';
+
+    function demoToggle(id, linkEl) {
+      var panel = document.getElementById('demo-mm-' + id);
+      if (!panel) return;
+      var isOpen = panel.classList.contains('is-open');
+      demoClose();
+      if (!isOpen) {
+        panel.classList.add('is-open');
+        if (linkEl) linkEl.classList.add('is-active');
+        _demoOpen = id;
+        /* glass→dark: switch nav to dark when megamenu is open */
+        if (_demoVariant === 'glass') {
+          document.getElementById('demo-nav').classList.remove('ufs-nav--glass');
+          document.getElementById('demo-nav').classList.add('ufs-nav--dark');
+        }
+      }
+    }
+
+    function demoClose() {
+      ['products','recipes','training'].forEach(function(id) {
+        var p = document.getElementById('demo-mm-' + id);
+        if (p) p.classList.remove('is-open');
+      });
+      document.querySelectorAll('#demo-nav .ufs-nav__link').forEach(function(l) {
+        l.classList.remove('is-active');
+      });
+      _demoOpen = null;
+      /* restore glass nav when megamenu closes */
+      if (_demoVariant === 'glass') {
+        document.getElementById('demo-nav').classList.remove('ufs-nav--dark');
+        document.getElementById('demo-nav').classList.add('ufs-nav--glass');
+      }
+    }
+
+    /* click outside closes demo megamenu */
+    document.addEventListener('click', function(e) {
+      var canvas = document.getElementById('demo-canvas');
+      if (!canvas) return;
+      if (!canvas.contains(e.target)) demoClose();
+    });
+
+    function demoSwitchVariant(variant, btn) {
+      _demoVariant = variant;
+      demoClose();
+      var nav = document.getElementById('demo-nav');
+      nav.className = 'ufs-nav ufs-nav--' + variant;
+      nav.style.position = 'relative';
+      nav.style.zIndex = '10';
+
+      /* util bars */
+      document.getElementById('demo-util-dark').style.display  = variant === 'dark'  ? '' : 'none';
+      document.getElementById('demo-util-light').style.display = variant === 'light' ? '' : 'none';
+      document.getElementById('demo-util-glass').style.display = variant === 'glass' ? '' : 'none';
+
+      /* hero bg only in glass — sits behind nav via z-index */
+      var heroBg = document.getElementById('demo-hero-bg');
+      heroBg.style.display = variant === 'glass' ? '' : 'none';
+
+      /* body colour */
+      var body = document.getElementById('demo-body');
+      body.className = variant === 'glass' ? '' : 'nav-canvas-body nav-canvas-body--' + (variant === 'light' ? 'light' : 'dark');
+
+      /* tab buttons */
+      document.querySelectorAll('#interactive-demo .tab-btn').forEach(function(b) {
+        b.classList.toggle('is-active', b === btn);
+      });
+    }
+  </script>
+</body>
+</html>
