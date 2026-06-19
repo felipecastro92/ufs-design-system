@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Floating Utility Bar — UFS Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <style>
+    /* ================================================================
+       DS TOKENS
+    ================================================================ */
+    :root {
+      --color-brand-primary:     #FF5A00;
+      --color-brand-dark:        #221D37;
+      --color-accessible-orange: #D14900;
+      --color-smoke:             #94889D;
+      --color-mushroom:          #CBC5C7;
+      --color-salt:              #FFFFFF;
+
+      --color-orange-100: #FFDECC;
+      --color-orange-300: #FFA473;
+      --color-orange-500: #FF5A00;
+      --color-orange-700: #BF4400;
+      --color-orange-900: #732900;
+
+      --color-squid-100: #D3D2D7;
+      --color-squid-300: #858391;
+      --color-squid-500: #221D37;
+      --color-squid-700: #1A1629;
+      --color-squid-900: #0F0D19;
+
+      --color-mushroom-100: #F5F3F4;
+      --color-mushroom-200: #EAE7E9;
+      --color-mushroom-300: #E2DFE0;
+      --color-mushroom-500: #CBC5C7;
+      --color-mushroom-700: #989495;
+      --color-mushroom-900: #5B595A;
+
+      --font-family: 'Unilever Shilling', 'Plus Jakarta Sans', system-ui, sans-serif;
+
+      --text-btn-size:     14px; --text-btn-w:    600;
+      --text-btn-sm-size:  12px; --text-btn-sm-w: 600;
+      --text-body-size:    16px;
+      --text-body-sm-size: 14px;
+      --text-caption-sm-size: 12px; --text-caption-sm-ls: 0.4px;
+
+      --space-1: 4px;  --space-2: 8px;   --space-3: 12px; --space-4: 16px;
+      --space-5: 20px; --space-6: 24px;  --space-7: 28px; --space-8: 32px;
+      --space-9: 36px; --space-10: 40px; --space-12: 48px; --space-16: 64px;
+
+      --radius-xs: 4px; --radius-sm: 8px; --radius-md: 12px;
+      --radius-lg: 16px; --radius-xl: 24px; --radius-full: 9999px;
+
+      --shadow-sm: 0 4px 8px rgba(0,0,0,0.10);
+      --shadow-md: 0 8px 24px rgba(0,0,0,0.14);
+      --shadow-lg: 0 16px 40px rgba(0,0,0,0.20);
+      --shadow-xl: 0 24px 64px rgba(0,0,0,0.26);
+
+      --sidebar-width: 260px;
+    }
+
+    /* ================================================================
+       RESET & BASE
+    ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-family);
+      font-size: 16px; line-height: 24px;
+      color: var(--color-brand-dark);
+      background: var(--color-mushroom-100);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+
+    /* ================================================================
+       SIDEBAR
+    ================================================================ */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--color-brand-dark);
+      position: fixed; top: 0; left: 0; height: 100vh;
+      overflow-y: auto; display: flex; flex-direction: column; z-index: 200;
+    }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .sidebar-header { padding: 28px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .sidebar-logo { height: 32px; width: auto; object-fit: contain; margin-bottom: 14px; display: block; }
+    .sidebar-tagline { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--color-smoke); }
+    .sidebar-nav { padding: 20px 0; flex: 1; }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 24px; font-size: 13px; font-weight: 500;
+      color: var(--color-mushroom); transition: color 0.15s, background 0.15s;
+      border-left: 2px solid transparent; cursor: pointer;
+    }
+    .sidebar-link:hover { color: var(--color-salt); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,90,0,0.07); font-weight: 600; }
+    .nav-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-back {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 24px; font-size: 12px; font-weight: 600;
+      color: var(--color-smoke); border-bottom: 1px solid rgba(255,255,255,0.07);
+      transition: color 0.15s;
+    }
+    .sidebar-back:hover { color: var(--color-salt); }
+    .sidebar-footer { padding: 14px 24px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .sidebar-footer-text { font-size: 10px; color: var(--color-smoke); line-height: 1.5; }
+    .sidebar-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--color-smoke);
+      padding: 12px 24px 4px;
+    }
+
+    /* ================================================================
+       MAIN CONTENT
+    ================================================================ */
+    .content {
+      padding: 64px 40px 120px;
+      padding-left: calc(var(--sidebar-width) + 40px);
+      min-height: 100vh;
+    }
+    .page-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-orange-700); margin-bottom: 8px; }
+    .page-title { font-size: 31px; font-weight: 700; line-height: 40px; color: var(--color-brand-dark); margin-bottom: 10px; }
+    .page-desc { font-size: 16px; line-height: 26px; color: var(--color-mushroom-900); max-width: 620px; margin-bottom: 56px; }
+
+    .exp-section { margin-bottom: 80px; }
+    .exp-section-title { font-size: 20px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 6px; }
+    .exp-section-desc { font-size: 14px; line-height: 22px; color: var(--color-mushroom-900); margin-bottom: 28px; max-width: 680px; }
+    .exp-section-rule { height: 1px; background: var(--color-mushroom-300); margin-bottom: 32px; }
+
+    .var-label { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: 8px; }
+    .var-note { font-size: 12px; color: var(--color-mushroom-700); margin-top: 12px; font-style: italic; line-height: 18px; }
+
+    /* ================================================================
+       DEMO CANVAS — shared
+    ================================================================ */
+    .demo-canvas {
+      position: relative;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-mushroom-300);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      height: 420px;
+      background: #f0eeef;
+    }
+    .demo-canvas--tall { height: 460px; }
+    .demo-canvas--food { background: linear-gradient(160deg, #3b1e08 0%, #7a3a10 55%, #2a1a0a 100%); }
+    .demo-canvas--light { background: var(--color-salt); }
+
+    /* Simulated page content inside each canvas */
+    .demo-page {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+    }
+    .demo-mini-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; height: 56px;
+      flex-shrink: 0;
+    }
+    .demo-mini-nav--dark { background: var(--color-brand-dark); }
+    .demo-mini-nav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-200); }
+    .demo-mini-nav--glass { background: rgba(34,29,55,0.35); backdrop-filter: blur(8px); }
+    .demo-nav-logo { height: 22px; opacity: 0.9; }
+    .demo-nav-links { display: flex; gap: 24px; }
+    .demo-nav-link { height: 8px; border-radius: 4px; background: currentColor; opacity: 0.18; }
+    .demo-nav-actions { display: flex; gap: 8px; align-items: center; }
+    .demo-nav-circle { width: 28px; height: 28px; border-radius: 50%; opacity: 0.2; }
+    .demo-mini-nav--dark  .demo-nav-link,
+    .demo-mini-nav--dark  .demo-nav-logo,
+    .demo-mini-nav--dark  .demo-nav-circle { color: var(--color-salt); }
+    .demo-mini-nav--light .demo-nav-link,
+    .demo-mini-nav--light .demo-nav-circle { background: var(--color-brand-dark); }
+    .demo-mini-nav--glass .demo-nav-link,
+    .demo-mini-nav--glass .demo-nav-circle { color: white; }
+
+    .demo-body { flex: 1; padding: 28px 28px 100px; overflow: hidden; }
+    .demo-body--dark { padding-bottom: 80px; }
+    .demo-hero { margin-bottom: 20px; }
+    .demo-hero-tag { height: 10px; width: 80px; border-radius: 5px; background: var(--color-accessible-orange); opacity: 0.6; margin-bottom: 10px; }
+    .demo-hero-h { height: 22px; width: 55%; border-radius: 4px; background: var(--color-brand-dark); opacity: 0.15; margin-bottom: 8px; }
+    .demo-hero-h--light { background: var(--color-salt); opacity: 0.3; }
+    .demo-hero-sub { height: 10px; width: 38%; border-radius: 4px; background: var(--color-mushroom-900); opacity: 0.12; }
+    .demo-hero-sub--light { background: var(--color-salt); opacity: 0.2; }
+    .demo-cards { display: flex; gap: 12px; }
+    .demo-card {
+      flex: 1; border-radius: var(--radius-sm);
+      background: var(--color-salt); border: 1px solid var(--color-mushroom-200);
+      overflow: hidden;
+    }
+    .demo-card--dark { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.08); }
+    .demo-card-img { height: 72px; background: var(--color-mushroom-200); }
+    .demo-card-img--dark { background: rgba(255,255,255,0.1); }
+    .demo-card-body { padding: 8px 10px; }
+    .demo-card-line { height: 7px; border-radius: 3px; background: var(--color-mushroom-300); margin-bottom: 5px; }
+    .demo-card-line--dark { background: rgba(255,255,255,0.12); }
+    .demo-card-line:last-child { width: 60%; }
+
+    /* ================================================================
+       DS BUTTONS (copied from index-v2.html)
+    ================================================================ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: 54px; padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1; cursor: pointer;
+      border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn-sm { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-ghost { background: transparent; color: var(--color-accessible-orange); border-color: transparent; }
+
+    /* ================================================================
+       FLOATING BAR — VARIANT A: CENTERED PILL
+    ================================================================ */
+    .fb-a {
+      position: absolute; bottom: var(--space-6); left: 50%; transform: translateX(-50%);
+      width: 620px; max-width: calc(100% - var(--space-12));
+      background: var(--color-salt);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-xl), 0 0 0 1px var(--color-mushroom-200);
+      display: flex; align-items: center;
+      height: 56px; z-index: 10;
+    }
+    .fb-a__side {
+      display: flex; align-items: center;
+      flex: 1; padding: 0 var(--space-3) 0 var(--space-4);
+      gap: var(--space-2); min-width: 0;
+      border-radius: var(--radius-full); transition: background 0.15s;
+    }
+    .fb-a__side:focus-within { background: var(--color-mushroom-100); }
+    .fb-a__side--left { border-radius: var(--radius-full) 0 0 var(--radius-full); }
+    .fb-a__side--right { border-radius: 0 var(--radius-full) var(--radius-full) 0; padding-right: var(--space-2); }
+    .fb-a__icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.45; }
+    .fb-a__side:focus-within .fb-a__icon { opacity: 1; }
+    .fb-a__side--left:focus-within .fb-a__icon { filter: invert(28%) sepia(85%) saturate(1800%) hue-rotate(3deg) brightness(80%); }
+    .fb-a__side--right:focus-within .fb-a__icon { filter: brightness(0); opacity: 0.8; }
+    .fb-a__input {
+      flex: 1; min-width: 0; border: none; background: transparent;
+      font-family: var(--font-family); font-size: var(--text-body-sm-size);
+      color: var(--color-brand-dark); outline: none; line-height: 1;
+    }
+    .fb-a__input::placeholder { color: var(--color-mushroom-700); }
+    .fb-a__divider { width: 1px; height: 26px; background: var(--color-mushroom-300); flex-shrink: 0; }
+    .fb-a__submit {
+      width: 36px; height: 36px; border-radius: var(--radius-full);
+      border: none; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .fb-a__submit--search { background: var(--color-accessible-orange); }
+    .fb-a__submit--search:hover { background: var(--color-orange-700); transform: scale(1.05); }
+    .fb-a__submit--ai { background: var(--color-brand-dark); }
+    .fb-a__submit--ai:hover { background: var(--color-squid-700); transform: scale(1.05); }
+    .fb-a__submit img { width: 14px; height: 14px; filter: brightness(0) invert(1); }
+    .fb-a__tag {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+      color: var(--color-mushroom-700); flex-shrink: 0; padding-right: 2px;
+      white-space: nowrap;
+    }
+
+    /* ================================================================
+       FLOATING BAR — VARIANT B: MODE TOGGLE
+    ================================================================ */
+    .fb-b {
+      position: absolute; bottom: var(--space-6); left: 50%; transform: translateX(-50%);
+      width: 560px; max-width: calc(100% - var(--space-12));
+      background: var(--color-salt);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-xl), 0 0 0 1px var(--color-mushroom-200);
+      display: flex; align-items: center;
+      height: 56px; padding: var(--space-1) var(--space-1) var(--space-1) var(--space-1);
+      gap: var(--space-2); z-index: 10;
+    }
+    .fb-b__toggle {
+      display: flex; background: var(--color-mushroom-100);
+      border-radius: var(--radius-full); padding: 3px; gap: 2px; flex-shrink: 0;
+    }
+    .fb-b__mode-btn {
+      height: 36px; padding: 0 var(--space-3);
+      border-radius: var(--radius-full); border: none;
+      font-family: var(--font-family); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w);
+      cursor: pointer; display: flex; align-items: center; gap: var(--space-1);
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      background: transparent; color: var(--color-mushroom-700); white-space: nowrap;
+    }
+    .fb-b__mode-btn.is-active {
+      background: var(--color-salt); color: var(--color-brand-dark); box-shadow: var(--shadow-sm);
+    }
+    .fb-b__mode-btn img { width: 14px; height: 14px; opacity: 0.5; transition: opacity 0.2s; }
+    .fb-b__mode-btn.is-active img { opacity: 1; }
+    .fb-b__mode-btn[data-mode="search"].is-active img { filter: invert(28%) sepia(85%) saturate(1800%) hue-rotate(3deg) brightness(80%); opacity: 1; }
+    .fb-b__input-wrap { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); }
+    .fb-b__input {
+      flex: 1; min-width: 0; border: none; background: transparent;
+      font-family: var(--font-family); font-size: var(--text-body-sm-size);
+      color: var(--color-brand-dark); outline: none; line-height: 1;
+    }
+    .fb-b__input::placeholder { color: var(--color-mushroom-700); transition: color 0.2s; }
+    .fb-b__submit {
+      width: 38px; height: 38px; border-radius: var(--radius-full);
+      border: none; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .fb-b__submit:hover { transform: scale(1.05); }
+    .fb-b__submit img { width: 14px; height: 14px; filter: brightness(0) invert(1); }
+    .fb-b__submit--search { background: var(--color-accessible-orange); }
+    .fb-b__submit--ai { background: var(--color-brand-dark); }
+
+    /* ================================================================
+       FLOATING BAR — VARIANT C: FABs
+    ================================================================ */
+    .fb-c {
+      position: absolute; bottom: var(--space-6); right: var(--space-6);
+      display: flex; flex-direction: column; align-items: flex-end;
+      gap: var(--space-2); z-index: 10;
+    }
+    .fb-c__panel {
+      width: 320px; background: var(--color-salt);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl), 0 0 0 1px var(--color-mushroom-200);
+      overflow: hidden;
+      max-height: 0; opacity: 0; pointer-events: none;
+      transform: translateY(8px);
+      transition: max-height 0.28s cubic-bezier(0.4,0,0.2,1), opacity 0.2s, transform 0.25s;
+    }
+    .fb-c__panel.is-open { max-height: 200px; opacity: 1; pointer-events: all; transform: translateY(0); }
+    .fb-c__panel-header {
+      padding: var(--space-3) var(--space-4);
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--color-mushroom-200);
+    }
+    .fb-c__panel-header--search { background: var(--color-orange-100); }
+    .fb-c__panel-header--ai { background: var(--color-brand-dark); }
+    .fb-c__panel-title {
+      font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w);
+      display: flex; align-items: center; gap: var(--space-1);
+    }
+    .fb-c__panel-header--search .fb-c__panel-title { color: var(--color-accessible-orange); }
+    .fb-c__panel-header--ai .fb-c__panel-title { color: var(--color-salt); }
+    .fb-c__panel-header img { width: 14px; height: 14px; }
+    .fb-c__panel-header--search img { filter: invert(28%) sepia(85%) saturate(1800%) hue-rotate(3deg) brightness(80%); }
+    .fb-c__panel-header--ai img { filter: brightness(0) invert(1); }
+    .fb-c__input-row {
+      display: flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-3) var(--space-4);
+    }
+    .fb-c__input {
+      flex: 1; border: 1px solid var(--color-mushroom-300);
+      border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-3);
+      font-family: var(--font-family); font-size: var(--text-body-sm-size);
+      color: var(--color-brand-dark); outline: none;
+      transition: border-color 0.15s;
+      height: 40px;
+    }
+    .fb-c__input:focus { border-color: var(--color-brand-dark); }
+    .fb-c__input--search:focus { border-color: var(--color-accessible-orange); }
+    .fb-c__panel-footer {
+      padding: 0 var(--space-4) var(--space-3);
+      font-size: 11px; color: var(--color-mushroom-700); line-height: 16px;
+    }
+    .fb-c__fabs { display: flex; gap: var(--space-2); align-items: center; }
+    .fb-c__fab {
+      width: 52px; height: 52px; border-radius: var(--radius-full);
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-md); flex-shrink: 0;
+      transition: box-shadow 0.2s, transform 0.15s, background 0.2s;
+    }
+    .fb-c__fab:hover { box-shadow: var(--shadow-lg); transform: scale(1.06); }
+    .fb-c__fab--search { background: var(--color-accessible-orange); }
+    .fb-c__fab--search.is-active { background: var(--color-orange-700); }
+    .fb-c__fab--ai { background: var(--color-brand-dark); }
+    .fb-c__fab--ai.is-active { background: var(--color-squid-700); }
+    .fb-c__fab img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
+    .fb-c__fab-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+      color: var(--color-mushroom-700); text-align: center;
+      transition: color 0.15s;
+    }
+    .fb-c__fab-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .fb-c__fab-col:hover .fb-c__fab-label { color: var(--color-brand-dark); }
+
+    /* ================================================================
+       FLOATING BAR — VARIANT D: FULL-WIDTH DOCK
+    ================================================================ */
+    .fb-d {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      display: flex; align-items: stretch;
+      height: 64px; z-index: 10;
+    }
+    .fb-d--dark { background: var(--color-brand-dark); }
+    .fb-d--light { background: var(--color-salt); border-top: 1px solid var(--color-mushroom-200); box-shadow: 0 -4px 16px rgba(0,0,0,0.06); }
+    .fb-d__half {
+      flex: 1; display: flex; align-items: center;
+      padding: 0 var(--space-6); gap: var(--space-3);
+      transition: background 0.15s;
+    }
+    .fb-d__half:focus-within { background: rgba(255,255,255,0.04); }
+    .fb-d--light .fb-d__half:focus-within { background: var(--color-mushroom-100); }
+    .fb-d__divider { width: 1px; align-self: stretch; margin: 12px 0; flex-shrink: 0; }
+    .fb-d--dark .fb-d__divider { background: rgba(255,255,255,0.1); }
+    .fb-d--light .fb-d__divider { background: var(--color-mushroom-300); }
+    .fb-d__icon { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.5; transition: opacity 0.15s; }
+    .fb-d__half:focus-within .fb-d__icon { opacity: 1; }
+    .fb-d__input {
+      flex: 1; min-width: 0; border: none; background: transparent;
+      font-family: var(--font-family); font-size: var(--text-body-sm-size);
+      outline: none; line-height: 1;
+    }
+    .fb-d--dark .fb-d__input { color: var(--color-salt); }
+    .fb-d--dark .fb-d__input::placeholder { color: rgba(255,255,255,0.35); }
+    .fb-d--dark .fb-d__icon { filter: brightness(0) invert(1); }
+    .fb-d--light .fb-d__input { color: var(--color-brand-dark); }
+    .fb-d--light .fb-d__input::placeholder { color: var(--color-mushroom-700); }
+    .fb-d__label {
+      font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+      flex-shrink: 0; padding-right: var(--space-2);
+    }
+    .fb-d--dark .fb-d__label { color: rgba(255,255,255,0.28); }
+    .fb-d--light .fb-d__label { color: var(--color-mushroom-500); }
+    .fb-d__submit {
+      width: 32px; height: 32px; border-radius: var(--radius-full);
+      border: none; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.15s, background 0.15s;
+    }
+    .fb-d__half:focus-within .fb-d__submit { opacity: 1; pointer-events: all; }
+    .fb-d__submit--search { background: var(--color-accessible-orange); }
+    .fb-d__submit--ai { background: rgba(255,255,255,0.15); }
+    .fb-d--light .fb-d__submit--ai { background: var(--color-brand-dark); }
+    .fb-d__submit img { width: 13px; height: 13px; filter: brightness(0) invert(1); }
+    .fb-d__ai-badge {
+      font-size: 8px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+      padding: 2px 6px; border-radius: var(--radius-full); flex-shrink: 0;
+    }
+    .fb-d--dark .fb-d__ai-badge { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); }
+    .fb-d--light .fb-d__ai-badge { background: var(--color-mushroom-100); color: var(--color-mushroom-700); }
+
+    /* ================================================================
+       ICON HELPER
+    ================================================================ */
+    .ufs-icon { display: block; }
+
+    /* ================================================================
+       COMPARISON TABLE
+    ================================================================ */
+    .comparison-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 1px; background: var(--color-mushroom-200);
+      border: 1px solid var(--color-mushroom-200);
+      border-radius: var(--radius-sm); overflow: hidden;
+      margin-bottom: 48px;
+    }
+    .comparison-cell {
+      background: var(--color-salt); padding: var(--space-4) var(--space-5);
+      font-size: 13px; line-height: 20px; color: var(--color-mushroom-900);
+    }
+    .comparison-cell--head {
+      background: var(--color-brand-dark); color: var(--color-salt);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .comparison-cell--label {
+      background: var(--color-mushroom-100); font-weight: 600;
+      font-size: 12px; color: var(--color-brand-dark);
+    }
+    .cc-pro { color: #2d7a00; font-weight: 600; }
+    .cc-con { color: #c0002b; }
+  </style>
+</head>
+<body>
+
+  <!-- ================================================================
+       SIDEBAR
+  ================================================================ -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo"/>
+      <div class="sidebar-tagline">Design System</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="../nav-exploration-v2.html" class="sidebar-back">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 2L3.5 6l4 4"/></svg>
+        Nav Exploration
+      </a>
+      <div class="sidebar-label">Variations</div>
+      <a href="#var-a" class="sidebar-link"><span class="nav-dot"></span> A — Centered Pill</a>
+      <a href="#var-b" class="sidebar-link"><span class="nav-dot"></span> B — Mode Toggle</a>
+      <a href="#var-c" class="sidebar-link"><span class="nav-dot"></span> C — FABs</a>
+      <a href="#var-d" class="sidebar-link"><span class="nav-dot"></span> D — Full-width Dock</a>
+      <div class="sidebar-label" style="margin-top:12px">Reference</div>
+      <a href="#comparison" class="sidebar-link"><span class="nav-dot"></span> Comparison</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">UFS DS · Floating Utility Bar<br>Exploration — Jun 2026</div>
+    </div>
+  </aside>
+
+  <!-- ================================================================
+       MAIN
+  ================================================================ -->
+  <main class="content">
+    <div class="page-eyebrow">Component Exploration</div>
+    <h1 class="page-title">Floating Utility Bar</h1>
+    <p class="page-desc">Four structural approaches for a persistent bottom bar combining website search and LLM access. Each canvas is interactive — click inputs to focus, use toggles and FABs to explore states. All bars use DS tokens exclusively.</p>
+
+    <!-- ============================================================
+         SECTION A — CENTERED PILL
+    ============================================================ -->
+    <section class="exp-section" id="var-a">
+      <h2 class="exp-section-title">A — Centered Floating Pill</h2>
+      <p class="exp-section-desc">Both modes coexist side by side in a single pill, separated by a divider. The user's eye is always drawn to both affordances simultaneously. Clicking either side focuses it and activates the submit button for that mode. Minimal footprint, strong visual hierarchy.</p>
+      <div class="exp-section-rule"></div>
+
+      <!-- Light page -->
+      <div class="var-label" style="margin-bottom:8px">On light page</div>
+      <div class="demo-canvas demo-canvas--light" style="margin-bottom:24px">
+        <div class="demo-page">
+          <div class="demo-mini-nav demo-mini-nav--dark">
+            <img src="images/ufs-logo.png" alt="" class="demo-nav-logo" style="filter:brightness(0) invert(1);opacity:0.9"/>
+            <div class="demo-nav-links">
+              <div class="demo-nav-link" style="width:52px; color:white"></div>
+              <div class="demo-nav-link" style="width:40px; color:white"></div>
+              <div class="demo-nav-link" style="width:72px; color:white"></div>
+              <div class="demo-nav-link" style="width:44px; color:white"></div>
+            </div>
+            <div class="demo-nav-actions">
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+            </div>
+          </div>
+          <div class="demo-body" style="background:var(--color-salt)">
+            <div class="demo-hero" style="margin-bottom:24px">
+              <div class="demo-hero-tag"></div>
+              <div class="demo-hero-h" style="width:48%"></div>
+              <div class="demo-hero-sub" style="width:32%"></div>
+            </div>
+            <div class="demo-cards">
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#f0c89a,#e09060)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#c8e0b0,#90b870)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#b0c8e8,#7098c8)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#e8b0c0,#c87090)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Floating bar A -->
+        <div class="fb-a" id="fb-a-light">
+          <div class="fb-a__side fb-a__side--left">
+            <img class="fb-a__icon" src="icons/Search.svg" alt=""/>
+            <input class="fb-a__input" type="text" placeholder="Search UFS…" autocomplete="off"/>
+            <button class="fb-a__submit fb-a__submit--search" title="Search">
+              <img src="icons/arrow.svg" alt="" style="width:12px;height:12px;filter:brightness(0) invert(1)"/>
+            </button>
+          </div>
+          <div class="fb-a__divider"></div>
+          <div class="fb-a__side fb-a__side--right">
+            <img class="fb-a__icon" src="icons/sprinkle.svg" alt=""/>
+            <input class="fb-a__input" type="text" placeholder="Ask anything…" autocomplete="off"/>
+            <span class="fb-a__tag">AI</span>
+            <button class="fb-a__submit fb-a__submit--ai" title="Ask AI">
+              <img src="icons/arrow.svg" alt="" style="width:12px;height:12px;filter:brightness(0) invert(1)"/>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Food/dark page -->
+      <div class="var-label" style="margin-bottom:8px">On dark / food-photo page</div>
+      <div class="demo-canvas demo-canvas--food">
+        <div class="demo-page">
+          <div class="demo-mini-nav demo-mini-nav--glass">
+            <img src="images/ufs-logo.png" alt="" class="demo-nav-logo" style="filter:brightness(0) invert(1);opacity:0.9"/>
+            <div class="demo-nav-links">
+              <div class="demo-nav-link" style="width:52px; color:white"></div>
+              <div class="demo-nav-link" style="width:40px; color:white"></div>
+              <div class="demo-nav-link" style="width:72px; color:white"></div>
+              <div class="demo-nav-link" style="width:44px; color:white"></div>
+            </div>
+            <div class="demo-nav-actions">
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+            </div>
+          </div>
+          <div class="demo-body demo-body--dark">
+            <div class="demo-hero" style="margin-bottom:20px">
+              <div class="demo-hero-tag" style="background:var(--color-brand-primary)"></div>
+              <div class="demo-hero-h demo-hero-h--light" style="width:50%"></div>
+              <div class="demo-hero-sub demo-hero-sub--light" style="width:34%"></div>
+            </div>
+            <div class="demo-cards">
+              <div class="demo-card demo-card--dark"><div class="demo-card-img demo-card-img--dark"></div><div class="demo-card-body"><div class="demo-card-line demo-card-line--dark"></div><div class="demo-card-line demo-card-line--dark"></div></div></div>
+              <div class="demo-card demo-card--dark"><div class="demo-card-img demo-card-img--dark"></div><div class="demo-card-body"><div class="demo-card-line demo-card-line--dark"></div><div class="demo-card-line demo-card-line--dark"></div></div></div>
+              <div class="demo-card demo-card--dark"><div class="demo-card-img demo-card-img--dark"></div><div class="demo-card-body"><div class="demo-card-line demo-card-line--dark"></div><div class="demo-card-line demo-card-line--dark"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Same pill on dark — no visual change, it's always white -->
+        <div class="fb-a">
+          <div class="fb-a__side fb-a__side--left">
+            <img class="fb-a__icon" src="icons/Search.svg" alt=""/>
+            <input class="fb-a__input" type="text" placeholder="Search UFS…" autocomplete="off"/>
+            <button class="fb-a__submit fb-a__submit--search" title="Search">
+              <img src="icons/arrow.svg" alt="" style="width:12px;height:12px;filter:brightness(0) invert(1)"/>
+            </button>
+          </div>
+          <div class="fb-a__divider"></div>
+          <div class="fb-a__side fb-a__side--right">
+            <img class="fb-a__icon" src="icons/sprinkle.svg" alt=""/>
+            <input class="fb-a__input" type="text" placeholder="Ask anything…" autocomplete="off"/>
+            <span class="fb-a__tag">AI</span>
+            <button class="fb-a__submit fb-a__submit--ai" title="Ask AI">
+              <img src="icons/arrow.svg" alt="" style="width:12px;height:12px;filter:brightness(0) invert(1)"/>
+            </button>
+          </div>
+        </div>
+      </div>
+      <p class="var-note">The pill's white background is self-contained — it reads cleanly on any page background. No variant needed.</p>
+    </section>
+
+    <!-- ============================================================
+         SECTION B — MODE TOGGLE
+    ============================================================ -->
+    <section class="exp-section" id="var-b">
+      <h2 class="exp-section-title">B — Single Input with Mode Toggle</h2>
+      <p class="exp-section-desc">One focused input bar with an inline mode selector on the left. The user deliberately chooses their intent before typing. Less spatial footprint than A — the two modes don't compete visually. Toggle the Search / Ask AI buttons below to see the mode transition.</p>
+      <div class="exp-section-rule"></div>
+
+      <div class="var-label" style="margin-bottom:8px">Interactive — toggle the mode</div>
+      <div class="demo-canvas demo-canvas--light">
+        <div class="demo-page">
+          <div class="demo-mini-nav demo-mini-nav--dark">
+            <img src="images/ufs-logo.png" alt="" class="demo-nav-logo" style="filter:brightness(0) invert(1);opacity:0.9"/>
+            <div class="demo-nav-links">
+              <div class="demo-nav-link" style="width:52px; color:white"></div>
+              <div class="demo-nav-link" style="width:40px; color:white"></div>
+              <div class="demo-nav-link" style="width:72px; color:white"></div>
+              <div class="demo-nav-link" style="width:44px; color:white"></div>
+            </div>
+            <div class="demo-nav-actions">
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+            </div>
+          </div>
+          <div class="demo-body" style="background:var(--color-salt)">
+            <div class="demo-hero" style="margin-bottom:24px">
+              <div class="demo-hero-tag"></div>
+              <div class="demo-hero-h" style="width:42%"></div>
+              <div class="demo-hero-sub" style="width:28%"></div>
+            </div>
+            <div class="demo-cards">
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#f0c89a,#e09060)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#c8e0b0,#90b870)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#b0c8e8,#7098c8)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- Bar B -->
+        <div class="fb-b" id="fb-b">
+          <div class="fb-b__toggle">
+            <button class="fb-b__mode-btn is-active" data-mode="search" onclick="setBMode('search')">
+              <img src="icons/Search.svg" alt=""/> Search
+            </button>
+            <button class="fb-b__mode-btn" data-mode="ai" onclick="setBMode('ai')">
+              <img src="icons/sprinkle.svg" alt=""/> Ask AI
+            </button>
+          </div>
+          <div class="fb-b__input-wrap">
+            <input class="fb-b__input" id="fb-b-input" type="text" placeholder="Search UFS…" autocomplete="off"/>
+          </div>
+          <button class="fb-b__submit fb-b__submit--search" id="fb-b-submit" title="Go">
+            <img src="icons/arrow.svg" alt="" style="width:14px;height:14px;filter:brightness(0) invert(1)"/>
+          </button>
+        </div>
+      </div>
+      <p class="var-note">Mode switch animates smoothly. The bar becomes narrower than A — better for pages where horizontal space matters.</p>
+    </section>
+
+    <!-- ============================================================
+         SECTION C — FABs
+    ============================================================ -->
+    <section class="exp-section" id="var-c">
+      <h2 class="exp-section-title">C — Expandable FABs</h2>
+      <p class="exp-section-desc">Two floating action buttons anchored to the bottom-right corner. Tapping a FAB opens a compact input panel directly above it. The rest of the page stays fully visible and unobstructed when idle. Best for pages with dense content that shouldn't be covered.</p>
+      <div class="exp-section-rule"></div>
+
+      <div class="var-label" style="margin-bottom:8px">Interactive — tap the FABs</div>
+      <div class="demo-canvas demo-canvas--light" style="overflow:visible">
+        <div class="demo-page" style="overflow:hidden;border-radius:var(--radius-lg)">
+          <div class="demo-mini-nav demo-mini-nav--dark">
+            <img src="images/ufs-logo.png" alt="" class="demo-nav-logo" style="filter:brightness(0) invert(1);opacity:0.9"/>
+            <div class="demo-nav-links">
+              <div class="demo-nav-link" style="width:52px; color:white"></div>
+              <div class="demo-nav-link" style="width:40px; color:white"></div>
+              <div class="demo-nav-link" style="width:72px; color:white"></div>
+              <div class="demo-nav-link" style="width:44px; color:white"></div>
+            </div>
+            <div class="demo-nav-actions">
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+            </div>
+          </div>
+          <div class="demo-body" style="background:var(--color-salt)">
+            <div class="demo-hero" style="margin-bottom:24px">
+              <div class="demo-hero-tag"></div>
+              <div class="demo-hero-h" style="width:44%"></div>
+              <div class="demo-hero-sub" style="width:30%"></div>
+            </div>
+            <div class="demo-cards">
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#f0c89a,#e09060)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#c8e0b0,#90b870)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#b0c8e8,#7098c8)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#e8d0b0,#c8a070)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <!-- FABs C -->
+        <div class="fb-c" id="fb-c">
+          <!-- AI panel -->
+          <div class="fb-c__panel" id="fb-c-ai-panel">
+            <div class="fb-c__panel-header fb-c__panel-header--ai">
+              <div class="fb-c__panel-title">
+                <img src="icons/sprinkle.svg" alt=""/> Ask AI
+              </div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.4);font-weight:700">UFS AI</div>
+            </div>
+            <div class="fb-c__input-row">
+              <input class="fb-c__input" type="text" placeholder="Ask anything about products, recipes…" autocomplete="off"/>
+            </div>
+            <div class="fb-c__panel-footer">Powered by UFS AI · Results may be inaccurate</div>
+          </div>
+          <!-- Search panel -->
+          <div class="fb-c__panel" id="fb-c-search-panel">
+            <div class="fb-c__panel-header fb-c__panel-header--search">
+              <div class="fb-c__panel-title">
+                <img src="icons/Search.svg" alt=""/> Search
+              </div>
+            </div>
+            <div class="fb-c__input-row">
+              <input class="fb-c__input fb-c__input--search" type="text" placeholder="Search products, recipes…" autocomplete="off"/>
+            </div>
+          </div>
+          <!-- FAB buttons row -->
+          <div class="fb-c__fabs">
+            <div class="fb-c__fab-col">
+              <button class="fb-c__fab fb-c__fab--search" id="fb-c-search-fab" onclick="toggleFab('search')" title="Search">
+                <img src="icons/Search.svg" alt="Search"/>
+              </button>
+              <div class="fb-c__fab-label">Search</div>
+            </div>
+            <div class="fb-c__fab-col">
+              <button class="fb-c__fab fb-c__fab--ai" id="fb-c-ai-fab" onclick="toggleFab('ai')" title="Ask AI">
+                <img src="icons/sprinkle.svg" alt="Ask AI"/>
+              </button>
+              <div class="fb-c__fab-label">Ask AI</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="var-note">Page content is never obscured when both FABs are idle. The panel appears above the FAB — no vertical space reserved by default.</p>
+    </section>
+
+    <!-- ============================================================
+         SECTION D — FULL-WIDTH DOCK
+    ============================================================ -->
+    <section class="exp-section" id="var-d">
+      <h2 class="exp-section-title">D — Full-width Dock</h2>
+      <p class="exp-section-desc">A persistent bar pinned to the bottom edge spanning the full viewport width. Both modes are always visible and equally prominent — no toggle needed. The strongest in terms of discoverability. Two colour treatments below: dark (brand) and light (neutral).</p>
+      <div class="exp-section-rule"></div>
+
+      <div class="var-label" style="margin-bottom:8px">Dark — brand treatment</div>
+      <div class="demo-canvas demo-canvas--light demo-canvas--tall" style="margin-bottom:24px">
+        <div class="demo-page">
+          <div class="demo-mini-nav demo-mini-nav--dark">
+            <img src="images/ufs-logo.png" alt="" class="demo-nav-logo" style="filter:brightness(0) invert(1);opacity:0.9"/>
+            <div class="demo-nav-links">
+              <div class="demo-nav-link" style="width:52px; color:white"></div>
+              <div class="demo-nav-link" style="width:40px; color:white"></div>
+              <div class="demo-nav-link" style="width:72px; color:white"></div>
+              <div class="demo-nav-link" style="width:44px; color:white"></div>
+            </div>
+            <div class="demo-nav-actions">
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+              <div class="demo-nav-circle" style="background:rgba(255,255,255,0.15)"></div>
+            </div>
+          </div>
+          <div class="demo-body" style="background:var(--color-salt)">
+            <div class="demo-hero" style="margin-bottom:24px">
+              <div class="demo-hero-tag"></div>
+              <div class="demo-hero-h" style="width:46%"></div>
+              <div class="demo-hero-sub" style="width:30%"></div>
+            </div>
+            <div class="demo-cards">
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#f0c89a,#e09060)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#c8e0b0,#90b870)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#b0c8e8,#7098c8)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#e8b0c0,#c87090)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="fb-d fb-d--dark">
+          <div class="fb-d__half">
+            <img class="fb-d__icon" src="icons/Search.svg" alt=""/>
+            <input class="fb-d__input" type="text" placeholder="Search products, recipes, inspiration…" autocomplete="off"/>
+            <div class="fb-d__label">Search</div>
+            <button class="fb-d__submit fb-d__submit--search">
+              <img src="icons/arrow.svg" alt="" style="width:12px;height:12px;filter:brightness(0) invert(1)"/>
+            </button>
+          </div>
+          <div class="fb-d__divider"></div>
+          <div class="fb-d__half">
+            <img class="fb-d__icon" src="icons/sprinkle.svg" alt=""/>
+            <input class="fb-d__input" type="text" placeholder="Ask our AI anything…" autocomplete="off"/>
+            <div class="fb-d__ai-badge">AI Beta</div>
+            <button class="fb-d__submit fb-d__submit--ai">
+              <img src="icons/arrow.svg" alt="" style="width:12px;height:12px;filter:brightness(0) invert(1)"/>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="var-label" style="margin-bottom:8px">Light — neutral treatment</div>
+      <div class="demo-canvas demo-canvas--light demo-canvas--tall">
+        <div class="demo-page">
+          <div class="demo-mini-nav demo-mini-nav--light">
+            <img src="images/ufs-logo.png" alt="" class="demo-nav-logo" style="opacity:0.9"/>
+            <div class="demo-nav-links">
+              <div class="demo-nav-link" style="width:52px; background:var(--color-brand-dark)"></div>
+              <div class="demo-nav-link" style="width:40px; background:var(--color-brand-dark)"></div>
+              <div class="demo-nav-link" style="width:72px; background:var(--color-brand-dark)"></div>
+              <div class="demo-nav-link" style="width:44px; background:var(--color-brand-dark)"></div>
+            </div>
+            <div class="demo-nav-actions">
+              <div class="demo-nav-circle" style="background:var(--color-mushroom-300)"></div>
+              <div class="demo-nav-circle" style="background:var(--color-mushroom-300)"></div>
+            </div>
+          </div>
+          <div class="demo-body" style="background:var(--color-mushroom-100)">
+            <div class="demo-hero" style="margin-bottom:24px">
+              <div class="demo-hero-tag"></div>
+              <div class="demo-hero-h" style="width:44%"></div>
+              <div class="demo-hero-sub" style="width:28%"></div>
+            </div>
+            <div class="demo-cards">
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#f0c89a,#e09060)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#c8e0b0,#90b870)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#b0c8e8,#7098c8)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+              <div class="demo-card"><div class="demo-card-img" style="background:linear-gradient(135deg,#e8d0b0,#c8a070)"></div><div class="demo-card-body"><div class="demo-card-line"></div><div class="demo-card-line"></div></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="fb-d fb-d--light">
+          <div class="fb-d__half">
+            <img class="fb-d__icon" src="icons/Search.svg" alt="" style="opacity:0.4"/>
+            <input class="fb-d__input" type="text" placeholder="Search products, recipes, inspiration…" autocomplete="off"/>
+            <div class="fb-d__label">Search</div>
+            <button class="fb-d__submit fb-d__submit--search">
+              <img src="icons/arrow.svg" alt="" style="width:12px;height:12px;filter:brightness(0) invert(1)"/>
+            </button>
+          </div>
+          <div class="fb-d__divider"></div>
+          <div class="fb-d__half">
+            <img class="fb-d__icon" src="icons/sprinkle.svg" alt="" style="opacity:0.4"/>
+            <input class="fb-d__input" type="text" placeholder="Ask our AI anything…" autocomplete="off"/>
+            <div class="fb-d__ai-badge">AI Beta</div>
+            <button class="fb-d__submit fb-d__submit--ai">
+              <img src="icons/arrow.svg" alt="" style="width:12px;height:12px;filter:brightness(0) invert(1)"/>
+            </button>
+          </div>
+        </div>
+      </div>
+      <p class="var-note">The submit button fades in only when the input is focused — reducing visual noise when idle. Click an input field to see it appear.</p>
+    </section>
+
+    <!-- ============================================================
+         COMPARISON TABLE
+    ============================================================ -->
+    <section class="exp-section" id="comparison">
+      <h2 class="exp-section-title">Comparison</h2>
+      <p class="exp-section-desc">A quick reference across the four approaches.</p>
+      <div class="exp-section-rule"></div>
+
+      <div class="comparison-grid">
+        <div class="comparison-cell comparison-cell--head">Criterion</div>
+        <div class="comparison-cell comparison-cell--head">A — Pill</div>
+        <div class="comparison-cell comparison-cell--head">B — Toggle</div>
+        <div class="comparison-cell comparison-cell--head">C — FABs</div>
+        <div class="comparison-cell comparison-cell--head">D — Dock</div>
+
+        <div class="comparison-cell comparison-cell--label">Discoverability</div>
+        <div class="comparison-cell"><span class="cc-pro">High</span> — both modes always visible</div>
+        <div class="comparison-cell">Medium — toggle required</div>
+        <div class="comparison-cell">Low — icon-only by default</div>
+        <div class="comparison-cell"><span class="cc-pro">Highest</span> — full-width always visible</div>
+
+        <div class="comparison-cell comparison-cell--label">Content coverage</div>
+        <div class="comparison-cell"><span class="cc-pro">Low</span> — narrow pill</div>
+        <div class="comparison-cell"><span class="cc-pro">Low</span> — narrow pill</div>
+        <div class="comparison-cell"><span class="cc-pro">None</span> — corner only</div>
+        <div class="comparison-cell"><span class="cc-con">High</span> — 64px always reserved</div>
+
+        <div class="comparison-cell comparison-cell--label">Mode distinction</div>
+        <div class="comparison-cell">Spatial (left / right)</div>
+        <div class="comparison-cell">Intentional (user selects)</div>
+        <div class="comparison-cell">Intentional (user taps FAB)</div>
+        <div class="comparison-cell">Spatial (left / right)</div>
+
+        <div class="comparison-cell comparison-cell--label">Best for</div>
+        <div class="comparison-cell">Content-first pages, hero sections</div>
+        <div class="comparison-cell">Single primary task, focused flows</div>
+        <div class="comparison-cell">Dense content like product listings</div>
+        <div class="comparison-cell">Utility-forward pages, dashboards</div>
+
+        <div class="comparison-cell comparison-cell--label">Complexity</div>
+        <div class="comparison-cell">Low</div>
+        <div class="comparison-cell">Low</div>
+        <div class="comparison-cell">Medium (open/close state)</div>
+        <div class="comparison-cell">Low</div>
+
+        <div class="comparison-cell comparison-cell--label">Mobile adaptation</div>
+        <div class="comparison-cell">Stack vertically or collapse to toggle</div>
+        <div class="comparison-cell"><span class="cc-pro">Direct — same pattern scales</span></div>
+        <div class="comparison-cell"><span class="cc-pro">Direct — FABs are native mobile</span></div>
+        <div class="comparison-cell">Stack vertically (2 rows)</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    /* ── Sidebar active state ─────────────────────────────── */
+    (function() {
+      var links = document.querySelectorAll('.sidebar-link[href^="#"]');
+      var sections = [];
+      links.forEach(function(l) {
+        var id = l.getAttribute('href').slice(1);
+        var el = document.getElementById(id);
+        if (el) sections.push({ link: l, el: el });
+      });
+      function update() {
+        var scrollY = window.scrollY + 120;
+        var active = sections[0];
+        sections.forEach(function(s) { if (s.el.offsetTop <= scrollY) active = s; });
+        links.forEach(function(l) { l.classList.remove('active'); });
+        if (active) active.link.classList.add('active');
+      }
+      window.addEventListener('scroll', update, { passive: true });
+      update();
+    })();
+
+    /* ── Variant B: mode toggle ───────────────────────────── */
+    function setBMode(mode) {
+      var btns = document.querySelectorAll('#fb-b .fb-b__mode-btn');
+      var input = document.getElementById('fb-b-input');
+      var submit = document.getElementById('fb-b-submit');
+      btns.forEach(function(b) { b.classList.toggle('is-active', b.dataset.mode === mode); });
+      if (mode === 'search') {
+        input.placeholder = 'Search UFS…';
+        submit.className = 'fb-b__submit fb-b__submit--search';
+      } else {
+        input.placeholder = 'Ask anything about UFS products, recipes, nutrition…';
+        submit.className = 'fb-b__submit fb-b__submit--ai';
+      }
+      input.focus();
+    }
+
+    /* ── Variant C: FAB expand ───────────────────────────── */
+    var fabState = { search: false, ai: false };
+    function toggleFab(mode) {
+      var other = mode === 'search' ? 'ai' : 'search';
+      var panel = document.getElementById('fb-c-' + mode + '-panel');
+      var otherPanel = document.getElementById('fb-c-' + other + '-panel');
+      var fab = document.getElementById('fb-c-' + mode + '-fab');
+      var otherFab = document.getElementById('fb-c-' + other + '-fab');
+      var isOpen = fabState[mode];
+      /* close other */
+      fabState[other] = false;
+      otherPanel.classList.remove('is-open');
+      otherFab.classList.remove('is-active');
+      /* toggle this */
+      fabState[mode] = !isOpen;
+      panel.classList.toggle('is-open', !isOpen);
+      fab.classList.toggle('is-active', !isOpen);
+      if (!isOpen) { setTimeout(function() { panel.querySelector('input').focus(); }, 280); }
+    }
+  </script>
+</body>
+</html>
