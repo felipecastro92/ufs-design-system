@@ -36,7 +36,7 @@
       padding-bottom: var(--ctrl-reserve);
       transition: padding-bottom 0.28s ease;
     }
-    body.search-open { overflow: hidden; }
+    body.search-open { overflow: hidden; position: fixed; width: 100%; }
     @media (max-width: 768px) {
       .text-display { font-size: var(--text-display-mob-size); }
       .text-h3       { font-size: var(--text-h3-mob-size); }
@@ -2096,6 +2096,17 @@
     /* ================================================================
        SEARCH OVERLAY
     ================================================================ */
+    var _searchScrollY = 0;
+    function _lockBodyScroll() {
+      _searchScrollY = window.scrollY;
+      document.body.style.top = '-' + _searchScrollY + 'px';
+      document.body.classList.add('search-open');
+    }
+    function _unlockBodyScroll() {
+      document.body.classList.remove('search-open');
+      document.body.style.top = '';
+      window.scrollTo(0, _searchScrollY);
+    }
     function closeSearchOverlay(which) {
       var id = which === 'mnav' ? 'mnav-search-overlay' : 'nav-search-overlay';
       document.getElementById(id).classList.remove('is-open');
@@ -2104,7 +2115,7 @@
         syncNavAppearance();
         document.getElementById('fbe-fixed').classList.remove('behind-search');
       }
-      document.body.classList.remove('search-open');
+      _unlockBodyScroll();
     }
     function toggleSearchOverlay(which) {
       var id = which === 'mnav' ? 'mnav-search-overlay' : 'nav-search-overlay';
@@ -2116,7 +2127,7 @@
       if (!isOpen) {
         closeAllMegamenus();
         overlay.classList.add('is-open');
-        document.body.classList.add('search-open');
+        _lockBodyScroll();
         if (which === 'nav') {
           searchOverlayOpen = true;
           syncNavAppearance();
