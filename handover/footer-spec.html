@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Footer — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cairo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.25); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1280px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1280px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-700); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW LABELS
+    ═══════════════════════════════════════ */
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-700); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-id  { color: #d2a8ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 200px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .token-note { color: var(--color-mushroom-700); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       INTRO GRID
+    ═══════════════════════════════════════ */
+    .intro-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-top: 28px; max-width: 860px; }
+    .intro-card { background: var(--color-salt); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-xs); border-top: 3px solid var(--color-brand-dark); }
+    .intro-card-icon { font-size: 20px; margin-bottom: 10px; }
+    .intro-card-title { font-size: 13px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 5px; }
+    .intro-card-text  { font-size: 12px; line-height: 18px; color: var(--color-smoke); }
+
+    /* Two-col */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 960px; }
+
+    /* ═══════════════════════════════════════
+       CONTRAST BADGE
+    ═══════════════════════════════════════ */
+    .contrast-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; }
+    .contrast-badge--pass { background: color-mix(in srgb, var(--color-success) 12%, transparent); color: var(--color-success); }
+    .contrast-badge--warn { background: color-mix(in srgb, var(--color-gold) 15%, transparent); color: #9a6f00; }
+
+    /* ═══════════════════════════════════════
+       FOOTER COMPONENT CSS
+    ═══════════════════════════════════════ */
+    .ufs-footer { font-family: var(--font-family); -webkit-font-smoothing: antialiased; }
+
+    .ufs-footer__band {
+      background: var(--color-accessible-orange);
+      padding: var(--space-15) var(--space-25);
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--space-5); text-align: center;
+    }
+    .ufs-footer__nl-heading {
+      font-family: var(--font-family-script);
+      font-size: var(--ch-h3-size);
+      font-weight: 400;
+      line-height: var(--ch-h3-lh);
+      letter-spacing: var(--ch-h3-ls);
+      color: var(--color-salt);
+      margin: 0 0 var(--space-2);
+    }
+    .ufs-footer__nl-sub {
+      font-size: var(--text-body-sm-size);
+      line-height: var(--text-body-sm-lh);
+      color: var(--color-salt); margin: 0;
+    }
+    .ufs-footer__nl-form { display: flex; gap: var(--space-3); }
+    .ufs-footer__nl-input {
+      width: 476px; height: 54px; padding: 0 var(--space-4);
+      border: none; border-radius: var(--radius-sm);
+      background: var(--color-mushroom-100);
+      font-family: var(--font-family); font-size: var(--text-body-sm-size);
+      color: var(--color-brand-dark); outline: none;
+    }
+    .ufs-footer__nl-input::placeholder { color: var(--color-smoke); }
+    .ufs-footer__nl-btn {
+      height: 54px; padding: 0 var(--space-6);
+      border: 1px solid var(--color-salt); border-radius: var(--radius-sm);
+      background: transparent; color: var(--color-salt);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      cursor: pointer; white-space: nowrap; transition: background 0.15s;
+    }
+    .ufs-footer__nl-btn:hover { background: rgba(255,255,255,0.12); }
+
+    .ufs-footer__main {
+      background: var(--color-brand-dark);
+      padding: var(--space-15) var(--space-25) var(--space-25);
+      display: flex; flex-direction: column; gap: var(--space-12);
+    }
+    .ufs-footer__cols {
+      display: grid; grid-template-columns: 303px 1fr 1fr 1fr;
+      gap: var(--space-20);
+    }
+    .ufs-footer__brand-logo { width: 98px; display: block; margin-bottom: var(--space-4); }
+    .ufs-footer__brand-tagline {
+      font-size: var(--text-h6-size); font-weight: var(--text-h6-w);
+      line-height: var(--text-h6-lh); color: var(--color-salt); margin: 0;
+    }
+    .ufs-footer__col-heading {
+      font-size: var(--text-h6-size); font-weight: var(--text-h6-w);
+      line-height: var(--text-h6-lh); color: var(--color-salt); margin: 0 0 var(--space-4);
+    }
+    .ufs-footer__col-links {
+      list-style: none; margin: 0; padding: 0;
+      display: flex; flex-direction: column; gap: var(--space-3);
+    }
+    .ufs-footer__link {
+      font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh);
+      color: var(--color-squid-100); text-decoration: none; transition: color 0.15s;
+    }
+    .ufs-footer__link:hover { color: var(--color-salt); }
+    .ufs-footer__divider { height: 1px; background: rgba(255,255,255,0.08); }
+    .ufs-footer__bottom {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: var(--space-4); padding-bottom: var(--space-12);
+    }
+    .ufs-footer__copyright {
+      font-size: var(--text-body-sm-size); color: var(--color-mushroom-700); margin: 0;
+    }
+    .ufs-footer__socials { display: flex; align-items: center; gap: var(--space-3); }
+    .ufs-footer__social-link {
+      display: flex; align-items: center; justify-content: center;
+      width: var(--space-12); height: var(--space-12);
+      border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      transition: background 0.15s, border-color 0.15s; text-decoration: none;
+    }
+    .ufs-footer__social-link:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.2); }
+    .ufs-footer__social-icon {
+      width: var(--space-6); height: var(--space-6);
+      filter: brightness(0) invert(1);
+    }
+
+    /* mobile preview container */
+    .mobile-preview-shell {
+      width: 390px; border-radius: 16px; overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.18); border: 1px solid var(--color-mushroom-300);
+    }
+    .mobile-preview-shell .ufs-footer__band { padding: var(--space-10) var(--space-4); }
+    .mobile-preview-shell .ufs-footer__nl-heading { font-size: var(--ch-h3-mob-size); }
+    .mobile-preview-shell .ufs-footer__nl-form { flex-direction: column; width: 100%; }
+    .mobile-preview-shell .ufs-footer__nl-input { width: 100%; }
+    .mobile-preview-shell .ufs-footer__nl-btn { width: 100%; }
+    .mobile-preview-shell .ufs-footer__main { padding: var(--space-10) var(--space-4) var(--space-25); }
+    .mobile-preview-shell .ufs-footer__cols { grid-template-columns: 1fr 1fr; gap: var(--space-8) var(--space-6); }
+    .mobile-preview-shell .ufs-footer__cols > .ufs-footer__col:first-child {
+      grid-column: 1 / -1; display: flex; flex-direction: row;
+      align-items: center; gap: var(--space-4);
+      padding-bottom: var(--space-4); border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .mobile-preview-shell .ufs-footer__brand-logo { margin-bottom: 0; flex-shrink: 0; }
+    .mobile-preview-shell .ufs-footer__bottom {
+      flex-direction: column-reverse; align-items: center; text-align: center;
+    }
+    .mobile-preview-shell .ufs-footer__socials { width: 100%; justify-content: space-evenly; }
+
+    /* anatomy diagram */
+    .anatomy-wrap { position: relative; max-width: 1280px; border-radius: var(--radius-md); overflow: hidden; }
+    .anatomy-label {
+      position: absolute; background: var(--color-brand-primary);
+      color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+      padding: 3px 8px; border-radius: 3px; white-space: nowrap; pointer-events: none;
+    }
+    .anatomy-line {
+      position: absolute; background: var(--color-brand-primary);
+      pointer-events: none;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview"      class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Overview</a>
+      <a href="#full-preview"  class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Footer Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Sections</div>
+      <a href="#newsletter"    class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Newsletter Band</a>
+      <a href="#link-columns"  class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Link Columns</a>
+      <a href="#bottom-bar"    class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Bottom Bar</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile"        class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Layout</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Reference</div>
+      <a href="#tokens"        class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Design Tokens</a>
+      <a href="#i18n"          class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">UFS Design System · Rosana 2.0<br/>Developer Handover — Document 3</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" id="sidebar-toggle" onclick="openSidebar()" title="Table of contents">
+    <svg viewBox="0 0 16 16" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1.6" stroke-linecap="round">
+      <line x1="2" y1="4" x2="14" y2="4"/>
+      <line x1="2" y1="8" x2="14" y2="8"/>
+      <line x1="2" y1="12" x2="14" y2="12"/>
+    </svg>
+  </button>
+
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Footer</span>
+  </div>
+
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Developer Handover · Document 3</div>
+        <h1 class="doc-header-title">Site <span>Footer</span></h1>
+        <p class="doc-header-desc">Live renders, HTML structure, and token references for every part of the UFS site footer — newsletter band, link grid, bottom bar, and responsive behaviour.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">System</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">Rosana 2.0</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Date</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">June 2026</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ── 0. OVERVIEW ── -->
+    <div class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Footer System</h2>
+      <p class="section-desc">The footer is made of two stacked regions — an orange newsletter band and a dark main area — both fully driven by DS tokens. One set of HTML and CSS serves desktop and mobile via a single responsive breakpoint at 768 px.</p>
+
+      <div class="intro-grid">
+        <div class="intro-card">
+          <div class="intro-card-icon">🟧</div>
+          <div class="intro-card-title">Newsletter band</div>
+          <div class="intro-card-text">Accessible orange background. Chefs Hand h3 heading, body-sm sub-copy, ghost button + email input. Fully centered column layout.</div>
+        </div>
+        <div class="intro-card">
+          <div class="intro-card-icon">🔲</div>
+          <div class="intro-card-title">Link grid</div>
+          <div class="intro-card-text">303 px brand column (logo + tagline) + 3 equal link columns on a <code>--color-brand-dark</code> background. Collapses to 2 columns on mobile.</div>
+        </div>
+        <div class="intro-card">
+          <div class="intro-card-icon">🌐</div>
+          <div class="intro-card-title">i18n ready</div>
+          <div class="intro-card-text">All text nodes carry <code>data-i18n</code> / <code>data-i18n-ph</code> attributes. The email input is always <code>dir="ltr"</code>. Arabic strings are provided in <code>T_AR</code>.</div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip" style="margin-top:24px">
+        <span class="notice-icon">💡</span>
+        <span>The footer is placed <strong>after</strong> <code>#real-page-content</code> and outside any scroll container — it renders as a normal document-flow block. The floating AI bar (<code>.fbe-fixed</code>) is always fixed; <code>padding-bottom: var(--space-25)</code> on <code>.ufs-footer__main</code> ensures content is never obscured by it.</span>
+      </div>
+      <div class="section-rule"></div>
+    </div>
+
+    <!-- ── 1. FULL PREVIEW ── -->
+    <div class="doc-section" id="full-preview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Footer Preview</h2>
+      <p class="section-desc">Live render of the complete footer — newsletter band above, link grid and bottom bar below.</p>
+
+      <div class="anatomy-wrap">
+        <footer class="ufs-footer">
+          <div class="ufs-footer__band">
+            <div>
+              <h2 class="ufs-footer__nl-heading">Stay in the loop</h2>
+              <p class="ufs-footer__nl-sub">Sign up to receive recipe ideas, industry trends, special offers, and more in your inbox.</p>
+            </div>
+            <form class="ufs-footer__nl-form" onsubmit="return false">
+              <input class="ufs-footer__nl-input" type="email" dir="ltr" placeholder="Enter your email" autocomplete="email" />
+              <button class="ufs-footer__nl-btn" type="submit">Subscribe</button>
+            </form>
+          </div>
+          <div class="ufs-footer__main">
+            <div class="ufs-footer__cols">
+              <div class="ufs-footer__col">
+                <img src="images/ufs-logo.png" class="ufs-footer__brand-logo" alt="UFS" />
+                <p class="ufs-footer__brand-tagline">Products and services created by chefs for chefs</p>
+              </div>
+              <div class="ufs-footer__col">
+                <h3 class="ufs-footer__col-heading">Company</h3>
+                <ul class="ufs-footer__col-links">
+                  <li><a href="#" class="ufs-footer__link">About Us</a></li>
+                  <li><a href="#" class="ufs-footer__link">Brands</a></li>
+                  <li><a href="#" class="ufs-footer__link">Sustainability</a></li>
+                  <li><a href="#" class="ufs-footer__link">Trade Terms</a></li>
+                  <li><a href="#" class="ufs-footer__link">Partners</a></li>
+                </ul>
+              </div>
+              <div class="ufs-footer__col">
+                <h3 class="ufs-footer__col-heading">Help &amp; Support</h3>
+                <ul class="ufs-footer__col-links">
+                  <li><a href="#" class="ufs-footer__link">Track My Order</a></li>
+                  <li><a href="#" class="ufs-footer__link">Shipping Info</a></li>
+                  <li><a href="#" class="ufs-footer__link">Returns &amp; Exchanges</a></li>
+                  <li><a href="#" class="ufs-footer__link">FAQ</a></li>
+                  <li><a href="#" class="ufs-footer__link">Contact Us</a></li>
+                </ul>
+              </div>
+              <div class="ufs-footer__col">
+                <h3 class="ufs-footer__col-heading">Legal</h3>
+                <ul class="ufs-footer__col-links">
+                  <li><a href="#" class="ufs-footer__link">Privacy Policy</a></li>
+                  <li><a href="#" class="ufs-footer__link">Cookie Policy</a></li>
+                  <li><a href="#" class="ufs-footer__link">Terms and Conditions</a></li>
+                  <li><a href="#" class="ufs-footer__link">Accessibility</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="ufs-footer__divider"></div>
+            <div class="ufs-footer__bottom">
+              <p class="ufs-footer__copyright">© 2027 UFS. All rights reserved.</p>
+              <div class="ufs-footer__socials">
+                <a href="#" class="ufs-footer__social-link" aria-label="Instagram"><img src="icons/instagram.svg" class="ufs-footer__social-icon" alt="" /></a>
+                <a href="#" class="ufs-footer__social-link" aria-label="TikTok"><img src="icons/tiktok.svg" class="ufs-footer__social-icon" alt="" /></a>
+                <a href="#" class="ufs-footer__social-link" aria-label="Facebook"><img src="icons/facebook.svg" class="ufs-footer__social-icon" alt="" /></a>
+                <a href="#" class="ufs-footer__social-link" aria-label="YouTube"><img src="icons/youtube.svg" class="ufs-footer__social-icon" alt="" /></a>
+                <a href="#" class="ufs-footer__social-link" aria-label="LinkedIn"><img src="icons/linkedin.svg" class="ufs-footer__social-icon" alt="" /></a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+      <div class="section-rule"></div>
+    </div>
+
+    <!-- ── 2. NEWSLETTER BAND ── -->
+    <div class="doc-section" id="newsletter">
+      <div class="section-breadcrumb">Sections</div>
+      <h2 class="section-title">Newsletter Band</h2>
+      <p class="section-desc">Orange band at the top of the footer. Heading uses the Chef's Hand script font. Form row contains a ghost-outlined subscribe button alongside the email input.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Newsletter band</div>
+        <div class="card-desc">Background <code>--color-accessible-orange</code>. Flexbox column, center-aligned. Gap between heading block and form row is <code>--space-5</code>.</div>
+
+        <div class="ufs-footer__band" style="border-radius:var(--radius-md)">
+          <div>
+            <h2 class="ufs-footer__nl-heading">Stay in the loop</h2>
+            <p class="ufs-footer__nl-sub">Sign up to receive recipe ideas, industry trends, special offers, and more in your inbox.</p>
+          </div>
+          <form class="ufs-footer__nl-form" onsubmit="return false">
+            <input class="ufs-footer__nl-input" type="email" dir="ltr" placeholder="Enter your email" autocomplete="email" />
+            <button class="ufs-footer__nl-btn" type="submit">Subscribe</button>
+          </form>
+        </div>
+
+        <div class="card-subtitle">Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">background</span><span class="token-var">--color-accessible-orange</span><span class="token-note">#D14900</span></div>
+          <div class="token-row"><span class="token-prop">padding</span><span class="token-var">--space-15 --space-25</span><span class="token-note">60px 100px desktop · 40px 16px mobile</span></div>
+          <div class="token-row"><span class="token-prop">gap (flex)</span><span class="token-var">--space-5</span><span class="token-note">20px · between heading block and form</span></div>
+          <div class="token-row"><span class="token-prop">heading font-family</span><span class="token-var">--font-family-script</span><span class="token-note">Chefs Hand v3</span></div>
+          <div class="token-row"><span class="token-prop">heading font-size</span><span class="token-var">--ch-h3-size</span><span class="token-note">51px desktop · --ch-h3-mob-size 41px mobile</span></div>
+          <div class="token-row"><span class="token-prop">heading line-height</span><span class="token-var">--ch-h3-lh</span><span class="token-note">36px</span></div>
+          <div class="token-row"><span class="token-prop">heading letter-spacing</span><span class="token-var">--ch-h3-ls</span><span class="token-note">-0.2px</span></div>
+          <div class="token-row"><span class="token-prop">heading / sub color</span><span class="token-var">--color-salt</span><span class="token-note">#FFFFFF · 4.5:1 on orange</span></div>
+          <div class="token-row"><span class="token-prop">sub font-size</span><span class="token-var">--text-body-sm-size</span><span class="token-note">14px</span></div>
+          <div class="token-row"><span class="token-prop">input background</span><span class="token-var">--color-mushroom-100</span><span class="token-note">#F5F3F4</span></div>
+          <div class="token-row"><span class="token-prop">input text color</span><span class="token-var">--color-brand-dark</span><span class="token-note">14.6:1 on mushroom-100</span></div>
+          <div class="token-row"><span class="token-prop">input border-radius</span><span class="token-var">--radius-sm</span><span class="token-note"></span></div>
+          <div class="token-row"><span class="token-prop">button border</span><span class="token-var">--color-salt</span><span class="token-note">1px solid · ghost style</span></div>
+          <div class="token-row"><span class="token-prop">button font-size</span><span class="token-var">--text-btn-size</span><span class="token-note">14px</span></div>
+          <div class="token-row"><span class="token-prop">button font-weight</span><span class="token-var">--text-btn-w</span><span class="token-note">600</span></div>
+          <div class="token-row"><span class="token-prop">button padding-x</span><span class="token-var">--space-6</span><span class="token-note">24px</span></div>
+        </div>
+
+        <div class="card-subtitle">HTML</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__band"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div&gt;</span>
+    <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__nl-heading"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-heading"</span><span class="t-tag">&gt;</span>Stay in the loop<span class="t-tag">&lt;/h2&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__nl-sub"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-sub"</span><span class="t-tag">&gt;</span>Sign up to receive...<span class="t-tag">&lt;/p&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;form</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__nl-form"</span> <span class="t-at">onsubmit</span>=<span class="t-str">"return false"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;input</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__nl-input"</span> <span class="t-at">type</span>=<span class="t-str">"email"</span> <span class="t-at">dir</span>=<span class="t-str">"ltr"</span>
+           <span class="t-at">placeholder</span>=<span class="t-str">"Enter your email"</span> <span class="t-at">data-i18n-ph</span>=<span class="t-str">"footer-input-ph"</span>
+           <span class="t-at">autocomplete</span>=<span class="t-str">"email"</span> <span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__nl-btn"</span> <span class="t-at">type</span>=<span class="t-str">"submit"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-subscribe"</span><span class="t-tag">&gt;</span>Subscribe<span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;/form&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+        </div>
+
+        <div class="notice notice--warn" style="margin-top:20px">
+          <span class="notice-icon">⚠️</span>
+          <span>The email <code>&lt;input&gt;</code> must always carry <code>dir="ltr"</code> regardless of page direction — email addresses are LTR by spec. Add <code>aria-label</code> (or a visually-hidden <code>&lt;label&gt;</code>) in production; placeholder alone is not sufficient for screen-readers.</span>
+        </div>
+      </div>
+      <div class="section-rule"></div>
+    </div>
+
+    <!-- ── 3. LINK COLUMNS ── -->
+    <div class="doc-section" id="link-columns">
+      <div class="section-breadcrumb">Sections</div>
+      <h2 class="section-title">Link Columns</h2>
+      <p class="section-desc">Four-column grid on a dark background. The first column (303 px fixed) holds the brand logo and tagline. The remaining three share equal width and carry the site's navigational link groups.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Desktop grid — 4 columns</div>
+        <div class="card-desc">Grid template: <code>303px 1fr 1fr 1fr</code>. Column gap <code>--space-20</code>. Logo is 98 px wide; tagline uses <code>--text-h6</code> tokens.</div>
+
+        <div style="background:var(--color-brand-dark);border-radius:var(--radius-md);padding:var(--space-10) var(--space-8)">
+          <div class="ufs-footer__cols">
+            <div class="ufs-footer__col">
+              <img src="images/ufs-logo.png" class="ufs-footer__brand-logo" alt="UFS" />
+              <p class="ufs-footer__brand-tagline">Products and services created by chefs for chefs</p>
+            </div>
+            <div class="ufs-footer__col">
+              <h3 class="ufs-footer__col-heading">Company</h3>
+              <ul class="ufs-footer__col-links">
+                <li><a href="#" class="ufs-footer__link">About Us</a></li>
+                <li><a href="#" class="ufs-footer__link">Brands</a></li>
+                <li><a href="#" class="ufs-footer__link">Sustainability</a></li>
+                <li><a href="#" class="ufs-footer__link">Trade Terms</a></li>
+                <li><a href="#" class="ufs-footer__link">Partners</a></li>
+              </ul>
+            </div>
+            <div class="ufs-footer__col">
+              <h3 class="ufs-footer__col-heading">Help &amp; Support</h3>
+              <ul class="ufs-footer__col-links">
+                <li><a href="#" class="ufs-footer__link">Track My Order</a></li>
+                <li><a href="#" class="ufs-footer__link">Shipping Info</a></li>
+                <li><a href="#" class="ufs-footer__link">Returns &amp; Exchanges</a></li>
+                <li><a href="#" class="ufs-footer__link">FAQ</a></li>
+                <li><a href="#" class="ufs-footer__link">Contact Us</a></li>
+              </ul>
+            </div>
+            <div class="ufs-footer__col">
+              <h3 class="ufs-footer__col-heading">Legal</h3>
+              <ul class="ufs-footer__col-links">
+                <li><a href="#" class="ufs-footer__link">Privacy Policy</a></li>
+                <li><a href="#" class="ufs-footer__link">Cookie Policy</a></li>
+                <li><a href="#" class="ufs-footer__link">Terms and Conditions</a></li>
+                <li><a href="#" class="ufs-footer__link">Accessibility</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">background</span><span class="token-var">--color-brand-dark</span><span class="token-note">#221D37</span></div>
+          <div class="token-row"><span class="token-prop">grid columns</span><span class="token-var">303px 1fr 1fr 1fr</span><span class="token-note">brand col fixed width</span></div>
+          <div class="token-row"><span class="token-prop">column gap</span><span class="token-var">--space-20</span><span class="token-note">80px</span></div>
+          <div class="token-row"><span class="token-prop">brand logo width</span><span class="token-var">98px</span><span class="token-note">margin-bottom --space-4</span></div>
+          <div class="token-row"><span class="token-prop">col heading font-size</span><span class="token-var">--text-h6-size</span><span class="token-note">18px / weight --text-h6-w 600</span></div>
+          <div class="token-row"><span class="token-prop">col heading color</span><span class="token-var">--color-salt</span><span class="token-note">16.2:1 on brand-dark</span></div>
+          <div class="token-row"><span class="token-prop">col heading margin-bottom</span><span class="token-var">--space-4</span><span class="token-note">16px</span></div>
+          <div class="token-row"><span class="token-prop">link color (default)</span><span class="token-var">--color-squid-100</span><span class="token-note">#D3D2D7 · 10.8:1 on brand-dark</span></div>
+          <div class="token-row"><span class="token-prop">link color (hover)</span><span class="token-var">--color-salt</span><span class="token-note">#FFFFFF</span></div>
+          <div class="token-row"><span class="token-prop">link font-size</span><span class="token-var">--text-body-sm-size</span><span class="token-note">14px</span></div>
+          <div class="token-row"><span class="token-prop">link gap (flex col)</span><span class="token-var">--space-3</span><span class="token-note">12px</span></div>
+        </div>
+
+        <div class="card-subtitle">HTML</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__cols"</span><span class="t-tag">&gt;</span>
+
+  <span class="t-cm">&lt;!-- Brand column --&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__col"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"images/ufs-logo.png"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__brand-logo"</span> <span class="t-at">alt</span>=<span class="t-str">"UFS"</span> <span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__brand-tagline"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-tagline"</span><span class="t-tag">&gt;</span>
+      Products and services created by chefs for chefs
+    <span class="t-tag">&lt;/p&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+
+  <span class="t-cm">&lt;!-- Link column (repeat × 3) --&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__col"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;h3</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__col-heading"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-col-company"</span><span class="t-tag">&gt;</span>Company<span class="t-tag">&lt;/h3&gt;</span>
+    <span class="t-tag">&lt;ul</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__col-links"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;li&gt;&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__link"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-about"</span><span class="t-tag">&gt;</span>About Us<span class="t-tag">&lt;/a&gt;&lt;/li&gt;</span>
+      <span class="t-tag">&lt;li&gt;&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__link"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-brands"</span><span class="t-tag">&gt;</span>Brands<span class="t-tag">&lt;/a&gt;&lt;/li&gt;</span>
+      <span class="t-tag">&lt;li&gt;&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__link"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-sustainability"</span><span class="t-tag">&gt;</span>Sustainability<span class="t-tag">&lt;/a&gt;&lt;/li&gt;</span>
+      <span class="t-tag">&lt;li&gt;&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__link"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-trade"</span><span class="t-tag">&gt;</span>Trade Terms<span class="t-tag">&lt;/a&gt;&lt;/li&gt;</span>
+      <span class="t-tag">&lt;li&gt;&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__link"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-partners"</span><span class="t-tag">&gt;</span>Partners<span class="t-tag">&lt;/a&gt;&lt;/li&gt;</span>
+    <span class="t-tag">&lt;/ul&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+
+<span class="t-tag">&lt;/div&gt;</span></pre>
+        </div>
+      </div>
+      <div class="section-rule"></div>
+    </div>
+
+    <!-- ── 4. BOTTOM BAR ── -->
+    <div class="doc-section" id="bottom-bar">
+      <div class="section-breadcrumb">Sections</div>
+      <h2 class="section-title">Bottom Bar</h2>
+      <p class="section-desc">Copyright line on the left, social icon row on the right. Separated from the link grid by a 1 px hairline divider. On mobile the layout stacks — icons above, copyright below — both centered.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Bottom bar</div>
+        <div class="card-desc">Flex row, space-between. Social icon buttons are 48 × 48 px circular containers with white SVG icons at 24 × 24 px.</div>
+
+        <div style="background:var(--color-brand-dark);border-radius:var(--radius-md);padding:var(--space-6) var(--space-8)">
+          <div class="ufs-footer__divider" style="margin-bottom:var(--space-8)"></div>
+          <div class="ufs-footer__bottom">
+            <p class="ufs-footer__copyright">© 2027 UFS. All rights reserved.</p>
+            <div class="ufs-footer__socials">
+              <a href="#" class="ufs-footer__social-link" aria-label="Instagram"><img src="icons/instagram.svg" class="ufs-footer__social-icon" alt="" /></a>
+              <a href="#" class="ufs-footer__social-link" aria-label="TikTok"><img src="icons/tiktok.svg" class="ufs-footer__social-icon" alt="" /></a>
+              <a href="#" class="ufs-footer__social-link" aria-label="Facebook"><img src="icons/facebook.svg" class="ufs-footer__social-icon" alt="" /></a>
+              <a href="#" class="ufs-footer__social-link" aria-label="YouTube"><img src="icons/youtube.svg" class="ufs-footer__social-icon" alt="" /></a>
+              <a href="#" class="ufs-footer__social-link" aria-label="LinkedIn"><img src="icons/linkedin.svg" class="ufs-footer__social-icon" alt="" /></a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">divider</span><span class="token-var">rgba(255,255,255,0.08)</span><span class="token-note">1px height</span></div>
+          <div class="token-row"><span class="token-prop">copyright color</span><span class="token-var">--color-mushroom-700</span><span class="token-note">#989495 · 5.4:1 on brand-dark</span></div>
+          <div class="token-row"><span class="token-prop">copyright font-size</span><span class="token-var">--text-body-sm-size</span><span class="token-note">14px</span></div>
+          <div class="token-row"><span class="token-prop">bottom bar padding-bottom</span><span class="token-var">--space-12</span><span class="token-note">48px</span></div>
+          <div class="token-row"><span class="token-prop">social icon btn size</span><span class="token-var">--space-12</span><span class="token-note">48 × 48px</span></div>
+          <div class="token-row"><span class="token-prop">social icon btn shape</span><span class="token-var">--radius-full</span><span class="token-note">circle</span></div>
+          <div class="token-row"><span class="token-prop">social icon btn bg</span><span class="token-var">rgba(255,255,255,0.05)</span><span class="token-note">border: 1px solid rgba(255,255,255,0.1)</span></div>
+          <div class="token-row"><span class="token-prop">social icon size</span><span class="token-var">--space-6</span><span class="token-note">24 × 24px · filter: brightness(0) invert(1)</span></div>
+          <div class="token-row"><span class="token-prop">socials gap</span><span class="token-var">--space-3</span><span class="token-note">12px</span></div>
+        </div>
+
+        <div class="card-subtitle">HTML</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__divider"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__bottom"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__copyright"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"footer-copyright"</span><span class="t-tag">&gt;</span>
+    © 2027 UFS. All rights reserved.
+  <span class="t-tag">&lt;/p&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__socials"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__social-link"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Instagram"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/instagram.svg"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-footer__social-icon"</span> <span class="t-at">alt</span>=<span class="t-str">""</span> <span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;/a&gt;</span>
+    <span class="t-cm">&lt;!-- repeat for tiktok · facebook · youtube · linkedin --&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+        </div>
+
+        <div class="notice notice--info" style="margin-top:20px">
+          <span class="notice-icon">ℹ️</span>
+          <span>Each <code>.ufs-footer__social-link</code> must carry a descriptive <code>aria-label</code> — the inner <code>&lt;img&gt;</code> is decorative (<code>alt=""</code>) so the label is the only accessible name for the link.</span>
+        </div>
+      </div>
+      <div class="section-rule"></div>
+    </div>
+
+    <!-- ── 5. MOBILE LAYOUT ── -->
+    <div class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Layout</h2>
+      <p class="section-desc">Below 768 px the footer reorganises into a single-breakpoint responsive layout. The newsletter form stacks vertically and fills full width. The link grid becomes two equal columns. The brand column spans full width with logo and tagline side-by-side, separated from the link columns by a hairline border. The bottom bar inverts — social icons above, copyright below, both centered.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Mobile footer (390 px)</div>
+        <div class="card-desc">Single <code>@media (max-width: 768px)</code> block handles all layout changes. No JS involved.</div>
+
+        <div style="display:flex;justify-content:center">
+          <div class="mobile-preview-shell">
+            <footer class="ufs-footer">
+              <div class="ufs-footer__band">
+                <div>
+                  <h2 class="ufs-footer__nl-heading">Stay in the loop</h2>
+                  <p class="ufs-footer__nl-sub">Sign up to receive recipe ideas, industry trends, special offers, and more.</p>
+                </div>
+                <form class="ufs-footer__nl-form" onsubmit="return false">
+                  <input class="ufs-footer__nl-input" type="email" dir="ltr" placeholder="Enter your email" />
+                  <button class="ufs-footer__nl-btn" type="submit">Subscribe</button>
+                </form>
+              </div>
+              <div class="ufs-footer__main">
+                <div class="ufs-footer__cols">
+                  <div class="ufs-footer__col">
+                    <img src="images/ufs-logo.png" class="ufs-footer__brand-logo" alt="UFS" />
+                    <p class="ufs-footer__brand-tagline">Products and services created by chefs for chefs</p>
+                  </div>
+                  <div class="ufs-footer__col">
+                    <h3 class="ufs-footer__col-heading">Company</h3>
+                    <ul class="ufs-footer__col-links">
+                      <li><a href="#" class="ufs-footer__link">About Us</a></li>
+                      <li><a href="#" class="ufs-footer__link">Brands</a></li>
+                      <li><a href="#" class="ufs-footer__link">Sustainability</a></li>
+                      <li><a href="#" class="ufs-footer__link">Trade Terms</a></li>
+                    </ul>
+                  </div>
+                  <div class="ufs-footer__col">
+                    <h3 class="ufs-footer__col-heading">Help &amp; Support</h3>
+                    <ul class="ufs-footer__col-links">
+                      <li><a href="#" class="ufs-footer__link">Track My Order</a></li>
+                      <li><a href="#" class="ufs-footer__link">Shipping Info</a></li>
+                      <li><a href="#" class="ufs-footer__link">Returns</a></li>
+                      <li><a href="#" class="ufs-footer__link">FAQ</a></li>
+                    </ul>
+                  </div>
+                  <div class="ufs-footer__col">
+                    <h3 class="ufs-footer__col-heading">Legal</h3>
+                    <ul class="ufs-footer__col-links">
+                      <li><a href="#" class="ufs-footer__link">Privacy Policy</a></li>
+                      <li><a href="#" class="ufs-footer__link">Cookie Policy</a></li>
+                      <li><a href="#" class="ufs-footer__link">Terms</a></li>
+                      <li><a href="#" class="ufs-footer__link">Accessibility</a></li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="ufs-footer__divider"></div>
+                <div class="ufs-footer__bottom">
+                  <p class="ufs-footer__copyright">© 2027 UFS. All rights reserved.</p>
+                  <div class="ufs-footer__socials">
+                    <a href="#" class="ufs-footer__social-link" aria-label="Instagram"><img src="icons/instagram.svg" class="ufs-footer__social-icon" alt="" /></a>
+                    <a href="#" class="ufs-footer__social-link" aria-label="TikTok"><img src="icons/tiktok.svg" class="ufs-footer__social-icon" alt="" /></a>
+                    <a href="#" class="ufs-footer__social-link" aria-label="Facebook"><img src="icons/facebook.svg" class="ufs-footer__social-icon" alt="" /></a>
+                    <a href="#" class="ufs-footer__social-link" aria-label="YouTube"><img src="icons/youtube.svg" class="ufs-footer__social-icon" alt="" /></a>
+                    <a href="#" class="ufs-footer__social-link" aria-label="LinkedIn"><img src="icons/linkedin.svg" class="ufs-footer__social-icon" alt="" /></a>
+                  </div>
+                </div>
+              </div>
+            </footer>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Mobile CSS overrides</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre class="code-body"><span class="t-kw">@media</span> (max-width: 768px) {
+  <span class="t-cls">.ufs-footer__band</span>    { padding: <span class="t-str">var(--space-10) var(--space-4)</span>; }
+  <span class="t-cls">.ufs-footer__nl-heading</span> { font-size: <span class="t-str">var(--ch-h3-mob-size)</span>; } <span class="t-cm">/* 41px */</span>
+  <span class="t-cls">.ufs-footer__nl-form</span> { flex-direction: <span class="t-str">column</span>; width: <span class="t-str">100%</span>; }
+  <span class="t-cls">.ufs-footer__nl-input</span>,
+  <span class="t-cls">.ufs-footer__nl-btn</span>  { width: <span class="t-str">100%</span>; }
+
+  <span class="t-cls">.ufs-footer__main</span> { padding: <span class="t-str">var(--space-10) var(--space-4) var(--space-25)</span>; }
+  <span class="t-cls">.ufs-footer__cols</span> { grid-template-columns: <span class="t-str">1fr 1fr</span>; gap: <span class="t-str">var(--space-8) var(--space-6)</span>; }
+
+  <span class="t-cm">/* Brand col: full-width, logo + tagline side-by-side */</span>
+  <span class="t-cls">.ufs-footer__cols</span> > <span class="t-cls">.ufs-footer__col:first-child</span> {
+    grid-column: <span class="t-str">1 / -1</span>;
+    display: <span class="t-str">flex</span>; flex-direction: <span class="t-str">row</span>; align-items: <span class="t-str">center</span>;
+    gap: <span class="t-str">var(--space-4)</span>;
+    padding-bottom: <span class="t-str">var(--space-4)</span>;
+    border-bottom: <span class="t-str">1px solid rgba(255,255,255,0.08)</span>;
+  }
+  <span class="t-cls">.ufs-footer__brand-logo</span> { margin-bottom: <span class="t-str">0</span>; flex-shrink: <span class="t-str">0</span>; }
+
+  <span class="t-cm">/* Bottom bar: stacked, icons above copyright */</span>
+  <span class="t-cls">.ufs-footer__bottom</span>  { flex-direction: <span class="t-str">column-reverse</span>; align-items: <span class="t-str">center</span>; text-align: <span class="t-str">center</span>; }
+  <span class="t-cls">.ufs-footer__socials</span> { width: <span class="t-str">100%</span>; justify-content: <span class="t-str">space-evenly</span>; }
+}</pre>
+        </div>
+      </div>
+      <div class="section-rule"></div>
+    </div>
+
+    <!-- ── 6. TOKENS ── -->
+    <div class="doc-section" id="tokens">
+      <div class="section-breadcrumb">Reference</div>
+      <h2 class="section-title">Design Tokens</h2>
+      <p class="section-desc">Full reference of every token used by the footer. All values are defined in <code>tokens.css</code>.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Colour</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">--color-accessible-orange</span><span class="token-var">#D14900</span><span class="token-note">newsletter band bg</span></div>
+          <div class="token-row"><span class="token-prop">--color-brand-dark</span><span class="token-var">#221D37</span><span class="token-note">main section bg</span></div>
+          <div class="token-row"><span class="token-prop">--color-salt</span><span class="token-var">#FFFFFF</span><span class="token-note">headings, tagline, button text, link hover</span></div>
+          <div class="token-row"><span class="token-prop">--color-squid-100</span><span class="token-var">#D3D2D7</span><span class="token-note">nav link default color</span></div>
+          <div class="token-row"><span class="token-prop">--color-mushroom-100</span><span class="token-var">#F5F3F4</span><span class="token-note">email input background</span></div>
+          <div class="token-row"><span class="token-prop">--color-mushroom-700</span><span class="token-var">#989495</span><span class="token-note">copyright text</span></div>
+          <div class="token-row"><span class="token-prop">--color-smoke</span><span class="token-var">#94889D</span><span class="token-note">email input placeholder</span></div>
+        </div>
+
+        <div class="card-subtitle">Typography</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">--font-family-script</span><span class="token-var">Chefs Hand v3</span><span class="token-note">newsletter heading</span></div>
+          <div class="token-row"><span class="token-prop">--ch-h3-size</span><span class="token-var">51px</span><span class="token-note">newsletter heading desktop</span></div>
+          <div class="token-row"><span class="token-prop">--ch-h3-mob-size</span><span class="token-var">41px</span><span class="token-note">newsletter heading mobile</span></div>
+          <div class="token-row"><span class="token-prop">--ch-h3-lh</span><span class="token-var">36px</span><span class="token-note">newsletter heading line-height</span></div>
+          <div class="token-row"><span class="token-prop">--ch-h3-ls</span><span class="token-var">-0.2px</span><span class="token-note">newsletter heading letter-spacing</span></div>
+          <div class="token-row"><span class="token-prop">--text-h6-size / --text-h6-w</span><span class="token-var">18px / 600</span><span class="token-note">column headings + brand tagline</span></div>
+          <div class="token-row"><span class="token-prop">--text-body-sm-size</span><span class="token-var">14px</span><span class="token-note">newsletter sub, links, copyright</span></div>
+          <div class="token-row"><span class="token-prop">--text-btn-size / --text-btn-w</span><span class="token-var">14px / 600</span><span class="token-note">subscribe button</span></div>
+        </div>
+
+        <div class="card-subtitle">Spacing</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">--space-3</span><span class="token-var">12px</span><span class="token-note">link gap, form gap, socials gap</span></div>
+          <div class="token-row"><span class="token-prop">--space-4</span><span class="token-var">16px</span><span class="token-note">input padding-x, col heading margin-b, mobile padding-x</span></div>
+          <div class="token-row"><span class="token-prop">--space-5</span><span class="token-var">20px</span><span class="token-note">band flex gap</span></div>
+          <div class="token-row"><span class="token-prop">--space-6</span><span class="token-var">24px</span><span class="token-note">button padding-x, social icon size</span></div>
+          <div class="token-row"><span class="token-prop">--space-8</span><span class="token-var">32px</span><span class="token-note">mobile col gap row</span></div>
+          <div class="token-row"><span class="token-prop">--space-10</span><span class="token-var">40px</span><span class="token-note">mobile top padding</span></div>
+          <div class="token-row"><span class="token-prop">--space-12</span><span class="token-var">48px</span><span class="token-note">social btn size, bottom bar padding-b, main gap</span></div>
+          <div class="token-row"><span class="token-prop">--space-15</span><span class="token-var">60px</span><span class="token-note">desktop top padding (band + main)</span></div>
+          <div class="token-row"><span class="token-prop">--space-20</span><span class="token-var">80px</span><span class="token-note">column grid gap</span></div>
+          <div class="token-row"><span class="token-prop">--space-25</span><span class="token-var">100px</span><span class="token-note">desktop side padding + main bottom padding</span></div>
+        </div>
+
+        <div class="card-subtitle">Border radius</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">--radius-sm</span><span class="token-var">—</span><span class="token-note">email input + subscribe button</span></div>
+          <div class="token-row"><span class="token-prop">--radius-full</span><span class="token-var">9999px</span><span class="token-note">social icon buttons</span></div>
+        </div>
+      </div>
+      <div class="section-rule"></div>
+    </div>
+
+    <!-- ── 7. i18n & RTL ── -->
+    <div class="doc-section" id="i18n">
+      <div class="section-breadcrumb">Reference</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">All visible strings are externalised through <code>data-i18n</code> attributes and populated at runtime via <code>applyTranslations()</code>. The footer supports Arabic out of the box — the grid and flex layouts mirror automatically under <code>dir="rtl"</code>.</p>
+
+      <div class="ds-card">
+        <div class="card-title">i18n key reference</div>
+        <div class="card-desc">Keys used by <code>applyTranslations()</code>. Provide both <code>T_EN</code> and <code>T_AR</code> dictionaries in the page script.</div>
+
+        <div class="token-list">
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-prop" style="font-weight:700">Key</span><span style="font-size:11px;font-weight:700;color:var(--color-mushroom-700)">EN</span><span style="font-size:11px;font-weight:700;color:var(--color-mushroom-700)">AR</span></div>
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-var">footer-heading</span><span style="font-size:11px">Stay in the loop</span><span style="font-size:11px;direction:rtl;text-align:right">ابقَ على اطلاع</span></div>
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-var">footer-sub</span><span style="font-size:11px">Sign up to receive recipe ideas…</span><span style="font-size:11px;direction:rtl;text-align:right">اشترك لتلقّي أفكار…</span></div>
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-var">footer-input-ph</span><span style="font-size:11px">Enter your email</span><span style="font-size:11px;direction:rtl;text-align:right">أدخل بريدك الإلكتروني</span></div>
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-var">footer-subscribe</span><span style="font-size:11px">Subscribe</span><span style="font-size:11px;direction:rtl;text-align:right">اشترك</span></div>
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-var">footer-tagline</span><span style="font-size:11px">Products and services created by chefs for chefs</span><span style="font-size:11px;direction:rtl;text-align:right">منتجات وخدمات أبدعها الطهاة للطهاة</span></div>
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-var">footer-col-company</span><span style="font-size:11px">Company</span><span style="font-size:11px;direction:rtl;text-align:right">الشركة</span></div>
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-var">footer-col-support</span><span style="font-size:11px">Help &amp; Support</span><span style="font-size:11px;direction:rtl;text-align:right">المساعدة والدعم</span></div>
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-var">footer-col-legal</span><span style="font-size:11px">Legal</span><span style="font-size:11px;direction:rtl;text-align:right">قانوني</span></div>
+          <div class="token-row" style="grid-template-columns:200px 1fr 1fr"><span class="token-var">footer-copyright</span><span style="font-size:11px">© 2027 UFS. All rights reserved.</span><span style="font-size:11px;direction:rtl;text-align:right">© 2027 UFS. جميع الحقوق محفوظة.</span></div>
+        </div>
+
+        <div class="card-subtitle">RTL notes</div>
+        <div class="notice notice--info" style="margin-top:0">
+          <span class="notice-icon">ℹ️</span>
+          <span>The CSS grid and flexbox layouts mirror automatically when <code>dir="rtl"</code> is set on a parent element. <strong>No additional RTL CSS is needed for the footer.</strong> The email input must always keep its own <code>dir="ltr"</code> attribute — email addresses are directionally LTR regardless of page language.</span>
+        </div>
+        <div class="notice notice--warn">
+          <span class="notice-icon">⚠️</span>
+          <span>Do not apply <code>letter-spacing</code> to Arabic text. The <code>--ch-h3-ls: -0.2px</code> on the newsletter heading must be reset to <code>0</code> when the page is in Arabic — Arabic is a cursive script and letter-spacing breaks the character joins.</span>
+        </div>
+
+        <div class="card-subtitle">RTL CSS</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+          <pre class="code-body"><span class="t-cm">/* Reset script letter-spacing for Arabic */</span>
+[<span class="t-at">dir</span>=<span class="t-str">"rtl"</span>] <span class="t-cls">.ufs-footer__nl-heading</span> {
+  letter-spacing: <span class="t-str">0</span>;
+}</pre>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <script>
+    function openSidebar()  { document.getElementById('sidebar').classList.add('is-open'); document.getElementById('sidebar-backdrop').classList.add('is-open'); }
+    function closeSidebar() { document.getElementById('sidebar').classList.remove('is-open'); document.getElementById('sidebar-backdrop').classList.remove('is-open'); }
+
+    function copyCode(btn) {
+      var pre = btn.closest('.code-block-wrap').querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 1800);
+      });
+    }
+
+    /* Active sidebar link on scroll */
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href^="#"]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY + 80;
+      var current = '';
+      sections.forEach(function(s) { if (s.offsetTop <= scrollY) current = s.id; });
+      links.forEach(function(l) {
+        l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+      });
+    }, { passive: true });
+  </script>
+</body>
+</html>
