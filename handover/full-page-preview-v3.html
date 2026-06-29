@@ -1,0 +1,2991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Full Page Preview — UFS Design System — v3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    /* ================================================================
+       PAGE-LOCAL VARS (not DS tokens — layout/decoration specific to
+       this prototype; everything else comes from tokens.css)
+    ================================================================ */
+    :root {
+      --ctrl-h: 48px;
+      --ctrl-reserve: 0px; /* layout space reserved for the bar; 0 until opened */
+      --util-h: 36px;
+      --nav-h:  68px;
+      --mnav-h: 56px; /* mobile nav bar height, below the 768px breakpoint */
+      --food-gradient: linear-gradient(160deg, #3b1e08 0%, #7a3a10 55%, #2a1a0a 100%);
+    }
+
+    /* ================================================================
+       RESET & BASE
+    ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    button, input, select, textarea { font-family: inherit; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-family);
+      background: var(--color-salt);
+      color: var(--color-brand-dark);
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: var(--ctrl-reserve);
+      transition: padding-bottom 0.28s ease;
+    }
+    body.search-open { overflow: hidden; position: fixed; width: 100%; }
+    @media (max-width: 768px) {
+      .text-display { font-size: var(--text-display-mob-size); }
+      .text-h3       { font-size: var(--text-h3-mob-size); }
+      .text-h4       { font-size: var(--text-h4-mob-size); }
+    }
+    body.color-glass { background: var(--food-gradient) fixed; }
+    a { text-decoration: none; color: inherit; }
+
+    /* ================================================================
+       CONTROLS BAR
+    ================================================================ */
+    .ctrl-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 1100;
+      height: var(--ctrl-h);
+      background: var(--color-squid-900);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center;
+      padding: 0 var(--space-6); gap: var(--space-6);
+      transform: translateY(100%); opacity: 0; pointer-events: none;
+      transition: transform 0.28s ease, opacity 0.28s ease;
+    }
+    .ctrl-brand {
+      display: flex; align-items: center; gap: var(--space-3);
+      flex-shrink: 0; padding-right: var(--space-6);
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .ctrl-brand img { height: 20px; display: block; filter: brightness(0) invert(1); opacity: 0.7; }
+    .ctrl-brand-label { font-weight: 600; color: rgba(255,255,255,0.35); white-space: nowrap; }
+    .ctrl-groups { display: flex; align-items: center; gap: var(--space-5); flex: 1; }
+    .ctrl-group { display: flex; align-items: center; gap: var(--space-2); }
+    .ctrl-label { font-size: var(--text-fine-print-size); font-weight: var(--text-btn-w); letter-spacing: var(--text-badge-ls); text-transform: uppercase; color: rgba(255,255,255,0.3); white-space: nowrap; }
+    .ctrl-toggle { display: flex; background: rgba(255,255,255,0.05); border-radius: var(--radius-full); padding: var(--space-1); gap: var(--space-1); }
+    .ctrl-btn {
+      height: 26px; padding: 0 var(--space-3);
+      border-radius: var(--radius-full); border: none;
+      font-family: var(--font-family); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w);
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+      background: transparent; color: rgba(255,255,255,0.45);
+      white-space: nowrap;
+    }
+    .ctrl-btn:hover { color: rgba(255,255,255,0.75); }
+    .ctrl-btn.is-active { background: var(--color-brand-primary); color: var(--color-salt); }
+    .ctrl-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.08); }
+
+    /* ================================================================
+       PAGE HEADER — display:contents removes this wrapper from the
+       layout tree so .ufs-nav's sticky positioning can engage.
+    ================================================================ */
+    .page-header { display: contents; }
+
+    /* ── Utility bar ─────────────────────────────────────── */
+    .ufs-util {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--space-8); height: var(--util-h);
+      font-size: var(--text-body-xs-size); font-weight: var(--text-body-w);
+      transition: background 0.3s, color 0.3s;
+      position: relative; z-index: 200;
+    }
+    .ufs-util--dark  { background: var(--color-squid-900); color: rgba(255,255,255,0.5); }
+    .ufs-util--light { background: var(--color-mushroom-100); color: var(--color-mushroom-900); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-util--glass {
+      background-color: rgba(0, 0, 0, 0.3);
+      background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.20) 0%, rgba(217, 217, 217, 0.00) 100%);
+      background-size: 100% calc(var(--util-h) + var(--nav-h));
+      background-position: 0 0; background-repeat: no-repeat;
+      backdrop-filter: blur(8px);
+      color: rgba(255,255,255,0.55);
+    }
+    .ufs-util--glass .ufs-util__link,
+    .ufs-util--glass .ufs-util__lang { color: rgba(255,255,255,0.75); }
+    .ufs-util__links { display: flex; align-items: center; }
+    .ufs-util__link { padding: 0 var(--space-3); letter-spacing: var(--text-body-xs-ls); cursor: pointer; transition: color 0.15s; white-space: nowrap; }
+    .ufs-util__link:first-child { padding-left: 0; }
+    .ufs-util--dark .ufs-util__link:hover,
+    .ufs-util--glass .ufs-util__link:hover { color: rgba(255,255,255,0.9); }
+    .ufs-util--light .ufs-util__link:hover { color: var(--color-brand-dark); }
+    .ufs-util__sep { width: 1px; height: 10px; background: currentColor; opacity: 0.2; }
+    .ufs-util__right { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-util__lang { display: flex; align-items: center; gap: var(--space-1); cursor: pointer; font-size: var(--text-body-xs-size); font-weight: var(--text-body-w); letter-spacing: var(--text-body-xs-ls); }
+
+    /* ── Language dropdown panel ─────────────────────────────── */
+    .ufs-util__lang-wrap { position: relative; }
+    .ufs-lang-drop {
+      position: absolute; top: calc(100% + var(--space-2)); right: 0; z-index: 300;
+      width: 272px; background: var(--color-salt);
+      border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+      border: 1px solid var(--color-mushroom-300);
+      opacity: 0; pointer-events: none; transform: translateY(-6px);
+      transition: opacity 0.18s, transform 0.18s;
+    }
+    .ufs-lang-drop.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .ufs-lang-drop__list { padding: var(--space-1) 0; }
+    .ufs-lang-drop__item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-2) var(--space-4); font-size: var(--text-body-sm-size); font-weight: 500;
+      color: var(--color-mushroom-900); cursor: pointer; transition: background 0.12s;
+    }
+    .ufs-lang-drop__item:hover { background: var(--color-mushroom-100); color: var(--color-brand-dark); }
+    .ufs-lang-drop__item.is-active { color: var(--color-brand-dark); font-weight: var(--text-btn-w); }
+    .ufs-lang-drop__item-name { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-lang-drop__item-code { font-size: var(--text-fine-print-size); font-weight: var(--text-body-w); letter-spacing: 0.5px; color: var(--color-squid-900); background: var(--color-mushroom-100); padding: 1px 5px; border-radius: 3px; }
+    .ufs-lang-drop__check { color: var(--color-brand-dark); opacity: 0; flex-shrink: 0; }
+    .ufs-lang-drop__item.is-active .ufs-lang-drop__check { opacity: 1; }
+    .ufs-lang-drop__website { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-mushroom-300); }
+    .ufs-lang-drop__website-text { font-size: var(--text-body-xs-size); color: var(--color-mushroom-700); margin-bottom: var(--space-2); }
+    .ufs-lang-drop__website-country { font-weight: var(--text-btn-w); color: var(--color-squid-900); }
+    .ufs-lang-drop__change { font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-accessible-orange); cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-1); }
+    .ufs-lang-drop__change:hover { color: var(--color-orange-700); }
+    .ufs-lang-drop-arrow { transition: transform 0.18s; }
+    .ufs-util__lang-wrap.is-open .ufs-lang-drop-arrow { transform: rotate(-90deg); }
+
+    /* ── Main nav ────────────────────────────────────────── */
+    .ufs-nav {
+      display: flex; align-items: center; position: sticky; top: 0; z-index: 100;
+      padding: 0 var(--space-8); height: var(--nav-h);
+      transition: background 0.3s, box-shadow 0.3s, border-color 0.3s;
+    }
+    .ufs-nav--dark  { background: var(--color-brand-dark); }
+    .ufs-nav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-nav--glass {
+      background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.20) 0%, rgba(217, 217, 217, 0.00) 100%);
+      background-size: 100% calc(var(--util-h) + var(--nav-h));
+      background-position: 0 calc(-1 * var(--util-h)); background-repeat: no-repeat;
+    }
+    .ufs-nav__logo { flex-shrink: 0; margin-right: var(--space-7); }
+    .ufs-nav__logo img { height: var(--space-12); display: block; }
+    .ufs-nav__links { display: flex; align-items: center; flex: 1; gap: var(--space-1); }
+    .ufs-nav__link {
+      display: flex; align-items: center; gap: var(--space-1);
+      padding: 0 var(--space-3); height: var(--nav-h); cursor: pointer;
+      font-size: var(--text-body-size); font-weight: var(--text-btn-w); white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .ufs-nav--dark .ufs-nav__link,
+    .ufs-nav--glass .ufs-nav__link { color: rgba(255,255,255,0.82); }
+    .ufs-nav--light .ufs-nav__link { color: var(--color-brand-dark); }
+    .ufs-nav--dark .ufs-nav__link:hover, .ufs-nav--dark .ufs-nav__link.is-open,
+    .ufs-nav--glass .ufs-nav__link:hover, .ufs-nav--glass .ufs-nav__link.is-open { color: var(--color-salt); border-bottom-color: var(--color-brand-primary); }
+    .ufs-nav--light .ufs-nav__link:hover,
+    .ufs-nav--light .ufs-nav__link.is-open { color: var(--color-orange-700); border-bottom-color: var(--color-orange-500); }
+    .ufs-nav__link-chev { width: var(--space-5); height: var(--space-5); margin-top: var(--space-1); opacity: 1; flex-shrink: 0; display: block; transform: rotate(90deg); transition: transform 0.2s, opacity 0.15s; }
+    .ufs-nav__link.is-open .ufs-nav__link-chev { transform: rotate(-90deg); }
+    .ufs-nav--light .ufs-nav__link-chev { filter: none; }
+    .ufs-nav--dark .ufs-nav__link-chev,
+    .ufs-nav--glass .ufs-nav__link-chev { filter: brightness(0) invert(1); }
+    .ufs-nav__actions { display: flex; align-items: center; gap: 0; margin-left: auto; }
+    .ufs-nav__icon-btn {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; background: transparent;
+      transition: background 0.15s; position: relative;
+    }
+    .ufs-nav__icon-btn + .ufs-nav__icon-btn { margin-left: var(--space-3); }
+    .ufs-nav--dark .ufs-nav__icon-btn:hover,
+    .ufs-nav--glass .ufs-nav__icon-btn:hover { background: rgba(255,255,255,0.08); }
+    .ufs-nav--light .ufs-nav__icon-btn:hover { background: var(--color-mushroom-100); }
+    .ufs-icon { display: block; }
+    .ufs-icon--20 { width: 20px; height: 20px; }
+    .ufs-icon--24 { width: var(--space-6); height: var(--space-6); }
+    .ufs-nav--dark  .ufs-icon,
+    .ufs-nav--glass .ufs-icon { filter: brightness(0) invert(1); opacity: 0.8; }
+    .ufs-nav--light .ufs-icon { filter: none; opacity: 0.75; }
+    .ufs-nav__badge {
+      position: absolute; top: var(--space-1); right: var(--space-1);
+      width: 16px; height: 16px; border-radius: var(--radius-full);
+      background: var(--color-brand-primary); color: var(--color-salt);
+      font-size: 9px; font-weight: var(--text-btn-w);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ufs-nav__account-dot {
+      position: absolute; top: 6px; right: 6px;
+      width: var(--space-3); height: var(--space-3); border-radius: 50%;
+      background: var(--color-brand-primary);
+      border: 2px solid var(--color-brand-dark);
+    }
+    .ufs-nav--light .ufs-nav__account-dot,
+    .ufs-mnav--light .ufs-nav__account-dot { border-color: var(--color-salt); }
+    .ufs-nav__account-dot.is-alert { background: var(--color-accessible-orange); }
+    .ufs-nav__account-dot.is-alert::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: var(--color-accessible-orange);
+      animation: account-dot-ping 1.6s cubic-bezier(0,0,0.2,1) infinite;
+    }
+    @keyframes account-dot-ping {
+      0%   { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    /* ── Avatar ── */
+    .av { position: relative; display: inline-flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+    .av-circle {
+      --av-circle-size: 24px;
+      width: var(--av-circle-size); height: var(--av-circle-size);
+      border-radius: var(--radius-full);
+      background: var(--color-aubergine);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; flex-shrink: 0;
+    }
+    .av-initials {
+      color: var(--color-salt); font-family: var(--font-family); font-weight: 400;
+      line-height: 1; user-select: none; pointer-events: none; padding-bottom: 2px;
+    }
+    .av--sm .av-initials { font-size: 9px; }
+    .av--md .av-initials { font-size: 11px; }
+    .av-badge {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0;
+      background: var(--color-salt); border: 0.5px solid var(--color-gold);
+      border-radius: var(--radius-full);
+      padding-left: 2px; padding-right: 3px; padding-bottom: 2px;
+      font-family: var(--font-family); font-size: 12px; font-weight: 400;
+      line-height: 1; color: var(--color-brand-dark); white-space: nowrap;
+      margin-top: -4px; height: 16px;
+    }
+    .ufs-nav__actions .av { margin-left: var(--space-3); }
+    #mnav-profile.av { border: none; background: transparent; padding: 0; cursor: pointer; }
+
+    /* ── Megamenu ─────────────────────────────────────────── */
+    .ufs-megamenu {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--color-salt);
+      border-top: 2px solid var(--color-brand-primary);
+      box-shadow: var(--shadow-lg);
+      z-index: 100; display: none;
+    }
+    .ufs-megamenu.is-open { display: block; }
+    .mm-a { display: grid; grid-template-columns: 1fr 1fr 1fr 260px; min-height: 320px; }
+    .mm-b { display: grid; grid-template-columns: 1.8fr 1fr 1fr 260px; min-height: 320px; }
+    .mm-col { padding: var(--space-7) var(--space-6); border-right: 1px solid var(--color-mushroom-300); }
+    .mm-col:last-child { border-right: none; }
+    .mm-col-label { color: var(--color-accessible-orange); margin-bottom: var(--space-4); display: block; }
+    .mm-links { display: flex; flex-direction: column; }
+    .mm-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-2) 0; font-weight: var(--text-body-w);
+      color: var(--color-squid-500); border-bottom: 1px solid var(--color-mushroom-100);
+      cursor: pointer; transition: color 0.15s; gap: var(--space-2);
+    }
+    .mm-link:last-child { border-bottom: none; }
+    .mm-link:hover { color: var(--color-accessible-orange); }
+    .mm-link-arr { width: 14px; height: 14px; opacity: 0; transition: opacity 0.15s, transform 0.15s; flex-shrink: 0; }
+    .mm-link:hover .mm-link-arr { opacity: 1; transform: translateX(2px); }
+    .mm-featured { padding: var(--space-8) var(--space-7); background: var(--color-mushroom-100); border-right: 1px solid var(--color-mushroom-300); display: flex; flex-direction: column; justify-content: center; }
+    .mm-feat-over { color: var(--color-accessible-orange); margin-bottom: var(--space-3); }
+    .mm-feat-title { color: var(--color-brand-dark); margin-bottom: var(--space-3); }
+    .mm-feat-body { color: var(--color-mushroom-900); margin-bottom: var(--space-5); max-width: 34ch; }
+    .mm-feat-cta { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--text-btn-w); color: var(--color-orange-700); }
+    .mm-feat-cta:hover { color: var(--color-orange-900); }
+    .mm-promo { background: var(--color-squid-500); display: flex; flex-direction: column; overflow: hidden; }
+    .mm-promo-img { width: 100%; aspect-ratio: 16 / 9; background: var(--color-mushroom-300); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mm-promo-img-placeholder { color: rgba(255,255,255,0.25); }
+    .mm-promo-body { padding: var(--space-5); flex: 1; display: flex; flex-direction: column; }
+    .mm-promo-over { color: var(--color-brand-primary); margin-bottom: var(--space-2); }
+    .mm-promo-title { color: var(--color-salt); margin-bottom: var(--space-3); flex: 1; }
+    .mm-promo-cta { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--text-btn-w); color: var(--color-brand-primary); }
+    .mm-promo-cta:hover { color: var(--color-orange-300); }
+
+    /* ================================================================
+       SEARCH OVERLAY — full-width panel below the sticky nav (desktop),
+       full-screen takeover on mobile. Ported from v2.
+    ================================================================ */
+    .ufs-search-overlay {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--color-salt);
+      padding: var(--space-8) var(--space-10) var(--space-9);
+      z-index: 50;
+      border-top: 1px solid var(--color-mushroom-300);
+      box-shadow: var(--shadow-lg);
+      opacity: 0; pointer-events: none; transform: translateY(-8px);
+      transition: opacity 0.2s, transform 0.2s;
+      max-height: calc(100dvh - var(--nav-h) - var(--ctrl-reserve));
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+    .ufs-search-overlay.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .ufs-search-overlay-inner { max-width: 680px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+    .ufs-overlay-field {
+      display: flex; align-items: center; gap: var(--space-3);
+      border-bottom: 2px solid var(--color-brand-dark); padding-bottom: var(--space-3);
+      margin-bottom: var(--space-7);
+      position: sticky; top: 0; background: var(--color-salt); z-index: 1;
+    }
+    .ufs-overlay-field img { opacity: 0.5; flex-shrink: 0; }
+    .ufs-overlay-field input {
+      flex: 1; border: none; outline: none;
+      font-family: var(--font-family); font-size: var(--text-h5-size); font-weight: var(--text-h5-w);
+      color: var(--color-brand-dark); background: transparent;
+    }
+    .ufs-overlay-field input::placeholder { color: var(--color-mushroom-500); font-weight: var(--text-body-w); }
+    .ufs-overlay-close {
+      width: var(--space-9); height: var(--space-9); border-radius: var(--radius-full);
+      background: var(--color-mushroom-100); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: background 0.15s; color: var(--color-squid-500);
+    }
+    .ufs-overlay-close:hover { background: var(--color-mushroom-300); }
+    .ufs-overlay-close svg { width: var(--space-4); height: var(--space-4); }
+    .ufs-overlay-section-label { font-size: var(--text-badge-size); font-weight: var(--text-btn-w); letter-spacing: var(--text-body-xs-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .ufs-overlay-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .ufs-overlay-chip {
+      padding: var(--space-2) var(--space-4); border-radius: var(--radius-full);
+      border: 1.5px solid var(--color-mushroom-300); font-size: var(--text-btn-sm-size);
+      font-weight: var(--text-body-w); color: var(--color-squid-500); cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .ufs-overlay-chip:hover { border-color: var(--color-brand-primary); color: var(--color-brand-primary); }
+
+    /* Mobile — full-screen takeover, same fixed-positioning convention
+       .ufs-drawer already uses (anchored above the now-bottom dev toolbar). */
+    .ufs-msearch-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve);
+      background: var(--color-salt); z-index: 950;
+      padding: var(--space-5) var(--space-4); display: flex; flex-direction: column; gap: var(--space-6);
+      opacity: 0; pointer-events: none; transform: translateY(-12px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .ufs-msearch-overlay.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .ufs-msearch-ov-header { display: flex; align-items: center; gap: var(--space-3); }
+    .ufs-msearch-ov-field { flex: 1; display: flex; align-items: center; gap: var(--space-2); border-bottom: 2px solid var(--color-brand-dark); padding-bottom: var(--space-2); }
+    .ufs-msearch-ov-field img { opacity: 0.5; flex-shrink: 0; }
+    .ufs-msearch-ov-input { flex: 1; border: none; outline: none; font-family: var(--font-family); font-size: var(--text-h6-size); font-weight: var(--text-h6-w); color: var(--color-brand-dark); background: transparent; }
+    .ufs-msearch-ov-input::placeholder { color: var(--color-mushroom-500); font-weight: var(--text-body-w); }
+    .ufs-msearch-ov-close { width: var(--space-9); height: var(--space-9); border-radius: var(--radius-full); background: var(--color-mushroom-100); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+    .ufs-msearch-ov-close:hover { background: var(--color-mushroom-300); }
+    .ufs-msearch-ov-close svg { width: var(--space-3); height: var(--space-3); }
+    .ufs-msearch-ov-label { font-size: var(--text-badge-size); font-weight: var(--text-btn-w); letter-spacing: var(--text-body-xs-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .ufs-msearch-ov-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .ufs-msearch-ov-chip { padding: var(--space-2) var(--space-3); border-radius: var(--radius-full); border: 1.5px solid var(--color-mushroom-300); font-size: var(--text-btn-sm-size); font-weight: var(--text-body-w); color: var(--color-squid-500); cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+    .ufs-msearch-ov-chip:hover { border-color: var(--color-brand-primary); color: var(--color-brand-primary); }
+
+    /* ================================================================
+       PREDICTIVE SEARCH & RESULTS PANEL
+    ================================================================ */
+    /* Suggestion row */
+    .ufs-search-suggestion {
+      display: flex; align-items: center; gap: var(--space-3);
+      width: 100%; padding: var(--space-2) var(--space-3);
+      border: none; background: transparent; cursor: pointer; text-align: left;
+      font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark);
+      border-radius: var(--radius-xs); transition: background 0.12s;
+    }
+    .ufs-search-suggestion:hover { background: var(--color-mushroom-100); }
+    .ufs-search-suggestion svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.35; }
+    .ufs-search-suggestion strong { font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    /* Ask Chef AI CTA */
+    .ufs-search-ask-ai {
+      display: flex; align-items: center; gap: var(--space-2);
+      width: 100%; padding: var(--space-2) var(--space-3); margin-top: var(--space-2);
+      border: none; background: transparent; cursor: pointer; border-radius: var(--radius-xs);
+      transition: background 0.12s;
+    }
+    .ufs-search-ask-ai:hover { background: var(--color-mushroom-100); }
+    .ufs-search-ask-ai-icon { width: 16px; height: 16px; flex-shrink: 0; }
+    .ufs-search-ask-ai-text {
+      font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w);
+      text-align: left;
+      background: linear-gradient(90deg, var(--color-brand-primary) 0%, #D536B0 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    /* Results panel layout */
+    .ufs-search-results-panel { display: flex; flex-direction: column; gap: var(--space-5); flex: 1; min-height: 0; overflow-y: auto; }
+    .ufs-search-see-all-global { flex-shrink: 0; }
+    @media (max-width: 768px) {
+      .ufs-search-results-panel { display: flex; flex-direction: column; gap: var(--space-5); }
+    }
+    /* Category results */
+    .ufs-search-category { margin-bottom: var(--space-5); }
+    .ufs-search-category:last-child { margin-bottom: 0; }
+    .ufs-search-category-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-3); }
+    .ufs-search-category-label { color: var(--color-mushroom-700); text-transform: uppercase; letter-spacing: var(--text-body-xs-ls); font-weight: var(--text-btn-w); }
+    .ufs-search-see-all-cat { display: inline-flex; align-items: center; gap: 4px; color: var(--color-accessible-orange); cursor: pointer; font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); background: none; border: none; font-family: var(--font-family); }
+    .ufs-search-see-all-cat svg { width: 10px; height: 10px; flex-shrink: 0; }
+    .ufs-search-see-all-cat:hover { color: var(--color-orange-700); }
+    .ufs-search-category-items { display: flex; flex-direction: column; gap: var(--space-1); }
+    .ufs-search-result-item { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-1) var(--space-3) var(--space-1) var(--space-1); border-radius: var(--radius-xs); cursor: pointer; transition: background 0.12s; }
+    .ufs-search-result-item:hover { background: var(--color-mushroom-100); }
+    .ufs-search-result-thumb { width: 40px; height: 40px; border-radius: var(--radius-xs); flex-shrink: 0; }
+    .ufs-search-result-title { color: var(--color-brand-dark); font-size: var(--text-body-sm-size); font-weight: var(--text-body-w); line-height: 1.3; }
+    /* Global see-all */
+    .ufs-search-see-all-global { padding-top: var(--space-4); padding-bottom: var(--space-6); border-top: 1px solid var(--color-mushroom-300); }
+    .ufs-search-see-all-global-btn { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-accessible-orange); font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); background: none; border: none; cursor: pointer; }
+    .ufs-search-see-all-global-btn:hover { color: var(--color-orange-700); }
+    .ufs-search-see-all-global-btn svg { width: 13px; height: 13px; }
+
+    /* ================================================================
+       MOBILE NAV BAR + DRAWER (below 768px)
+    ================================================================ */
+    .ufs-mnav { display: none; }
+    @media (max-width: 768px) {
+      .ufs-util, .ufs-nav { display: none; }
+      .ufs-mnav { display: flex; align-items: center; position: sticky; top: 0; z-index: 100; height: var(--mnav-h); padding: 0 var(--space-4); gap: var(--space-3); transition: background 0.3s, border-color 0.3s; }
+    }
+    #mobile-preview-frame {
+      display: none; position: fixed; top: 0; left: 50%;
+      transform: translateX(-50%); width: 390px; height: calc(100vh - var(--ctrl-reserve));
+      border: none;
+    }
+    body.view-mobile #real-page-content { display: none; }
+    body.view-mobile #mobile-preview-frame { display: block; }
+    body.view-mobile { padding-top: 0 !important; overflow: hidden; }
+    body.is-embedded { --ctrl-reserve: 0px; }
+    body.is-embedded .ctrl-bar { display: none; }
+    body.ctrl-bar-open { --ctrl-reserve: var(--ctrl-h); }
+    body.ctrl-bar-open .ctrl-bar { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .ufs-mnav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-mnav--dark  { background: var(--color-brand-dark); }
+    .ufs-mnav--glass { background: linear-gradient(180deg, rgba(0, 0, 0, 0.20) 0%, rgba(217, 217, 217, 0.00) 100%); }
+    .ufs-mnav__btn {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; background: transparent; flex-shrink: 0;
+      transition: background 0.15s; position: relative;
+    }
+    .ufs-mnav--dark  .ufs-mnav__btn:hover,
+    .ufs-mnav--glass .ufs-mnav__btn:hover { background: rgba(255,255,255,0.08); }
+    .ufs-mnav--light .ufs-mnav__btn:hover { background: var(--color-mushroom-100); }
+    .ufs-mnav--dark  .ufs-icon,
+    .ufs-mnav--glass .ufs-icon { filter: brightness(0) invert(1); opacity: 0.85; }
+    .ufs-mnav--light .ufs-icon { filter: none; opacity: 0.8; }
+    .ufs-mnav__logo { height: var(--space-6); width: auto; display: block; flex-shrink: 0; }
+    .ufs-mnav__right { display: flex; align-items: center; gap: var(--space-1); flex-shrink: 0; margin-left: auto; }
+    .ufs-mnav__btn.is-dimmed .ufs-icon { opacity: 0.35; }
+
+    /* Drawer */
+    .ufs-drawer-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 900;
+      background: color-mix(in srgb, var(--color-squid-900) 45%, transparent); backdrop-filter: blur(2px);
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .ufs-drawer-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .ufs-drawer {
+      position: fixed; top: 0; left: 0; bottom: var(--ctrl-reserve); width: calc(100% - 16px); z-index: 901;
+      background: var(--color-salt);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.25,0.1,0.25,1), box-shadow 0.3s;
+      display: flex; flex-direction: column; overflow-y: auto;
+      box-shadow: none;
+    }
+    .ufs-drawer.is-open { transform: translateX(0); box-shadow: var(--shadow-xl); }
+    .ufs-drawer-links { flex: 1; padding: var(--space-2) 0; }
+    .ufs-drawer-acc-trigger {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-4) var(--space-5); font-size: var(--text-body-size); font-weight: var(--text-btn-w);
+      color: var(--color-brand-dark); background: transparent; border: none;
+      border-bottom: 1px solid var(--color-mushroom-100);
+      cursor: pointer; transition: color 0.15s; text-align: left;
+    }
+    .ufs-drawer-acc-trigger:first-of-type { border-top: 1px solid var(--color-mushroom-100); }
+    .ufs-drawer-acc-trigger:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-acc-trigger.is-open { color: var(--color-accessible-orange); }
+    .ufs-drawer-acc-chev { width: var(--space-5); height: var(--space-5); transition: transform 0.2s; opacity: 0.3; flex-shrink: 0; }
+    .ufs-drawer-acc-label { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-drawer-acc-globe { width: var(--space-5); height: var(--space-5); flex-shrink: 0; }
+    .ufs-drawer-acc-trigger.is-open .ufs-drawer-acc-chev { transform: rotate(-90deg); opacity: 0.8; }
+    .ufs-drawer-sub { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; background: var(--color-mushroom-100); }
+    .ufs-drawer-sub.is-open { max-height: 800px; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+    .ufs-drawer-sub-link {
+      display: block; padding: var(--space-3) var(--space-5) var(--space-3) var(--space-7);
+      font-size: var(--text-body-sm-size); color: var(--color-mushroom-900);
+      border-bottom: 1px solid var(--color-mushroom-200); cursor: pointer; transition: color 0.15s;
+    }
+    .ufs-drawer-sub-link:last-child { border-bottom: none; }
+    .ufs-drawer-sub-link:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-sub-link.is-extra { display: none; }
+    .ufs-drawer-sub-more {
+      width: 100%; display: flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-3) var(--space-5) var(--space-3) var(--space-7);
+      font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w);
+      color: var(--color-accessible-orange); background: transparent; border: none;
+      border-bottom: 1px solid var(--color-mushroom-200); cursor: pointer; text-align: left; transition: color 0.15s;
+    }
+    .ufs-drawer-sub-more:last-child { border-bottom: none; }
+    .ufs-drawer-sub-more:hover { color: var(--color-orange-900); }
+    .ufs-drawer-sub-more-chev { width: var(--space-4); height: var(--space-4); transform: rotate(90deg); opacity: 0.8; flex-shrink: 0; }
+    .ufs-drawer-sub-link.is-active { color: var(--color-brand-dark); font-weight: var(--text-btn-w); }
+    .ufs-drawer-sub-link.is-active .ufs-lang-drop__check { opacity: 1; }
+    .ufs-drawer-util { padding: var(--space-4) var(--space-5); border-top: 1px solid var(--color-mushroom-300); }
+    .ufs-drawer-util-title { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .ufs-drawer-util-link { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); padding: var(--space-2) 0; cursor: pointer; display: block; transition: color 0.15s; }
+    .ufs-drawer-util-link:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-util .ufs-drawer-acc-trigger { padding: var(--space-2) 0; font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); border: none; margin-top: var(--space-2); }
+    .ufs-drawer-util .ufs-drawer-acc-trigger:first-of-type { border-top: none; }
+    .ufs-drawer-util .ufs-drawer-sub-link { display: flex; align-items: center; justify-content: space-between; padding-top: var(--space-2); padding-bottom: var(--space-2); padding-left: var(--space-3); border-bottom: none; }
+    .ufs-drawer-util .ufs-lang-drop__change { margin-top: var(--space-2); padding-top: var(--space-3); border-top: 1px solid var(--color-mushroom-300); margin-bottom: var(--space-2); }
+    .ufs-drawer-btn { flex: 1; display: flex; align-items: center; justify-content: center; height: var(--space-10); border-radius: var(--radius-md); font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w); cursor: pointer; }
+    .ufs-drawer-btn--primary { background: var(--color-accessible-orange); color: var(--color-salt); border: none; }
+    .ufs-drawer-btn--secondary { background: transparent; color: var(--color-accessible-orange); border: 1px solid var(--color-accessible-orange); }
+
+    /* DS buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: 54px; padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn-sm { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
+    .btn-compressed { height: var(--space-12); }
+    .btn-icon-left { padding-left: var(--space-5); }
+    .btn-sm.btn-icon-left { padding-left: var(--space-3); }
+    .btn-sm.btn-icon-left img { width: var(--space-5); height: var(--space-5); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+    .btn-ghost { background: transparent; color: var(--color-accessible-orange); border-color: transparent; }
+    .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+    .ufs-nav__actions .btn { margin-left: var(--space-3); width: auto; }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+    .btn-on-dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+    .btn-on-dark .btn-ghost { color: var(--color-salt); }
+    .btn-on-dark .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+    .ufs-nav--dark .btn-ghost,
+    .ufs-nav--glass .btn-ghost { color: var(--color-salt); }
+    .ufs-nav--dark .btn-ghost:hover:not(:disabled):not(.btn-loading),
+    .ufs-nav--glass .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+
+    /* ================================================================
+       PAGE CONTENT
+    ================================================================ */
+
+    /* ── Hero ────────────────────────────────────────────── */
+    .pg-hero {
+      min-height: calc(480px + var(--util-h) + var(--nav-h));
+      display: flex; align-items: center;
+      background: url('images/M_GPP_6074.jpg') center/cover no-repeat;
+      margin-top: calc(-1 * (var(--util-h) + var(--nav-h)));
+      padding: calc(var(--space-20) + var(--util-h) + var(--nav-h)) var(--space-20) var(--space-25);
+      position: relative; overflow: hidden;
+    }
+    body.color-glass .pg-hero { min-height: calc(420px + var(--util-h) + var(--nav-h)); }
+    @media (max-width: 768px) {
+      .pg-hero {
+        min-height: calc(540px + var(--mnav-h));
+        margin-top: calc(-1 * var(--mnav-h));
+        padding: calc(var(--space-20) + var(--mnav-h)) var(--space-4) var(--space-8);
+        align-items: flex-end;
+      }
+      body.color-glass .pg-hero { min-height: calc(540px + var(--mnav-h)); }
+    }
+    .pg-hero::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to right, rgba(10,7,22,0.7) 0%, rgba(10,7,22,0.2) 60%, transparent 100%);
+      pointer-events: none;
+    }
+    body.color-glass .pg-hero::after { background: linear-gradient(to right, rgba(10,7,22,0.55) 0%, rgba(10,7,22,0.1) 60%, transparent 100%); }
+    .pg-hero-content { position: relative; z-index: 1; max-width: 560px; }
+    .pg-hero-eyebrow { color: var(--color-brand-primary); margin-bottom: var(--space-4); }
+    .pg-hero-title { color: var(--color-salt); margin-bottom: var(--space-5); }
+    .pg-hero-sub { color: rgba(255,255,255,0.72); margin-bottom: var(--space-9); max-width: 440px; }
+    .pg-hero-actions { display: flex; gap: var(--space-4); flex-wrap: wrap; }
+
+    /* ── Products section ────────────────────────────────── */
+    .pg-products {
+      background: var(--color-salt); padding: var(--space-16) var(--space-20) var(--space-20);
+    }
+    body.color-glass .pg-products { background: var(--color-salt); }
+    .pg-section-eyebrow { color: var(--color-accessible-orange); margin-bottom: 10px; }
+    .pg-section-title { color: var(--color-brand-dark); margin-bottom: var(--space-2); }
+    .pg-section-sub { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); line-height: var(--text-body-sm-lh); margin-bottom: var(--space-10); }
+    .pg-cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5); }
+    @media (max-width: 768px) {
+      .pg-products { padding-left: var(--space-4); padding-right: var(--space-4); }
+      .pg-cards-grid { grid-template-columns: 1fr; }
+    }
+    .pg-card {
+      border-radius: var(--radius-md); overflow: hidden;
+      border: 1px solid var(--color-mushroom-300);
+      background: var(--color-salt);
+      transition: box-shadow 0.2s, transform 0.2s; cursor: pointer;
+    }
+    .pg-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .pg-card-img {
+      height: 160px; position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pg-card-img-bg { position: absolute; inset: 0; }
+    .pg-card-brand {
+      position: absolute; top: 10px; left: 10px;
+      background: var(--color-salt); border-radius: var(--radius-xs);
+      padding: var(--space-1) var(--space-2);
+      color: var(--color-brand-dark);
+    }
+    .pg-card-fav {
+      position: absolute; top: var(--space-2); right: var(--space-2);
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center;
+    }
+    .pg-card-fav img { width: 14px; height: 14px; opacity: 0.45; }
+    .pg-card-body { padding: 14px var(--space-4) 18px; }
+    .pg-card-title { font-weight: var(--text-btn-w); color: var(--color-brand-dark); margin-bottom: var(--space-1); }
+    .pg-card-desc  { color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .pg-card-footer { display: flex; align-items: center; justify-content: space-between; }
+    .pg-card-tag { padding: var(--space-1) var(--space-2); border-radius: var(--radius-full); background: var(--color-mushroom-100); color: var(--color-mushroom-700); }
+    .pg-card-action {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--color-accessible-orange); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .pg-card-action img { width: 12px; height: 12px; filter: brightness(0) invert(1); }
+
+    /* ── Inspiration section ─────────────────────────────── */
+    .pg-inspiration { background: var(--color-mushroom-100); padding: var(--space-16) var(--space-20) var(--space-25); }
+    .pg-inspo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); margin-top: var(--space-10); }
+    @media (max-width: 768px) {
+      .pg-inspiration { padding-left: var(--space-4); padding-right: var(--space-4); }
+      .pg-inspo-grid { grid-template-columns: 1fr; }
+    }
+    .pg-inspo-feature {
+      border-radius: var(--radius-lg); overflow: hidden; cursor: pointer;
+      position: relative; min-height: 300px;
+      background: var(--color-mushroom-300);
+      transition: box-shadow 0.2s;
+    }
+    .pg-inspo-feature:hover { box-shadow: var(--shadow-lg); }
+    .pg-inspo-small-col { display: flex; flex-direction: column; gap: var(--space-6); }
+    .pg-inspo-small {
+      flex: 1; border-radius: var(--radius-md); overflow: hidden; cursor: pointer;
+      border: 1px solid var(--color-mushroom-300); background: var(--color-salt);
+      transition: box-shadow 0.15s;
+    }
+    .pg-inspo-small:hover { box-shadow: var(--shadow-sm); }
+    .pg-inspo-small-img { height: 110px; }
+    .pg-inspo-small-body { padding: 14px var(--space-4); }
+    .pg-inspo-small-tag { color: var(--color-accessible-orange); margin-bottom: 6px; }
+    .pg-inspo-small-title { font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    .pg-inspo-feature-body { position: absolute; bottom: 0; left: 0; right: 0; padding: var(--space-7) var(--space-7) var(--space-8); background: linear-gradient(to top, rgba(0,0,0,0.75), transparent); }
+    .pg-inspo-feature-tag { color: var(--color-brand-primary); margin-bottom: var(--space-2); }
+    .pg-inspo-feature-title { color: var(--color-salt); margin-bottom: var(--space-3); }
+    .pg-inspo-feature-meta { color: rgba(255,255,255,0.55); }
+
+    /* Bottom spacing for floating bar */
+
+    /* ================================================================
+       FLOATING BAR — v2 AI ask-row variant
+    ================================================================ */
+    @keyframes gradient-spin {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes ai-glow-pulse {
+      0%, 100% { box-shadow: 0 0 16px rgba(255,90,0,0.30), 0 0 36px rgba(213,54,176,0.18); }
+      50%       { box-shadow: 0 0 24px rgba(255,90,0,0.50), 0 0 48px rgba(213,54,176,0.30); }
+    }
+    .fbe-fixed {
+      position: fixed; bottom: calc(var(--ctrl-reserve) + var(--space-8)); left: 50%;
+      transform: translateX(-50%);
+      width: 740px; max-width: calc(100vw - 48px);
+      z-index: 90;
+      background: linear-gradient(135deg, #FF5A00 0%, var(--color-salt) 50%, #D536B0 100%);
+      background-size: 300% 300%;
+      border-radius: var(--radius-full);
+      padding: 2px;
+      animation: gradient-spin 5s ease infinite, ai-glow-pulse 3s ease-in-out infinite;
+      transition: box-shadow 0.3s;
+    }
+    .fbe-fixed.thinking {
+      animation: gradient-spin 1.5s ease infinite, ai-glow-pulse 1s ease-in-out infinite;
+    }
+    .fbe {
+      background: var(--color-salt);
+      border-radius: var(--radius-full);
+      display: flex; align-items: center; height: 68px;
+    }
+    /* Ask row — single AI input + voice button */
+    .fbe__ask-row { display: flex; align-items: center; gap: var(--space-2); flex: 1; height: 100%; padding: 0 var(--space-2) 0 var(--space-5); }
+    .fbe__ask-icon { width: var(--space-5); height: var(--space-5); flex-shrink: 0; }
+    .fbe__ask-input {
+      flex: 1; min-width: 0; border: none; background: transparent;
+      font-family: var(--font-family); font-size: var(--text-body-size);
+      color: var(--color-brand-dark); outline: none; line-height: 1;
+    }
+    .fbe__ask-input::placeholder { color: var(--color-mushroom-900); }
+    .fbe__voice-btn {
+      width: 48px; height: 48px; border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; background: var(--color-mushroom-100);
+      flex-shrink: 0; margin-right: var(--space-3); transition: background 0.15s;
+    }
+    .fbe__voice-btn:hover, .fbe__voice-btn.is-active { background: var(--color-brand-dark); }
+    .fbe__voice-btn:hover svg, .fbe__voice-btn.is-active svg { filter: brightness(0) invert(1); }
+    .fbe__voice-btn svg { width: var(--space-5); height: var(--space-5); color: var(--color-squid-900); transition: filter 0.15s; }
+    /* Suggested prompts panel */
+    .fbe__panel--prompts { left: 0; width: 100%; padding: var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); }
+    .fbe-prompt-btn {
+      display: flex; align-items: center; gap: var(--space-3); width: 100%;
+      padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+      border: none; background: transparent; cursor: pointer; text-align: left;
+      font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark);
+      transition: background 0.15s;
+    }
+    .fbe-prompt-btn:hover { background: var(--color-mushroom-100); }
+    .fbe-prompt-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.5; }
+    /* Panels */
+    .fbe__panel {
+      position: absolute; bottom: calc(100% + 10px);
+      background: var(--color-salt);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl), 0 0 0 1px var(--color-mushroom-300);
+      overflow: hidden; opacity: 0; pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity 0.22s, transform 0.22s;
+    }
+    .fbe__panel.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .fbe__panel-close {
+      width: 26px; height: 26px; border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.12); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .fbe__panel-close--dark { background: rgba(255,255,255,0.12); }
+    .fbe__panel-close--light { background: var(--color-mushroom-100); }
+    .fbe__panel-close svg { width: 10px; height: 10px; display: block; }
+    /* Mic active state — button pulses orange when listening */
+    .fbe__voice-btn.is-active { background: var(--color-accessible-orange) !important; animation: mic-btn-pulse 1.4s ease-in-out infinite; }
+    .fbe__voice-btn.is-active svg { color: var(--color-salt); filter: brightness(0) invert(1) !important; }
+    @keyframes mic-btn-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255,90,0,0.45); }
+      55%       { box-shadow: 0 0 0 7px rgba(255,90,0,0); }
+    }
+    /* FBE ring spins faster while listening */
+    .fbe-fixed.listening { animation: gradient-spin 1.2s ease infinite, ai-glow-pulse 0.8s ease-in-out infinite; }
+    .fbe-fixed.behind-search { z-index: 90; }
+    /* AI chat panel */
+    .fbe__panel--ai { right: 0; width: 420px; height: 461px; display: flex; flex-direction: column; }
+    @media (max-width: 768px) {
+      .fbe__panel--ai {
+        left: 0; right: auto; width: 100%;
+      }
+      .fbe-fixed { width: calc(100vw - 32px); max-width: none; }
+      .fbe { height: 54px; }
+      .fbe__ask-input { font-size: var(--text-body-sm-size); }
+      .fbe__ask-row { padding: 0 var(--space-2) 0 var(--space-3); }
+      .fbe__voice-btn { margin-right: var(--space-1); }
+    }
+    .fbe-ai-hd { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); background: var(--color-brand-dark); flex-shrink: 0; }
+    .fbe-ai-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-salt); }
+    .fbe-ai-title img { width: 15px; height: 15px; filter: brightness(0) invert(1); opacity: 0.85; }
+    .fbe-ai-badge { font-size: 8px; font-weight: var(--text-btn-w); letter-spacing: 0.5px; text-transform: uppercase; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.5); padding: var(--space-1) 6px; border-radius: var(--radius-full); }
+    .fbe-ai-msgs { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); flex: 1; overflow-y: auto; }
+    .fbe-ai-msg { display: flex; gap: var(--space-2); align-items: flex-start; }
+    .fbe-ai-msg--user { flex-direction: row-reverse; }
+    .fbe-ai-ava { width: 24px; height: 24px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; font-weight: var(--text-btn-w); }
+    .fbe-ai-ava--ai { background: var(--color-brand-dark); color: var(--color-salt); }
+    .fbe-ai-ava--user { background: var(--color-accessible-orange); color: var(--color-salt); }
+    .fbe-ai-bubble { max-width: 80%; padding: var(--space-2) var(--space-3); }
+    .fbe-ai-bubble--ai { background: var(--color-mushroom-100); color: var(--color-brand-dark); border-radius: 4px 12px 12px 12px; }
+    .fbe-ai-bubble--user { background: var(--color-brand-dark); color: var(--color-salt); border-radius: 12px 4px 12px 12px; }
+    .fbe-ai-input-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-mushroom-300); flex-shrink: 0; }
+    .fbe-ai-input { flex: 1; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); height: 38px; font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); outline: none; transition: border-color 0.15s; }
+    .fbe-ai-input:focus { border-color: var(--color-brand-dark); }
+    .fbe-ai-send { width: 36px; height: 36px; border-radius: var(--radius-full); background: var(--color-brand-dark); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+    .fbe-ai-send:hover { background: var(--color-squid-700); }
+    .fbe-typing { display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1) 0; }
+    .fbe-typing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--color-mushroom-500); animation: tdot 1.2s ease-in-out infinite; }
+    .fbe-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .fbe-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes tdot { 0%,100%{transform:translateY(0);opacity:0.4} 50%{transform:translateY(-4px);opacity:1} }
+
+    /* ================================================================
+       SIGN-IN PANEL
+    ================================================================ */
+    .signin-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 900;
+      background: color-mix(in srgb, var(--color-squid-900) 55%, transparent); backdrop-filter: blur(3px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .signin-panel {
+      position: fixed; top: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 901;
+      width: 420px; background: var(--color-salt);
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s;
+      box-shadow: none;
+      display: flex; flex-direction: column;
+    }
+    .signin-panel.is-open { transform: translateX(0); box-shadow: -8px 0 40px rgba(0,0,0,0.18); }
+    @media (max-width: 768px) {
+      .signin-panel { width: calc(100% - 16px); }
+    }
+    .signin-panel-hd {
+      height: var(--mnav-h); padding: 0 var(--space-4); display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--color-mushroom-300); flex-shrink: 0;
+    }
+    .signin-panel-logo { height: var(--space-6); }
+    .signin-close {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: var(--color-mushroom-100); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .signin-close:hover { background: var(--color-mushroom-300); }
+    .signin-close svg { width: 12px; height: 12px; }
+    .signin-panel-body { flex: 1; overflow-y: auto; padding: var(--space-7); }
+    .fi-wrap { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; }
+    .fi-label { font-size: var(--text-btn-size); line-height: 22px; font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    .fi-field {
+      width: 100%; height: var(--space-12);
+      border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-body-sm-size); font-family: var(--font-family); font-weight: 400;
+      color: var(--color-brand-dark); background: var(--color-mushroom-100);
+      outline: none; box-sizing: border-box;
+      transition: border-color 0.15s; display: block;
+    }
+    .fi-field:focus { border-color: var(--color-brand-dark); }
+    .tab-bar { display: flex; gap: var(--space-1); background: var(--color-mushroom-300); border-radius: var(--radius-sm); padding: var(--space-1); }
+    .tab-btn { flex: 1; padding: var(--space-2) var(--space-5); border-radius: var(--radius-xs); font-size: var(--text-btn-sm-size); font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--color-mushroom-900); transition: all 0.15s; font-family: var(--font-family); }
+    .tab-btn.is-active { background: var(--color-salt); color: var(--color-brand-dark); box-shadow: var(--shadow-sm); }
+    .signin-form-fields { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-6); }
+    #form-register .signin-form-fields { margin-bottom: var(--space-3); }
+    .signin-forgot { color: var(--color-accessible-orange); cursor: pointer; text-align: right; margin-top: -8px; }
+    .signin-usp { color: var(--color-mushroom-700); text-align: center; margin-top: var(--space-5); }
+    .signin-usps { margin-top: var(--space-7); padding: var(--space-5); background: var(--color-mushroom-100); border-radius: var(--radius-md); }
+    .signin-usps-title { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-squid-500); margin-bottom: var(--space-3); }
+    .signin-usp-item { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-3); }
+    .signin-usp-item:last-child { margin-bottom: 0; }
+    .signin-usp-item-icon { width: var(--space-9); height: var(--space-9); flex-shrink: 0; border-radius: var(--radius-sm); background: var(--color-salt); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
+    .signin-usp-item-icon img { width: 18px; height: 18px; }
+    .signin-usp-item-text { padding-top: 2px; }
+    .signin-usp-item-title { font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); margin-bottom: 1px; }
+    .signin-usp-item-desc { font-size: var(--text-body-xs-size); color: var(--color-squid-500); line-height: var(--text-body-xs-lh); }
+
+    /* ================================================================
+       PROFILE PANEL
+    ================================================================ */
+    #profile-panel .signin-panel-hd {
+      height: auto; padding: var(--space-4) var(--space-5);
+      background: var(--color-brand-dark);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    #profile-panel .signin-close {
+      width: 42px; height: 42px; color: var(--color-salt);
+      background: color-mix(in srgb, var(--color-salt) 15%, transparent);
+    }
+    #profile-panel .signin-close:hover { background: color-mix(in srgb, var(--color-salt) 22%, transparent); }
+    #profile-panel .signin-close svg { width: 16px; height: 16px; }
+    .av--xl .av-circle { --av-circle-size: 60px; border: 1px solid var(--color-smoke); }
+    .av--xl .av-initials { font-size: 24px; }
+    .pp-body { flex: 1; overflow-y: auto; }
+    .pp-header {
+      background: var(--color-brand-dark);
+      padding: var(--space-9) var(--space-5) var(--space-20);
+      display: flex; align-items: center; gap: var(--space-3);
+    }
+    .pp-header-text { display: flex; flex-direction: column; gap: 2px; }
+    .pp-header-name { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-salt); }
+    .pp-header-role { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: rgba(255,255,255,0.75); }
+    .pp-header + .loyalty-card { margin: -40px var(--space-5) 0; }
+    .loyalty-card {
+      position: relative; overflow: hidden; isolation: isolate;
+      background: var(--color-gold);
+      border: 1px solid #fff4da;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-raised);
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--space-3); padding: var(--space-8) var(--space-4);
+    }
+    .loyalty-card::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 41.045%);
+      mix-blend-mode: overlay; pointer-events: none;
+    }
+    .loyalty-title { font-size: var(--text-h3-size); font-weight: var(--text-h3-w); line-height: var(--text-h3-lh); color: var(--color-brand-dark); text-shadow: 0 1px 0 rgba(255,255,255,0.5); position: relative; z-index: 1; }
+    .loyalty-pill {
+      background: var(--color-mushroom-100); border: 1px solid var(--color-gold); border-radius: var(--radius-full);
+      padding: var(--space-3); display: flex; align-items: center; gap: var(--space-2);
+      box-shadow: 0 0 4px var(--color-gold);
+      position: relative; z-index: 1;
+    }
+    .loyalty-num { font-size: var(--text-numeral-lg-size); font-weight: var(--text-numeral-lg-w); line-height: var(--text-numeral-lg-lh); color: var(--color-brand-dark); white-space: nowrap; }
+    .loyalty-expiry { font-size: var(--text-body-sm-size); font-weight: 400; line-height: var(--text-body-sm-lh); color: var(--color-salt); text-shadow: 0 1px 0 rgba(0,0,0,0.1); position: relative; z-index: 1; text-align: center; }
+    .loyalty-card--compact {
+      flex-direction: row; align-items: center; justify-content: space-between;
+      gap: var(--space-3); padding: var(--space-4) var(--space-5);
+    }
+    .loyalty-card--compact .loyalty-title { font-size: var(--text-h6-size); font-weight: var(--text-h6-w); line-height: var(--text-h6-lh); text-shadow: none; margin-bottom: 2px; }
+    .loyalty-card--compact .loyalty-pill { padding: 0 var(--space-4); height: 41px; }
+    .loyalty-card--compact .loyalty-num { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); letter-spacing: -0.2px; }
+    .loyalty-info { position: relative; z-index: 1; }
+    .loyalty-link {
+      position: relative; z-index: 1;
+      font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark);
+      background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-family);
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .pp-menu { padding: var(--space-10) var(--space-5) 0; }
+    .pp-menu-row {
+      width: 100%; display: block; text-align: left; background: none; border: none;
+      border-bottom: 1px solid var(--color-mushroom-300);
+      padding: var(--space-3) 0; font-family: var(--font-family);
+      font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark);
+      cursor: pointer; transition: color 0.15s;
+    }
+    .pp-menu-row:last-child { border-bottom: none; }
+    .pp-menu-row:hover { color: var(--color-accessible-orange); }
+    .pp-actions { padding: var(--space-9) var(--space-5) var(--space-8); display: flex; flex-direction: column; align-items: center; gap: var(--space-12); }
+    .pp-logout {
+      background: none; border: none; cursor: pointer; font-family: var(--font-family);
+      font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark);
+    }
+    .pp-logout:hover { color: var(--color-accessible-orange); }
+
+    /* State indicator badge */
+    .state-badge {
+      position: fixed; bottom: 24px; right: 24px; z-index: 400;
+      background: var(--color-squid-900); color: rgba(255,255,255,0.7);
+      font-size: 10px; font-weight: var(--text-btn-w); letter-spacing: 0.4px;
+      padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+      line-height: 16px; border: none; display: block; text-align: left; cursor: pointer;
+      transition: bottom 0.28s ease, background 0.15s;
+    }
+    .state-badge:hover { background: var(--color-squid-700); }
+    body.ctrl-bar-open .state-badge { bottom: 108px; }
+    .state-badge strong { color: var(--color-salt); display: block; margin-bottom: 2px; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5; }
+    @media (max-width: 768px) {
+      .state-badge { display: none; }
+    }
+
+    /* ================================================================
+       RTL ADAPTATION
+    ================================================================ */
+
+    /* Arabic font & typography */
+    [dir="rtl"] { font-family: 'Cairo', sans-serif; }
+    [dir="rtl"] * { letter-spacing: 0 !important; }
+    [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3,
+    [dir="rtl"] h4, [dir="rtl"] h5, [dir="rtl"] h6,
+    [dir="rtl"] p, [dir="rtl"] span, [dir="rtl"] li,
+    [dir="rtl"] div { line-height: 1.75; }
+
+    /* Hero gradient — dark edge on the right (leading side in RTL) */
+    [dir="rtl"] .pg-hero::after {
+      background: linear-gradient(to left, rgba(10,7,22,0.7) 0%, rgba(10,7,22,0.2) 60%, transparent 100%);
+    }
+    [dir="rtl"] body.color-glass .pg-hero::after {
+      background: linear-gradient(to left, rgba(10,7,22,0.55) 0%, rgba(10,7,22,0.1) 60%, transparent 100%);
+    }
+
+    /* Card positioned badges — flip sides */
+    [dir="rtl"] .pg-card-brand { left: auto; right: 10px; }
+    [dir="rtl"] .pg-card-fav   { right: auto; left: var(--space-2); }
+
+    /* Nav action button margin */
+    [dir="rtl"] .ufs-nav__actions .btn { margin-left: 0; margin-right: var(--space-3); }
+
+    /* Badge & account dot flip to leading corner */
+    [dir="rtl"] .ufs-nav__badge    { right: auto; left: var(--space-1); }
+    [dir="rtl"] .ufs-nav__account-dot { right: auto; left: 6px; }
+
+    /* Lang dropdown anchors to inline-end (left in RTL) */
+    [dir="rtl"] .ufs-lang-drop { right: auto; left: 0; }
+
+    /* Mobile drawer slides in from the right */
+    [dir="rtl"] .ufs-drawer { left: auto; right: 0; transform: translateX(100%); }
+    [dir="rtl"] .ufs-drawer.is-open { transform: translateX(0); }
+
+    /* Drawer accordion chevrons — point left when closed, down when open */
+    [dir="rtl"] .ufs-drawer-acc-chev { transform: scaleX(-1); }
+    [dir="rtl"] .ufs-drawer-acc-trigger.is-open .ufs-drawer-acc-chev { transform: scaleX(-1) rotate(-90deg); opacity: 0.8; }
+
+    /* Sign-in & profile panels enter from left in RTL */
+    [dir="rtl"] .signin-panel { right: auto; left: 0; transform: translateX(-100%); box-shadow: none; }
+    [dir="rtl"] .signin-panel.is-open { transform: translateX(0); box-shadow: 8px 0 40px rgba(0,0,0,0.18); }
+
+    /* State badge to bottom-left */
+    [dir="rtl"] .state-badge { right: auto; left: 24px; }
+
+    /* Logo margin flips to left in RTL */
+    [dir="rtl"] .ufs-nav__logo { margin-right: 0; margin-left: var(--space-7); }
+
+    /* Nav icon buttons — spacing flips sides */
+    [dir="rtl"] .ufs-nav__icon-btn + .ufs-nav__icon-btn { margin-left: 0; margin-right: var(--space-3); }
+
+    /* Icon-left button — padding moves to the right where the icon now sits */
+    [dir="rtl"] .btn-icon-left { padding-left: var(--space-6); padding-right: var(--space-5); }
+    [dir="rtl"] .btn-sm.btn-icon-left { padding-left: revert; padding-right: var(--space-3); }
+
+    /* FBE voice button — margin flips sides */
+    [dir="rtl"] .fbe__voice-btn { margin-right: 0; margin-left: var(--space-3); }
+
+    /* Sign-in form fields — labels and helper text align to start (right in RTL) */
+    [dir="rtl"] .fi-label,
+    [dir="rtl"] .signin-forgot,
+    [dir="rtl"] .signin-usp,
+    [dir="rtl"] .signin-usps-title { text-align: right; }
+
+    /* Nav dropdown chevrons — keep south/north rotation, do NOT mirror horizontally */
+    [dir="rtl"] .mm-link-arr,
+    [dir="rtl"] .ufs-drawer-sub-more-chev,
+    [dir="rtl"] .mm-promo-cta img,
+    [dir="rtl"] .mm-feat-cta img,
+    [dir="rtl"] .ufs-search-see-all-global-btn svg,
+    [dir="rtl"] .ufs-search-see-all-cat svg,
+    [dir="rtl"] .fbe-ai-send svg,
+    [dir="rtl"] .ufs-lang-drop__change svg,
+    [dir="rtl"] .ufs-drawer-sub-link.ufs-lang-drop__change svg { transform: scaleX(-1); }
+
+    /* Mobile nav right cluster — push to the left edge in RTL */
+    [dir="rtl"] .ufs-mnav__right { margin-left: 0; margin-right: auto; }
+
+    /* Nav megamenu chevrons — keep vertical rotation (south collapsed, north active) */
+    [dir="rtl"] .ufs-nav__link-chev { transform: rotate(90deg); }
+    [dir="rtl"] .ufs-nav__link.is-open .ufs-nav__link-chev { transform: rotate(-90deg); }
+
+    /* Keep lang-drop-arrow pointing down (it's a dropdown indicator, not directional) */
+    [dir="rtl"] .ufs-lang-drop-arrow { transform: rotate(90deg); }
+
+    /* FBE chat: keep user messages on the right, AI on the left regardless of dir */
+    [dir="rtl"] .fbe-ai-msg       { flex-direction: row; }
+    [dir="rtl"] .fbe-ai-msg--user { flex-direction: row-reverse; }
+
+    /* Keep developer chrome always LTR */
+    [dir="rtl"] .ctrl-bar,
+    [dir="rtl"] .state-badge { direction: ltr; }
+
+    /* ================================================================
+       FOOTER
+    ================================================================ */
+    .ufs-footer {
+      font-family: var(--font-family);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Newsletter band — orange, centered column layout */
+    .ufs-footer__band {
+      background: var(--color-accessible-orange);
+      padding: var(--space-15) var(--space-25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-5);
+      text-align: center;
+    }
+
+    .ufs-footer__nl-heading {
+      font-size: var(--text-h3-size);
+      font-weight: var(--text-h3-w);
+      line-height: var(--text-h3-lh);
+      letter-spacing: var(--text-h3-ls);
+      color: var(--color-salt);
+      margin: 0 0 var(--space-2);
+    }
+
+    .ufs-footer__nl-sub {
+      font-size: var(--text-body-sm-size);
+      line-height: var(--text-body-sm-lh);
+      color: var(--color-salt);
+      margin: 0;
+    }
+
+    .ufs-footer__nl-form {
+      display: flex;
+      gap: var(--space-3);
+    }
+
+    /* DS input style — matches existing form field tokens */
+    .ufs-footer__nl-input {
+      width: 476px;
+      height: 54px;
+      padding: 0 var(--space-4);
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--color-mushroom-100);
+      font-family: var(--font-family);
+      font-size: var(--text-body-sm-size);
+      color: var(--color-brand-dark);
+      outline: none;
+    }
+
+    .ufs-footer__nl-input::placeholder { color: var(--color-smoke); }
+
+    /* DS ghost button on orange — outlined white */
+    .ufs-footer__nl-btn {
+      height: 54px;
+      padding: 0 var(--space-6);
+      border: 1px solid var(--color-salt);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--color-salt);
+      font-family: var(--font-family);
+      font-size: var(--text-btn-size);
+      font-weight: var(--text-btn-w);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .ufs-footer__nl-btn:hover { background: rgba(255,255,255,0.12); }
+
+    /* Main dark area */
+    .ufs-footer__main {
+      background: var(--color-brand-dark);
+      padding: var(--space-15) var(--space-25) var(--space-10);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-12);
+    }
+
+    /* Brand col (303px) + 3 equal link cols */
+    .ufs-footer__cols {
+      display: grid;
+      grid-template-columns: 303px 1fr 1fr 1fr;
+      gap: var(--space-20);
+    }
+
+    .ufs-footer__brand-logo {
+      width: 98px;
+      display: block;
+      margin-bottom: var(--space-4);
+    }
+
+    .ufs-footer__brand-tagline {
+      font-size: var(--text-h6-size);
+      font-weight: var(--text-h6-w);
+      line-height: var(--text-h6-lh);
+      color: var(--color-salt);
+      margin: 0;
+    }
+
+    .ufs-footer__col-heading {
+      font-size: var(--text-h6-size);
+      font-weight: var(--text-h6-w);
+      line-height: var(--text-h6-lh);
+      color: var(--color-salt);
+      margin: 0 0 var(--space-4);
+    }
+
+    .ufs-footer__col-links {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .ufs-footer__link {
+      font-size: var(--text-body-sm-size);
+      line-height: var(--text-body-sm-lh);
+      color: var(--color-squid-100);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .ufs-footer__link:hover { color: var(--color-salt); }
+
+    /* Bottom bar */
+    .ufs-footer__divider {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .ufs-footer__bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+
+    .ufs-footer__copyright {
+      font-size: var(--text-body-sm-size);
+      color: var(--color-mushroom-700);
+      margin: 0;
+    }
+
+    .ufs-footer__socials {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .ufs-footer__social-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-12);
+      height: var(--space-12);
+      border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: background 0.15s, border-color 0.15s;
+      text-decoration: none;
+    }
+
+    .ufs-footer__social-link:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .ufs-footer__social-icon {
+      width: var(--space-6);
+      height: var(--space-6);
+      filter: brightness(0) invert(1);
+    }
+
+    @media (max-width: 768px) {
+      .ufs-footer__band {
+        padding: var(--space-10) var(--space-4);
+      }
+      .ufs-footer__nl-form {
+        flex-direction: column;
+        width: 100%;
+      }
+      .ufs-footer__nl-input {
+        width: 100%;
+      }
+      .ufs-footer__nl-btn {
+        width: 100%;
+      }
+      .ufs-footer__main {
+        padding: var(--space-10) var(--space-4) var(--space-8);
+      }
+      .ufs-footer__cols {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-8) var(--space-6);
+      }
+      .ufs-footer__cols > .ufs-footer__col:first-child {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: var(--space-4);
+        padding-bottom: var(--space-4);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+      }
+      .ufs-footer__brand-logo {
+        margin-bottom: 0;
+        flex-shrink: 0;
+      }
+      .ufs-footer__bottom {
+        flex-direction: column-reverse;
+        align-items: center;
+        text-align: center;
+      }
+      .ufs-footer__socials {
+        width: 100%;
+        justify-content: space-evenly;
+      }
+    }
+  </style>
+</head>
+<body class="color-light">
+
+  <!-- ================================================================
+       CONTROLS BAR
+  ================================================================ -->
+  <div class="ctrl-bar" id="ctrl-bar">
+    <div class="ctrl-brand">
+      <img src="images/ufs-logo.png" alt="UFS"/>
+      <span class="ctrl-brand-label text-body-xs">Full Page Preview — v3</span>
+    </div>
+    <div class="ctrl-groups">
+      <div class="ctrl-group">
+        <span class="ctrl-label">View</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-view-desktop" onclick="setView('desktop')">Desktop</button>
+          <button class="ctrl-btn"           id="ctrl-view-mobile"  onclick="setView('mobile')">Mobile</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Color</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-color-light" onclick="setColor('light')">Light</button>
+          <button class="ctrl-btn"           id="ctrl-color-dark"  onclick="setColor('dark')">Dark</button>
+          <button class="ctrl-btn"           id="ctrl-color-glass" onclick="setColor('glass')">Glass</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Webshop</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-ws-true"  onclick="setWebshop(true)">With Cart</button>
+          <button class="ctrl-btn"           id="ctrl-ws-false" onclick="setWebshop(false)">No Webshop</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">User</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-auth-false" onclick="setAuth(false)">Sign In</button>
+          <button class="ctrl-btn"           id="ctrl-auth-true"  onclick="setAuth(true)">Logged In</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Direction</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-dir-ltr" onclick="setDir('ltr')">LTR</button>
+          <button class="ctrl-btn"           id="ctrl-dir-rtl" onclick="setDir('rtl')">RTL</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <iframe id="mobile-preview-frame" title="Mobile preview"></iframe>
+
+  <div id="real-page-content">
+  <!-- ================================================================
+       PAGE HEADER
+  ================================================================ -->
+  <header class="page-header" id="page-header">
+    <!-- Utility bar -->
+    <div class="ufs-util ufs-util--light" id="util-bar">
+      <div class="ufs-util__links">
+        <span class="ufs-util__link" data-i18n="about">About Us</span>
+        <span class="ufs-util__sep"></span>
+        <span class="ufs-util__link" data-i18n="contact">Contact</span>
+        <span class="ufs-util__sep"></span>
+        <span class="ufs-util__link" data-i18n="support">Help &amp; Support</span>
+        <span class="ufs-util__sep"></span>
+        <span class="ufs-util__link" id="util-ws-link">Track Your Order</span>
+      </div>
+      <div class="ufs-util__right">
+        <div class="ufs-util__lang-wrap" id="lang-wrap-1">
+          <div class="ufs-util__lang text-body-xs" onclick="toggleLangDrop('lang-wrap-1','lang-drop-1')"><svg class="ufs-icon ufs-icon-globe" viewBox="0 0 45 45" fill="none" aria-hidden="true" style="width:var(--space-5);height:var(--space-5);flex-shrink:0"><path fill-rule="evenodd" clip-rule="evenodd" d="M40.5 22.5C40.5 12.7252 32.673 4.74882 22.9561 4.50571L22.4993 4.5L22.0425 4.50571C12.3268 4.74883 4.5 12.7255 4.5 22.5C4.5 32.4259 12.574 40.5 22.4993 40.5C32.4258 40.5 40.5 32.4261 40.5 22.5ZM7.5 22.5C7.5 14.3698 14.0039 7.72857 22.0802 7.50577L22.4993 7.5L22.9185 7.50577C30.9959 7.72856 37.5 14.3696 37.5 22.5C37.5 30.7692 30.7689 37.5 22.4993 37.5C14.2309 37.5 7.5 30.769 7.5 22.5Z" fill="currentColor"/><path d="M22.4993 4.75793C23.2686 4.75793 23.9026 5.33699 23.9892 6.083L23.9993 6.25793V38.7422C23.9993 39.5706 23.3277 40.2422 22.4993 40.2422C21.73 40.2422 21.096 39.6631 21.0094 38.9171L20.9993 38.7422V6.25793C20.9993 5.42951 21.6709 4.75793 22.4993 4.75793Z" fill="currentColor"/><path d="M20.1923 5.38265C20.8895 5.83016 21.0918 6.7581 20.6443 7.45525L20.4169 7.82245L20.0947 8.3692L19.8339 8.82738C19.2127 9.93341 18.5908 11.1515 18.0111 12.442C16.8394 15.0502 15.9955 17.6066 15.6185 19.9641C15.4765 20.8523 15.4036 21.6995 15.4036 22.4999C15.4036 23.2977 15.476 24.1418 15.6171 25.0267C15.9933 27.3861 16.8378 29.9447 18.011 32.555C18.5907 33.8448 19.2126 35.0623 19.8337 36.1677L20.2116 36.8269L20.5797 37.4373C20.6031 37.4747 20.6246 37.5086 20.6441 37.5389C21.0918 38.2359 20.8897 39.1639 20.1927 39.6116C19.4957 40.0594 18.5677 39.8573 18.1199 39.1602L17.8633 38.7454L17.3899 37.9399C17.3337 37.8418 17.2765 37.7409 17.2183 37.6374C16.5555 36.4577 15.8934 35.1615 15.2746 33.7849C14.0015 30.9522 13.0777 28.1533 12.6545 25.499C12.4895 24.4638 12.4036 23.4629 12.4036 22.4999C12.4036 21.5338 12.49 20.5294 12.6562 19.4904C13.0801 16.8388 14.0032 14.0426 15.2745 11.2126C15.8932 9.83542 16.5553 8.53855 17.2182 7.35834L17.7127 6.50088L18.1197 5.83467C18.5672 5.13751 19.4952 4.93514 20.1923 5.38265Z" fill="currentColor"/><path d="M25.2559 39.8584C24.5587 39.4109 24.3563 38.483 24.8039 37.7858L25.1288 37.2557L25.4796 36.6519C25.5231 36.5755 25.5681 36.4961 25.6143 36.4137C26.2355 35.3077 26.8574 34.0895 27.4371 32.7991C28.6088 30.1909 29.4527 27.6345 29.8297 25.277C29.9717 24.3888 30.0446 23.5416 30.0446 22.7411C30.0446 21.9434 29.9722 21.0993 29.8311 20.2144C29.4549 17.855 28.6104 15.2964 27.4372 12.686C26.8575 11.3962 26.2356 10.1788 25.6145 9.07341L25.129 8.23191L24.8041 7.70218C24.3564 7.00515 24.5585 6.07716 25.2555 5.62944C25.9525 5.18173 26.8805 5.38383 27.3282 6.08086L27.5014 6.3585L27.7353 6.74673L28.0583 7.30122C28.1144 7.3993 28.1716 7.50016 28.2298 7.60374C28.8927 8.78334 29.5548 10.0796 30.1735 11.4562C31.4467 14.2889 32.3705 17.0878 32.7937 19.7421C32.9587 20.7772 33.0446 21.7782 33.0446 22.7411C33.0446 23.7073 32.9581 24.7117 32.792 25.7507C32.3681 28.4023 31.445 31.1985 30.1736 34.0285C29.555 35.4057 28.8929 36.7025 28.23 37.8827L27.8935 38.4714L27.4307 39.2438L27.3285 39.4064C26.881 40.1036 25.953 40.306 25.2559 39.8584Z" fill="currentColor"/><path d="M36.9378 27.1875C37.7662 27.1875 38.4378 27.8591 38.4378 28.6875C38.4378 29.4568 37.8587 30.0908 37.1127 30.1774L36.9378 30.1875H7.3978C6.56937 30.1875 5.8978 29.5159 5.8978 28.6875C5.8978 27.9182 6.47686 27.2842 7.22286 27.1976L7.3978 27.1875H36.9378Z" fill="currentColor"/><path d="M38.35 16.8751C39.1784 16.8751 39.85 17.5467 39.85 18.3751C39.85 19.1444 39.2709 19.7784 38.5249 19.865L38.35 19.8751H6.88013C6.0517 19.8751 5.38013 19.2035 5.38013 18.3751C5.38013 17.6059 5.95919 16.9719 6.7052 16.8852L6.88013 16.8751H38.35Z" fill="currentColor"/></svg><span data-i18n="country-locale">United States &middot; EN</span> <svg class="ufs-icon ufs-lang-drop-arrow" viewBox="0 0 45 45" fill="none" aria-hidden="true" style="width:9px;height:9px;transform:rotate(90deg)"><path d="M17.6214 9.49108C18.1294 9.42769 18.6277 9.53396 19.0577 9.79119L30.3572 20.8504C30.7807 21.2684 31.0104 21.8053 31.0453 22.3524C31.0753 22.8224 30.9617 23.2997 30.7046 23.7149L19.502 34.8638C19.0382 35.3216 18.4302 35.55 17.8224 35.55C17.2146 35.55 16.6066 35.3216 16.1428 34.8638C15.7193 34.4459 15.4896 33.9089 15.4547 33.3619C15.4247 32.8918 15.5383 32.4145 15.7955 31.9994L25.326 22.4998L16.1428 13.4352C15.7193 13.0173 15.4896 12.4803 15.4547 11.9333C15.4201 11.391 15.5766 10.839 15.9243 10.3841C16.4582 9.85219 17.0437 9.56315 17.6214 9.49108Z" fill="currentColor"/></svg></div>
+          <div class="ufs-lang-drop" id="lang-drop-1">
+            <div class="ufs-lang-drop__list">
+              <div class="ufs-lang-drop__item is-active" id="lang-item-en">
+                <div class="ufs-lang-drop__item-name"><span>English</span><span class="ufs-lang-drop__item-code">EN</span></div>
+                <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg>
+              </div>
+              <div class="ufs-lang-drop__item" id="lang-item-ar">
+                <div class="ufs-lang-drop__item-name"><span>العربية</span><span class="ufs-lang-drop__item-code">AR</span></div>
+                <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg>
+              </div>
+              <div class="ufs-lang-drop__item">
+                <div class="ufs-lang-drop__item-name"><span>Español</span><span class="ufs-lang-drop__item-code">ES</span></div>
+              </div>
+            </div>
+            <div class="ufs-lang-drop__website">
+              <div class="ufs-lang-drop__website-text" data-i18n-html="lang-country">You're on the <span class="ufs-lang-drop__website-country">United States</span> website</div>
+              <span class="ufs-lang-drop__change"><span data-i18n="change-country">Change country</span> <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main nav -->
+    <nav class="ufs-nav ufs-nav--light" id="main-nav">
+      <div class="ufs-nav__logo">
+        <img src="images/ufs-logo.png" alt="UFS" id="nav-logo"/>
+      </div>
+      <div class="ufs-nav__links">
+        <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-promotions">Promotions</div>
+      </div>
+      <div class="ufs-nav__actions">
+        <!-- Search (v2 addition — before favourites) -->
+        <button class="ufs-nav__icon-btn" id="nav-search-btn" onclick="toggleSearchOverlay('nav')">
+          <img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt="Search"/>
+        </button>
+        <!-- Fav (always visible) -->
+        <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--24" src="icons/fav.svg" alt="Favourites"/></button>
+        <!-- Cart (webshop only) -->
+        <button class="ufs-nav__icon-btn" id="nav-cart" style="position:relative">
+          <img class="ufs-icon ufs-icon--24" src="icons/cart.svg" alt="Cart"/>
+          <span class="ufs-nav__badge">3</span>
+        </button>
+        <!-- Profile (auth) -->
+        <div class="av av--md" id="nav-profile" style="display:none; cursor:pointer;" onclick="openProfilePanel()">
+          <div class="av-circle"><span class="av-initials">GB</span></div>
+          <div class="av-badge">
+            <svg width="12" height="12" viewBox="0 0 45 45" fill="none" aria-hidden="true">
+              <path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/>
+              <circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/>
+            </svg>
+            24.320
+          </div>
+        </div>
+        <!-- Login / Create Account (non-auth) -->
+        <button class="btn btn-ghost btn-compressed" id="nav-login" style="display:none" onclick="openSignIn('signin')" data-i18n="nav-sign-in">Sign In</button>
+        <button class="btn btn-primary btn-icon-left btn-compressed" id="nav-signin" style="display:none" onclick="openSignIn('register')">
+          <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="" style="filter:brightness(0) invert(1)"/><span data-i18n="nav-create">Create Account</span>
+        </button>
+      </div>
+
+      <!-- Search overlay (desktop — full-width panel below the nav) -->
+      <div class="ufs-search-overlay" id="nav-search-overlay">
+        <div class="ufs-search-overlay-inner">
+          <div class="ufs-overlay-field">
+            <img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt=""/>
+            <input type="text" id="nav-search-overlay-input" placeholder="Search recipes, products, brands…" data-i18n-ph="search-ph" autocomplete="off" oninput="handleSearchInput('nav', this.value)"/>
+            <button class="ufs-overlay-close" onclick="closeSearchOverlay('nav')">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+            </button>
+          </div>
+          <!-- Trending state -->
+          <div id="nav-search-trending">
+            <div class="ufs-overlay-section-label" data-i18n="search-trending">Trending searches</div>
+            <div class="ufs-overlay-chips" id="nav-trending-chips">
+              <div class="ufs-overlay-chip" data-i18n="search-chip1" data-en-fill="Pasta sauces" data-ar-fill="صلصات المعكرونة" onclick="fillSearch('nav', this.textContent.trim())">Pasta sauces</div>
+              <div class="ufs-overlay-chip" data-i18n="search-chip2" data-en-fill="Knorr bouillon" data-ar-fill="مرق نوبر" onclick="fillSearch('nav', this.textContent.trim())">Knorr bouillon</div>
+              <div class="ufs-overlay-chip" data-i18n="search-chip3" data-en-fill="Plant-based" data-ar-fill="نباتي" onclick="fillSearch('nav', this.textContent.trim())">Plant-based</div>
+              <div class="ufs-overlay-chip" data-i18n="search-chip4" data-en-fill="Dessert recipes" data-ar-fill="وصفات الحلويات" onclick="fillSearch('nav', this.textContent.trim())">Dessert recipes</div>
+              <div class="ufs-overlay-chip" data-i18n="search-chip5" data-en-fill="Hellmann's mayo" data-ar-fill="مايونيز هيلمان" onclick="fillSearch('nav', this.textContent.trim())">Hellmann's mayo</div>
+            </div>
+          </div>
+          <!-- Results state (3+ chars) -->
+          <div class="ufs-search-results-panel" id="nav-search-results" style="display:none">
+            <div class="ufs-search-left">
+              <div id="nav-search-suggestions"></div>
+              <button class="ufs-search-ask-ai" id="nav-search-ask-ai" onclick="submitChefAI('nav')">
+                <svg class="ufs-search-ask-ai-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M12 2L13.5 9.5L21 11L13.5 12.5L12 20L10.5 12.5L3 11L10.5 9.5L12 2Z" fill="url(#ask-ai-grad-nav)"/>
+                  <defs><linearGradient id="ask-ai-grad-nav" x1="3" y1="2" x2="21" y2="20" gradientUnits="userSpaceOnUse"><stop style="stop-color:var(--color-brand-primary)"/><stop offset="1" style="stop-color:#D536B0"/></linearGradient></defs>
+                </svg>
+                <span class="ufs-search-ask-ai-text">Ask Chef AI for "<span id="nav-ask-ai-query"></span>"</span>
+              </button>
+            </div>
+            <div id="nav-search-categories"></div>
+          </div>
+          <!-- See all — always visible at bottom of overlay -->
+          <div class="ufs-search-see-all-global" id="nav-search-see-all" style="display:none">
+            <button class="ufs-search-see-all-global-btn"><span class="see-all-prefix" data-i18n="search-see-all-prefix">See all results for "</span><span id="nav-search-see-all-query"></span>" <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Megamenu: Products -->
+      <div class="ufs-megamenu" id="mm-products">
+        <div class="mm-a">
+          <div class="mm-col">
+            <span class="mm-col-label text-overline" data-i18n="mm-sauces-col">Sauces &amp; Condiments</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-ketchup">Ketchup &amp; Tomato Sauces</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-mayo">Mayonnaise &amp; Dressings</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-hot-sauces">Hot Sauces</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-vinegar">Vinegars &amp; Marinades</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-pastes">Pastes &amp; Purees</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline" data-i18n="mm-dairy-col">Dairy &amp; Fats</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-butter">Butter &amp; Spreads</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-cream">Cream &amp; Creamers</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-oils">Cooking Oils</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-cheese">Cheese Products</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline" data-i18n="mm-bases-col">Culinary Bases</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-stocks">Stocks &amp; Bouillons</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-gravy">Gravy &amp; Sauce Mixes</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-soups">Soups &amp; Broths</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-season">Seasoning Blends</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-dessert-mix">Dessert Mixes</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-promo">
+            <div class="mm-promo-img"><span class="mm-promo-img-placeholder text-badge">Product Image</span></div>
+            <div class="mm-promo-body">
+              <div class="mm-promo-over text-overline" data-i18n="mm-promo1-over">New Arrival</div>
+              <div class="mm-promo-title text-body" data-i18n="mm-promo1-title">Knorr Professional Demi-Glace — now in 1 L packs</div>
+              <a class="mm-promo-cta text-body-sm"><span data-i18n="mm-promo1-cta">Explore range</span> <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Megamenu: Recipes -->
+      <div class="ufs-megamenu" id="mm-recipes">
+        <div class="mm-b">
+          <div class="mm-featured">
+            <div class="mm-feat-over text-overline" data-i18n="mm-chefs-pick">Chef's Pick</div>
+            <div class="mm-feat-title text-h4" data-i18n="mm-rec-feat-title">20-Minute Weeknight Recipes</div>
+            <div class="mm-feat-body text-body-sm" data-i18n="mm-rec-feat-body">Fast, professional-quality dishes built around UFS pantry staples. New recipes added every week.</div>
+            <a class="mm-feat-cta text-body-sm"><span data-i18n="mm-rec-feat-cta">Browse recipes</span> <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline" data-i18n="mm-recipes-col">Recipes</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-all-recipes">All Recipes</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-starters">Starters &amp; Soups</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-mains">Mains &amp; Sides</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-desserts">Desserts</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-sauces-dress">Sauces &amp; Dressings</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline" data-i18n="mm-cuisine-col">By Cuisine</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-asian">Asian</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-med">Mediterranean</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-latin">Latin American</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-european">Classic European</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-promo">
+            <div class="mm-promo-img"><span class="mm-promo-img-placeholder text-badge">Editorial Image</span></div>
+            <div class="mm-promo-body">
+              <div class="mm-promo-over text-overline" data-i18n="mm-promo2-over">Trending Now</div>
+              <div class="mm-promo-title text-body" data-i18n="mm-promo2-title">Mastering Umami: a free online module for chefs</div>
+              <a class="mm-promo-cta text-body-sm"><span data-i18n="mm-promo2-cta">Start learning</span> <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Megamenu: Training & Inspiration -->
+      <div class="ufs-megamenu" id="mm-training">
+        <div class="mm-a">
+          <div class="mm-col">
+            <span class="mm-col-label text-overline" data-i18n="mm-training-col">Training</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-chef-videos">Chef Training Videos</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-culinary">Culinary Techniques</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-online-courses">Online Courses</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-certs">Certifications</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline" data-i18n="mm-inspo-col">Inspiration</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-food-trends">Food Trends</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-menu-plan">Menu Planning Tools</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-chef-spot">Chef Spotlights</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-success">Success Stories</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline" data-i18n="mm-resources-col">Resources</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-guides">Downloadable Guides</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-webinars">Webinars &amp; Events</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-academy">UFS Academy</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-promo">
+            <div class="mm-promo-img"><span class="mm-promo-img-placeholder text-badge">Academy Image</span></div>
+            <div class="mm-promo-body">
+              <div class="mm-promo-over text-overline" data-i18n="mm-promo3-over">Free Module</div>
+              <div class="mm-promo-title text-body" data-i18n="mm-promo3-title">Mastering Umami: a free online module for chefs</div>
+              <a class="mm-promo-cta text-body-sm"><span data-i18n="mm-promo3-cta">Start learning</span> <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Mobile nav bar (below 768px) -->
+    <div class="ufs-mnav ufs-mnav--light" id="mobile-nav">
+      <button class="ufs-mnav__btn" onclick="openMobileDrawer()"><img class="ufs-icon ufs-icon--20" src="icons/menu.svg" alt="Menu"/></button>
+      <img src="images/ufs-logo.png" alt="UFS" class="ufs-mnav__logo"/>
+      <div class="ufs-mnav__right">
+        <button class="ufs-mnav__btn" id="mnav-search-btn" onclick="toggleSearchOverlay('mnav')">
+          <img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt="Search"/>
+        </button>
+        <button class="ufs-mnav__btn"><img class="ufs-icon ufs-icon--20" src="icons/fav.svg" alt="Favourites"/></button>
+        <button class="ufs-mnav__btn" id="mnav-cart" style="position:relative">
+          <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="Cart"/>
+          <span class="ufs-nav__badge">3</span>
+        </button>
+        <button class="ufs-mnav__btn" id="mnav-profile" style="position:relative" onclick="mnavProfileClick()">
+          <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/>
+          <span class="ufs-nav__account-dot is-alert"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile search overlay — kept outside <header> to avoid its sticky
+       z-index stacking context trapping this below body-level fixed elements. -->
+  <div class="ufs-msearch-overlay" id="mnav-search-overlay">
+    <div class="ufs-msearch-ov-header">
+      <div class="ufs-msearch-ov-field">
+        <img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt=""/>
+        <input class="ufs-msearch-ov-input" type="text" id="mnav-search-overlay-input" placeholder="Search…" data-i18n-ph="msearch-ph" autocomplete="off" oninput="handleSearchInput('mnav', this.value)"/>
+      </div>
+      <button class="ufs-msearch-ov-close" onclick="closeSearchOverlay('mnav')">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <!-- Trending state -->
+    <div id="mnav-search-trending">
+      <div class="ufs-msearch-ov-label" data-i18n="msearch-trending">Trending</div>
+      <div class="ufs-msearch-ov-chips" id="mnav-trending-chips">
+        <div class="ufs-msearch-ov-chip" data-i18n="msearch-chip1" onclick="fillSearch('mnav', this.textContent.trim())">Pasta sauces</div>
+        <div class="ufs-msearch-ov-chip" data-i18n="msearch-chip2" onclick="fillSearch('mnav', this.textContent.trim())">Knorr</div>
+        <div class="ufs-msearch-ov-chip" data-i18n="msearch-chip3" onclick="fillSearch('mnav', this.textContent.trim())">Desserts</div>
+        <div class="ufs-msearch-ov-chip" data-i18n="msearch-chip4" onclick="fillSearch('mnav', this.textContent.trim())">Plant-based</div>
+      </div>
+    </div>
+    <!-- Results state (3+ chars) -->
+    <div class="ufs-search-results-panel" id="mnav-search-results" style="display:none">
+      <div class="ufs-search-left">
+        <div id="mnav-search-suggestions"></div>
+        <button class="ufs-search-ask-ai" id="mnav-search-ask-ai" onclick="submitChefAI('mnav')">
+          <svg class="ufs-search-ask-ai-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 2L13.5 9.5L21 11L13.5 12.5L12 20L10.5 12.5L3 11L10.5 9.5L12 2Z" fill="url(#ask-ai-grad-mnav)"/>
+            <defs><linearGradient id="ask-ai-grad-mnav" x1="3" y1="2" x2="21" y2="20" gradientUnits="userSpaceOnUse"><stop style="stop-color:var(--color-brand-primary)"/><stop offset="1" style="stop-color:#D536B0"/></linearGradient></defs>
+          </svg>
+          <span class="ufs-search-ask-ai-text">Ask Chef AI for "<span id="mnav-ask-ai-query"></span>"</span>
+        </button>
+      </div>
+      <div id="mnav-search-categories"></div>
+    </div>
+    <!-- See all — always visible at bottom of overlay -->
+    <div class="ufs-search-see-all-global" id="mnav-search-see-all" style="display:none">
+      <button class="ufs-search-see-all-global-btn"><span class="see-all-prefix" data-i18n="search-see-all-prefix">See all results for "</span><span id="mnav-search-see-all-query"></span>" <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg></button>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       MOBILE DRAWER
+  ================================================================ -->
+  <div class="ufs-drawer-backdrop" id="mobile-drawer-backdrop" onclick="closeMobileDrawer()"></div>
+  <div class="ufs-drawer" id="mobile-drawer">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeMobileDrawer()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="ufs-drawer-links">
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)"><span data-i18n="nav-products">Products</span> <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link" data-i18n="mm-ketchup">Ketchup &amp; Tomato Sauces</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-mayo">Mayonnaise &amp; Dressings</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-hot-sauces">Hot Sauces</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-vinegar">Vinegars &amp; Marinades</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-pastes">Pastes &amp; Purees</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-butter">Butter &amp; Spreads</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-cream">Cream &amp; Creamers</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-oils">Cooking Oils</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-cheese">Cheese Products</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-stocks">Stocks &amp; Bouillons</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-gravy">Gravy &amp; Sauce Mixes</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-soups">Soups &amp; Broths</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-season">Seasoning Blends</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-dessert-mix">Dessert Mixes</a>
+        <button class="ufs-drawer-sub-more" onclick="showDrawerSubMore(this)"><span data-i18n="dr-view-more">View more</span> <img class="ufs-drawer-sub-more-chev" src="icons/arrow.svg" alt=""/></button>
+      </div>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link" data-i18n="mm-all-recipes">All Recipes</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-starters">Starters &amp; Soups</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-mains">Mains &amp; Sides</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-desserts">Desserts</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-sauces-dress">Sauces &amp; Dressings</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-asian">Asian</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-med">Mediterranean</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-latin">Latin American</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-european">Classic European</a>
+        <button class="ufs-drawer-sub-more" onclick="showDrawerSubMore(this)"><span data-i18n="dr-view-more">View more</span> <img class="ufs-drawer-sub-more-chev" src="icons/arrow.svg" alt=""/></button>
+      </div>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link" data-i18n="mm-chef-videos">Chef Training Videos</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-culinary">Culinary Techniques</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-online-courses">Online Courses</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-certs">Certifications</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-food-trends">Food Trends</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-menu-plan">Menu Planning Tools</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-chef-spot">Chef Spotlights</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-success">Success Stories</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-guides">Downloadable Guides</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-webinars">Webinars &amp; Events</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-academy">UFS Academy</a>
+        <button class="ufs-drawer-sub-more" onclick="showDrawerSubMore(this)"><span data-i18n="dr-view-more">View more</span> <img class="ufs-drawer-sub-more-chev" src="icons/arrow.svg" alt=""/></button>
+      </div>
+      <button class="ufs-drawer-acc-trigger" style="border-bottom:none" data-i18n="nav-promotions">Promotions</button>
+    </div>
+    <div class="ufs-drawer-util">
+      <div class="ufs-drawer-util-title" data-i18n="dr-more">More</div>
+      <a class="ufs-drawer-util-link" data-i18n="about">About Us</a>
+      <a class="ufs-drawer-util-link" data-i18n="contact">Contact</a>
+      <a class="ufs-drawer-util-link" data-i18n="support">Help &amp; Support</a>
+      <a class="ufs-drawer-util-link" id="drawer-ws-link">Track Your Order</a>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)"><span class="ufs-drawer-acc-label"><svg class="ufs-icon ufs-drawer-acc-globe" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M40.5 22.5C40.5 12.7252 32.673 4.74882 22.9561 4.50571L22.4993 4.5L22.0425 4.50571C12.3268 4.74883 4.5 12.7255 4.5 22.5C4.5 32.4259 12.574 40.5 22.4993 40.5C32.4258 40.5 40.5 32.4261 40.5 22.5ZM7.5 22.5C7.5 14.3698 14.0039 7.72857 22.0802 7.50577L22.4993 7.5L22.9185 7.50577C30.9959 7.72856 37.5 14.3696 37.5 22.5C37.5 30.7692 30.7689 37.5 22.4993 37.5C14.2309 37.5 7.5 30.769 7.5 22.5Z" fill="currentColor"/><path d="M22.4993 4.75793C23.2686 4.75793 23.9026 5.33699 23.9892 6.083L23.9993 6.25793V38.7422C23.9993 39.5706 23.3277 40.2422 22.4993 40.2422C21.73 40.2422 21.096 39.6631 21.0094 38.9171L20.9993 38.7422V6.25793C20.9993 5.42951 21.6709 4.75793 22.4993 4.75793Z" fill="currentColor"/><path d="M20.1923 5.38265C20.8895 5.83016 21.0918 6.7581 20.6443 7.45525L20.4169 7.82245L20.0947 8.3692L19.8339 8.82738C19.2127 9.93341 18.5908 11.1515 18.0111 12.442C16.8394 15.0502 15.9955 17.6066 15.6185 19.9641C15.4765 20.8523 15.4036 21.6995 15.4036 22.4999C15.4036 23.2977 15.476 24.1418 15.6171 25.0267C15.9933 27.3861 16.8378 29.9447 18.011 32.555C18.5907 33.8448 19.2126 35.0623 19.8337 36.1677L20.2116 36.8269L20.5797 37.4373C20.6031 37.4747 20.6246 37.5086 20.6441 37.5389C21.0918 38.2359 20.8897 39.1639 20.1927 39.6116C19.4957 40.0594 18.5677 39.8573 18.1199 39.1602L17.8633 38.7454L17.3899 37.9399C17.3337 37.8418 17.2765 37.7409 17.2183 37.6374C16.5555 36.4577 15.8934 35.1615 15.2746 33.7849C14.0015 30.9522 13.0777 28.1533 12.6545 25.499C12.4895 24.4638 12.4036 23.4629 12.4036 22.4999C12.4036 21.5338 12.49 20.5294 12.6562 19.4904C13.0801 16.8388 14.0032 14.0426 15.2745 11.2126C15.8932 9.83542 16.5553 8.53855 17.2182 7.35834L17.7127 6.50088L18.1197 5.83467C18.5672 5.13751 19.4952 4.93514 20.1923 5.38265Z" fill="currentColor"/><path d="M25.2559 39.8584C24.5587 39.4109 24.3563 38.483 24.8039 37.7858L25.1288 37.2557L25.4796 36.6519C25.5231 36.5755 25.5681 36.4961 25.6143 36.4137C26.2355 35.3077 26.8574 34.0895 27.4371 32.7991C28.6088 30.1909 29.4527 27.6345 29.8297 25.277C29.9717 24.3888 30.0446 23.5416 30.0446 22.7411C30.0446 21.9434 29.9722 21.0993 29.8311 20.2144C29.4549 17.855 28.6104 15.2964 27.4372 12.686C26.8575 11.3962 26.2356 10.1788 25.6145 9.07341L25.129 8.23191L24.8041 7.70218C24.3564 7.00515 24.5585 6.07716 25.2555 5.62944C25.9525 5.18173 26.8805 5.38383 27.3282 6.08086L27.5014 6.3585L27.7353 6.74673L28.0583 7.30122C28.1144 7.3993 28.1716 7.50016 28.2298 7.60374C28.8927 8.78334 29.5548 10.0796 30.1735 11.4562C31.4467 14.2889 32.3705 17.0878 32.7937 19.7421C32.9587 20.7772 33.0446 21.7782 33.0446 22.7411C33.0446 23.7073 32.9581 24.7117 32.792 25.7507C32.3681 28.4023 31.445 31.1985 30.1736 34.0285C29.555 35.4057 28.8929 36.7025 28.23 37.8827L27.8935 38.4714L27.4307 39.2438L27.3285 39.4064C26.881 40.1036 25.953 40.306 25.2559 39.8584Z" fill="currentColor"/><path d="M36.9378 27.1875C37.7662 27.1875 38.4378 27.8591 38.4378 28.6875C38.4378 29.4568 37.8587 30.0908 37.1127 30.1774L36.9378 30.1875H7.3978C6.56937 30.1875 5.8978 29.5159 5.8978 28.6875C5.8978 27.9182 6.47686 27.2842 7.22286 27.1976L7.3978 27.1875H36.9378Z" fill="currentColor"/><path d="M38.35 16.8751C39.1784 16.8751 39.85 17.5467 39.85 18.3751C39.85 19.1444 39.2709 19.7784 38.5249 19.865L38.35 19.8751H6.88013C6.0517 19.8751 5.38013 19.2035 5.38013 18.3751C5.38013 17.6059 5.95919 16.9719 6.7052 16.8852L6.88013 16.8751H38.35Z" fill="currentColor"/></svg><span data-i18n="country-locale">United States &middot; EN</span></span><svg class="ufs-icon ufs-drawer-acc-chev" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M17.6214 9.49108C18.1294 9.42769 18.6277 9.53396 19.0577 9.79119L30.3572 20.8504C30.7807 21.2684 31.0104 21.8053 31.0453 22.3524C31.0753 22.8224 30.9617 23.2997 30.7046 23.7149L19.502 34.8638C19.0382 35.3216 18.4302 35.55 17.8224 35.55C17.2146 35.55 16.6066 35.3216 16.1428 34.8638C15.7193 34.4459 15.4896 33.9089 15.4547 33.3619C15.4247 32.8918 15.5383 32.4145 15.7955 31.9994L25.326 22.4998L16.1428 13.4352C15.7193 13.0173 15.4896 12.4803 15.4547 11.9333C15.4201 11.391 15.5766 10.839 15.9243 10.3841C16.4582 9.85219 17.0437 9.56315 17.6214 9.49108Z" fill="currentColor"/></svg></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link is-active" id="drawer-lang-en">English <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link" id="drawer-lang-ar">العربية <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link">Español <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link ufs-lang-drop__change">Change country <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       PAGE CONTENT
+  ================================================================ -->
+  <main>
+    <!-- Hero -->
+    <section class="pg-hero btn-on-dark">
+      <div class="pg-hero-content">
+        <div class="pg-hero-eyebrow text-overline" data-i18n="hero-eyebrow">Professional Culinary Solutions</div>
+        <h1 class="pg-hero-title text-display" data-i18n-html="hero-title">Elevate every dish<br>with UFS</h1>
+        <p class="pg-hero-sub text-body" data-i18n="hero-sub">Premium sauces, culinary bases and seasonings trusted by chefs and foodservice operators worldwide.</p>
+        <div class="pg-hero-actions">
+          <button class="btn btn-primary" data-i18n="hero-btn-products">Explore Products</button>
+          <button class="btn btn-secondary" data-i18n="hero-btn-watch">Watch how it works</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Products -->
+    <section class="pg-products">
+      <div class="pg-section-eyebrow text-overline" data-i18n="prod-eyebrow">Our Portfolio</div>
+      <h2 class="pg-section-title text-h3" data-i18n="prod-title">Featured Products</h2>
+      <p class="pg-section-sub" data-i18n="prod-sub">From classic stock bases to innovative sauces — everything you need in a professional kitchen.</p>
+      <div class="pg-cards-grid">
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:var(--color-mushroom-300)"></div>
+            <span class="pg-card-brand text-badge">Knorr</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm" data-i18n="card1-title">Knorr Classic Demi-Glace</div>
+            <div class="pg-card-desc text-body-xs" data-i18n="card1-desc">Concentrated veal-based sauce — rich, glossy finish in minutes.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge" data-i18n="card1-tag">Sauce Base</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:var(--color-mushroom-300)"></div>
+            <span class="pg-card-brand text-badge">Hellmann's</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm" data-i18n="card2-title">Hellmann's Real Mayonnaise</div>
+            <div class="pg-card-desc text-body-xs" data-i18n="card2-desc">Classic creamy mayo made with responsibly sourced eggs.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge" data-i18n="card2-tag">Condiment</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:var(--color-mushroom-300)"></div>
+            <span class="pg-card-brand text-badge">Knorr</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm" data-i18n="card3-title">Knorr Chicken Bouillon</div>
+            <div class="pg-card-desc text-body-xs" data-i18n="card3-desc">Adds depth and warmth to soups, braises and risottos.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge" data-i18n="card3-tag">Stock Base</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:var(--color-mushroom-300)"></div>
+            <span class="pg-card-brand text-badge">Maizena</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm" data-i18n="card4-title">Maizena Corn Starch</div>
+            <div class="pg-card-desc text-body-xs" data-i18n="card4-desc">Smooth, lump-free thickening for sauces, soups and desserts.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge" data-i18n="card4-tag">Thickener</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inspiration -->
+    <section class="pg-inspiration">
+      <div class="pg-section-eyebrow text-overline" data-i18n="inspo-eyebrow">Chef's Picks</div>
+      <h2 class="pg-section-title text-h3" data-i18n="inspo-title">Recipes &amp; Inspiration</h2>
+      <p class="pg-section-sub" data-i18n="inspo-sub">Curated techniques and recipes from UFS culinary experts and partner chefs.</p>
+      <div class="pg-inspo-grid">
+        <div class="pg-inspo-feature">
+          <div style="position:absolute;inset:0;background:var(--color-mushroom-300)"></div>
+          <div class="pg-inspo-feature-body">
+            <div class="pg-inspo-feature-tag text-badge" data-i18n="inspo-feat-tag">Recipe of the Week</div>
+            <div class="pg-inspo-feature-title text-h4" data-i18n="inspo-feat-title">Pan-seared salmon with classic demi-glace</div>
+            <div class="pg-inspo-feature-meta text-body-xs" data-i18n="inspo-feat-meta">By Chef Marco Valli &nbsp;·&nbsp; 25 min &nbsp;·&nbsp; Intermediate</div>
+          </div>
+        </div>
+        <div class="pg-inspo-small-col">
+          <div class="pg-inspo-small">
+            <div class="pg-inspo-small-img" style="background:var(--color-mushroom-300)"></div>
+            <div class="pg-inspo-small-body">
+              <div class="pg-inspo-small-tag text-badge" data-i18n="inspo-small1-tag">Technique</div>
+              <div class="pg-inspo-small-title text-body-sm" data-i18n="inspo-small1-title">How to build a perfect pan sauce in 5 steps</div>
+            </div>
+          </div>
+          <div class="pg-inspo-small">
+            <div class="pg-inspo-small-img" style="background:var(--color-mushroom-300)"></div>
+            <div class="pg-inspo-small-body">
+              <div class="pg-inspo-small-tag text-badge" data-i18n="inspo-small2-tag">Training</div>
+              <div class="pg-inspo-small-title text-body-sm" data-i18n="inspo-small2-title">UFS Academy: Sauce masterclass — now free</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================================================================
+       FLOATING BAR — v2 AI ask-row variant
+  ================================================================ -->
+  <div class="fbe-fixed" id="fbe-fixed">
+    <!-- AI panel -->
+    <div class="fbe__panel fbe__panel--ai" id="fbe-panel-ai">
+      <div class="fbe-ai-hd">
+        <div class="fbe-ai-title"><img src="icons/chat.svg" alt=""/> <span data-i18n="fbe-title">Ask AI</span> <span class="fbe-ai-badge" data-i18n="fbe-badge">Beta</span></div>
+        <button class="fbe__panel-close fbe__panel-close--dark" onclick="closeFbe('ai')">
+          <svg viewBox="0 0 12 12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+        </button>
+      </div>
+      <div class="fbe-ai-msgs" id="fbe-ai-msgs">
+        <div class="fbe-ai-msg" id="fbe-ai-intro-msg">
+          <div class="fbe-ai-ava fbe-ai-ava--ai">AI</div>
+          <div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm" data-i18n="fbe-ai-intro">Hi! I'm the UFS AI. Ask me about products, recipes, or cooking techniques.</div>
+        </div>
+        <div class="fbe-ai-msg fbe-ai-msg--user" id="fbe-ai-sample-user">
+          <div class="fbe-ai-ava fbe-ai-ava--user">FC</div>
+          <div class="fbe-ai-bubble fbe-ai-bubble--user text-body-sm" data-i18n="fbe-user-sample">What sauce works well with grilled salmon?</div>
+        </div>
+        <div class="fbe-ai-msg" id="fbe-ai-sample-reply">
+          <div class="fbe-ai-ava fbe-ai-ava--ai">AI</div>
+          <div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm" data-i18n-html="fbe-ai-reply">Great choice! I'd recommend the <strong>Knorr Classic Demi-Glace</strong> — it adds depth without overpowering. Want me to find recipes using it?</div>
+        </div>
+      </div>
+      <div class="fbe-ai-input-row">
+        <input class="fbe-ai-input" id="fbe-ai-input" type="text" placeholder="Ask a follow-up…" data-i18n-ph="fbe-input-ph" onkeydown="if(event.key==='Enter')sendAiMsg()"/>
+        <button class="fbe-ai-send" onclick="sendAiMsg()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Suggested prompts panel -->
+    <div class="fbe__panel fbe__panel--prompts" id="fbe-panel-prompts">
+      <button class="fbe-prompt-btn" id="fbe-prompt-1" onclick="submitAiPrompt(this.dataset.prompt)" data-prompt="How do I engage more with Gen-Z diners?">
+        <svg class="fbe-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span data-i18n="fbe-prompt1">How do I engage more with Gen-Z diners?</span>
+      </button>
+      <button class="fbe-prompt-btn" id="fbe-prompt-2" onclick="submitAiPrompt(this.dataset.prompt)" data-prompt="Show me quick weeknight recipes">
+        <svg class="fbe-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span data-i18n="fbe-prompt2">Show me quick weeknight recipes</span>
+      </button>
+      <button class="fbe-prompt-btn" id="fbe-prompt-3" onclick="submitAiPrompt(this.dataset.prompt)" data-prompt="How do I store opened sauce bases?">
+        <svg class="fbe-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span data-i18n="fbe-prompt3">How do I store opened sauce bases?</span>
+      </button>
+    </div>
+    <!-- Bar -->
+    <div class="fbe">
+      <div class="fbe__ask-row">
+        <svg class="fbe__ask-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2L13.5 9.5L21 11L13.5 12.5L12 20L10.5 12.5L3 11L10.5 9.5L12 2Z" fill="url(#fbe-ask-icon-grad)"/>
+          <defs><linearGradient id="fbe-ask-icon-grad" x1="3" y1="2" x2="21" y2="20" gradientUnits="userSpaceOnUse">
+            <stop style="stop-color:var(--color-brand-primary)"/>
+            <stop offset="1" style="stop-color:var(--color-ai-accent)"/>
+          </linearGradient></defs>
+        </svg>
+        <input class="fbe__ask-input" id="fbe-ask-input" type="text" placeholder="" autocomplete="off"
+          onfocus="showPromptSuggestions(); pauseAskTypewriter();"
+          onblur="resumeAskTypewriter();"
+          onkeydown="if(event.key==='Enter'){event.preventDefault(); submitAiPrompt(this.value);}"/>
+      </div>
+      <button class="fbe__voice-btn" id="fbe-btn-mic" onclick="toggleMic()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- State badge — click to reveal/hide the ctrl-bar -->
+  <button class="state-badge" id="state-badge" type="button" onclick="toggleCtrlBar()" aria-expanded="false" aria-controls="ctrl-bar">
+    <strong data-i18n="state-label">Current state</strong>
+    <span id="state-text">Light · Cart · Logged In</span>
+  </button>
+
+  <!-- ================================================================
+       SIGN-IN PANEL
+  ================================================================ -->
+  <div class="signin-backdrop" id="signin-backdrop" onclick="closeSignIn()"></div>
+  <div class="signin-panel" id="signin-panel">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeSignIn()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="signin-panel-body" id="signin-panel-body">
+      <div class="tab-bar" style="margin-bottom:24px">
+        <button class="tab-btn is-active" id="tab-si" onclick="switchTab('signin')" data-i18n="si-tab-signin">Sign In</button>
+        <button class="tab-btn" id="tab-reg" onclick="switchTab('register')" data-i18n="si-tab-register">Create Account</button>
+      </div>
+      <div id="form-signin">
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label" data-i18n="si-email-label">Email address</label><input class="fi-field" type="email" placeholder="you@example.com" dir="ltr"/></div>
+          <div class="fi-wrap"><label class="fi-label" data-i18n="si-pw-label">Password</label><input class="fi-field" type="password" placeholder="••••••••" dir="ltr"/></div>
+        </div>
+        <div class="signin-forgot text-body-xs" data-i18n="si-forgot">Forgot your password?</div>
+        <button class="btn btn-primary" style="width:100%;margin-top:20px" onclick="closeSignIn()" data-i18n="si-signin-btn">Sign In</button>
+        <div class="signin-usp text-body-xs" data-i18n="si-usp">Access exclusive recipes, save your favourites and manage your UFS account.</div>
+      </div>
+      <div id="form-register" style="display:none">
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label" data-i18n="si-email-label">Email address</label><input class="fi-field" type="email" placeholder="you@example.com" dir="ltr"/></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="closeSignIn()" data-i18n="si-continue-btn">Continue</button>
+        <div class="signin-usps">
+          <div class="signin-usps-title" data-i18n="si-why">Why create an account?</div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/products.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title" data-i18n="si-usp1-title">Professional pricing</div>
+              <div class="signin-usp-item-desc" data-i18n="si-usp1-desc">Access exclusive B2B prices and bulk discounts on all UFS products.</div>
+            </div>
+          </div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/recipes.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title" data-i18n="si-usp2-title">500+ chef recipes</div>
+              <div class="signin-usp-item-desc" data-i18n="si-usp2-desc">Save and organise your favourites from our full recipe library.</div>
+            </div>
+          </div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/track.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title" data-i18n="si-usp3-title">Order tracking</div>
+              <div class="signin-usp-item-desc" data-i18n="si-usp3-desc">View order history and track deliveries in real time.</div>
+            </div>
+          </div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/chef.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title" data-i18n="si-usp4-title">UFS Academy</div>
+              <div class="signin-usp-item-desc" data-i18n="si-usp4-desc">Free culinary training modules and certifications.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       PROFILE PANEL
+  ================================================================ -->
+  <div class="signin-backdrop" id="profile-backdrop" onclick="closeProfilePanel()"></div>
+  <div class="signin-panel" id="profile-panel">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeProfilePanel()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="pp-body">
+      <div class="pp-header">
+        <div class="av av--xl">
+          <div class="av-circle"><span class="av-initials">GB</span></div>
+        </div>
+        <div class="pp-header-text">
+          <p class="pp-header-name">Giuseppe Buscicchio</p>
+          <p class="pp-header-role" data-i18n="pp-role">Sous chef · Le Cordon Bleu</p>
+        </div>
+      </div>
+      <div class="loyalty-card loyalty-card--compact">
+        <div class="loyalty-info">
+          <p class="loyalty-title" data-i18n="pp-loyalty">Loyalty points</p>
+          <button class="loyalty-link" data-i18n="pp-see-details">See details</button>
+        </div>
+        <div class="loyalty-pill">
+          <svg width="18" height="18" viewBox="0 0 45 45" fill="none" aria-hidden="true">
+            <path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/>
+            <circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/>
+          </svg>
+          <span class="loyalty-num">24.320</span>
+        </div>
+      </div>
+      <div class="pp-menu">
+        <button class="pp-menu-row" data-i18n="pp-personal">My personal information</button>
+        <button class="pp-menu-row" data-i18n="pp-settings">Account settings</button>
+        <button class="pp-menu-row" data-i18n="pp-cookbook">Cooking book</button>
+        <button class="pp-menu-row" data-i18n="pp-orders">Orders lists</button>
+        <button class="pp-menu-row" data-i18n="pp-certs">Training Certificates (4)</button>
+      </div>
+      <div class="pp-actions">
+        <button class="btn btn-primary" style="width:100%" data-i18n="pp-view-profile">View full profile</button>
+        <button class="pp-logout" data-i18n="pp-logout">Log out</button>
+      </div>
+    </div>
+  </div>
+  </div><!-- /real-page-content -->
+
+  <footer class="ufs-footer" id="site-footer">
+    <!-- Newsletter band — centered column layout -->
+    <div class="ufs-footer__band">
+      <div>
+        <h2 class="ufs-footer__nl-heading" data-i18n="footer-heading">Stay in the loop</h2>
+        <p class="ufs-footer__nl-sub" data-i18n="footer-sub">Sign up to receive recipe ideas, industry trends, special offers, and more in your inbox.</p>
+      </div>
+      <form class="ufs-footer__nl-form" onsubmit="return false">
+        <input class="ufs-footer__nl-input" type="email" dir="ltr" placeholder="Enter your email" data-i18n-ph="footer-input-ph" autocomplete="email" />
+        <button class="ufs-footer__nl-btn" type="submit" data-i18n="footer-subscribe">Subscribe</button>
+      </form>
+    </div>
+
+    <!-- Link columns + bottom bar -->
+    <div class="ufs-footer__main">
+      <div class="ufs-footer__cols">
+        <!-- Brand column: logo + tagline -->
+        <div class="ufs-footer__col">
+          <img src="images/ufs-logo.png" class="ufs-footer__brand-logo" alt="UFS" />
+          <p class="ufs-footer__brand-tagline" data-i18n="footer-tagline">Products and services created by chefs for chefs</p>
+        </div>
+        <!-- Company -->
+        <div class="ufs-footer__col">
+          <h3 class="ufs-footer__col-heading" data-i18n="footer-col-company">Company</h3>
+          <ul class="ufs-footer__col-links">
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-about">About Us</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-brands">Brands</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-sustainability">Sustainability</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-trade">Trade Terms</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-partners">Partners</a></li>
+          </ul>
+        </div>
+        <!-- Help & Support -->
+        <div class="ufs-footer__col">
+          <h3 class="ufs-footer__col-heading" data-i18n="footer-col-support">Help &amp; Support</h3>
+          <ul class="ufs-footer__col-links">
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-track">Track My Order</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-shipping">Shipping Info</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-returns">Returns &amp; Exchanges</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-faq">FAQ</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-contact">Contact Us</a></li>
+          </ul>
+        </div>
+        <!-- Legal -->
+        <div class="ufs-footer__col">
+          <h3 class="ufs-footer__col-heading" data-i18n="footer-col-legal">Legal</h3>
+          <ul class="ufs-footer__col-links">
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-privacy">Privacy Policy</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-cookie">Cookie Policy</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-terms">Terms and Conditions</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-accessibility">Accessibility</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="ufs-footer__divider"></div>
+      <div class="ufs-footer__bottom">
+        <p class="ufs-footer__copyright" data-i18n="footer-copyright">© 2027 UFS. All rights reserved.</p>
+        <div class="ufs-footer__socials">
+          <a href="#" class="ufs-footer__social-link" aria-label="Instagram">
+            <img src="icons/instagram.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+          <a href="#" class="ufs-footer__social-link" aria-label="TikTok">
+            <img src="icons/tiktok.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+          <a href="#" class="ufs-footer__social-link" aria-label="Facebook">
+            <img src="icons/facebook.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+          <a href="#" class="ufs-footer__social-link" aria-label="YouTube">
+            <img src="icons/youtube.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+          <a href="#" class="ufs-footer__social-link" aria-label="LinkedIn">
+            <img src="icons/linkedin.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    /* ================================================================
+       STATE
+    ================================================================ */
+    var S = { color: 'light', webshop: true, auth: false, view: 'desktop', dir: 'ltr' };
+    var ctrlBarOpen = false;
+    var navScrolled = false;
+    var megamenuOpen = false;
+    var searchOverlayOpen = false;
+    var NAV_SCROLL_SWAP_Y = 250;
+
+    var isEmbedded = false;
+    (function () {
+      var params = new URLSearchParams(location.search);
+      if (params.get('embedded') !== '1') return;
+      isEmbedded = true;
+      if (params.has('color'))   S.color   = params.get('color');
+      if (params.has('webshop')) S.webshop = params.get('webshop') === 'true';
+      if (params.has('auth'))    S.auth    = params.get('auth') === 'true';
+      if (params.has('dir'))     S.dir     = params.get('dir');
+    })();
+
+    /* ================================================================
+       TRANSLATIONS & DIRECTION
+    ================================================================ */
+    var T_EN = {
+      'about':'About Us','contact':'Contact','support':'Help & Support','track':'Track Your Order','where-to-buy':'Where to Buy',
+      'country-locale':'United States · EN','lang-country':'You\'re on the <span class="ufs-lang-drop__website-country">United States</span> website','change-country':'Change country',
+      'nav-products':'Products','nav-recipes':'Recipes','nav-training':'Training & Inspiration','nav-promotions':'Promotions',
+      'nav-sign-in':'Sign In','nav-create':'Create Account',
+      'mm-sauces-col':'Sauces & Condiments','mm-dairy-col':'Dairy & Fats','mm-bases-col':'Culinary Bases',
+      'mm-ketchup':'Ketchup & Tomato Sauces','mm-mayo':'Mayonnaise & Dressings','mm-hot-sauces':'Hot Sauces','mm-vinegar':'Vinegars & Marinades','mm-pastes':'Pastes & Purees',
+      'mm-butter':'Butter & Spreads','mm-cream':'Cream & Creamers','mm-oils':'Cooking Oils','mm-cheese':'Cheese Products',
+      'mm-stocks':'Stocks & Bouillons','mm-gravy':'Gravy & Sauce Mixes','mm-soups':'Soups & Broths','mm-season':'Seasoning Blends','mm-dessert-mix':'Dessert Mixes',
+      'mm-promo1-over':'New Arrival','mm-promo1-title':'Knorr Professional Demi-Glace — now in 1 L packs','mm-promo1-cta':'Explore range',
+      'mm-chefs-pick':"Chef's Pick",'mm-rec-feat-title':'20-Minute Weeknight Recipes',
+      'mm-rec-feat-body':'Fast, professional-quality dishes built around UFS pantry staples. New recipes added every week.','mm-rec-feat-cta':'Browse recipes',
+      'mm-recipes-col':'Recipes','mm-cuisine-col':'By Cuisine','mm-all-recipes':'All Recipes','mm-starters':'Starters & Soups','mm-mains':'Mains & Sides',
+      'mm-desserts':'Desserts','mm-sauces-dress':'Sauces & Dressings','mm-asian':'Asian','mm-med':'Mediterranean','mm-latin':'Latin American','mm-european':'Classic European',
+      'mm-promo2-over':'Trending Now','mm-promo2-title':'Mastering Umami: a free online module for chefs','mm-promo2-cta':'Start learning',
+      'mm-training-col':'Training','mm-inspo-col':'Inspiration','mm-resources-col':'Resources',
+      'mm-chef-videos':'Chef Training Videos','mm-culinary':'Culinary Techniques','mm-online-courses':'Online Courses','mm-certs':'Certifications',
+      'mm-food-trends':'Food Trends','mm-menu-plan':'Menu Planning Tools','mm-chef-spot':'Chef Spotlights','mm-success':'Success Stories',
+      'mm-guides':'Downloadable Guides','mm-webinars':'Webinars & Events','mm-academy':'UFS Academy',
+      'mm-promo3-over':'Free Module','mm-promo3-title':'Mastering Umami: a free online module for chefs','mm-promo3-cta':'Start learning',
+      'dr-view-more':'View more','dr-more':'More',
+      'hero-eyebrow':'Professional Culinary Solutions','hero-title':'Elevate every dish<br>with UFS',
+      'hero-sub':'Premium sauces, culinary bases and seasonings trusted by chefs and foodservice operators worldwide.',
+      'hero-btn-products':'Explore Products','hero-btn-watch':'Watch how it works',
+      'prod-eyebrow':'Our Portfolio','prod-title':'Featured Products',
+      'prod-sub':'From classic stock bases to innovative sauces — everything you need in a professional kitchen.',
+      'card1-title':'Knorr Classic Demi-Glace','card1-desc':'Concentrated veal-based sauce — rich, glossy finish in minutes.','card1-tag':'Sauce Base',
+      'card2-title':"Hellmann's Real Mayonnaise",'card2-desc':'Classic creamy mayo made with responsibly sourced eggs.','card2-tag':'Condiment',
+      'card3-title':'Knorr Chicken Bouillon','card3-desc':'Adds depth and warmth to soups, braises and risottos.','card3-tag':'Stock Base',
+      'card4-title':'Maizena Corn Starch','card4-desc':'Smooth, lump-free thickening for sauces, soups and desserts.','card4-tag':'Thickener',
+      'inspo-eyebrow':"Chef's Picks",'inspo-title':'Recipes & Inspiration',
+      'inspo-sub':'Curated techniques and recipes from UFS culinary experts and partner chefs.',
+      'inspo-feat-tag':'Recipe of the Week','inspo-feat-title':'Pan-seared salmon with classic demi-glace',
+      'inspo-feat-meta':'By Chef Marco Valli  ·  25 min  ·  Intermediate',
+      'inspo-small1-tag':'Technique','inspo-small1-title':'How to build a perfect pan sauce in 5 steps',
+      'inspo-small2-tag':'Training','inspo-small2-title':'UFS Academy: Sauce masterclass — now free',
+      'search-ph':'Search recipes, products, brands…','msearch-ph':'Search…',
+      'search-trending':'Trending searches','msearch-trending':'Trending',
+      'search-chip1':'Pasta sauces','search-chip2':'Knorr bouillon','search-chip3':'Plant-based','search-chip4':'Dessert recipes','search-chip5':"Hellmann's mayo",
+      'msearch-chip1':'Pasta sauces','msearch-chip2':'Knorr','msearch-chip3':'Desserts','msearch-chip4':'Plant-based',
+      'search-ask-ai-prefix':'Ask Chef AI for "','search-see-all-prefix':'See all results for "','search-see-all-btn':'See all',
+      'search-cat-products':'Products','search-cat-inspiration':'Inspiration','search-cat-training':'Training',
+      'fbe-title':'Ask AI','fbe-badge':'Beta',
+      'fbe-ai-intro':"Hi! I'm the UFS AI. Ask me about products, recipes, or cooking techniques.",
+      'fbe-user-sample':'What sauce works well with grilled salmon?',
+      'fbe-ai-reply':'Great choice! I\'d recommend the <strong>Knorr Classic Demi-Glace</strong> — it adds depth without overpowering. Want me to find recipes using it?',
+      'fbe-input-ph':'Ask a follow-up…',
+      'fbe-prompt1':'How do I engage more with Gen-Z diners?','fbe-prompt2':'Show me quick weeknight recipes','fbe-prompt3':'How do I store opened sauce bases?',
+      'si-tab-signin':'Sign In','si-tab-register':'Create Account',
+      'si-email-label':'Email address','si-pw-label':'Password','si-forgot':'Forgot your password?','si-signin-btn':'Sign In',
+      'si-usp':'Access exclusive recipes, save your favourites and manage your UFS account.','si-continue-btn':'Continue',
+      'si-why':'Why create an account?',
+      'si-usp1-title':'Professional pricing','si-usp1-desc':'Access exclusive B2B prices and bulk discounts on all UFS products.',
+      'si-usp2-title':'500+ chef recipes','si-usp2-desc':'Save and organise your favourites from our full recipe library.',
+      'si-usp3-title':'Order tracking','si-usp3-desc':'View order history and track deliveries in real time.',
+      'si-usp4-title':'UFS Academy','si-usp4-desc':'Free culinary training modules and certifications.',
+      'pp-role':'Sous chef · Le Cordon Bleu','pp-loyalty':'Loyalty points','pp-see-details':'See details',
+      'pp-personal':'My personal information','pp-settings':'Account settings','pp-cookbook':'Cooking book','pp-orders':'Orders lists','pp-certs':'Training Certificates (4)',
+      'pp-view-profile':'View full profile','pp-logout':'Log out','state-label':'Current state',
+      'state-light':'Light','state-dark':'Dark','state-glass':'Glass','state-cart':'Cart','state-no-cart':'No Cart','state-logged-in':'Logged In','state-signin':'Sign In',
+      'footer-heading':'Stay in the loop','footer-sub':'Sign up to receive recipe ideas, industry trends, special offers, and more in your inbox.',
+      'footer-input-ph':'Enter your email','footer-subscribe':'Subscribe',
+      'footer-tagline':'Products and services created by chefs for chefs',
+      'footer-col-company':'Company','footer-about':'About Us','footer-brands':'Brands','footer-sustainability':'Sustainability','footer-trade':'Trade Terms','footer-partners':'Partners',
+      'footer-col-support':'Help & Support','footer-track':'Track My Order','footer-shipping':'Shipping Info','footer-returns':'Returns & Exchanges','footer-faq':'FAQ','footer-contact':'Contact Us',
+      'footer-col-legal':'Legal','footer-privacy':'Privacy Policy','footer-cookie':'Cookie Policy','footer-terms':'Terms and Conditions','footer-accessibility':'Accessibility',
+      'footer-copyright':'© 2027 UFS. All rights reserved.'
+    };
+
+    var T_AR = {
+      'about':'من نحن','contact':'اتصل بنا','support':'المساعدة والدعم','track':'تتبع طلبك','where-to-buy':'أين تشتري',
+      'country-locale':'المملكة العربية السعودية · AR','lang-country':'أنت على الموقع السعودي','change-country':'تغيير الدولة',
+      'nav-products':'المنتجات','nav-recipes':'الوصفات','nav-training':'التدريب والإلهام','nav-promotions':'العروض',
+      'nav-sign-in':'تسجيل الدخول','nav-create':'إنشاء حساب',
+      'mm-sauces-col':'الصلصات والتوابل','mm-dairy-col':'الألبان والدهون','mm-bases-col':'الأسس الطهوية',
+      'mm-ketchup':'الكاتشب وصلصات الطماطم','mm-mayo':'المايونيز والتتبيلات','mm-hot-sauces':'الصلصات الحارة','mm-vinegar':'الخل والمتبلات','mm-pastes':'المعجونات والهريسة',
+      'mm-butter':'الزبدة والمدهونات','mm-cream':'الكريمة والمبيضات','mm-oils':'زيوت الطهي','mm-cheese':'منتجات الجبن',
+      'mm-stocks':'المرق والأسس','mm-gravy':'خلطات المرق والصلصة','mm-soups':'الشوربات والحساء','mm-season':'خلطات التوابل','mm-dessert-mix':'خلطات الحلويات',
+      'mm-promo1-over':'وصول جديد','mm-promo1-title':'ديمي جلاس نوبر الاحترافي — الآن في عبوات 1 لتر','mm-promo1-cta':'استكشف المنتجات',
+      'mm-chefs-pick':'اختيار الطاهي','mm-rec-feat-title':'وصفات أيام الأسبوع في 20 دقيقة',
+      'mm-rec-feat-body':'أطباق سريعة بجودة احترافية مبنية على مواد UFS. وصفات جديدة كل أسبوع.','mm-rec-feat-cta':'تصفح الوصفات',
+      'mm-recipes-col':'الوصفات','mm-cuisine-col':'حسب المطبخ','mm-all-recipes':'جميع الوصفات','mm-starters':'المقبلات والشوربات','mm-mains':'الأطباق الرئيسية والمرافقة',
+      'mm-desserts':'الحلويات','mm-sauces-dress':'الصلصات والتتبيلات','mm-asian':'آسيوي','mm-med':'متوسطي','mm-latin':'أمريكا اللاتينية','mm-european':'أوروبي كلاسيكي',
+      'mm-promo2-over':'رائج الآن','mm-promo2-title':'إتقان الأومامي: وحدة مجانية للطهاة','mm-promo2-cta':'ابدأ التعلم',
+      'mm-training-col':'التدريب','mm-inspo-col':'الإلهام','mm-resources-col':'الموارد',
+      'mm-chef-videos':'فيديوهات تدريب الطهاة','mm-culinary':'تقنيات الطهي','mm-online-courses':'الدورات الإلكترونية','mm-certs':'الشهادات',
+      'mm-food-trends':'اتجاهات الطعام','mm-menu-plan':'أدوات تخطيط القائمة','mm-chef-spot':'أضواء على الطهاة','mm-success':'قصص النجاح',
+      'mm-guides':'أدلة قابلة للتنزيل','mm-webinars':'الندوات والفعاليات','mm-academy':'أكاديمية UFS',
+      'mm-promo3-over':'وحدة مجانية','mm-promo3-title':'إتقان الأومامي: وحدة مجانية للطهاة','mm-promo3-cta':'ابدأ التعلم',
+      'dr-view-more':'عرض المزيد','dr-more':'المزيد',
+      'hero-eyebrow':'حلول الطهي الاحترافية','hero-title':'ارتقِ بكل طبق<br>مع UFS',
+      'hero-sub':'صلصات فاخرة وأسس طهوية وتوابل موثوقة من قِبَل الطهاة والمشغلين في قطاع الخدمات الغذائية حول العالم.',
+      'hero-btn-products':'استكشف المنتجات','hero-btn-watch':'شاهد كيف يعمل',
+      'prod-eyebrow':'محفظتنا','prod-title':'المنتجات المميزة',
+      'prod-sub':'من أسس المرق الكلاسيكية إلى الصلصات المبتكرة — كل ما تحتاجه في مطبخ احترافي.',
+      'card1-title':'ديمي جلاس الكلاسيكي من نوبر','card1-desc':'صلصة مركزة على أساس العجل — لمسة نهائية غنية ولامعة في دقائق.','card1-tag':'أساس الصلصة',
+      'card2-title':'مايونيز هيلمان الحقيقي','card2-desc':'مايونيز كريمي كلاسيكي مصنوع من بيض مستدام المصدر.','card2-tag':'بهار',
+      'card3-title':'مرق دجاج نوبر','card3-desc':'يضيف عمقًا ودفئًا إلى الشوربات والمشويات والريزوتو.','card3-tag':'أساس مرق',
+      'card4-title':'نشا الذرة مايزينا','card4-desc':'تكثيف ناعم بدون تكتلات للصلصات والشوربات والحلويات.','card4-tag':'مكثف',
+      'inspo-eyebrow':'اختيارات الطاهي','inspo-title':'الوصفات والإلهام',
+      'inspo-sub':'تقنيات ووصفات مختارة من خبراء UFS الطهوية والطهاة الشركاء.',
+      'inspo-feat-tag':'وصفة الأسبوع','inspo-feat-title':'سمك السلمون المقلي مع ديمي جلاس كلاسيكي',
+      'inspo-feat-meta':'بقلم الطاهي ماركو فالي  ·  25 دقيقة  ·  متوسط',
+      'inspo-small1-tag':'تقنية','inspo-small1-title':'كيف تصنع صلصة مقلاة مثالية في 5 خطوات',
+      'inspo-small2-tag':'تدريب','inspo-small2-title':'أكاديمية UFS: ماستركلاس الصلصة — مجاناً الآن',
+      'search-ph':'ابحث عن وصفات ومنتجات وعلامات تجارية…','msearch-ph':'بحث…',
+      'search-trending':'البحث الرائج','msearch-trending':'رائج',
+      'search-chip1':'صلصات المعكرونة','search-chip2':'مرق نوبر','search-chip3':'نباتي','search-chip4':'وصفات الحلويات','search-chip5':'مايونيز هيلمان',
+      'msearch-chip1':'صلصات المعكرونة','msearch-chip2':'نوبر','msearch-chip3':'الحلويات','msearch-chip4':'نباتي',
+      'search-ask-ai-prefix':'اسأل طاهي AI عن "','search-see-all-prefix':'عرض جميع نتائج "','search-see-all-btn':'عرض الكل',
+      'search-cat-products':'المنتجات','search-cat-inspiration':'الإلهام','search-cat-training':'التدريب',
+      'fbe-title':'اسأل AI','fbe-badge':'بيتا',
+      'fbe-ai-intro':'مرحبا! أنا الذكاء الاصطناعي من UFS. اسألني عن المنتجات أو الوصفات أو تقنيات الطهي.',
+      'fbe-user-sample':'ما الصلصة المناسبة للسلمون المشوي؟',
+      'fbe-ai-reply':'خيار رائع! أنصحك بـ <strong>ديمي جلاس الكلاسيكي من نوبر</strong> — يضيف عمقًا دون إخفاء الطعم. هل تريد وصفات باستخدامه؟',
+      'fbe-input-ph':'اطرح سؤالاً...',
+      'fbe-prompt1':'كيف أجذب زبائن الجيل Z؟','fbe-prompt2':'أرني وصفات سريعة لأيام الأسبوع','fbe-prompt3':'كيف أحفظ قواعد الصلصة بعد الفتح؟',
+      'si-tab-signin':'تسجيل الدخول','si-tab-register':'إنشاء حساب',
+      'si-email-label':'البريد الإلكتروني','si-pw-label':'كلمة المرور','si-forgot':'نسيت كلمة المرور؟','si-signin-btn':'تسجيل الدخول',
+      'si-usp':'احصل على وصول حصري للوصفات وتفضيلاتك وحساب UFS.','si-continue-btn':'متابعة',
+      'si-why':'لماذا تنشئ حسابًا؟',
+      'si-usp1-title':'أسعار احترافية','si-usp1-desc':'احصل على أسعار B2B حصرية وخصومات على جميع منتجات UFS.',
+      'si-usp2-title':'+500 وصفة من الطهاة','si-usp2-desc':'احفظ ونظّم مفضلاتك من مكتبة الوصفات الكاملة.',
+      'si-usp3-title':'تتبع الطلبات','si-usp3-desc':'اطّلع على سجل الطلبات وتتبع التسليمات في الوقت الفعلي.',
+      'si-usp4-title':'أكاديمية UFS','si-usp4-desc':'وحدات تدريب طهي مجانية وشهادات معتمدة.',
+      'pp-role':'طاهي مساعد · لو كوردون بلو','pp-loyalty':'نقاط الولاء','pp-see-details':'عرض التفاصيل',
+      'pp-personal':'معلوماتي الشخصية','pp-settings':'إعدادات الحساب','pp-cookbook':'كتاب الطبخ','pp-orders':'قوائم الطلبات','pp-certs':'شهادات التدريب (4)',
+      'pp-view-profile':'عرض الملف الشخصي','pp-logout':'تسجيل الخروج','state-label':'الحالة الحالية',
+      'state-light':'فاتح','state-dark':'داكن','state-glass':'زجاجي','state-cart':'سلة','state-no-cart':'بدون سلة','state-logged-in':'مسجل','state-signin':'تسجيل الدخول',
+      'footer-heading':'ابقَ على اطلاع','footer-sub':'اشترك لتلقّي أفكار الوصفات واتجاهات الصناعة والعروض الخاصة والمزيد في بريدك الوارد.',
+      'footer-input-ph':'أدخل بريدك الإلكتروني','footer-subscribe':'اشترك',
+      'footer-tagline':'منتجات وخدمات أنشأها طهاة من أجل طهاة',
+      'footer-col-company':'الشركة','footer-about':'من نحن','footer-brands':'العلامات التجارية','footer-sustainability':'الاستدامة','footer-trade':'شروط التجارة','footer-partners':'الشركاء',
+      'footer-col-support':'المساعدة والدعم','footer-track':'تتبع طلبي','footer-shipping':'معلومات الشحن','footer-returns':'الإرجاع والاستبدال','footer-faq':'الأسئلة الشائعة','footer-contact':'اتصل بنا',
+      'footer-col-legal':'القانونية','footer-privacy':'سياسة الخصوصية','footer-cookie':'سياسة ملفات تعريف الارتباط','footer-terms':'الشروط والأحكام','footer-accessibility':'إمكانية الوصول',
+      'footer-copyright':'© 2027 UFS. جميع الحقوق محفوظة.'
+    };
+
+    var MOCK_SUGGESTIONS_AR = [
+      'مكعبات مرق نوبر','ديمي جلاس نوبر','مرق دجاج نوبر','قاعدة خضروات نوبر',
+      'مايونيز هيلمان','ثوم مع مايونيز هيلمان','صلصات المعكرونة','تقنيات صلصة المقلاة',
+      'بروتينات نباتية','وصفات حلويات','تخفيض مرق اللحم','قواعد صلصة الكريمة',
+      'زيوت عشبية معطرة','نصائح تخفيض الصلصة','قواعد الشوربة','خلطات المرق','تتبيلات السلطة'
+    ];
+    var MOCK_RESULTS_AR = {
+      products: [
+        { title: 'ديمي جلاس الكلاسيكي من نوبر', color: 'var(--color-mushroom-300)' },
+        { title: 'مايونيز هيلمان الحقيقي', color: 'var(--color-mushroom-300)' },
+        { title: 'مرق دجاج نوبر', color: 'var(--color-mushroom-300)' }
+      ],
+      inspiration: [
+        { title: 'سمك السلمون المقلي مع ديمي جلاس', color: 'var(--color-mushroom-300)' },
+        { title: 'معكرونة أيام الأسبوع في 20 دقيقة', color: 'var(--color-mushroom-300)' },
+        { title: 'إتقان الأومامي: قواعد الصلصة', color: 'var(--color-mushroom-300)' }
+      ],
+      training: [
+        { title: 'كيف تصنع صلصة مقلاة مثالية', color: 'var(--color-mushroom-300)' },
+        { title: 'ماستركلاس الصلصة - وحدة مجانية', color: 'var(--color-mushroom-300)' },
+        { title: 'تقنيات الطهي: المرق والحساء', color: 'var(--color-mushroom-300)' }
+      ]
+    };
+
+    function applyTranslations() {
+      var ar = S.dir === 'rtl';
+      var T = ar ? T_AR : T_EN;
+      document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        var v = T[el.getAttribute('data-i18n')];
+        if (v !== undefined) el.textContent = v;
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach(function(el) {
+        var v = T[el.getAttribute('data-i18n-html')];
+        if (v !== undefined) el.innerHTML = v;
+      });
+      document.querySelectorAll('[data-i18n-ph]').forEach(function(el) {
+        var v = T[el.getAttribute('data-i18n-ph')];
+        if (v !== undefined) el.placeholder = v;
+      });
+    }
+
+    var askPrompts_EN = [
+      'How do I engage more with Gen-Z diners?',
+      'Show me quick weeknight recipes',
+      'How do I store opened sauce bases?'
+    ];
+    var askPrompts_AR = [
+      'كيف أجذب زبائن الجيل Z؟',
+      'أرني وصفات سريعة لأيام الأسبوع',
+      'كيف أحفظ قواعد الصلصة بعد الفتح؟'
+    ];
+
+    function setDir(d) {
+      S.dir = d;
+      document.documentElement.dir  = d;
+      document.documentElement.lang = d === 'rtl' ? 'ar' : 'en';
+      document.getElementById('ctrl-dir-ltr').classList.toggle('is-active', d === 'ltr');
+      document.getElementById('ctrl-dir-rtl').classList.toggle('is-active', d === 'rtl');
+      /* Sync active language in dropdowns */
+      var ar = d === 'rtl';
+      document.getElementById('lang-item-en').classList.toggle('is-active', !ar);
+      document.getElementById('lang-item-ar').classList.toggle('is-active', ar);
+      document.getElementById('drawer-lang-en').classList.toggle('is-active', !ar);
+      document.getElementById('drawer-lang-ar').classList.toggle('is-active', ar);
+      applyTranslations();
+      /* Also update the FBE prompt buttons' data-prompt so they submit in the right language */
+      var ar = d === 'rtl';
+      document.getElementById('fbe-prompt-1').dataset.prompt = ar ? 'كيف أجذب زبائن الجيل Z؟' : 'How do I engage more with Gen-Z diners?';
+      document.getElementById('fbe-prompt-2').dataset.prompt = ar ? 'أرني وصفات سريعة لأيام الأسبوع' : 'Show me quick weeknight recipes';
+      document.getElementById('fbe-prompt-3').dataset.prompt = ar ? 'كيف أحفظ قواعد الصلصة بعد الفتح؟' : 'How do I store opened sauce bases?';
+      refreshMobilePreview();
+      /* Restart typewriter in the right language */
+      askPIdx = 0; askCharIdx = 0; askDeleting = false;
+      clearTimeout(askTypeTimer);
+      document.getElementById('fbe-ask-input').placeholder = '';
+      askScheduleNext(400);
+      /* Refresh search if open */
+      var navInput = document.getElementById('nav-search-overlay-input');
+      if (navInput && navInput.value) handleSearchInput('nav', navInput.value);
+      var mnavInput = document.getElementById('mnav-search-overlay-input');
+      if (mnavInput && mnavInput.value) handleSearchInput('mnav', mnavInput.value);
+      /* Re-apply dynamic ws link */
+      applyState();
+    }
+
+    function applyState() {
+      closeAllMegamenus();
+      var c = S.color, ws = S.webshop, auth = S.auth, view = S.view;
+
+      document.body.className = 'color-' + c;
+      document.body.classList.toggle('view-mobile', view === 'mobile');
+      document.body.classList.toggle('is-embedded', isEmbedded);
+      document.body.classList.toggle('ctrl-bar-open', ctrlBarOpen);
+
+      /* ── Utility bar ── */
+      var util = document.getElementById('util-bar');
+      util.className = 'ufs-util ufs-util--' + (c === 'light' ? 'light' : c === 'glass' ? 'glass' : 'dark');
+
+      /* ── Webshop link ── */
+      var T_ws = S.dir === 'rtl' ? T_AR : T_EN;
+      var wsText = ws ? T_ws['track'] : T_ws['where-to-buy'];
+      document.getElementById('util-ws-link').textContent = wsText;
+      document.getElementById('drawer-ws-link').textContent = wsText;
+
+      /* ── Main nav + mobile nav ── */
+      syncNavAppearance();
+
+      /* ── Cart visibility ── */
+      document.getElementById('nav-cart').style.display = ws ? '' : 'none';
+
+      /* ── Auth ── */
+      document.getElementById('nav-profile').style.display = auth ? '' : 'none';
+      document.getElementById('nav-login').style.display   = auth ? 'none' : '';
+      document.getElementById('nav-signin').style.display  = auth ? 'none' : '';
+
+      /* ── account dot border color for light ── */
+      document.querySelectorAll('.ufs-nav__account-dot').forEach(function(dot) {
+        dot.style.borderColor = c === 'light' ? 'white' : '';
+      });
+
+      /* ── Mobile nav bar ── */
+      document.getElementById('mnav-cart').style.display = ws ? '' : 'none';
+
+      /* ── Mobile profile button ── */
+      var mnavProfile = document.getElementById('mnav-profile');
+      mnavProfile.className = auth ? 'av av--sm' : 'ufs-mnav__btn';
+      mnavProfile.innerHTML = auth
+        ? '<div class="av-circle"><span class="av-initials">GB</span></div><div class="av-badge"><svg width="9" height="9" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/><circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/></svg>24.320</div>'
+        : '<img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/><span class="ufs-nav__account-dot is-alert"></span>';
+
+      /* ── Mobile drawer ── */
+      /* ws link already updated above */
+
+      /* ── Controls active states ── */
+      document.getElementById('ctrl-view-desktop').classList.toggle('is-active', view === 'desktop');
+      document.getElementById('ctrl-view-mobile').classList.toggle('is-active', view === 'mobile');
+      ['dark','light','glass'].forEach(function(x) {
+        document.getElementById('ctrl-color-' + x).classList.toggle('is-active', x === c);
+      });
+      document.getElementById('ctrl-ws-true').classList.toggle('is-active', ws);
+      document.getElementById('ctrl-ws-false').classList.toggle('is-active', !ws);
+      document.getElementById('ctrl-auth-true').classList.toggle('is-active', auth);
+      document.getElementById('ctrl-auth-false').classList.toggle('is-active', !auth);
+
+      /* ── State badge ── */
+      var Ts = S.dir === 'rtl' ? T_AR : T_EN;
+      var colorLabel = Ts['state-' + c] || (c.charAt(0).toUpperCase() + c.slice(1));
+      var wsLabel    = ws   ? Ts['state-cart']      : Ts['state-no-cart'];
+      var authLabel  = auth ? Ts['state-logged-in'] : Ts['state-signin'];
+      document.getElementById('state-text').textContent = colorLabel + ' · ' + wsLabel + ' · ' + authLabel;
+
+      /* ── Direction ctrl buttons ── */
+      document.getElementById('ctrl-dir-ltr').classList.toggle('is-active', S.dir === 'ltr');
+      document.getElementById('ctrl-dir-rtl').classList.toggle('is-active', S.dir === 'rtl');
+    }
+
+    function setColor(c)        { S.color        = c; applyState(); refreshMobilePreview(); }
+    function setWebshop(v)      { S.webshop      = v; applyState(); refreshMobilePreview(); }
+    function setAuth(v)         { S.auth         = v; applyState(); refreshMobilePreview(); }
+    function setView(v)         { S.view         = v; closeMobileDrawer(); applyState(); refreshMobilePreview(); }
+
+
+    function toggleCtrlBar() {
+      ctrlBarOpen = !ctrlBarOpen;
+      document.body.classList.toggle('ctrl-bar-open', ctrlBarOpen);
+      document.getElementById('state-badge').setAttribute('aria-expanded', ctrlBarOpen);
+    }
+
+    function refreshMobilePreview() {
+      if (S.view !== 'mobile') return;
+      var params = new URLSearchParams({ embedded: '1', color: S.color, webshop: S.webshop, auth: S.auth, dir: S.dir });
+      document.getElementById('mobile-preview-frame').src = location.pathname + '?' + params.toString();
+    }
+
+    /* Apply dir from URL param when embedded */
+    if (S.dir === 'rtl') {
+      document.documentElement.dir  = 'rtl';
+      document.documentElement.lang = 'ar';
+    }
+    applyState();
+    applyTranslations();
+
+    /* ================================================================
+       SIGN-IN PANEL
+    ================================================================ */
+    function openSignIn(tab) {
+      document.getElementById('signin-backdrop').classList.add('is-open');
+      document.getElementById('signin-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      switchTab(tab || 'signin');
+    }
+    function closeSignIn() {
+      document.getElementById('signin-backdrop').classList.remove('is-open');
+      document.getElementById('signin-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+    function switchTab(t) {
+      var si = t === 'signin';
+      document.getElementById('tab-si').classList.toggle('is-active', si);
+      document.getElementById('tab-reg').classList.toggle('is-active', !si);
+      document.getElementById('form-signin').style.display   = si ? '' : 'none';
+      document.getElementById('form-register').style.display = si ? 'none' : '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeSignIn();
+        closeAllMegamenus();
+        closeLangDrop();
+        closeMobileDrawer();
+        closeProfilePanel();
+        closeSearchOverlay('nav');
+        closeSearchOverlay('mnav');
+        closePromptSuggestions();
+        if (micActive) { if (recognition) try { recognition.abort(); } catch(x) {} _stopMicUI(); resumeAskTypewriter(); }
+      }
+    });
+
+    /* ================================================================
+       PROFILE PANEL
+    ================================================================ */
+    function openProfilePanel() {
+      document.getElementById('profile-backdrop').classList.add('is-open');
+      document.getElementById('profile-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeProfilePanel() {
+      document.getElementById('profile-backdrop').classList.remove('is-open');
+      document.getElementById('profile-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    function mnavProfileClick() {
+      if (!S.auth) { closeMobileDrawer(); openSignIn('signin'); }
+      else { closeMobileDrawer(); openProfilePanel(); }
+    }
+
+    /* ================================================================
+       MOBILE DRAWER
+    ================================================================ */
+    function openMobileDrawer() {
+      document.getElementById('mobile-drawer-backdrop').classList.add('is-open');
+      document.getElementById('mobile-drawer').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeMobileDrawer() {
+      document.getElementById('mobile-drawer-backdrop').classList.remove('is-open');
+      document.getElementById('mobile-drawer').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+    function toggleDrawerAcc(trigger) {
+      var sub = trigger.nextElementSibling;
+      if (!sub || !sub.classList.contains('ufs-drawer-sub')) return;
+      var isOpen = trigger.classList.contains('is-open');
+      var parent = trigger.closest('.ufs-drawer-links') || trigger.closest('.ufs-drawer-util');
+      if (parent) {
+        parent.querySelectorAll('.ufs-drawer-acc-trigger.is-open').forEach(function(t) {
+          t.classList.remove('is-open');
+          var s = t.nextElementSibling;
+          if (s && s.classList.contains('ufs-drawer-sub')) s.classList.remove('is-open');
+        });
+      }
+      if (!isOpen) {
+        trigger.classList.add('is-open');
+        sub.classList.add('is-open');
+      }
+    }
+    function showDrawerSubMore(btn) {
+      var sub = btn.closest('.ufs-drawer-sub');
+      if (sub) sub.querySelectorAll('.ufs-drawer-sub-link.is-extra').forEach(function(link) {
+        link.classList.remove('is-extra');
+      });
+      btn.style.display = 'none';
+    }
+
+    /* ================================================================
+       NAV APPEARANCE
+    ================================================================ */
+    function syncNavAppearance() {
+      var navColor = S.color;
+      if (navColor === 'glass' && navScrolled) navColor = 'light';
+      document.getElementById('mobile-nav').className = 'ufs-mnav ufs-mnav--' + navColor;
+      var mainNavColor = (navColor === 'glass' && (megamenuOpen || searchOverlayOpen)) ? 'light' : navColor;
+      document.getElementById('main-nav').className = 'ufs-nav ufs-nav--' + mainNavColor;
+    }
+
+    window.addEventListener('scroll', function() {
+      var shouldBeScrolled = window.scrollY >= NAV_SCROLL_SWAP_Y;
+      if (shouldBeScrolled !== navScrolled) {
+        navScrolled = shouldBeScrolled;
+        syncNavAppearance();
+      }
+      /* FBE: lift above footer whenever any part of it is in the viewport */
+      var fbe = document.getElementById('fbe-fixed');
+      var footer = document.getElementById('site-footer');
+      if (fbe && footer) {
+        var footerTop = footer.getBoundingClientRect().top;
+        var naturalBottom = 32; /* matches var(--space-8), FBE base resting position */
+        if (footerTop < window.innerHeight) {
+          /* push FBE up; when footerTop ≤ 0 (tall footer on mobile) this sends it off-screen */
+          fbe.style.bottom = (window.innerHeight - footerTop + naturalBottom) + 'px';
+        } else {
+          fbe.style.bottom = '';
+        }
+      }
+    }, { passive: true });
+
+    /* ================================================================
+       MEGAMENU
+    ================================================================ */
+    function toggleMegamenu(id, linkEl) {
+      var panel = document.getElementById('mm-' + id);
+      if (!panel) return;
+      var isOpen = panel.classList.contains('is-open');
+      closeAllMegamenus();
+      if (!isOpen) {
+        panel.classList.add('is-open');
+        linkEl.classList.add('is-open');
+        megamenuOpen = true;
+        syncNavAppearance();
+      }
+    }
+    function closeAllMegamenus() {
+      document.querySelectorAll('.ufs-megamenu.is-open').forEach(function(p) { p.classList.remove('is-open'); });
+      document.querySelectorAll('#main-nav .ufs-nav__link.is-open').forEach(function(l) { l.classList.remove('is-open'); });
+      if (megamenuOpen) { megamenuOpen = false; syncNavAppearance(); }
+    }
+    document.addEventListener('click', function(e) {
+      var nav = document.getElementById('main-nav');
+      if (nav && !nav.contains(e.target)) closeAllMegamenus();
+    });
+
+    /* ================================================================
+       PREDICTIVE SEARCH
+    ================================================================ */
+    var MOCK_SUGGESTIONS = [
+      'Knorr bouillon cubes','Knorr demi-glace','Knorr chicken stock','Knorr vegetable base',
+      'Hellmann\'s mayonnaise','Hellmann\'s aioli','Pasta sauces','Pan sauce techniques',
+      'Plant-based proteins','Dessert recipes','Beef stock reduction','Cream sauce bases',
+      'Herb-infused oils','Sauce reduction tips','Soup bases','Gravy mixes','Salad dressings'
+    ];
+    var MOCK_RESULTS = {
+      products: [
+        { title: 'Knorr Classic Demi-Glace', color: 'var(--color-mushroom-300)' },
+        { title: 'Hellmann\'s Real Mayonnaise', color: 'var(--color-mushroom-300)' },
+        { title: 'Knorr Chicken Bouillon', color: 'var(--color-mushroom-300)' }
+      ],
+      inspiration: [
+        { title: 'Pan-seared salmon with demi-glace', color: 'var(--color-mushroom-300)' },
+        { title: '20-minute weeknight pasta', color: 'var(--color-mushroom-300)' },
+        { title: 'Mastering umami: sauce bases', color: 'var(--color-mushroom-300)' }
+      ],
+      training: [
+        { title: 'How to build a perfect pan sauce', color: 'var(--color-mushroom-300)' },
+        { title: 'Sauce masterclass — free module', color: 'var(--color-mushroom-300)' },
+        { title: 'Culinary techniques: stocks & broths', color: 'var(--color-mushroom-300)' }
+      ]
+    };
+    var MOCK_COUNTS = { products: 12, inspiration: 8, training: 5 };
+
+    function _escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+    function handleSearchInput(which, value) {
+      var trending = document.getElementById(which + '-search-trending');
+      var resultsPanel = document.getElementById(which + '-search-results');
+      var seeAll = document.getElementById(which + '-search-see-all');
+      if (value.length < 3) {
+        trending.style.display = '';
+        resultsPanel.style.display = 'none';
+        if (seeAll) seeAll.style.display = 'none';
+        return;
+      }
+      trending.style.display = 'none';
+      resultsPanel.style.display = '';
+      if (seeAll) seeAll.style.display = '';
+
+      /* Suggestions */
+      var ar = S.dir === 'rtl';
+      var activeSuggestions = ar ? MOCK_SUGGESTIONS_AR : MOCK_SUGGESTIONS;
+      var activeResults = ar ? MOCK_RESULTS_AR : MOCK_RESULTS;
+      var T_s = ar ? T_AR : T_EN;
+      var q = value.toLowerCase();
+      var sugs = activeSuggestions.filter(function(s) { return s.toLowerCase().indexOf(q) !== -1; }).slice(0, 4);
+      var re = new RegExp('(' + _escapeRe(value) + ')', 'gi');
+      document.getElementById(which + '-search-suggestions').innerHTML = sugs.map(function(s) {
+        return '<button class="ufs-search-suggestion" onclick="fillSearch(\'' + which + '\',\'' + s.replace(/'/g,"\\'") + '\')">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+          s.replace(re, '<strong>$1</strong>') + '</button>';
+      }).join('');
+
+      /* Ask Chef AI label */
+      document.getElementById(which + '-ask-ai-query').textContent = value;
+      var askAiBtn = document.getElementById(which + '-search-ask-ai');
+      if (askAiBtn) {
+        var askAiText = askAiBtn.querySelector('.ufs-search-ask-ai-text');
+        if (askAiText) askAiText.firstChild.textContent = T_s['search-ask-ai-prefix'];
+      }
+
+      /* Category results */
+      var cats = [
+        { key: 'products',    label: T_s['search-cat-products'] },
+        { key: 'inspiration', label: T_s['search-cat-inspiration'] },
+        { key: 'training',    label: T_s['search-cat-training'] }
+      ];
+      document.getElementById(which + '-search-categories').innerHTML = cats.map(function(cat) {
+        var items = activeResults[cat.key].map(function(item) {
+          return '<div class="ufs-search-result-item">' +
+            '<div class="ufs-search-result-thumb" style="background:' + item.color + '"></div>' +
+            '<span class="ufs-search-result-title">' + item.title + '</span>' +
+            '</div>';
+        }).join('');
+        return '<div class="ufs-search-category">' +
+          '<div class="ufs-search-category-header">' +
+            '<span class="ufs-search-category-label text-badge">' + cat.label + ' (' + MOCK_COUNTS[cat.key] + ')</span>' +
+            '<button class="ufs-search-see-all-cat">' + T_s['search-see-all-btn'] + ' <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg></button>' +
+          '</div>' +
+          '<div class="ufs-search-category-items">' + items + '</div>' +
+          '</div>';
+      }).join('');
+
+      /* Global see-all */
+      document.getElementById(which + '-search-see-all-query').textContent = value;
+    }
+
+    function fillSearch(which, value) {
+      var inputId = which === 'mnav' ? 'mnav-search-overlay-input' : 'nav-search-overlay-input';
+      var inp = document.getElementById(inputId);
+      inp.value = value;
+      handleSearchInput(which, value);
+      inp.focus();
+    }
+
+    function submitChefAI(which) {
+      var inputId = which === 'mnav' ? 'mnav-search-overlay-input' : 'nav-search-overlay-input';
+      var query = document.getElementById(inputId).value.trim();
+      if (!query) return;
+      closeSearchOverlay('nav');
+      closeSearchOverlay('mnav');
+      var fbeInput = document.getElementById('fbe-ask-input');
+      fbeInput.value = query;
+      clearTimeout(askTypeTimer);
+      if (!fbeState.ai) toggleFbe('ai');
+      setTimeout(function() { seedAiChat(query); }, 150);
+    }
+
+    /* ================================================================
+       LANGUAGE DROPDOWN
+    ================================================================ */
+    function closeLangDrop() {
+      document.querySelectorAll('.ufs-util__lang-wrap.is-open').forEach(function(w) {
+        w.classList.remove('is-open');
+        var d = w.querySelector('.ufs-lang-drop');
+        if (d) d.classList.remove('is-open');
+      });
+    }
+    function toggleLangDrop(wrapId, dropId) {
+      var wrap = document.getElementById(wrapId);
+      var drop = document.getElementById(dropId);
+      var isOpen = wrap.classList.contains('is-open');
+      closeLangDrop();
+      if (!isOpen) { wrap.classList.add('is-open'); drop.classList.add('is-open'); }
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.ufs-util__lang-wrap')) closeLangDrop();
+    });
+
+    /* ================================================================
+       SEARCH OVERLAY
+    ================================================================ */
+    var _searchScrollY = 0;
+    function _lockBodyScroll() {
+      _searchScrollY = window.scrollY;
+      document.body.style.top = '-' + _searchScrollY + 'px';
+      document.body.classList.add('search-open');
+    }
+    function _unlockBodyScroll() {
+      document.body.classList.remove('search-open');
+      document.body.style.top = '';
+      window.scrollTo(0, _searchScrollY);
+    }
+    function closeSearchOverlay(which) {
+      var id = which === 'mnav' ? 'mnav-search-overlay' : 'nav-search-overlay';
+      var overlay = document.getElementById(id);
+      var wasOpen = overlay.classList.contains('is-open');
+      overlay.classList.remove('is-open');
+      if (which === 'nav' && searchOverlayOpen) {
+        searchOverlayOpen = false;
+        syncNavAppearance();
+        document.getElementById('fbe-fixed').classList.remove('behind-search');
+      }
+      if (wasOpen) _unlockBodyScroll();
+    }
+    function toggleSearchOverlay(which) {
+      var id = which === 'mnav' ? 'mnav-search-overlay' : 'nav-search-overlay';
+      var inputId = which === 'mnav' ? 'mnav-search-overlay-input' : 'nav-search-overlay-input';
+      var overlay = document.getElementById(id);
+      var isOpen = overlay.classList.contains('is-open');
+      closeSearchOverlay('nav');
+      closeSearchOverlay('mnav');
+      if (!isOpen) {
+        closeAllMegamenus();
+        overlay.classList.add('is-open');
+        _lockBodyScroll();
+        if (which === 'nav') {
+          searchOverlayOpen = true;
+          syncNavAppearance();
+          document.getElementById('fbe-fixed').classList.add('behind-search');
+        }
+        var inp = document.getElementById(inputId);
+        inp.value = '';
+        handleSearchInput(which, '');
+        setTimeout(function() { inp.focus(); }, 220);
+      }
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.ufs-nav') && !e.target.closest('#nav-search-overlay')) closeSearchOverlay('nav');
+      if (!e.target.closest('.ufs-mnav') && !e.target.closest('#mnav-search-overlay')) closeSearchOverlay('mnav');
+    });
+
+    /* ================================================================
+       FLOATING BAR — v2 AI ask-row
+    ================================================================ */
+    /* ── AI panel state ── */
+    var fbeState = { ai: false };
+
+    function toggleFbe(mode) {
+      var wasOpen = fbeState[mode];
+      fbeState[mode] = false;
+      document.getElementById('fbe-panel-' + mode).classList.remove('is-open');
+      closePromptSuggestions();
+      if (!wasOpen) {
+        fbeState[mode] = true;
+        document.getElementById('fbe-panel-' + mode).classList.add('is-open');
+        if (mode === 'ai') setTimeout(function() { document.getElementById('fbe-ai-input').focus(); }, 240);
+      }
+    }
+
+    function closeFbe(mode) {
+      fbeState[mode] = false;
+      document.getElementById('fbe-panel-' + mode).classList.remove('is-open');
+    }
+
+    /* ── Mic — Web Speech API ── */
+    var recognition = null;
+    var micActive = false;
+
+    function initRecognition() {
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) return null;
+      var r = new SR();
+      r.lang = 'en-US';
+      r.interimResults = true;
+      r.continuous = false;
+      r.maxAlternatives = 1;
+
+      r.onstart = function() {
+        micActive = true;
+        document.getElementById('fbe-btn-mic').classList.add('is-active');
+        document.getElementById('fbe-fixed').classList.add('listening');
+        clearTimeout(askTypeTimer);
+        var inp = document.getElementById('fbe-ask-input');
+        inp.value = '';
+        inp.placeholder = 'Listening…';
+      };
+
+      r.onresult = function(e) {
+        var transcript = '';
+        for (var i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+        var inp = document.getElementById('fbe-ask-input');
+        inp.value = transcript;
+        inp.placeholder = '';
+      };
+
+      r.onend = function() {
+        _stopMicUI();
+        var inp = document.getElementById('fbe-ask-input');
+        if (!inp.value) resumeAskTypewriter();
+        else inp.focus();
+      };
+
+      r.onerror = function(e) {
+        _stopMicUI();
+        var inp = document.getElementById('fbe-ask-input');
+        inp.value = '';
+        if (e.error === 'not-allowed') {
+          inp.placeholder = 'Microphone access denied';
+          setTimeout(resumeAskTypewriter, 2800);
+        } else {
+          resumeAskTypewriter();
+        }
+      };
+
+      return r;
+    }
+
+    function _stopMicUI() {
+      micActive = false;
+      document.getElementById('fbe-btn-mic').classList.remove('is-active');
+      document.getElementById('fbe-fixed').classList.remove('listening');
+    }
+
+    function toggleMic() {
+      if (micActive) {
+        if (recognition) try { recognition.abort(); } catch(e) {}
+        _stopMicUI();
+        var inp = document.getElementById('fbe-ask-input');
+        if (!inp.value) resumeAskTypewriter();
+        return;
+      }
+      closePromptSuggestions();
+      closeFbe('ai');
+      if (!recognition) recognition = initRecognition();
+      if (!recognition) {
+        document.getElementById('fbe-ask-input').placeholder = 'Voice not supported in this browser';
+        setTimeout(resumeAskTypewriter, 2800);
+        return;
+      }
+      try { recognition.start(); } catch(e) {}
+    }
+
+    /* ── Ask bar: suggested prompts + submit-to-AI ── */
+    function showPromptSuggestions() {
+      closeFbe('ai');
+      document.getElementById('fbe-panel-prompts').classList.add('is-open');
+    }
+    function closePromptSuggestions() {
+      document.getElementById('fbe-panel-prompts').classList.remove('is-open');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.fbe-fixed')) closePromptSuggestions();
+    });
+
+    function submitAiPrompt(text) {
+      text = (text || '').trim();
+      if (!text) return;
+      closePromptSuggestions();
+      document.getElementById('fbe-ask-input').value = '';
+      if (!fbeState.ai) toggleFbe('ai');
+      seedAiChat(text);
+    }
+
+    function seedAiChat(text) {
+      var msgs = document.getElementById('fbe-ai-msgs');
+      var um = document.createElement('div');
+      um.className = 'fbe-ai-msg fbe-ai-msg--user';
+      um.innerHTML = '<div class="fbe-ai-ava fbe-ai-ava--user">FC</div><div class="fbe-ai-bubble fbe-ai-bubble--user text-body-sm">' + text.replace(/</g,'&lt;') + '</div>';
+      msgs.appendChild(um);
+      msgs.scrollTop = msgs.scrollHeight;
+      var typing = document.createElement('div');
+      typing.className = 'fbe-ai-msg'; typing.id = 'fbe-typing';
+      typing.innerHTML = '<div class="fbe-ai-ava fbe-ai-ava--ai">AI</div><div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm"><div class="fbe-typing"><div class="fbe-typing-dot"></div><div class="fbe-typing-dot"></div><div class="fbe-typing-dot"></div></div></div>';
+      msgs.appendChild(typing);
+      msgs.scrollTop = msgs.scrollHeight;
+      document.getElementById('fbe-fixed').classList.add('thinking');
+      setTimeout(function() {
+        var el = document.getElementById('fbe-typing'); if (el) el.remove();
+        var am = document.createElement('div');
+        am.className = 'fbe-ai-msg';
+        am.innerHTML = '<div class="fbe-ai-ava fbe-ai-ava--ai">AI</div><div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm">I found some relevant matches based on UFS products and recipes. Let me know if you want more details.</div>';
+        msgs.appendChild(am);
+        msgs.scrollTop = msgs.scrollHeight;
+        document.getElementById('fbe-fixed').classList.remove('thinking');
+      }, 1400);
+    }
+
+    function sendAiMsg() {
+      var input = document.getElementById('fbe-ai-input');
+      var text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      seedAiChat(text);
+    }
+
+    /* ── Ask bar typewriter placeholder ── */
+    var askPIdx = 0, askCharIdx = 0, askDeleting = false;
+    var askTypeTimer = null;
+    function askTypeStep() {
+      var input = document.getElementById('fbe-ask-input');
+      if (input === document.activeElement) { askScheduleNext(200); return; }
+      var askPrompts = S.dir === 'rtl' ? askPrompts_AR : askPrompts_EN;
+      var current = askPrompts[askPIdx % askPrompts.length];
+      if (!askDeleting) {
+        askCharIdx++;
+        input.placeholder = current.slice(0, askCharIdx);
+        if (askCharIdx === current.length) { askDeleting = true; askScheduleNext(2000); return; }
+      } else {
+        askCharIdx--;
+        input.placeholder = current.slice(0, askCharIdx);
+        if (askCharIdx === 0) { askDeleting = false; askPIdx = (askPIdx + 1) % askPrompts.length; askScheduleNext(400); return; }
+      }
+      askScheduleNext(askDeleting ? 28 : 55);
+    }
+    function askScheduleNext(delay) { clearTimeout(askTypeTimer); askTypeTimer = setTimeout(askTypeStep, delay); }
+    function pauseAskTypewriter() {
+      clearTimeout(askTypeTimer);
+      document.getElementById('fbe-ask-input').placeholder = S.dir === 'rtl' ? 'اسألني أي شيء' : 'Ask me anything';
+    }
+    function resumeAskTypewriter() {
+      var input = document.getElementById('fbe-ask-input');
+      askPIdx = 0; askCharIdx = 0; askDeleting = false;
+      input.placeholder = '';
+      if (!input.value) askScheduleNext(400);
+    }
+    askScheduleNext(600);
+  </script>
+</body>
+</html>

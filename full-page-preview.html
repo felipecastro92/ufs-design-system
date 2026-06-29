@@ -1,0 +1,2078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Full Page Preview — UFS Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    /* ================================================================
+       PAGE-LOCAL VARS (not DS tokens — layout/decoration specific to
+       this prototype; everything else comes from tokens.css)
+    ================================================================ */
+    :root {
+      --ctrl-h: 48px;
+      --ctrl-reserve: 0px; /* layout space reserved for the bar; 0 until opened */
+      --util-h: 36px;
+      --nav-h:  68px;
+      --mnav-h: 56px; /* mobile nav bar height, below the 768px breakpoint */
+      --food-gradient: linear-gradient(160deg, #3b1e08 0%, #7a3a10 55%, #2a1a0a 100%);
+    }
+
+    /* ================================================================
+       RESET & BASE
+    ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Browsers don't make form controls inherit font-family from the page by
+       default (they get their own UA-stylesheet font) — without this, every
+       <button>/<input>/<select>/<textarea> silently renders in Arial/system-ui
+       instead of the DS typeface, regardless of any var(--font-family) set
+       elsewhere. Standard reset rule, ties every control to the DS by default. */
+    button, input, select, textarea { font-family: inherit; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-family);
+      background: var(--color-salt);
+      color: var(--color-brand-dark);
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: var(--ctrl-reserve);
+      transition: padding-bottom 0.28s ease;
+    }
+    /* Mobile type sizes — DS defines a -mob-size token for display/h1-h6/price
+       scales. Scoped to this page only: tokens.css's base .text-display/.text-h*
+       classes stay desktop-only on purpose, since index-v2.html's type-scale docs
+       use the .text-h3--mobile etc. modifier classes to show static desktop-vs-
+       mobile swatches side by side — a real @media switch there would shrink the
+       "desktop" swatch too once the docs page itself is viewed below 768px. */
+    @media (max-width: 768px) {
+      .text-display { font-size: var(--text-display-mob-size); }
+      .text-h3       { font-size: var(--text-h3-mob-size); }
+      .text-h4       { font-size: var(--text-h4-mob-size); }
+    }
+    body.color-glass { background: var(--food-gradient) fixed; }
+    a { text-decoration: none; color: inherit; }
+
+    /* ================================================================
+       CONTROLS BAR
+    ================================================================ */
+    .ctrl-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 1100;
+      height: var(--ctrl-h);
+      background: var(--color-squid-900);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center;
+      padding: 0 var(--space-6); gap: var(--space-6);
+      /* Hidden by default — slides in only once .ctrl-bar-open is toggled
+         on <body> via the state-badge click. translateY(100%) relies on
+         height staying fixed (never collapsed to 0), so --ctrl-reserve
+         carries the layout-space toggling instead of --ctrl-h itself. */
+      transform: translateY(100%); opacity: 0; pointer-events: none;
+      transition: transform 0.28s ease, opacity 0.28s ease;
+    }
+    .ctrl-brand {
+      display: flex; align-items: center; gap: var(--space-3);
+      flex-shrink: 0; padding-right: var(--space-6);
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .ctrl-brand img { height: 20px; display: block; filter: brightness(0) invert(1); opacity: 0.7; }
+    .ctrl-brand-label { font-weight: 600; color: rgba(255,255,255,0.35); white-space: nowrap; }
+    .ctrl-groups { display: flex; align-items: center; gap: var(--space-5); flex: 1; }
+    .ctrl-group { display: flex; align-items: center; gap: var(--space-2); }
+    .ctrl-label { font-size: var(--text-fine-print-size); font-weight: var(--text-btn-w); letter-spacing: var(--text-badge-ls); text-transform: uppercase; color: rgba(255,255,255,0.3); white-space: nowrap; }
+    .ctrl-toggle { display: flex; background: rgba(255,255,255,0.05); border-radius: var(--radius-full); padding: var(--space-1); gap: var(--space-1); }
+    .ctrl-btn {
+      height: 26px; padding: 0 var(--space-3);
+      border-radius: var(--radius-full); border: none;
+      font-family: var(--font-family); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w);
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+      background: transparent; color: rgba(255,255,255,0.45);
+      white-space: nowrap;
+    }
+    .ctrl-btn:hover { color: rgba(255,255,255,0.75); }
+    .ctrl-btn.is-active { background: var(--color-brand-primary); color: var(--color-salt); }
+    .ctrl-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.08); }
+
+    /* ================================================================
+       PAGE HEADER — in normal flow; only .ufs-nav/.ufs-mnav (not the
+       utility bar) stick to the viewport top once scrolled past.
+    ================================================================ */
+    /* display:contents removes this wrapper from the layout tree so its
+       children's containing block becomes the page content wrapper (tall)
+       instead of this snugly-fit header box (exactly util-h + nav-h tall) —
+       without it, .ufs-nav's sticky positioning has zero room to engage,
+       since a sticky element can never escape its own containing block. */
+    .page-header { display: contents; }
+
+    /* ── Utility bar ─────────────────────────────────────── */
+    .ufs-util {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--space-8); height: var(--util-h);
+      font-size: var(--text-body-xs-size); font-weight: var(--text-body-w);
+      transition: background 0.3s, color 0.3s;
+      /* Not sticky like .ufs-nav, but still needs to stack above .pg-hero
+         below — see .pg-hero's negative margin-top for why. z-index is
+         higher than .ufs-nav's 100 (not just equal) because .ufs-util__lang
+         drop opens downward past util's own box, past z-index:300 trapped
+         inside this stacking context — equal z-index would lose the tie
+         to .ufs-nav (a later DOM sibling) wherever the two overlap. */
+      position: relative; z-index: 200;
+    }
+    .ufs-util--dark  { background: var(--color-squid-900); color: rgba(255,255,255,0.5); }
+    .ufs-util--light { background: var(--color-mushroom-100); color: var(--color-mushroom-900); border-bottom: 1px solid var(--color-mushroom-300); }
+    /* One continuous gradient across .ufs-util + .ufs-nav (separate boxes,
+       no shared wrapper) — sized to their combined height, each bar
+       showing its own slice via background-position so it reads as a
+       single gradient starting at the top of .ufs-util. */
+    .ufs-util--glass {
+      background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.20) 0%, rgba(217, 217, 217, 0.00) 100%);
+      background-size: 100% calc(var(--util-h) + var(--nav-h));
+      background-position: 0 0; background-repeat: no-repeat;
+      backdrop-filter: blur(8px);
+      color: rgba(255,255,255,0.55);
+    }
+    .ufs-util__links { display: flex; align-items: center; }
+    .ufs-util__link { padding: 0 var(--space-3); letter-spacing: var(--text-body-xs-ls); cursor: pointer; transition: color 0.15s; white-space: nowrap; }
+    .ufs-util__link:first-child { padding-left: 0; }
+    .ufs-util--dark .ufs-util__link:hover,
+    .ufs-util--glass .ufs-util__link:hover { color: rgba(255,255,255,0.9); }
+    .ufs-util--light .ufs-util__link:hover { color: var(--color-brand-dark); }
+    .ufs-util__sep { width: 1px; height: 10px; background: currentColor; opacity: 0.2; }
+    .ufs-util__right { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-util__lang { display: flex; align-items: center; gap: var(--space-1); cursor: pointer; font-size: var(--text-body-xs-size); font-weight: var(--text-body-w); }
+
+    /* ── Language dropdown panel ─────────────────────────────── */
+    .ufs-util__lang-wrap { position: relative; }
+    .ufs-lang-drop {
+      position: absolute; top: calc(100% + var(--space-2)); right: 0; z-index: 300;
+      width: 272px; background: var(--color-salt);
+      border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+      border: 1px solid var(--color-mushroom-300);
+      opacity: 0; pointer-events: none; transform: translateY(-6px);
+      transition: opacity 0.18s, transform 0.18s;
+    }
+    .ufs-lang-drop.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .ufs-lang-drop__list { padding: var(--space-1) 0; }
+    .ufs-lang-drop__item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-2) var(--space-4); font-size: var(--text-body-sm-size); font-weight: 500;
+      color: var(--color-mushroom-900); cursor: pointer; transition: background 0.12s;
+    }
+    .ufs-lang-drop__item:hover { background: var(--color-mushroom-100); color: var(--color-brand-dark); }
+    .ufs-lang-drop__item.is-active { color: var(--color-brand-dark); font-weight: var(--text-btn-w); }
+    .ufs-lang-drop__item-name { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-lang-drop__item-code { font-size: var(--text-fine-print-size); font-weight: var(--text-body-w); letter-spacing: 0.5px; color: var(--color-squid-900); background: var(--color-mushroom-100); padding: 1px 5px; border-radius: 3px; }
+    .ufs-lang-drop__item.is-active .ufs-lang-drop__item-code { background: var(--color-mushroom-100); color: var(--color-brand-dark); }
+    .ufs-lang-drop__check { color: var(--color-brand-dark); opacity: 0; flex-shrink: 0; }
+    .ufs-lang-drop__item.is-active .ufs-lang-drop__check { opacity: 1; }
+    .ufs-lang-drop__website { padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-mushroom-300); }
+    .ufs-lang-drop__website-text { font-size: var(--text-body-xs-size); color: var(--color-mushroom-700); margin-bottom: var(--space-2); }
+    .ufs-lang-drop__website-country { font-weight: var(--text-btn-w); color: var(--color-squid-900); }
+    .ufs-lang-drop__change { font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-accessible-orange); cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-1); }
+    .ufs-lang-drop__change:hover { color: var(--color-orange-700); }
+    .ufs-lang-drop-arrow { transition: transform 0.18s; }
+    .ufs-util__lang-wrap.is-open .ufs-lang-drop-arrow { transform: rotate(-90deg); }
+
+    /* ── Main nav ────────────────────────────────────────── */
+    .ufs-nav {
+      display: flex; align-items: center; position: sticky; top: 0; z-index: 100;
+      padding: 0 var(--space-8); height: var(--nav-h);
+      transition: background 0.3s, box-shadow 0.3s, border-color 0.3s;
+    }
+    .ufs-nav--dark  { background: var(--color-brand-dark); }
+    .ufs-nav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-nav--glass {
+      background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.20) 0%, rgba(217, 217, 217, 0.00) 100%);
+      background-size: 100% calc(var(--util-h) + var(--nav-h));
+      background-position: 0 calc(-1 * var(--util-h)); background-repeat: no-repeat;
+    }
+    .ufs-nav__logo { flex-shrink: 0; margin-right: var(--space-9); }
+    .ufs-nav__logo img { height: var(--space-12); display: block; }
+    .ufs-nav__links { display: flex; align-items: center; flex: 1; gap: var(--space-1); }
+    .ufs-nav__link {
+      display: flex; align-items: center; gap: var(--space-1);
+      padding: 0 14px; height: var(--nav-h); cursor: pointer;
+      font-size: var(--text-body-size); font-weight: var(--text-btn-w); white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .ufs-nav--dark .ufs-nav__link,
+    .ufs-nav--glass .ufs-nav__link { color: rgba(255,255,255,0.82); }
+    .ufs-nav--light .ufs-nav__link { color: var(--color-brand-dark); }
+    .ufs-nav--dark .ufs-nav__link:hover, .ufs-nav--dark .ufs-nav__link.is-open,
+    .ufs-nav--glass .ufs-nav__link:hover, .ufs-nav--glass .ufs-nav__link.is-open { color: var(--color-salt); border-bottom-color: var(--color-brand-primary); }
+    .ufs-nav--light .ufs-nav__link:hover,
+    .ufs-nav--light .ufs-nav__link.is-open { color: var(--color-orange-700); border-bottom-color: var(--color-orange-500); }
+    .ufs-nav__link-chev { width: var(--space-5); height: var(--space-5); margin-top: var(--space-1); opacity: 1; flex-shrink: 0; display: block; transform: rotate(90deg); transition: transform 0.2s, opacity 0.15s; }
+    .ufs-nav__link.is-open .ufs-nav__link-chev { transform: rotate(-90deg); }
+    .ufs-nav--light .ufs-nav__link-chev { filter: none; }
+    .ufs-nav--dark .ufs-nav__link-chev,
+    .ufs-nav--glass .ufs-nav__link-chev { filter: brightness(0) invert(1); }
+    .ufs-nav__actions { display: flex; align-items: center; gap: 0; margin-left: auto; }
+    .ufs-nav__icon-btn {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; background: transparent;
+      transition: background 0.15s; position: relative;
+    }
+    .ufs-nav__icon-btn + .ufs-nav__icon-btn { margin-left: var(--space-3); }
+    .ufs-nav--dark .ufs-nav__icon-btn:hover,
+    .ufs-nav--glass .ufs-nav__icon-btn:hover { background: rgba(255,255,255,0.08); }
+    .ufs-nav--light .ufs-nav__icon-btn:hover { background: var(--color-mushroom-100); }
+    .ufs-icon { display: block; }
+    .ufs-icon--20 { width: 20px; height: 20px; }
+    .ufs-icon--24 { width: var(--space-6); height: var(--space-6); }
+    .ufs-nav--dark  .ufs-icon,
+    .ufs-nav--glass .ufs-icon { filter: brightness(0) invert(1); opacity: 0.8; }
+    .ufs-nav--light .ufs-icon { filter: none; opacity: 0.75; }
+    .ufs-nav__badge {
+      position: absolute; top: var(--space-1); right: var(--space-1);
+      width: 16px; height: 16px; border-radius: var(--radius-full);
+      background: var(--color-brand-primary); color: var(--color-salt);
+      font-size: 9px; font-weight: var(--text-btn-w);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ufs-nav__account-dot {
+      position: absolute; top: 6px; right: 6px;
+      width: var(--space-3); height: var(--space-3); border-radius: 50%;
+      background: var(--color-brand-primary);
+      border: 2px solid var(--color-brand-dark);
+    }
+    .ufs-nav--light .ufs-nav__account-dot { border-color: var(--color-salt); }
+    .ufs-nav__account-dot.is-alert { background: var(--color-accessible-orange); }
+    .ufs-nav__account-dot.is-alert::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: var(--color-accessible-orange);
+      animation: account-dot-ping 1.6s cubic-bezier(0,0,0.2,1) infinite;
+    }
+    @keyframes account-dot-ping {
+      0%   { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    /* ── Avatar (from DS, profile-overview.html) — signed-in nav state ── */
+    .av { position: relative; display: inline-flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+    .av-circle {
+      --av-circle-size: 24px;
+      width: var(--av-circle-size); height: var(--av-circle-size);
+      border-radius: var(--radius-full);
+      background: var(--color-aubergine);
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden; flex-shrink: 0;
+    }
+    .av-initials {
+      color: var(--color-salt); font-family: var(--font-family); font-weight: 400;
+      line-height: 1; user-select: none; pointer-events: none; padding-bottom: 2px;
+    }
+    .av--sm .av-initials { font-size: 9px; }
+    .av--md .av-initials { font-size: 11px; }
+    .av-badge {
+      display: inline-flex; align-items: center; justify-content: center; gap: 0;
+      background: var(--color-salt); border: 0.5px solid var(--color-gold);
+      border-radius: var(--radius-full);
+      padding-left: 2px; padding-right: 3px; padding-bottom: 2px;
+      font-family: var(--font-family); font-size: 12px; font-weight: 400;
+      line-height: 1; color: var(--color-brand-dark); white-space: nowrap;
+      margin-top: -4px; height: 16px;
+    }
+    .ufs-nav__actions .av { margin-left: var(--space-3); }
+    #mnav-profile.av { border: none; background: transparent; padding: 0; cursor: pointer; }
+
+    /* ── Megamenu ─────────────────────────────────────────── */
+    .ufs-megamenu {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--color-salt);
+      border-top: 2px solid var(--color-brand-primary);
+      box-shadow: var(--shadow-lg);
+      z-index: 100; display: none;
+    }
+    .ufs-megamenu.is-open { display: block; }
+    .mm-a { display: grid; grid-template-columns: 1fr 1fr 1fr 260px; min-height: 320px; }
+    .mm-b { display: grid; grid-template-columns: 1.8fr 1fr 1fr 260px; min-height: 320px; }
+    .mm-col { padding: var(--space-7) var(--space-6); border-right: 1px solid var(--color-mushroom-300); }
+    .mm-col:last-child { border-right: none; }
+    .mm-col-label { color: var(--color-accessible-orange); margin-bottom: var(--space-4); display: block; }
+    .mm-links { display: flex; flex-direction: column; }
+    .mm-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-2) 0; font-weight: var(--text-body-w);
+      color: var(--color-squid-500); border-bottom: 1px solid var(--color-mushroom-100);
+      cursor: pointer; transition: color 0.15s; gap: var(--space-2);
+    }
+    .mm-link:last-child { border-bottom: none; }
+    .mm-link:hover { color: var(--color-accessible-orange); }
+    .mm-link-arr { width: 14px; height: 14px; opacity: 0; transition: opacity 0.15s, transform 0.15s; flex-shrink: 0; }
+    .mm-link:hover .mm-link-arr { opacity: 1; transform: translateX(2px); }
+    .mm-featured { padding: var(--space-8) var(--space-7); background: var(--color-mushroom-100); border-right: 1px solid var(--color-mushroom-300); display: flex; flex-direction: column; justify-content: center; }
+    .mm-feat-over { color: var(--color-accessible-orange); margin-bottom: var(--space-3); }
+    .mm-feat-title { color: var(--color-brand-dark); margin-bottom: var(--space-3); }
+    .mm-feat-body { color: var(--color-mushroom-900); margin-bottom: var(--space-5); max-width: 34ch; }
+    .mm-feat-cta { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--text-btn-w); color: var(--color-orange-700); }
+    .mm-feat-cta:hover { color: var(--color-orange-900); }
+    .mm-promo { background: var(--color-squid-500); display: flex; flex-direction: column; overflow: hidden; }
+    .mm-promo-img { width: 100%; aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--color-squid-700) 0%, var(--color-squid-900) 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mm-promo-img-placeholder { color: rgba(255,255,255,0.25); }
+    .mm-promo-body { padding: var(--space-5); flex: 1; display: flex; flex-direction: column; }
+    .mm-promo-over { color: var(--color-brand-primary); margin-bottom: var(--space-2); }
+    .mm-promo-title { color: var(--color-salt); margin-bottom: var(--space-3); flex: 1; }
+    .mm-promo-cta { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--text-btn-w); color: var(--color-brand-primary); }
+    .mm-promo-cta:hover { color: var(--color-orange-300); }
+
+    /* ================================================================
+       MOBILE NAV BAR + DRAWER (below 768px)
+    ================================================================ */
+    .ufs-mnav { display: none; }
+    @media (max-width: 768px) {
+      .ufs-util, .ufs-nav { display: none; }
+      .ufs-mnav { display: flex; align-items: center; position: sticky; top: 0; z-index: 100; height: var(--mnav-h); padding: 0 var(--space-4); gap: var(--space-3); transition: background 0.3s, border-color 0.3s; }
+    }
+    /* Dev toolbar "View: Mobile" — rather than forcing this same document's
+       chrome into a mobile shape (which breaks for any fixed-width component
+       wider than the simulated viewport — the sign-in panel is 420px, the
+       floating bar is 740px, etc.), render the mobile preview inside an
+       <iframe> set to a real 390px width. That gives it its own genuine
+       viewport, so the existing @media(max-width:768px) rule just works
+       naturally, with zero CSS overrides needed. */
+    #mobile-preview-frame {
+      display: none; position: fixed; top: 0; left: 50%;
+      transform: translateX(-50%); width: 390px; height: calc(100vh - var(--ctrl-reserve));
+      border: none;
+    }
+    body.view-mobile #real-page-content { display: none; }
+    body.view-mobile #mobile-preview-frame { display: block; }
+    body.view-mobile { padding-top: 0 !important; overflow: hidden; }
+    /* When this file is itself loaded inside that iframe (?embedded=1),
+       hide the dev toolbar and remove the space it would have reserved. */
+    body.is-embedded { --ctrl-reserve: 0px; }
+    body.is-embedded .ctrl-bar { display: none; }
+    /* Ctrl bar is hidden by default; the state-badge click toggles this. */
+    body.ctrl-bar-open { --ctrl-reserve: var(--ctrl-h); }
+    body.ctrl-bar-open .ctrl-bar { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .ufs-mnav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-mnav--dark  { background: var(--color-brand-dark); }
+    .ufs-mnav--glass { background: linear-gradient(180deg, rgba(0, 0, 0, 0.20) 0%, rgba(217, 217, 217, 0.00) 100%); }
+    .ufs-mnav__btn {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; background: transparent; flex-shrink: 0;
+      transition: background 0.15s; position: relative;
+    }
+    .ufs-mnav--dark  .ufs-mnav__btn:hover,
+    .ufs-mnav--glass .ufs-mnav__btn:hover { background: rgba(255,255,255,0.08); }
+    .ufs-mnav--light .ufs-mnav__btn:hover { background: var(--color-mushroom-100); }
+    .ufs-mnav--dark  .ufs-icon,
+    .ufs-mnav--glass .ufs-icon { filter: brightness(0) invert(1); opacity: 0.85; }
+    .ufs-mnav--light .ufs-icon { filter: none; opacity: 0.8; }
+    .ufs-mnav__logo { height: var(--space-6); width: auto; display: block; flex-shrink: 0; }
+    .ufs-mnav__right { display: flex; align-items: center; gap: var(--space-1); flex-shrink: 0; margin-left: auto; }
+    .ufs-mnav__btn.is-dimmed .ufs-icon { opacity: 0.35; }
+
+    /* Drawer */
+    .ufs-drawer-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 900;
+      background: color-mix(in srgb, var(--color-squid-900) 45%, transparent); backdrop-filter: blur(2px);
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .ufs-drawer-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .ufs-drawer {
+      position: fixed; top: 0; left: 0; bottom: var(--ctrl-reserve); width: calc(100% - 16px); z-index: 901;
+      background: var(--color-salt);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.25,0.1,0.25,1), box-shadow 0.3s;
+      display: flex; flex-direction: column; overflow-y: auto;
+      box-shadow: none;
+    }
+    /* box-shadow only while open — closed, it sits flush at the viewport
+       edge post-translate, so its blur radius would otherwise bleed back
+       into view as an unwanted shadow on the page's lateral edge. */
+    .ufs-drawer.is-open { transform: translateX(0); box-shadow: var(--shadow-xl); }
+    .ufs-drawer-links { flex: 1; padding: var(--space-2) 0; }
+    .ufs-drawer-acc-trigger {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-4) var(--space-5); font-size: var(--text-body-size); font-weight: var(--text-btn-w);
+      color: var(--color-brand-dark); background: transparent; border: none;
+      border-bottom: 1px solid var(--color-mushroom-100);
+      cursor: pointer; transition: color 0.15s; text-align: left;
+    }
+    .ufs-drawer-acc-trigger:first-of-type { border-top: 1px solid var(--color-mushroom-100); }
+    .ufs-drawer-acc-trigger:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-acc-trigger.is-open { color: var(--color-accessible-orange); }
+    .ufs-drawer-acc-chev { width: var(--space-5); height: var(--space-5); transition: transform 0.2s; opacity: 0.3; flex-shrink: 0; }
+    .ufs-drawer-acc-label { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-drawer-acc-globe { width: var(--space-5); height: var(--space-5); flex-shrink: 0; }
+    .ufs-drawer-acc-trigger.is-open .ufs-drawer-acc-chev { transform: rotate(-90deg); opacity: 0.8; }
+    .ufs-drawer-sub { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; background: var(--color-mushroom-100); }
+    /* Tall enough for the longest expanded section (Products: 14 items
+       + the "View more" row + "View all products" — see .is-extra below). */
+    .ufs-drawer-sub.is-open { max-height: 800px; }
+    .ufs-drawer-sub-link {
+      display: block; padding: var(--space-3) var(--space-5) var(--space-3) var(--space-7);
+      font-size: var(--text-body-sm-size); color: var(--color-mushroom-900);
+      border-bottom: 1px solid var(--color-mushroom-200); cursor: pointer; transition: color 0.15s;
+    }
+    .ufs-drawer-sub-link:last-child { border-bottom: none; }
+    .ufs-drawer-sub-link:hover { color: var(--color-brand-primary); }
+    /* Items beyond the first 4 — hidden until "View more" is tapped. */
+    .ufs-drawer-sub-link.is-extra { display: none; }
+    .ufs-drawer-sub-more {
+      width: 100%; display: flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-3) var(--space-5) var(--space-3) var(--space-7);
+      font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w);
+      color: var(--color-accessible-orange); background: transparent; border: none;
+      border-bottom: 1px solid var(--color-mushroom-200); cursor: pointer; text-align: left; transition: color 0.15s;
+    }
+    .ufs-drawer-sub-more:last-child { border-bottom: none; }
+    .ufs-drawer-sub-more:hover { color: var(--color-orange-900); }
+    .ufs-drawer-sub-more-chev { width: var(--space-4); height: var(--space-4); transform: rotate(90deg); opacity: 0.8; flex-shrink: 0; }
+    .ufs-drawer-sub-link.is-active { color: var(--color-brand-dark); font-weight: var(--text-btn-w); }
+    .ufs-drawer-sub-link.is-active .ufs-lang-drop__check { opacity: 1; }
+    .ufs-drawer-util { padding: var(--space-4) var(--space-5); border-top: 1px solid var(--color-mushroom-300); }
+    .ufs-drawer-util-title { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .ufs-drawer-util-link { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); padding: var(--space-2) 0; cursor: pointer; display: block; transition: color 0.15s; }
+    .ufs-drawer-util-link:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-util .ufs-drawer-acc-trigger { padding: var(--space-2) 0; font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); border: none; margin-top: var(--space-2); }
+    .ufs-drawer-util .ufs-drawer-acc-trigger:first-of-type { border-top: none; }
+    .ufs-drawer-util .ufs-drawer-sub-link { display: flex; align-items: center; justify-content: space-between; padding: var(--space-2) 0 var(--space-2) var(--space-3); border-bottom: none; }
+    .ufs-drawer-btn { flex: 1; display: flex; align-items: center; justify-content: center; height: var(--space-10); border-radius: var(--radius-md); font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w); cursor: pointer; }
+    .ufs-drawer-btn--primary { background: var(--color-accessible-orange); color: var(--color-salt); border: none; }
+    .ufs-drawer-btn--secondary { background: transparent; color: var(--color-accessible-orange); border: 1px solid var(--color-accessible-orange); }
+
+    /* DS buttons (for Sign In CTA in nav) */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: 54px; padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn-sm { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
+    /* Same font-size/padding/gap as the default .btn — only the height is reduced */
+    .btn-compressed { height: var(--space-12); }
+    .btn-icon-left { padding-left: var(--space-5); }
+    .btn-sm.btn-icon-left { padding-left: var(--space-3); }
+    .btn-sm.btn-icon-left img { width: var(--space-5); height: var(--space-5); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+    .btn-ghost { background: transparent; color: var(--color-accessible-orange); border-color: transparent; }
+    .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+    .ufs-nav__actions .btn { margin-left: var(--space-3); width: auto; }
+
+    /* Context modifier — use on a container that already has a dark/photo
+       background (no background of its own, unlike .btn-surface-dark) */
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+    .btn-on-dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+    .btn-on-dark .btn-ghost { color: var(--color-salt); }
+    .btn-on-dark .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+
+    /* Nav Sign In button (.btn-ghost) sits directly on the dark/glass nav
+       background — same on-dark ghost treatment as above, scoped to the nav. */
+    .ufs-nav--dark .btn-ghost,
+    .ufs-nav--glass .btn-ghost { color: var(--color-salt); }
+    .ufs-nav--dark .btn-ghost:hover:not(:disabled):not(.btn-loading),
+    .ufs-nav--glass .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+
+    /* ================================================================
+       PAGE CONTENT
+    ================================================================ */
+
+    /* ── Hero ────────────────────────────────────────────── */
+    /* Pulled up behind the header (negative margin) so its background
+       shows through the transparent/glass header instead of stopping
+       at the header's bottom edge. Top padding is bumped by the exact
+       same amount so the text content still lands where it did before —
+       only the background extends upward, not the content position. */
+    .pg-hero {
+      min-height: calc(480px + var(--util-h) + var(--nav-h));
+      display: flex; align-items: center;
+      background: url('images/M_GPP_6074.jpg') center/cover no-repeat;
+      margin-top: calc(-1 * (var(--util-h) + var(--nav-h)));
+      padding: calc(var(--space-20) + var(--util-h) + var(--nav-h)) var(--space-20) var(--space-25);
+      position: relative; overflow: hidden;
+    }
+    body.color-glass .pg-hero { min-height: calc(420px + var(--util-h) + var(--nav-h)); }
+    @media (max-width: 768px) {
+      /* .ufs-util/.ufs-nav are display:none below 768px — mobile uses
+         .ufs-mnav instead (already sticky + z-index:100, same as
+         desktop's nav), so mirror the same pull-up/compensation trick
+         using --mnav-h in place of --util-h + --nav-h. */
+      .pg-hero {
+        min-height: calc(480px + var(--mnav-h));
+        margin-top: calc(-1 * var(--mnav-h));
+        padding: calc(var(--space-20) + var(--mnav-h)) var(--space-4) var(--space-25);
+      }
+      body.color-glass .pg-hero { min-height: calc(420px + var(--mnav-h)); }
+    }
+    .pg-hero::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to right, rgba(10,7,22,0.7) 0%, rgba(10,7,22,0.2) 60%, transparent 100%);
+      pointer-events: none;
+    }
+    body.color-glass .pg-hero::after { background: linear-gradient(to right, rgba(10,7,22,0.55) 0%, rgba(10,7,22,0.1) 60%, transparent 100%); }
+    .pg-hero-content { position: relative; z-index: 1; max-width: 560px; }
+    .pg-hero-eyebrow { color: var(--color-brand-primary); margin-bottom: var(--space-4); }
+    .pg-hero-title { color: var(--color-salt); margin-bottom: var(--space-5); }
+    .pg-hero-sub { color: rgba(255,255,255,0.72); margin-bottom: var(--space-9); max-width: 440px; }
+    .pg-hero-actions { display: flex; gap: var(--space-4); flex-wrap: wrap; }
+
+    /* ── Products section ────────────────────────────────── */
+    .pg-products {
+      background: var(--color-salt); padding: var(--space-16) var(--space-20) var(--space-20);
+    }
+    body.color-glass .pg-products { background: var(--color-salt); }
+    .pg-section-eyebrow { color: var(--color-accessible-orange); margin-bottom: 10px; }
+    .pg-section-title { color: var(--color-brand-dark); margin-bottom: var(--space-2); }
+    .pg-section-sub { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); line-height: var(--text-body-sm-lh); margin-bottom: var(--space-10); }
+    .pg-cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5); }
+    @media (max-width: 768px) {
+      .pg-products { padding-left: var(--space-4); padding-right: var(--space-4); }
+      .pg-cards-grid { grid-template-columns: 1fr; }
+    }
+    .pg-card {
+      border-radius: var(--radius-md); overflow: hidden;
+      border: 1px solid var(--color-mushroom-300);
+      background: var(--color-salt);
+      transition: box-shadow 0.2s, transform 0.2s; cursor: pointer;
+    }
+    .pg-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .pg-card-img {
+      height: 160px; position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pg-card-img-bg { position: absolute; inset: 0; }
+    .pg-card-brand {
+      position: absolute; top: 10px; left: 10px;
+      background: var(--color-salt); border-radius: var(--radius-xs);
+      padding: var(--space-1) var(--space-2);
+      color: var(--color-brand-dark);
+    }
+    .pg-card-fav {
+      position: absolute; top: var(--space-2); right: var(--space-2);
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center;
+    }
+    .pg-card-fav img { width: 14px; height: 14px; opacity: 0.45; }
+    .pg-card-body { padding: 14px var(--space-4) 18px; }
+    .pg-card-title { font-weight: var(--text-btn-w); color: var(--color-brand-dark); margin-bottom: var(--space-1); }
+    .pg-card-desc  { color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .pg-card-footer { display: flex; align-items: center; justify-content: space-between; }
+    .pg-card-tag { padding: var(--space-1) var(--space-2); border-radius: var(--radius-full); background: var(--color-mushroom-100); color: var(--color-mushroom-700); }
+    .pg-card-action {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--color-accessible-orange); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .pg-card-action img { width: 12px; height: 12px; filter: brightness(0) invert(1); }
+
+    /* ── Inspiration section ─────────────────────────────── */
+    .pg-inspiration { background: var(--color-mushroom-100); padding: var(--space-16) var(--space-20) var(--space-25); }
+    .pg-inspo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); margin-top: var(--space-10); }
+    @media (max-width: 768px) {
+      .pg-inspiration { padding-left: var(--space-4); padding-right: var(--space-4); }
+      .pg-inspo-grid { grid-template-columns: 1fr; }
+    }
+    .pg-inspo-feature {
+      border-radius: var(--radius-lg); overflow: hidden; cursor: pointer;
+      position: relative; min-height: 300px;
+      background: linear-gradient(135deg, #7a3a10, #3b1e08);
+      transition: box-shadow 0.2s;
+    }
+    .pg-inspo-feature:hover { box-shadow: var(--shadow-lg); }
+    .pg-inspo-small-col { display: flex; flex-direction: column; gap: var(--space-6); }
+    .pg-inspo-small {
+      flex: 1; border-radius: var(--radius-md); overflow: hidden; cursor: pointer;
+      border: 1px solid var(--color-mushroom-300); background: var(--color-salt);
+      transition: box-shadow 0.15s;
+    }
+    .pg-inspo-small:hover { box-shadow: var(--shadow-sm); }
+    .pg-inspo-small-img { height: 110px; }
+    .pg-inspo-small-body { padding: 14px var(--space-4); }
+    .pg-inspo-small-tag { color: var(--color-accessible-orange); margin-bottom: 6px; }
+    .pg-inspo-small-title { font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    .pg-inspo-feature-body { position: absolute; bottom: 0; left: 0; right: 0; padding: var(--space-7) var(--space-7) var(--space-8); background: linear-gradient(to top, rgba(0,0,0,0.75), transparent); }
+    .pg-inspo-feature-tag { color: var(--color-brand-primary); margin-bottom: var(--space-2); }
+    .pg-inspo-feature-title { color: var(--color-salt); margin-bottom: var(--space-3); }
+    .pg-inspo-feature-meta { color: rgba(255,255,255,0.55); }
+
+    /* Bottom spacing for floating bar */
+    .pg-bottom-space { height: 100px; }
+
+    /* ================================================================
+       FLOATING BAR E — fixed position
+    ================================================================ */
+    /* Gradient-spin border + ambient glow — same pattern as academy-catalog-b.html's .ai-prompt-wrapper */
+    @keyframes gradient-spin {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes ai-glow-pulse {
+      0%, 100% { box-shadow: 0 0 16px rgba(255,90,0,0.30), 0 0 36px rgba(213,54,176,0.18); }
+      50%       { box-shadow: 0 0 24px rgba(255,90,0,0.50), 0 0 48px rgba(213,54,176,0.30); }
+    }
+    .fbe-fixed {
+      position: fixed; bottom: calc(var(--ctrl-reserve) + var(--space-8)); left: 50%;
+      transform: translateX(-50%);
+      width: 740px; max-width: calc(100vw - 48px);
+      z-index: 500;
+      /* Preview only — local override, not yet promoted to --gradient-ai */
+      background: linear-gradient(135deg, #FF5A00 0%, var(--color-salt) 50%, #D536B0 100%);
+      background-size: 300% 300%;
+      border-radius: var(--radius-full);
+      padding: 2px;
+      animation: gradient-spin 5s ease infinite, ai-glow-pulse 3s ease-in-out infinite;
+      transition: box-shadow 0.3s;
+    }
+    /* Sped-up while the AI chat is composing a reply — toggled in sendAiMsg() */
+    .fbe-fixed.thinking {
+      animation: gradient-spin 1.5s ease infinite, ai-glow-pulse 1s ease-in-out infinite;
+    }
+    .fbe {
+      background: var(--color-salt);
+      border-radius: var(--radius-full);
+      display: flex; align-items: center; height: 68px;
+    }
+    /* Icon group */
+    .fbe__icons { display: flex; align-items: center; padding: 0 var(--space-1); height: 100%; flex-shrink: 0; }
+    .fbe__icon-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: var(--space-1); padding: 0 18px; height: 100%; cursor: pointer;
+      border-radius: var(--radius-full); transition: background 0.15s;
+      border: none; background: transparent; font-family: var(--font-family);
+    }
+    .fbe__icon-btn:hover { background: var(--color-mushroom-100); }
+    .fbe__icon-btn.is-active { background: var(--color-mushroom-100); }
+    #fbe-btn-mic { margin-left: var(--space-2); }
+    .fbe__icon-wrap {
+      width: 28px; height: 28px; border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center; transition: background 0.2s;
+    }
+    .fbe__icon-wrap img, .fbe__icon-wrap svg { width: var(--space-5); height: var(--space-5); display: block; color: var(--color-squid-900); transition: opacity 0.15s; }
+    .fbe__icon-btn.is-active .fbe__icon-wrap--mic { background: var(--color-brand-dark); }
+    .fbe__icon-btn.is-active .fbe__icon-wrap--mic svg { filter: brightness(0) invert(1); }
+    .fbe__icon-btn.is-active .fbe__icon-wrap--ideas { background: var(--color-orange-100); }
+    .fbe__icon-btn.is-active .fbe__icon-wrap--ideas svg { filter: invert(28%) sepia(85%) saturate(1800%) hue-rotate(3deg) brightness(80%); }
+    .fbe__icon-btn.is-active .fbe__icon-wrap--ai { background: var(--color-orange-100); }
+    .fbe__icon-btn.is-active .fbe__icon-wrap--ai svg { filter: invert(28%) sepia(85%) saturate(1800%) hue-rotate(3deg) brightness(80%); }
+    .fbe__icon-btn.is-active .fbe__icon-wrap--search { background: var(--color-orange-100); }
+    .fbe__icon-btn.is-active .fbe__icon-wrap--search svg { filter: invert(28%) sepia(85%) saturate(1800%) hue-rotate(3deg) brightness(80%); }
+    .fbe__label { font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-squid-900); line-height: 1; transition: color 0.15s; }
+    .fbe__icon-btn.is-active .fbe__label { color: var(--color-brand-dark); }
+    .fbe__divider { width: 1px; height: 28px; background: var(--color-mushroom-300); flex-shrink: 0; }
+    /* Mobile: search collapses into a 4th button matching Voice/Ideas/Ask AI */
+    #fbe-btn-search { display: none; }
+    @media (max-width: 768px) {
+      .fbe__divider, .fbe > .fbe__search { display: none; }
+      .fbe__icons { flex: 1; }
+      .fbe__icon-btn { flex: 1; padding: 0 var(--space-2); }
+      #fbe-btn-search { display: flex; }
+    }
+    .fbe__panel--search { left: 0; width: 100%; }
+    .fbe__panel--search .fbe__search {
+      flex: none; height: auto; border-radius: var(--radius-lg);
+      padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+    }
+    /* Search */
+    .fbe__search {
+      flex: 1; display: flex; align-items: center; gap: var(--space-2);
+      padding: 0 var(--space-2) 0 var(--space-4); height: 100%;
+      border-radius: 0 var(--radius-full) var(--radius-full) 0; transition: background 0.15s;
+    }
+    .fbe__search:focus-within { background: var(--color-mushroom-100); }
+    .fbe__search-icon { width: var(--space-5); height: var(--space-5); flex-shrink: 0; opacity: 0.65; transition: opacity 0.15s, filter 0.15s; }
+    .fbe__search:focus-within .fbe__search-icon { opacity: 1; filter: invert(28%) sepia(85%) saturate(1800%) hue-rotate(3deg) brightness(80%); }
+    .fbe__input {
+      flex: 1; min-width: 0; border: none; background: transparent;
+      font-family: var(--font-family); font-size: var(--text-body-sm-size);
+      color: var(--color-brand-dark); outline: none; line-height: 1;
+    }
+    .fbe__input::placeholder { color: var(--color-mushroom-900); }
+    .fbe__submit {
+      width: 38px; height: 38px; border-radius: var(--radius-full);
+      background: var(--color-accessible-orange); border: none;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+      opacity: 0; pointer-events: none; transition: opacity 0.15s, background 0.15s;
+    }
+    .fbe__search:focus-within .fbe__submit { opacity: 1; pointer-events: all; }
+    .fbe__submit:hover { background: var(--color-orange-700); }
+    /* Panels */
+    .fbe__panel {
+      position: absolute; bottom: calc(100% + 10px);
+      background: var(--color-salt);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl), 0 0 0 1px var(--color-mushroom-300);
+      overflow: hidden; opacity: 0; pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity 0.22s, transform 0.22s;
+    }
+    .fbe__panel.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .fbe__panel-close {
+      width: 26px; height: 26px; border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.12); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .fbe__panel-close--dark { background: rgba(255,255,255,0.12); }
+    .fbe__panel-close--light { background: var(--color-mushroom-100); }
+    .fbe__panel-close svg { width: 10px; height: 10px; display: block; }
+    /* Mic panel */
+    .fbe__panel--mic { left: 0; width: 288px; }
+    .fbe-mic-hd { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); background: var(--color-brand-dark); }
+    .fbe-mic-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-salt); }
+    .fbe-mic-title svg { width: 14px; height: 14px; }
+    .fbe-mic-body { padding: var(--space-4); }
+    .fbe-mic-status { display: flex; align-items: center; gap: 6px; margin-bottom: var(--space-3); }
+    .fbe-mic-status--listening { color: var(--color-accessible-orange); }
+    .fbe-mic-status--processing { color: var(--color-mushroom-700); }
+    .fbe-mic-status--escalating { color: var(--color-brand-dark); }
+    .fbe-mic-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: micDotPulse 1.2s ease-in-out infinite; }
+    @keyframes micDotPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .fbe-wave { display: flex; align-items: center; gap: var(--space-1); height: 40px; justify-content: center; margin-bottom: var(--space-3); }
+    .fbe-wave-bar { width: 3px; border-radius: 2px; background: var(--color-accessible-orange); animation: micWave 0.8s ease-in-out infinite; }
+    .fbe-wave-bar:nth-child(1)  { height: 6px;  animation-delay:0.00s; }
+    .fbe-wave-bar:nth-child(2)  { height: 12px; animation-delay:0.07s; }
+    .fbe-wave-bar:nth-child(3)  { height: 20px; animation-delay:0.14s; }
+    .fbe-wave-bar:nth-child(4)  { height: 28px; animation-delay:0.21s; }
+    .fbe-wave-bar:nth-child(5)  { height: 36px; animation-delay:0.28s; }
+    .fbe-wave-bar:nth-child(6)  { height: 28px; animation-delay:0.21s; }
+    .fbe-wave-bar:nth-child(7)  { height: 20px; animation-delay:0.14s; }
+    .fbe-wave-bar:nth-child(8)  { height: 12px; animation-delay:0.07s; }
+    .fbe-wave-bar:nth-child(9)  { height: 6px;  animation-delay:0.00s; }
+    .fbe-wave-bar:nth-child(10) { height: 12px; animation-delay:0.07s; }
+    .fbe-wave-bar:nth-child(11) { height: 20px; animation-delay:0.14s; }
+    .fbe-wave-bar:nth-child(12) { height: 12px; animation-delay:0.07s; }
+    .fbe-wave-bar:nth-child(13) { height: 6px;  animation-delay:0.00s; }
+    @keyframes micWave { 0%,100%{transform:scaleY(0.3);opacity:0.4} 50%{transform:scaleY(1);opacity:1} }
+    .fbe-wave--paused .fbe-wave-bar { animation-play-state: paused; transform: scaleY(0.3); opacity: 0.3; }
+    .fbe-mic-transcript { display: none; font-weight: 600; color: var(--color-brand-dark); text-align: center; padding: 0 var(--space-2) var(--space-3); }
+    .fbe-mic-sim { display: flex; gap: var(--space-2); }
+    .fbe-mic-sim-btn { flex:1; height:32px; border-radius:var(--radius-sm); border:none; font-family:var(--font-family); font-size:var(--text-btn-sm-size); font-weight:var(--text-btn-sm-w); cursor:pointer; transition:background 0.15s; }
+    .fbe-mic-sim-btn--search { background:var(--color-mushroom-100); color:var(--color-mushroom-900); }
+    .fbe-mic-sim-btn--search:hover { background:var(--color-mushroom-300); }
+    .fbe-mic-sim-btn--ai { background:var(--color-brand-dark); color:var(--color-salt); }
+    .fbe-mic-sim-btn--ai:hover { background:var(--color-squid-700); }
+    .fbe-mic-footer { color:var(--color-mushroom-700); text-align:center; padding:var(--space-3) var(--space-4); border-top:1px solid var(--color-mushroom-300); }
+    /* Ideas panel */
+    .fbe__panel--ideas { left: 50%; transform: translateX(-50%) translateY(10px); width: 340px; }
+    .fbe__panel--ideas.is-open { transform: translateX(-50%) translateY(0); }
+    .fbe-ideas-hd { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-mushroom-300); }
+    .fbe-ideas-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    .fbe-ideas-title img { width: 14px; height: 14px; filter: invert(28%) sepia(85%) saturate(1800%) hue-rotate(3deg) brightness(80%); }
+    .fbe-ideas-sub { color: var(--color-mushroom-700); padding: var(--space-2) var(--space-4) var(--space-1); }
+    .fbe-tip { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--color-mushroom-100); }
+    .fbe-tip:last-child { border-bottom: none; }
+    .fbe-tip:hover { background: var(--color-mushroom-100); }
+    .fbe-tip-ico { width: 32px; height: 32px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; }
+    .fbe-tip-ico--a { background: var(--color-orange-100); }
+    .fbe-tip-ico--b { background: var(--color-mushroom-300); }
+    .fbe-tip-text { flex: 1; min-width: 0; }
+    .fbe-tip-label { font-weight: 600; color: var(--color-brand-dark); }
+    .fbe-tip-meta  { color: var(--color-mushroom-700); margin-top: 1px; }
+    .fbe-tip-chev  { width: 12px; height: 12px; opacity: 0.2; flex-shrink: 0; }
+    /* AI chat panel */
+    .fbe__panel--ai { right: 0; width: 420px; height: 461px; display: flex; flex-direction: column; }
+    /* Mobile: standardize all 4 panels to the same width, centered on screen
+       (the bar itself is already centered via .fbe-fixed's left:50%/
+       translateX(-50%), so left:0 + width:100% rides on that for free).
+       Placed after the panel-specific rules above so equal-specificity
+       source order resolves in this override's favor. */
+    @media (max-width: 768px) {
+      .fbe__panel--mic, .fbe__panel--ideas, .fbe__panel--ai, .fbe__panel--search {
+        left: 0; right: auto; width: 100%;
+      }
+      .fbe__panel--ideas { transform: translateY(10px); }
+      .fbe__panel--ideas.is-open { transform: translateY(0); }
+    }
+    .fbe-ai-hd { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); background: var(--color-brand-dark); flex-shrink: 0; }
+    .fbe-ai-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-salt); }
+    .fbe-ai-title img { width: 15px; height: 15px; filter: brightness(0) invert(1); opacity: 0.85; }
+    .fbe-ai-badge { font-size: 8px; font-weight: var(--text-btn-w); letter-spacing: 0.5px; text-transform: uppercase; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.5); padding: var(--space-1) 6px; border-radius: var(--radius-full); }
+    .fbe-ai-msgs { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); flex: 1; overflow-y: auto; }
+    .fbe-ai-msg { display: flex; gap: var(--space-2); align-items: flex-start; }
+    .fbe-ai-msg--user { flex-direction: row-reverse; }
+    .fbe-ai-ava { width: 24px; height: 24px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; font-weight: var(--text-btn-w); }
+    .fbe-ai-ava--ai { background: var(--color-brand-dark); color: var(--color-salt); }
+    .fbe-ai-ava--user { background: var(--color-accessible-orange); color: var(--color-salt); }
+    .fbe-ai-bubble { max-width: 80%; padding: var(--space-2) var(--space-3); }
+    .fbe-ai-bubble--ai { background: var(--color-mushroom-100); color: var(--color-brand-dark); border-radius: 4px 12px 12px 12px; }
+    .fbe-ai-bubble--user { background: var(--color-brand-dark); color: var(--color-salt); border-radius: 12px 4px 12px 12px; }
+    .fbe-ai-input-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-mushroom-300); flex-shrink: 0; }
+    .fbe-ai-input { flex: 1; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); height: 38px; font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); outline: none; transition: border-color 0.15s; }
+    .fbe-ai-input:focus { border-color: var(--color-brand-dark); }
+    .fbe-ai-send { width: 36px; height: 36px; border-radius: var(--radius-full); background: var(--color-brand-dark); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+    .fbe-ai-send:hover { background: var(--color-squid-700); }
+    .fbe-typing { display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1) 0; }
+    .fbe-typing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--color-mushroom-500); animation: tdot 1.2s ease-in-out infinite; }
+    .fbe-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .fbe-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes tdot { 0%,100%{transform:translateY(0);opacity:0.4} 50%{transform:translateY(-4px);opacity:1} }
+
+    /* ================================================================
+       SIGN-IN PANEL
+    ================================================================ */
+    .signin-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 900;
+      background: color-mix(in srgb, var(--color-squid-900) 55%, transparent); backdrop-filter: blur(3px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .signin-panel {
+      position: fixed; top: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 901;
+      width: 420px; background: var(--color-salt);
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s;
+      box-shadow: none;
+      display: flex; flex-direction: column;
+    }
+    /* box-shadow only while open — see .ufs-drawer's comment above for why. */
+    .signin-panel.is-open { transform: translateX(0); box-shadow: -8px 0 40px rgba(0,0,0,0.18); }
+    @media (max-width: 768px) {
+      .signin-panel { width: calc(100% - 16px); }
+    }
+    .signin-panel-hd {
+      height: var(--mnav-h); padding: 0 var(--space-4); display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--color-mushroom-300); flex-shrink: 0;
+    }
+    .signin-panel-logo { height: var(--space-6); }
+    .signin-close {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: var(--color-mushroom-100); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .signin-close:hover { background: var(--color-mushroom-300); }
+    .signin-close svg { width: 12px; height: 12px; }
+    .signin-panel-body { flex: 1; overflow-y: auto; padding: var(--space-7); }
+    /* DS form elements */
+    .fi-wrap { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; }
+    .fi-label { font-size: var(--text-btn-size); line-height: 22px; font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    .fi-field {
+      width: 100%; height: var(--space-12);
+      border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-body-sm-size); font-family: var(--font-family); font-weight: 400;
+      color: var(--color-brand-dark); background: var(--color-mushroom-100);
+      outline: none; box-sizing: border-box;
+      transition: border-color 0.15s; display: block;
+    }
+    .fi-field:focus { border-color: var(--color-brand-dark); }
+    /* Tabs */
+    .tab-bar { display: flex; gap: var(--space-1); background: var(--color-mushroom-300); border-radius: var(--radius-sm); padding: var(--space-1); }
+    .tab-btn { flex: 1; padding: var(--space-2) var(--space-5); border-radius: var(--radius-xs); font-size: var(--text-btn-sm-size); font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--color-mushroom-900); transition: all 0.15s; font-family: var(--font-family); }
+    .tab-btn.is-active { background: var(--color-salt); color: var(--color-brand-dark); box-shadow: var(--shadow-sm); }
+    .signin-form-fields { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-6); }
+    #form-register .signin-form-fields { margin-bottom: var(--space-3); }
+    .signin-forgot { color: var(--color-accessible-orange); cursor: pointer; text-align: right; margin-top: -8px; }
+    .signin-usp { color: var(--color-mushroom-700); text-align: center; margin-top: var(--space-5); }
+    /* USPs module (richer version, used in the Create Account tab) */
+    .signin-usps { margin-top: var(--space-7); padding: var(--space-5); background: var(--color-mushroom-100); border-radius: var(--radius-md); }
+    .signin-usps-title { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-squid-500); margin-bottom: var(--space-3); }
+    .signin-usp-item { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-3); }
+    .signin-usp-item:last-child { margin-bottom: 0; }
+    .signin-usp-item-icon { width: var(--space-9); height: var(--space-9); flex-shrink: 0; border-radius: var(--radius-sm); background: var(--color-salt); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
+    .signin-usp-item-icon img { width: 18px; height: 18px; }
+    .signin-usp-item-text { padding-top: 2px; }
+    .signin-usp-item-title { font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); margin-bottom: 1px; }
+    .signin-usp-item-desc { font-size: var(--text-body-xs-size); color: var(--color-squid-500); line-height: var(--text-body-xs-lh); }
+
+    /* ================================================================
+       PROFILE PANEL — opens from the signed-in avatar. Shares the
+       .signin-backdrop/.signin-panel shell above (generic side-panel
+       mechanics) — content below is profile-specific. Based on Figma
+       node 202:18, mapped to DS tokens; closest existing token used
+       wherever an exact value wasn't available (avatar ring →
+       --color-smoke).
+    ================================================================ */
+    /* Unlike the sign-in panel, this header bar is dark (merges
+       visually into .pp-header below it) with a larger ghost-on-dark
+       close button — scoped overrides on the shared .signin-panel-hd/
+       .signin-close so the sign-in panel itself stays untouched. */
+    #profile-panel .signin-panel-hd {
+      height: auto; padding: var(--space-4) var(--space-5);
+      background: var(--color-brand-dark);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    #profile-panel .signin-close {
+      width: 42px; height: 42px; color: var(--color-salt);
+      background: color-mix(in srgb, var(--color-salt) 15%, transparent);
+    }
+    #profile-panel .signin-close:hover { background: color-mix(in srgb, var(--color-salt) 22%, transparent); }
+    #profile-panel .signin-close svg { width: 16px; height: 16px; }
+    .av--xl .av-circle { --av-circle-size: 60px; border: 1px solid var(--color-smoke); }
+    .av--xl .av-initials { font-size: 24px; }
+    .pp-body { flex: 1; overflow-y: auto; }
+    .pp-header {
+      background: var(--color-brand-dark);
+      padding: var(--space-9) var(--space-5) var(--space-20);
+      display: flex; align-items: center; gap: var(--space-3);
+    }
+    .pp-header-text { display: flex; flex-direction: column; gap: 2px; }
+    .pp-header-name { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-salt); }
+    .pp-header-role { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: rgba(255,255,255,0.75); }
+    /* Loyalty Card (DS component, compact variant — see index-v2.html's
+       "Loyalty Card" docs section). Overlaps the header above it by
+       design (-32px); that overlap is specific to this layout, so it's
+       kept off the shared .loyalty-card--compact class itself. */
+    .pp-header + .loyalty-card { margin: -40px var(--space-5) 0; }
+    .loyalty-card {
+      position: relative; overflow: hidden; isolation: isolate;
+      background: var(--color-gold);
+      border: 1px solid #fff4da;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-raised);
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--space-3); padding: var(--space-8) var(--space-4);
+    }
+    .loyalty-card::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 41.045%);
+      mix-blend-mode: overlay; pointer-events: none;
+    }
+    .loyalty-title { font-size: var(--text-h3-size); font-weight: var(--text-h3-w); line-height: var(--text-h3-lh); color: var(--color-brand-dark); text-shadow: 0 1px 0 rgba(255,255,255,0.5); position: relative; z-index: 1; }
+    .loyalty-pill {
+      background: var(--color-mushroom-100); border: 1px solid var(--color-gold); border-radius: var(--radius-full);
+      padding: var(--space-3); display: flex; align-items: center; gap: var(--space-2);
+      box-shadow: 0 0 4px var(--color-gold);
+      position: relative; z-index: 1;
+    }
+    .loyalty-num { font-size: var(--text-numeral-lg-size); font-weight: var(--text-numeral-lg-w); line-height: var(--text-numeral-lg-lh); color: var(--color-brand-dark); white-space: nowrap; }
+    .loyalty-expiry { font-size: var(--text-body-sm-size); font-weight: 400; line-height: var(--text-body-sm-lh); color: var(--color-salt); text-shadow: 0 1px 0 rgba(0,0,0,0.1); position: relative; z-index: 1; text-align: center; }
+    /* Compact (horizontal) — side panels, nav drawers */
+    .loyalty-card--compact {
+      flex-direction: row; align-items: center; justify-content: space-between;
+      gap: var(--space-3); padding: var(--space-4) var(--space-5);
+    }
+    .loyalty-card--compact .loyalty-title { font-size: var(--text-h6-size); font-weight: var(--text-h6-w); line-height: var(--text-h6-lh); text-shadow: none; margin-bottom: 2px; }
+    .loyalty-card--compact .loyalty-pill { padding: 0 var(--space-4); height: 41px; }
+    .loyalty-card--compact .loyalty-num { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); letter-spacing: -0.2px; }
+    .loyalty-info { position: relative; z-index: 1; }
+    .loyalty-link {
+      position: relative; z-index: 1;
+      font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark);
+      background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-family);
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .pp-menu { padding: var(--space-10) var(--space-5) 0; }
+    .pp-menu-row {
+      width: 100%; display: block; text-align: left; background: none; border: none;
+      border-bottom: 1px solid var(--color-mushroom-300);
+      padding: var(--space-3) 0; font-family: var(--font-family);
+      font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark);
+      cursor: pointer; transition: color 0.15s;
+    }
+    .pp-menu-row:last-child { border-bottom: none; }
+    .pp-menu-row:hover { color: var(--color-accessible-orange); }
+    .pp-actions { padding: var(--space-9) var(--space-5) var(--space-8); display: flex; flex-direction: column; align-items: center; gap: var(--space-12); }
+    .pp-logout {
+      background: none; border: none; cursor: pointer; font-family: var(--font-family);
+      font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark);
+    }
+    .pp-logout:hover { color: var(--color-accessible-orange); }
+
+    /* State indicator badge — click toggles the ctrl-bar open/closed.
+       Sits at the true bottom corner while closed, then lifts to clear
+       the bar (108px) once .ctrl-bar-open is set on <body>. */
+    .state-badge {
+      position: fixed; bottom: 24px; right: 24px; z-index: 400;
+      background: var(--color-squid-900); color: rgba(255,255,255,0.7);
+      font-size: 10px; font-weight: var(--text-btn-w); letter-spacing: 0.4px;
+      padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+      line-height: 16px; border: none; display: block; text-align: left; cursor: pointer;
+      transition: bottom 0.28s ease, background 0.15s;
+    }
+    .state-badge:hover { background: var(--color-squid-700); }
+    body.ctrl-bar-open .state-badge { bottom: 108px; }
+    .state-badge strong { color: var(--color-salt); display: block; margin-bottom: 2px; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5; }
+    @media (max-width: 768px) {
+      .state-badge { display: none; }
+    }
+  </style>
+</head>
+<body class="color-light">
+
+  <!-- ================================================================
+       CONTROLS BAR
+  ================================================================ -->
+  <div class="ctrl-bar" id="ctrl-bar">
+    <div class="ctrl-brand">
+      <img src="images/ufs-logo.png" alt="UFS"/>
+      <span class="ctrl-brand-label text-body-xs">Full Page Preview</span>
+    </div>
+    <div class="ctrl-groups">
+      <div class="ctrl-group">
+        <span class="ctrl-label">View</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-view-desktop" onclick="setView('desktop')">Desktop</button>
+          <button class="ctrl-btn"           id="ctrl-view-mobile"  onclick="setView('mobile')">Mobile</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Color</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-color-light" onclick="setColor('light')">Light</button>
+          <button class="ctrl-btn"           id="ctrl-color-dark"  onclick="setColor('dark')">Dark</button>
+          <button class="ctrl-btn"           id="ctrl-color-glass" onclick="setColor('glass')">Glass</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Webshop</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-ws-true"  onclick="setWebshop(true)">With Cart</button>
+          <button class="ctrl-btn"           id="ctrl-ws-false" onclick="setWebshop(false)">No Webshop</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">User</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-auth-false" onclick="setAuth(false)">Sign In</button>
+          <button class="ctrl-btn"           id="ctrl-auth-true"  onclick="setAuth(true)">Logged In</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <iframe id="mobile-preview-frame" title="Mobile preview"></iframe>
+
+  <div id="real-page-content">
+  <!-- ================================================================
+       PAGE HEADER (fixed)
+  ================================================================ -->
+  <header class="page-header" id="page-header">
+    <!-- Utility bar -->
+    <div class="ufs-util ufs-util--light" id="util-bar">
+      <div class="ufs-util__links">
+        <span class="ufs-util__link">About Us</span>
+        <span class="ufs-util__sep"></span>
+        <span class="ufs-util__link">Contact</span>
+        <span class="ufs-util__sep"></span>
+        <span class="ufs-util__link">Help &amp; Support</span>
+        <span class="ufs-util__sep"></span>
+        <span class="ufs-util__link" id="util-ws-link">Track Your Order</span>
+      </div>
+      <div class="ufs-util__right">
+        <div class="ufs-util__lang-wrap" id="lang-wrap-1">
+          <div class="ufs-util__lang text-body-xs" onclick="toggleLangDrop('lang-wrap-1','lang-drop-1')"><svg class="ufs-icon ufs-icon-globe" viewBox="0 0 45 45" fill="none" aria-hidden="true" style="width:var(--space-5);height:var(--space-5);flex-shrink:0"><path fill-rule="evenodd" clip-rule="evenodd" d="M40.5 22.5C40.5 12.7252 32.673 4.74882 22.9561 4.50571L22.4993 4.5L22.0425 4.50571C12.3268 4.74883 4.5 12.7255 4.5 22.5C4.5 32.4259 12.574 40.5 22.4993 40.5C32.4258 40.5 40.5 32.4261 40.5 22.5ZM7.5 22.5C7.5 14.3698 14.0039 7.72857 22.0802 7.50577L22.4993 7.5L22.9185 7.50577C30.9959 7.72856 37.5 14.3696 37.5 22.5C37.5 30.7692 30.7689 37.5 22.4993 37.5C14.2309 37.5 7.5 30.769 7.5 22.5Z" fill="currentColor"/><path d="M22.4993 4.75793C23.2686 4.75793 23.9026 5.33699 23.9892 6.083L23.9993 6.25793V38.7422C23.9993 39.5706 23.3277 40.2422 22.4993 40.2422C21.73 40.2422 21.096 39.6631 21.0094 38.9171L20.9993 38.7422V6.25793C20.9993 5.42951 21.6709 4.75793 22.4993 4.75793Z" fill="currentColor"/><path d="M20.1923 5.38265C20.8895 5.83016 21.0918 6.7581 20.6443 7.45525L20.4169 7.82245L20.0947 8.3692L19.8339 8.82738C19.2127 9.93341 18.5908 11.1515 18.0111 12.442C16.8394 15.0502 15.9955 17.6066 15.6185 19.9641C15.4765 20.8523 15.4036 21.6995 15.4036 22.4999C15.4036 23.2977 15.476 24.1418 15.6171 25.0267C15.9933 27.3861 16.8378 29.9447 18.011 32.555C18.5907 33.8448 19.2126 35.0623 19.8337 36.1677L20.2116 36.8269L20.5797 37.4373C20.6031 37.4747 20.6246 37.5086 20.6441 37.5389C21.0918 38.2359 20.8897 39.1639 20.1927 39.6116C19.4957 40.0594 18.5677 39.8573 18.1199 39.1602L17.8633 38.7454L17.3899 37.9399C17.3337 37.8418 17.2765 37.7409 17.2183 37.6374C16.5555 36.4577 15.8934 35.1615 15.2746 33.7849C14.0015 30.9522 13.0777 28.1533 12.6545 25.499C12.4895 24.4638 12.4036 23.4629 12.4036 22.4999C12.4036 21.5338 12.49 20.5294 12.6562 19.4904C13.0801 16.8388 14.0032 14.0426 15.2745 11.2126C15.8932 9.83542 16.5553 8.53855 17.2182 7.35834L17.7127 6.50088L18.1197 5.83467C18.5672 5.13751 19.4952 4.93514 20.1923 5.38265Z" fill="currentColor"/><path d="M25.2559 39.8584C24.5587 39.4109 24.3563 38.483 24.8039 37.7858L25.1288 37.2557L25.4796 36.6519C25.5231 36.5755 25.5681 36.4961 25.6143 36.4137C26.2355 35.3077 26.8574 34.0895 27.4371 32.7991C28.6088 30.1909 29.4527 27.6345 29.8297 25.277C29.9717 24.3888 30.0446 23.5416 30.0446 22.7411C30.0446 21.9434 29.9722 21.0993 29.8311 20.2144C29.4549 17.855 28.6104 15.2964 27.4372 12.686C26.8575 11.3962 26.2356 10.1788 25.6145 9.07341L25.129 8.23191L24.8041 7.70218C24.3564 7.00515 24.5585 6.07716 25.2555 5.62944C25.9525 5.18173 26.8805 5.38383 27.3282 6.08086L27.5014 6.3585L27.7353 6.74673L28.0583 7.30122C28.1144 7.3993 28.1716 7.50016 28.2298 7.60374C28.8927 8.78334 29.5548 10.0796 30.1735 11.4562C31.4467 14.2889 32.3705 17.0878 32.7937 19.7421C32.9587 20.7772 33.0446 21.7782 33.0446 22.7411C33.0446 23.7073 32.9581 24.7117 32.792 25.7507C32.3681 28.4023 31.445 31.1985 30.1736 34.0285C29.555 35.4057 28.8929 36.7025 28.23 37.8827L27.8935 38.4714L27.4307 39.2438L27.3285 39.4064C26.881 40.1036 25.953 40.306 25.2559 39.8584Z" fill="currentColor"/><path d="M36.9378 27.1875C37.7662 27.1875 38.4378 27.8591 38.4378 28.6875C38.4378 29.4568 37.8587 30.0908 37.1127 30.1774L36.9378 30.1875H7.3978C6.56937 30.1875 5.8978 29.5159 5.8978 28.6875C5.8978 27.9182 6.47686 27.2842 7.22286 27.1976L7.3978 27.1875H36.9378Z" fill="currentColor"/><path d="M38.35 16.8751C39.1784 16.8751 39.85 17.5467 39.85 18.3751C39.85 19.1444 39.2709 19.7784 38.5249 19.865L38.35 19.8751H6.88013C6.0517 19.8751 5.38013 19.2035 5.38013 18.3751C5.38013 17.6059 5.95919 16.9719 6.7052 16.8852L6.88013 16.8751H38.35Z" fill="currentColor"/></svg>United States &middot; EN <svg class="ufs-icon ufs-lang-drop-arrow" viewBox="0 0 45 45" fill="none" aria-hidden="true" style="width:9px;height:9px;transform:rotate(90deg)"><path d="M17.6214 9.49108C18.1294 9.42769 18.6277 9.53396 19.0577 9.79119L30.3572 20.8504C30.7807 21.2684 31.0104 21.8053 31.0453 22.3524C31.0753 22.8224 30.9617 23.2997 30.7046 23.7149L19.502 34.8638C19.0382 35.3216 18.4302 35.55 17.8224 35.55C17.2146 35.55 16.6066 35.3216 16.1428 34.8638C15.7193 34.4459 15.4896 33.9089 15.4547 33.3619C15.4247 32.8918 15.5383 32.4145 15.7955 31.9994L25.326 22.4998L16.1428 13.4352C15.7193 13.0173 15.4896 12.4803 15.4547 11.9333C15.4201 11.391 15.5766 10.839 15.9243 10.3841C16.4582 9.85219 17.0437 9.56315 17.6214 9.49108Z" fill="currentColor"/></svg></div>
+          <div class="ufs-lang-drop" id="lang-drop-1">
+            <div class="ufs-lang-drop__list">
+              <div class="ufs-lang-drop__item is-active">
+                <div class="ufs-lang-drop__item-name"><span>English</span><span class="ufs-lang-drop__item-code">EN</span></div>
+                <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg>
+              </div>
+              <div class="ufs-lang-drop__item">
+                <div class="ufs-lang-drop__item-name"><span>العربية</span><span class="ufs-lang-drop__item-code">AR</span></div>
+              </div>
+              <div class="ufs-lang-drop__item">
+                <div class="ufs-lang-drop__item-name"><span>Español</span><span class="ufs-lang-drop__item-code">ES</span></div>
+              </div>
+            </div>
+            <div class="ufs-lang-drop__website">
+              <div class="ufs-lang-drop__website-text">You're on the <span class="ufs-lang-drop__website-country">United States</span> website</div>
+              <span class="ufs-lang-drop__change">Change country <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Main nav -->
+    <nav class="ufs-nav ufs-nav--light" id="main-nav">
+      <div class="ufs-nav__logo">
+        <img src="images/ufs-logo.png" alt="UFS" id="nav-logo"/>
+      </div>
+      <div class="ufs-nav__links">
+        <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link" onclick="closeAllMegamenus()">Promotions</div>
+      </div>
+      <div class="ufs-nav__actions">
+        <!-- Fav (always visible) -->
+        <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--24" src="icons/fav.svg" alt="Favourites"/></button>
+        <!-- Cart (webshop only) -->
+        <button class="ufs-nav__icon-btn" id="nav-cart" style="position:relative">
+          <img class="ufs-icon ufs-icon--24" src="icons/cart.svg" alt="Cart"/>
+          <span class="ufs-nav__badge">3</span>
+        </button>
+        <!-- Profile (auth) -->
+        <div class="av av--md" id="nav-profile" style="display:none; cursor:pointer;" onclick="openProfilePanel()">
+          <div class="av-circle"><span class="av-initials">GB</span></div>
+          <div class="av-badge">
+            <svg width="12" height="12" viewBox="0 0 45 45" fill="none" aria-hidden="true">
+              <path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/>
+              <circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/>
+            </svg>
+            24.320
+          </div>
+        </div>
+        <!-- Login / Create Account (non-auth) -->
+        <button class="btn btn-ghost btn-compressed" id="nav-login" style="display:none" onclick="openSignIn('signin')">Sign In</button>
+        <button class="btn btn-primary btn-icon-left btn-compressed" id="nav-signin" style="display:none" onclick="openSignIn('register')">
+          <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="" style="filter:brightness(0) invert(1)"/>Create Account
+        </button>
+      </div>
+
+      <!-- Megamenu: Products -->
+      <div class="ufs-megamenu" id="mm-products">
+        <div class="mm-a">
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Sauces &amp; Condiments</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Ketchup &amp; Tomato Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Mayonnaise &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Hot Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Vinegars &amp; Marinades <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Pastes &amp; Purees <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Dairy &amp; Fats</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Butter &amp; Spreads <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Cream &amp; Creamers <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Cooking Oils <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Cheese Products <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Culinary Bases</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Stocks &amp; Bouillons <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Gravy &amp; Sauce Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Soups &amp; Broths <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Seasoning Blends <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Dessert Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-promo">
+            <div class="mm-promo-img"><span class="mm-promo-img-placeholder text-badge">Product Image</span></div>
+            <div class="mm-promo-body">
+              <div class="mm-promo-over text-overline">New Arrival</div>
+              <div class="mm-promo-title text-body">Knorr Professional Demi-Glace — now in 1 L packs</div>
+              <a class="mm-promo-cta text-body-sm">Explore range <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Megamenu: Recipes -->
+      <div class="ufs-megamenu" id="mm-recipes">
+        <div class="mm-b">
+          <div class="mm-featured">
+            <div class="mm-feat-over text-overline">Chef's Pick</div>
+            <div class="mm-feat-title text-h4">20-Minute Weeknight Recipes</div>
+            <div class="mm-feat-body text-body-sm">Fast, professional-quality dishes built around UFS pantry staples. New recipes added every week.</div>
+            <a class="mm-feat-cta text-body-sm">Browse recipes <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Recipes</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">All Recipes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Starters &amp; Soups <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Mains &amp; Sides <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Desserts <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Sauces &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">By Cuisine</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Asian <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Mediterranean <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Latin American <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Classic European <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-promo">
+            <div class="mm-promo-img"><span class="mm-promo-img-placeholder text-badge">Editorial Image</span></div>
+            <div class="mm-promo-body">
+              <div class="mm-promo-over text-overline">Trending Now</div>
+              <div class="mm-promo-title text-body">Mastering Umami: a free online module for chefs</div>
+              <a class="mm-promo-cta text-body-sm">Start learning <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Megamenu: Training & Inspiration -->
+      <div class="ufs-megamenu" id="mm-training">
+        <div class="mm-a">
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Training</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Chef Training Videos <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Culinary Techniques <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Online Courses <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Certifications <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Inspiration</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Food Trends <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Menu Planning Tools <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Chef Spotlights <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Success Stories <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Resources</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Downloadable Guides <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Webinars &amp; Events <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">UFS Academy <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-promo">
+            <div class="mm-promo-img"><span class="mm-promo-img-placeholder text-badge">Academy Image</span></div>
+            <div class="mm-promo-body">
+              <div class="mm-promo-over text-overline">Free Module</div>
+              <div class="mm-promo-title text-body">Mastering Umami: a free online module for chefs</div>
+              <a class="mm-promo-cta text-body-sm">Start learning <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Mobile nav bar (below 768px) -->
+    <div class="ufs-mnav ufs-mnav--light" id="mobile-nav">
+      <button class="ufs-mnav__btn" onclick="openMobileDrawer()"><img class="ufs-icon ufs-icon--20" src="icons/menu.svg" alt="Menu"/></button>
+      <img src="images/ufs-logo.png" alt="UFS" class="ufs-mnav__logo"/>
+      <div class="ufs-mnav__right">
+        <button class="ufs-mnav__btn"><img class="ufs-icon ufs-icon--20" src="icons/fav.svg" alt="Favourites"/></button>
+        <button class="ufs-mnav__btn" id="mnav-cart" style="position:relative">
+          <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="Cart"/>
+          <span class="ufs-nav__badge">3</span>
+        </button>
+        <button class="ufs-mnav__btn" id="mnav-profile" style="position:relative" onclick="mnavProfileClick()">
+          <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/>
+          <span class="ufs-nav__account-dot is-alert"></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ================================================================
+       MOBILE DRAWER
+  ================================================================ -->
+  <div class="ufs-drawer-backdrop" id="mobile-drawer-backdrop" onclick="closeMobileDrawer()"></div>
+  <div class="ufs-drawer" id="mobile-drawer">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeMobileDrawer()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="ufs-drawer-links">
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)">Products <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link">Ketchup &amp; Tomato Sauces</a>
+        <a class="ufs-drawer-sub-link">Mayonnaise &amp; Dressings</a>
+        <a class="ufs-drawer-sub-link">Hot Sauces</a>
+        <a class="ufs-drawer-sub-link">Vinegars &amp; Marinades</a>
+        <a class="ufs-drawer-sub-link is-extra">Pastes &amp; Purees</a>
+        <a class="ufs-drawer-sub-link is-extra">Butter &amp; Spreads</a>
+        <a class="ufs-drawer-sub-link is-extra">Cream &amp; Creamers</a>
+        <a class="ufs-drawer-sub-link is-extra">Cooking Oils</a>
+        <a class="ufs-drawer-sub-link is-extra">Cheese Products</a>
+        <a class="ufs-drawer-sub-link is-extra">Stocks &amp; Bouillons</a>
+        <a class="ufs-drawer-sub-link is-extra">Gravy &amp; Sauce Mixes</a>
+        <a class="ufs-drawer-sub-link is-extra">Soups &amp; Broths</a>
+        <a class="ufs-drawer-sub-link is-extra">Seasoning Blends</a>
+        <a class="ufs-drawer-sub-link is-extra">Dessert Mixes</a>
+        <button class="ufs-drawer-sub-more" onclick="showDrawerSubMore(this)">View more <img class="ufs-drawer-sub-more-chev" src="icons/arrow.svg" alt=""/></button>
+      </div>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)">Recipes <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link">All Recipes</a>
+        <a class="ufs-drawer-sub-link">Starters &amp; Soups</a>
+        <a class="ufs-drawer-sub-link">Mains &amp; Sides</a>
+        <a class="ufs-drawer-sub-link">Desserts</a>
+        <a class="ufs-drawer-sub-link is-extra">Sauces &amp; Dressings</a>
+        <a class="ufs-drawer-sub-link is-extra">Asian</a>
+        <a class="ufs-drawer-sub-link is-extra">Mediterranean</a>
+        <a class="ufs-drawer-sub-link is-extra">Latin American</a>
+        <a class="ufs-drawer-sub-link is-extra">Classic European</a>
+        <button class="ufs-drawer-sub-more" onclick="showDrawerSubMore(this)">View more <img class="ufs-drawer-sub-more-chev" src="icons/arrow.svg" alt=""/></button>
+      </div>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)">Training &amp; Inspiration <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link">Chef Training Videos</a>
+        <a class="ufs-drawer-sub-link">Culinary Techniques</a>
+        <a class="ufs-drawer-sub-link">Online Courses</a>
+        <a class="ufs-drawer-sub-link">Certifications</a>
+        <a class="ufs-drawer-sub-link is-extra">Food Trends</a>
+        <a class="ufs-drawer-sub-link is-extra">Menu Planning Tools</a>
+        <a class="ufs-drawer-sub-link is-extra">Chef Spotlights</a>
+        <a class="ufs-drawer-sub-link is-extra">Success Stories</a>
+        <a class="ufs-drawer-sub-link is-extra">Downloadable Guides</a>
+        <a class="ufs-drawer-sub-link is-extra">Webinars &amp; Events</a>
+        <a class="ufs-drawer-sub-link is-extra">UFS Academy</a>
+        <button class="ufs-drawer-sub-more" onclick="showDrawerSubMore(this)">View more <img class="ufs-drawer-sub-more-chev" src="icons/arrow.svg" alt=""/></button>
+      </div>
+      <button class="ufs-drawer-acc-trigger" style="border-bottom:none">Promotions</button>
+    </div>
+    <div class="ufs-drawer-util">
+      <div class="ufs-drawer-util-title">More</div>
+      <a class="ufs-drawer-util-link">About Us</a>
+      <a class="ufs-drawer-util-link">Contact</a>
+      <a class="ufs-drawer-util-link">Help &amp; Support</a>
+      <a class="ufs-drawer-util-link" id="drawer-ws-link">Track Your Order</a>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)"><span class="ufs-drawer-acc-label"><svg class="ufs-icon ufs-drawer-acc-globe" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M40.5 22.5C40.5 12.7252 32.673 4.74882 22.9561 4.50571L22.4993 4.5L22.0425 4.50571C12.3268 4.74883 4.5 12.7255 4.5 22.5C4.5 32.4259 12.574 40.5 22.4993 40.5C32.4258 40.5 40.5 32.4261 40.5 22.5ZM7.5 22.5C7.5 14.3698 14.0039 7.72857 22.0802 7.50577L22.4993 7.5L22.9185 7.50577C30.9959 7.72856 37.5 14.3696 37.5 22.5C37.5 30.7692 30.7689 37.5 22.4993 37.5C14.2309 37.5 7.5 30.769 7.5 22.5Z" fill="currentColor"/><path d="M22.4993 4.75793C23.2686 4.75793 23.9026 5.33699 23.9892 6.083L23.9993 6.25793V38.7422C23.9993 39.5706 23.3277 40.2422 22.4993 40.2422C21.73 40.2422 21.096 39.6631 21.0094 38.9171L20.9993 38.7422V6.25793C20.9993 5.42951 21.6709 4.75793 22.4993 4.75793Z" fill="currentColor"/><path d="M20.1923 5.38265C20.8895 5.83016 21.0918 6.7581 20.6443 7.45525L20.4169 7.82245L20.0947 8.3692L19.8339 8.82738C19.2127 9.93341 18.5908 11.1515 18.0111 12.442C16.8394 15.0502 15.9955 17.6066 15.6185 19.9641C15.4765 20.8523 15.4036 21.6995 15.4036 22.4999C15.4036 23.2977 15.476 24.1418 15.6171 25.0267C15.9933 27.3861 16.8378 29.9447 18.011 32.555C18.5907 33.8448 19.2126 35.0623 19.8337 36.1677L20.2116 36.8269L20.5797 37.4373C20.6031 37.4747 20.6246 37.5086 20.6441 37.5389C21.0918 38.2359 20.8897 39.1639 20.1927 39.6116C19.4957 40.0594 18.5677 39.8573 18.1199 39.1602L17.8633 38.7454L17.3899 37.9399C17.3337 37.8418 17.2765 37.7409 17.2183 37.6374C16.5555 36.4577 15.8934 35.1615 15.2746 33.7849C14.0015 30.9522 13.0777 28.1533 12.6545 25.499C12.4895 24.4638 12.4036 23.4629 12.4036 22.4999C12.4036 21.5338 12.49 20.5294 12.6562 19.4904C13.0801 16.8388 14.0032 14.0426 15.2745 11.2126C15.8932 9.83542 16.5553 8.53855 17.2182 7.35834L17.7127 6.50088L18.1197 5.83467C18.5672 5.13751 19.4952 4.93514 20.1923 5.38265Z" fill="currentColor"/><path d="M25.2559 39.8584C24.5587 39.4109 24.3563 38.483 24.8039 37.7858L25.1288 37.2557L25.4796 36.6519C25.5231 36.5755 25.5681 36.4961 25.6143 36.4137C26.2355 35.3077 26.8574 34.0895 27.4371 32.7991C28.6088 30.1909 29.4527 27.6345 29.8297 25.277C29.9717 24.3888 30.0446 23.5416 30.0446 22.7411C30.0446 21.9434 29.9722 21.0993 29.8311 20.2144C29.4549 17.855 28.6104 15.2964 27.4372 12.686C26.8575 11.3962 26.2356 10.1788 25.6145 9.07341L25.129 8.23191L24.8041 7.70218C24.3564 7.00515 24.5585 6.07716 25.2555 5.62944C25.9525 5.18173 26.8805 5.38383 27.3282 6.08086L27.5014 6.3585L27.7353 6.74673L28.0583 7.30122C28.1144 7.3993 28.1716 7.50016 28.2298 7.60374C28.8927 8.78334 29.5548 10.0796 30.1735 11.4562C31.4467 14.2889 32.3705 17.0878 32.7937 19.7421C32.9587 20.7772 33.0446 21.7782 33.0446 22.7411C33.0446 23.7073 32.9581 24.7117 32.792 25.7507C32.3681 28.4023 31.445 31.1985 30.1736 34.0285C29.555 35.4057 28.8929 36.7025 28.23 37.8827L27.8935 38.4714L27.4307 39.2438L27.3285 39.4064C26.881 40.1036 25.953 40.306 25.2559 39.8584Z" fill="currentColor"/><path d="M36.9378 27.1875C37.7662 27.1875 38.4378 27.8591 38.4378 28.6875C38.4378 29.4568 37.8587 30.0908 37.1127 30.1774L36.9378 30.1875H7.3978C6.56937 30.1875 5.8978 29.5159 5.8978 28.6875C5.8978 27.9182 6.47686 27.2842 7.22286 27.1976L7.3978 27.1875H36.9378Z" fill="currentColor"/><path d="M38.35 16.8751C39.1784 16.8751 39.85 17.5467 39.85 18.3751C39.85 19.1444 39.2709 19.7784 38.5249 19.865L38.35 19.8751H6.88013C6.0517 19.8751 5.38013 19.2035 5.38013 18.3751C5.38013 17.6059 5.95919 16.9719 6.7052 16.8852L6.88013 16.8751H38.35Z" fill="currentColor"/></svg>United States &middot; EN</span><svg class="ufs-icon ufs-drawer-acc-chev" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M17.6214 9.49108C18.1294 9.42769 18.6277 9.53396 19.0577 9.79119L30.3572 20.8504C30.7807 21.2684 31.0104 21.8053 31.0453 22.3524C31.0753 22.8224 30.9617 23.2997 30.7046 23.7149L19.502 34.8638C19.0382 35.3216 18.4302 35.55 17.8224 35.55C17.2146 35.55 16.6066 35.3216 16.1428 34.8638C15.7193 34.4459 15.4896 33.9089 15.4547 33.3619C15.4247 32.8918 15.5383 32.4145 15.7955 31.9994L25.326 22.4998L16.1428 13.4352C15.7193 13.0173 15.4896 12.4803 15.4547 11.9333C15.4201 11.391 15.5766 10.839 15.9243 10.3841C16.4582 9.85219 17.0437 9.56315 17.6214 9.49108Z" fill="currentColor"/></svg></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link is-active">English <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link">العربية <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link">Español <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link ufs-lang-drop__change">Change country <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       PAGE CONTENT
+  ================================================================ -->
+  <main>
+    <!-- Hero -->
+    <section class="pg-hero btn-on-dark">
+      <div class="pg-hero-content">
+        <div class="pg-hero-eyebrow text-overline">Professional Culinary Solutions</div>
+        <h1 class="pg-hero-title text-display">Elevate every dish<br>with UFS</h1>
+        <p class="pg-hero-sub text-body">Premium sauces, culinary bases and seasonings trusted by chefs and foodservice operators worldwide.</p>
+        <div class="pg-hero-actions">
+          <button class="btn btn-primary">Explore Products</button>
+          <button class="btn btn-secondary">Watch how it works</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Products -->
+    <section class="pg-products">
+      <div class="pg-section-eyebrow text-overline">Our Portfolio</div>
+      <h2 class="pg-section-title text-h3">Featured Products</h2>
+      <p class="pg-section-sub">From classic stock bases to innovative sauces — everything you need in a professional kitchen.</p>
+      <div class="pg-cards-grid">
+        <!-- Card 1 -->
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:linear-gradient(135deg,#f0c89a 0%,#d4850a 100%)"></div>
+            <span class="pg-card-brand text-badge">Knorr</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm">Knorr Classic Demi-Glace</div>
+            <div class="pg-card-desc text-body-xs">Concentrated veal-based sauce — rich, glossy finish in minutes.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge">Sauce Base</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:linear-gradient(135deg,#c8e0b0 0%,#5a9a30 100%)"></div>
+            <span class="pg-card-brand text-badge">Hellmann's</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm">Hellmann's Real Mayonnaise</div>
+            <div class="pg-card-desc text-body-xs">Classic creamy mayo made with responsibly sourced eggs.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge">Condiment</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+        <!-- Card 3 -->
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:linear-gradient(135deg,#e8b0c0 0%,#c02060 100%)"></div>
+            <span class="pg-card-brand text-badge">Knorr</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm">Knorr Chicken Bouillon</div>
+            <div class="pg-card-desc text-body-xs">Adds depth and warmth to soups, braises and risottos.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge">Stock Base</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+        <!-- Card 4 -->
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:linear-gradient(135deg,#b0c8f0 0%,#3060c0 100%)"></div>
+            <span class="pg-card-brand text-badge">Maizena</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm">Maizena Corn Starch</div>
+            <div class="pg-card-desc text-body-xs">Smooth, lump-free thickening for sauces, soups and desserts.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge">Thickener</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inspiration -->
+    <section class="pg-inspiration">
+      <div class="pg-section-eyebrow text-overline">Chef's Picks</div>
+      <h2 class="pg-section-title text-h3">Recipes &amp; Inspiration</h2>
+      <p class="pg-section-sub">Curated techniques and recipes from UFS culinary experts and partner chefs.</p>
+      <div class="pg-inspo-grid">
+        <div class="pg-inspo-feature">
+          <div style="position:absolute;inset:0;background:url('') center/cover,linear-gradient(135deg,#7a3a10,#3b1e08)"></div>
+          <div class="pg-inspo-feature-body">
+            <div class="pg-inspo-feature-tag text-badge">Recipe of the Week</div>
+            <div class="pg-inspo-feature-title text-h4">Pan-seared salmon with classic demi-glace</div>
+            <div class="pg-inspo-feature-meta text-body-xs">By Chef Marco Valli &nbsp;·&nbsp; 25 min &nbsp;·&nbsp; Intermediate</div>
+          </div>
+        </div>
+        <div class="pg-inspo-small-col">
+          <div class="pg-inspo-small">
+            <div class="pg-inspo-small-img" style="background:linear-gradient(135deg,#c8e0b0,#5a9a30)"></div>
+            <div class="pg-inspo-small-body">
+              <div class="pg-inspo-small-tag text-badge">Technique</div>
+              <div class="pg-inspo-small-title text-body-sm">How to build a perfect pan sauce in 5 steps</div>
+            </div>
+          </div>
+          <div class="pg-inspo-small">
+            <div class="pg-inspo-small-img" style="background:linear-gradient(135deg,#f0c89a,#d4850a)"></div>
+            <div class="pg-inspo-small-body">
+              <div class="pg-inspo-small-tag text-badge">Training</div>
+              <div class="pg-inspo-small-title text-body-sm">UFS Academy: Sauce masterclass — now free</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="pg-bottom-space"></div>
+  </main>
+
+  <!-- ================================================================
+       FLOATING BAR E (fixed)
+  ================================================================ -->
+  <div class="fbe-fixed" id="fbe-fixed">
+    <!-- Mic panel -->
+    <div class="fbe__panel fbe__panel--mic" id="fbe-panel-mic">
+      <div class="fbe-mic-hd">
+        <div class="fbe-mic-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          Voice
+        </div>
+        <button class="fbe__panel-close fbe__panel-close--dark" onclick="closeFbe('mic')">
+          <svg viewBox="0 0 12 12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+        </button>
+      </div>
+      <div class="fbe-mic-body">
+        <div class="fbe-mic-status fbe-mic-status--listening text-badge" id="fbe-mic-status"><span class="fbe-mic-dot"></span> Listening…</div>
+        <div class="fbe-wave" id="fbe-wave">
+          <div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div>
+          <div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div>
+          <div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div>
+          <div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div>
+          <div class="fbe-wave-bar"></div>
+        </div>
+        <div class="fbe-mic-transcript text-body-sm" id="fbe-mic-transcript"></div>
+        <div class="fbe-mic-sim" id="fbe-mic-sim">
+          <button class="fbe-mic-sim-btn fbe-mic-sim-btn--search" onclick="simMic('search')">→ Search phrase</button>
+          <button class="fbe-mic-sim-btn fbe-mic-sim-btn--ai" onclick="simMic('ai')">→ Question</button>
+        </div>
+      </div>
+      <div class="fbe-mic-footer text-body-xs">Say something to search, or ask a question to escalate to AI.</div>
+    </div>
+    <!-- Ideas panel -->
+    <div class="fbe__panel fbe__panel--ideas" id="fbe-panel-ideas">
+      <div class="fbe-ideas-hd">
+        <div class="fbe-ideas-title"><img src="icons/sprinkle.svg" alt=""/> Ideas for you</div>
+        <button class="fbe__panel-close fbe__panel-close--light" onclick="closeFbe('ideas')">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+        </button>
+      </div>
+      <div class="fbe-ideas-sub text-body-xs">Based on your recent activity</div>
+      <div class="fbe-tip"><div class="fbe-tip-ico fbe-tip-ico--a">🔥</div><div class="fbe-tip-text"><div class="fbe-tip-label text-body-sm">Try Hellmann's plant-based range</div><div class="fbe-tip-meta text-body-xs">New · 6 products added</div></div><svg class="fbe-tip-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg></div>
+      <div class="fbe-tip"><div class="fbe-tip-ico fbe-tip-ico--b">📖</div><div class="fbe-tip-text"><div class="fbe-tip-label text-body-sm">3 new summer pasta recipes</div><div class="fbe-tip-meta text-body-xs">Added this week</div></div><svg class="fbe-tip-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg></div>
+      <div class="fbe-tip"><div class="fbe-tip-ico fbe-tip-ico--a">⭐</div><div class="fbe-tip-text"><div class="fbe-tip-label text-body-sm">Your saved recipe: Thai Green Curry</div><div class="fbe-tip-meta text-body-xs">Saved 3 days ago</div></div><svg class="fbe-tip-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg></div>
+      <div class="fbe-tip"><div class="fbe-tip-ico fbe-tip-ico--b">💡</div><div class="fbe-tip-text"><div class="fbe-tip-label text-body-sm">Chef tip: Reduce sauces by ⅓ for intensity</div><div class="fbe-tip-meta text-body-xs">Technique · 2 min read</div></div><svg class="fbe-tip-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg></div>
+      <div class="fbe-tip"><div class="fbe-tip-ico fbe-tip-ico--b">🛒</div><div class="fbe-tip-text"><div class="fbe-tip-label text-body-sm">Reorder: Knorr Chicken Stock</div><div class="fbe-tip-meta text-body-xs">Last ordered 14 days ago</div></div><svg class="fbe-tip-chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 2l4 4-4 4"/></svg></div>
+    </div>
+    <!-- AI panel -->
+    <div class="fbe__panel fbe__panel--ai" id="fbe-panel-ai">
+      <div class="fbe-ai-hd">
+        <div class="fbe-ai-title"><img src="icons/chat.svg" alt=""/> Ask AI <span class="fbe-ai-badge">Beta</span></div>
+        <button class="fbe__panel-close fbe__panel-close--dark" onclick="closeFbe('ai')">
+          <svg viewBox="0 0 12 12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+        </button>
+      </div>
+      <div class="fbe-ai-msgs" id="fbe-ai-msgs">
+        <div class="fbe-ai-msg">
+          <div class="fbe-ai-ava fbe-ai-ava--ai">AI</div>
+          <div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm">Hi! I'm the UFS AI. Ask me about products, recipes, or cooking techniques.</div>
+        </div>
+        <div class="fbe-ai-msg fbe-ai-msg--user">
+          <div class="fbe-ai-ava fbe-ai-ava--user">FC</div>
+          <div class="fbe-ai-bubble fbe-ai-bubble--user text-body-sm">What sauce works well with grilled salmon?</div>
+        </div>
+        <div class="fbe-ai-msg">
+          <div class="fbe-ai-ava fbe-ai-ava--ai">AI</div>
+          <div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm">Great choice! I'd recommend the <strong>Knorr Classic Demi-Glace</strong> — it adds depth without overpowering. Want me to find recipes using it?</div>
+        </div>
+      </div>
+      <div class="fbe-ai-input-row">
+        <input class="fbe-ai-input" id="fbe-ai-input" type="text" placeholder="Ask a follow-up…" onkeydown="if(event.key==='Enter')sendAiMsg()"/>
+        <button class="fbe-ai-send" onclick="sendAiMsg()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Search panel (mobile only — desktop keeps the inline search bar) -->
+    <div class="fbe__panel fbe__panel--search" id="fbe-panel-search">
+      <div class="fbe__search">
+        <img class="fbe__search-icon" src="icons/Search.svg" alt=""/>
+        <input class="fbe__input" id="fbe-search-panel-input" type="text" placeholder="Search products, recipes, inspiration…" autocomplete="off"/>
+        <button class="fbe__submit">
+          <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Bar -->
+    <div class="fbe">
+      <div class="fbe__icons">
+        <button class="fbe__icon-btn" id="fbe-btn-mic" onclick="toggleFbe('mic')">
+          <div class="fbe__icon-wrap fbe__icon-wrap--mic">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </div>
+          <span class="fbe__label">Voice</span>
+        </button>
+        <button class="fbe__icon-btn" id="fbe-btn-ideas" onclick="toggleFbe('ideas')">
+          <div class="fbe__icon-wrap fbe__icon-wrap--ideas">
+            <svg viewBox="0 0 45 45" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M40.6475 19.6937C40.0546 21.2583 38.264 23.3665 36.2668 25.3128L35.5549 25.9919C35.3158 26.2153 35.0755 26.4352 34.8355 26.6506L34.1184 27.2821L33.4131 27.8795L32.7294 28.4358C32.6178 28.5247 32.5075 28.6116 32.3987 28.6964L31.7655 29.1783C31.5615 29.3296 31.3652 29.4712 31.1781 29.6019L30.6462 29.9604C30.3122 30.1761 30.0216 30.3438 29.7874 30.4543C28.0022 31.287 24.3061 30.4669 23.256 28.829L23.2042 28.7403L23.1164 28.7486C21.117 28.8706 19.389 26.7103 18.6183 23.8257L18.5394 23.5139C18.3849 22.867 18.4817 22.1881 18.8035 21.6128L18.9347 21.4022L19.801 20.145L8.70432 19.4012C7.10231 19.3624 5.92214 18.3345 5.63057 16.9613L5.59028 16.7293C5.39097 15.2614 6.27031 13.9225 7.84206 13.7422L8.07127 13.7245L14.0839 13.8042L12.3184 13.2271L11.215 12.8507L10.591 12.6244L10.1488 12.448C8.85793 11.8901 8.17098 10.5298 8.31841 9.19809C8.47738 7.76219 9.58744 6.74487 11.1326 6.98239L11.3562 7.02495L18.6117 9.11216L15.638 6.84186C14.5394 5.99163 14.2594 4.61 14.798 3.49207L14.9085 3.28574C15.6066 2.10732 17.0281 1.73163 18.1431 2.46048L18.3259 2.59223L26.6703 7.55818C27.614 8.12286 28.6613 8.49358 29.7509 8.64881C30.4558 8.74878 31.3488 8.80535 32.3986 8.82324L33.3361 8.82921C33.4985 8.82866 33.664 8.82736 33.8323 8.8253L34.8768 8.80408L35.9871 8.76558L37.1588 8.71043L38.3877 8.63932C38.597 8.62617 38.8085 8.61238 39.0221 8.59797C39.6164 8.55766 39.9928 8.86388 40.2278 9.27245C40.3229 9.43785 40.3887 9.6163 40.4448 9.82655C40.4764 9.9449 40.5055 10.0775 40.5327 10.2247L40.6085 10.7103L40.6768 11.3083L40.7376 12.0259L40.7882 12.8304L40.8281 13.7068L40.8639 14.9321L40.8788 16.0309L40.8784 16.7183L40.8617 17.6598L40.8395 18.2148L40.8083 18.7015L40.7678 19.111C40.7452 19.295 40.7191 19.4467 40.6892 19.5613L40.6582 19.6633L38.5617 18.9052L40.6475 19.6937ZM8.10539 16.0617C7.93359 16.069 7.87235 16.1566 7.90739 16.4147C7.95221 16.7448 8.18073 16.9907 8.6312 17.0517L24.058 18.085L20.86 22.7293C20.8108 22.8006 20.7942 22.8888 20.8137 22.9705C21.2318 24.7191 22.0364 25.9361 22.6526 26.2926L22.7276 26.3312L22.6843 26.2442L22.4247 25.799L22.3573 25.6797C22.1375 25.2856 21.9736 24.942 21.8542 24.5935C21.641 23.9711 21.5889 23.3841 21.786 22.8103C21.9147 22.4427 22.2344 22.0365 22.7508 21.5193L23.1752 21.1094L23.6738 20.651C24.0835 20.2797 24.5894 20.0317 25.1329 19.9358C29.756 19.1194 31.978 23.6952 28.3918 27.2259L28.1866 27.4209L27.84 27.739L27.2702 27.7283L26.9594 27.7376C26.6382 27.7536 26.3174 27.7879 26.0263 27.8438L25.8356 27.8848L25.7036 27.9197L25.7482 27.9405C25.8904 28.0045 26.051 28.0662 26.2249 28.1231L26.495 28.2044C27.4477 28.4676 28.4448 28.5003 28.7943 28.3372C29.0408 28.221 29.3923 28.0021 29.817 27.704L30.3597 27.3098C30.4554 27.2383 30.5534 27.164 30.6536 27.0871L31.2786 26.5958L31.9432 26.0511L32.6351 25.462L33.342 24.8376L34.0516 24.1867L34.7517 23.5185C36.3647 21.9462 37.7997 20.3059 38.3555 19.1135L38.4606 18.868L38.4776 18.7619L38.4935 18.5503L38.5142 18.0622L38.5327 17.1575L38.5368 16.0534L38.528 15.154L38.5067 14.2396L38.4916 13.8014L38.454 12.9705C38.4469 12.8377 38.4394 12.7081 38.4315 12.5818L38.3798 11.8683C38.3704 11.7571 38.3607 11.6501 38.3506 11.5475L38.2853 10.9886L37.2018 11.05L35.9067 11.1096L34.6827 11.149C32.7041 11.1974 31.0381 11.1575 29.7684 11.0087L29.4218 10.9639C28.1984 10.7896 27.017 10.4038 25.9313 9.82568L25.472 9.56621L17.0085 4.51857L16.9587 4.47362L16.9345 4.43853L16.9204 4.47749C16.8424 4.6092 16.8512 4.76572 16.9747 4.90593L17.0628 4.98777L29.9125 14.7929L10.7764 9.28925L10.6983 9.27314C10.6726 9.27173 10.6636 9.28391 10.657 9.32611L10.6426 9.4554C10.6026 9.81647 10.7837 10.175 11.0766 10.3016L11.4721 10.4579L12.0603 10.6693L12.8291 10.932L14.1148 11.3557L16.5895 12.1453L18.5759 12.7653L22.4697 13.9587L30.402 16.3557L8.10539 16.0617ZM23.9953 23.5765L23.9956 23.5773C23.9952 23.5773 23.9951 23.5771 23.9953 23.5765ZM23.9956 23.5773L23.998 23.5834L24.0362 23.7405C24.0444 23.7688 24.0544 23.8005 24.0664 23.8357C24.1161 23.9808 24.1898 24.1456 24.2902 24.3382L24.4947 24.7081L24.7028 25.0637C24.8 25.2293 24.8869 25.4003 24.9611 25.5739L25.0042 25.6859L25.3223 25.6027L25.5852 25.5474C25.8585 25.4949 26.1388 25.4572 26.4205 25.4316L26.9068 25.3995L26.9681 25.3366C28.6166 23.5401 27.8201 21.9514 25.7504 22.2069L25.5392 22.2386C25.4299 22.2579 25.3274 22.3082 25.2432 22.3844L24.8385 22.7614L24.005 23.5703C23.9999 23.5748 23.9967 23.5771 23.9956 23.5773Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M19.423 29.6225L19.2077 29.6087L19.1561 29.609L18.9696 29.6224L18.7608 29.6623C18.3524 29.7636 18.0015 29.9916 17.7524 30.3151L17.6321 30.4934L17.5279 30.6962L17.461 30.8814C17.2161 31.6897 17.5523 32.5566 18.2915 32.9772C18.928 33.3394 19.7212 33.2854 20.3021 32.8403C20.8842 32.3943 21.1384 31.6432 20.9451 30.938C20.7521 30.2336 20.1511 29.7147 19.423 29.6225ZM22.0542 32.4322L22.2695 32.446C22.9976 32.5382 23.5986 33.0571 23.7917 33.7615C23.9849 34.4667 23.7307 35.2178 23.1486 35.6638C22.5678 36.1089 21.7745 36.1629 21.1381 35.8007C20.3988 35.38 20.0626 34.5131 20.3075 33.7049L20.3744 33.5197L20.4786 33.3169L20.5989 33.1386C20.8481 32.8151 21.1989 32.5871 21.6073 32.4858L21.8161 32.4459L22.0026 32.4325L22.0542 32.4322ZM17.8172 37.3566L17.9487 37.2025C18.5764 36.5488 19.6012 36.4569 20.3387 36.9976C21.1463 37.5897 21.3173 38.7207 20.7199 39.5225C20.1239 40.3223 18.9888 40.4912 18.1832 39.9006C17.7956 39.6165 17.5374 39.1908 17.4658 38.7172C17.4063 38.3238 17.4794 37.9226 17.686 37.5535L17.8172 37.3566ZM13.9513 38.3594C13.329 38.7515 13.0067 39.4787 13.1363 40.2001C13.3125 41.1699 14.2374 41.8207 15.2151 41.6634C15.9436 41.5444 16.5267 41.0019 16.6923 40.2882C16.858 39.5741 16.5725 38.8318 15.9705 38.4093C15.4298 38.0299 14.7299 37.976 14.1426 38.2543L13.9513 38.3594ZM23.6929 38.0935L23.4793 38.0791L23.2681 38.0895C22.7796 38.142 22.3271 38.3904 22.0223 38.7861L21.902 38.9644C21.3899 39.8514 21.6918 40.9534 22.5614 41.4482C23.1978 41.8103 23.9911 41.7564 24.572 41.3113C25.1541 40.8653 25.4082 40.1142 25.215 39.409L25.1525 39.2217C24.9117 38.6137 24.3548 38.1773 23.6929 38.0935Z" fill="currentColor"/></svg>
+          </div>
+          <span class="fbe__label">Ideas</span>
+        </button>
+        <button class="fbe__icon-btn" id="fbe-btn-ai" onclick="toggleFbe('ai')">
+          <div class="fbe__icon-wrap fbe__icon-wrap--ai">
+            <svg viewBox="0 0 45 45" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M10.725 7.5C8.11545 7.5 6 9.52029 6 12.0124V27.0539C6 29.546 8.11545 31.5663 10.725 31.5663H28.9792L34.8068 35.5634C35.104 35.8449 35.5064 36.0019 35.925 35.9996C36.1316 36.0047 36.3366 35.9635 36.5235 35.8792C37.1116 35.6485 37.4968 35.1027 37.5 34.4954V12.0124C37.5 9.52029 35.3845 7.5 32.775 7.5H10.725ZM30.5933 28.8834C30.296 28.6034 29.8936 28.4473 29.475 28.4496H10.575C9.70515 28.4496 9 27.7799 9 26.9538V11.9958C9 11.1697 9.70515 10.5 10.575 10.5H32.625C33.4948 10.5 34.2 11.1697 34.2 11.9958V31.5L30.5933 28.8834ZM19.35 20.25C19.35 21.4926 20.4077 22.5 21.7125 22.5C23.0173 22.5 24.075 21.4926 24.075 20.25C24.075 19.0074 23.0173 18 21.7125 18C20.4077 18 19.35 19.0074 19.35 20.25ZM12.375 20.25C12.375 21.4926 13.4327 22.5 14.7375 22.5C16.0423 22.5 17.1 21.4926 17.1 20.25C17.1 19.0074 16.0423 18 14.7375 18C13.4327 18 12.375 19.0074 12.375 20.25ZM26.325 20.25C26.325 21.4926 27.3827 22.5 28.6875 22.5C29.9923 22.5 31.05 21.4926 31.05 20.25C31.05 19.0074 29.9923 18 28.6875 18C27.3827 18 26.325 19.0074 26.325 20.25Z" fill="currentColor"/></svg>
+          </div>
+          <span class="fbe__label">Ask AI</span>
+        </button>
+        <button class="fbe__icon-btn" id="fbe-btn-search" onclick="toggleFbe('search')">
+          <div class="fbe__icon-wrap fbe__icon-wrap--search">
+            <svg viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M25.8332 25.8333C26.4316 25.2349 27.3751 25.1922 28.0228 25.7051L28.1667 25.8333L37.1667 34.8333C37.8111 35.4776 37.8111 36.5224 37.1667 37.1667C36.5684 37.7651 35.6248 37.8078 34.9772 37.2949L34.8333 37.1667L25.8332 28.1667C25.1889 27.5224 25.1889 26.4776 25.8332 25.8333Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M8.0686 18.7186C8.0686 12.0084 13.5083 6.56863 20.2186 6.56863C26.9289 6.56863 32.3686 12.0084 32.3686 18.7186C32.3686 25.4289 26.9289 30.8686 20.2186 30.8686C13.5083 30.8686 8.0686 25.4289 8.0686 18.7186ZM29.0686 18.7186C29.0686 13.8309 25.1063 9.86863 20.2186 9.86863C15.3309 9.86863 11.3686 13.8309 11.3686 18.7186C11.3686 23.6063 15.3309 27.5686 20.2186 27.5686C25.1063 27.5686 29.0686 23.6063 29.0686 18.7186Z" fill="currentColor"/></svg>
+          </div>
+          <span class="fbe__label">Search</span>
+        </button>
+      </div>
+      <div class="fbe__divider"></div>
+      <div class="fbe__search">
+        <img class="fbe__search-icon" src="icons/Search.svg" alt=""/>
+        <input class="fbe__input" id="fbe-input" type="text" placeholder="Search products, recipes, inspiration…" autocomplete="off"/>
+        <button class="fbe__submit">
+          <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- State badge — click to reveal/hide the ctrl-bar -->
+  <button class="state-badge" id="state-badge" type="button" onclick="toggleCtrlBar()" aria-expanded="false" aria-controls="ctrl-bar">
+    <strong>Current state</strong>
+    <span id="state-text">Light · Cart · Logged In</span>
+  </button>
+
+  <!-- ================================================================
+       SIGN-IN PANEL
+  ================================================================ -->
+  <div class="signin-backdrop" id="signin-backdrop" onclick="closeSignIn()"></div>
+  <div class="signin-panel" id="signin-panel">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeSignIn()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="signin-panel-body" id="signin-panel-body">
+      <div class="tab-bar" style="margin-bottom:24px">
+        <button class="tab-btn is-active" id="tab-si" onclick="switchTab('signin')">Sign In</button>
+        <button class="tab-btn" id="tab-reg" onclick="switchTab('register')">Create Account</button>
+      </div>
+      <!-- Sign In form -->
+      <div id="form-signin">
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label">Email address</label><input class="fi-field" type="email" placeholder="you@example.com"/></div>
+          <div class="fi-wrap"><label class="fi-label">Password</label><input class="fi-field" type="password" placeholder="••••••••"/></div>
+        </div>
+        <div class="signin-forgot text-body-xs">Forgot your password?</div>
+        <button class="btn btn-primary" style="width:100%;margin-top:20px" onclick="closeSignIn()">Sign In</button>
+        <div class="signin-usp text-body-xs">Access exclusive recipes, save your favourites<br>and manage your UFS account.</div>
+      </div>
+      <!-- Create Account form -->
+      <div id="form-register" style="display:none">
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label">Email address</label><input class="fi-field" type="email" placeholder="you@example.com"/></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="closeSignIn()">Continue</button>
+        <div class="signin-usps">
+          <div class="signin-usps-title">Why create an account?</div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/products.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title">Professional pricing</div>
+              <div class="signin-usp-item-desc">Access exclusive B2B prices and bulk discounts on all UFS products.</div>
+            </div>
+          </div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/recipes.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title">500+ chef recipes</div>
+              <div class="signin-usp-item-desc">Save and organise your favourites from our full recipe library.</div>
+            </div>
+          </div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/track.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title">Order tracking</div>
+              <div class="signin-usp-item-desc">View order history and track deliveries in real time.</div>
+            </div>
+          </div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/chef.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title">UFS Academy</div>
+              <div class="signin-usp-item-desc">Free culinary training modules and certifications.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       PROFILE PANEL (signed-in avatar click) — Figma node 202:18
+  ================================================================ -->
+  <div class="signin-backdrop" id="profile-backdrop" onclick="closeProfilePanel()"></div>
+  <div class="signin-panel" id="profile-panel">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeProfilePanel()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="pp-body">
+      <div class="pp-header">
+        <div class="av av--xl">
+          <div class="av-circle"><span class="av-initials">GB</span></div>
+        </div>
+        <div class="pp-header-text">
+          <p class="pp-header-name">Giuseppe Buscicchio</p>
+          <p class="pp-header-role">Sous chef · Le Cordon Bleu</p>
+        </div>
+      </div>
+      <div class="loyalty-card loyalty-card--compact">
+        <div class="loyalty-info">
+          <p class="loyalty-title">Loyalty points</p>
+          <button class="loyalty-link">See details</button>
+        </div>
+        <div class="loyalty-pill">
+          <svg width="18" height="18" viewBox="0 0 45 45" fill="none" aria-hidden="true">
+            <path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/>
+            <circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/>
+          </svg>
+          <span class="loyalty-num">24.320</span>
+        </div>
+      </div>
+      <div class="pp-menu">
+        <button class="pp-menu-row">My personal information</button>
+        <button class="pp-menu-row">Account settings</button>
+        <button class="pp-menu-row">Cooking book</button>
+        <button class="pp-menu-row">Orders lists</button>
+        <button class="pp-menu-row">Training Certificates (4)</button>
+      </div>
+      <div class="pp-actions">
+        <button class="btn btn-primary" style="width:100%">View full profile</button>
+        <button class="pp-logout">Log out</button>
+      </div>
+    </div>
+  </div>
+  </div><!-- /real-page-content -->
+
+  <script>
+    /* ================================================================
+       STATE
+    ================================================================ */
+    var S = { color: 'light', webshop: true, auth: false, view: 'desktop' };
+    var ctrlBarOpen = false; /* ctrl-bar hidden by default; toggled via the state-badge */
+    var navScrolled = false; /* true once scrolled past NAV_SCROLL_SWAP_Y — swaps glass nav to light */
+    var megamenuOpen = false;
+    var NAV_SCROLL_SWAP_Y = 250;
+
+    /* ── Embedded mode (this page loaded inside #mobile-preview-frame) ──
+       Reads state from the URL so the iframe mirrors the outer page's
+       Color/Webshop/User toggles instead of always starting from scratch. */
+    var isEmbedded = false;
+    (function () {
+      var params = new URLSearchParams(location.search);
+      if (params.get('embedded') !== '1') return;
+      isEmbedded = true;
+      if (params.has('color'))   S.color   = params.get('color');
+      if (params.has('webshop')) S.webshop = params.get('webshop') === 'true';
+      if (params.has('auth'))    S.auth    = params.get('auth') === 'true';
+    })();
+
+    function applyState() {
+      closeAllMegamenus();
+      var c = S.color, ws = S.webshop, auth = S.auth, view = S.view;
+
+      /* ── Body class (Glass changes page bg) ── */
+      document.body.className = 'color-' + c;
+      document.body.classList.toggle('view-mobile', view === 'mobile');
+      document.body.classList.toggle('is-embedded', isEmbedded);
+      document.body.classList.toggle('ctrl-bar-open', ctrlBarOpen);
+
+      /* ── Utility bar ── */
+      var util = document.getElementById('util-bar');
+      util.className = 'ufs-util ufs-util--' + (c === 'light' ? 'light' : c === 'glass' ? 'glass' : 'dark');
+
+      /* ── Webshop link ── */
+      document.getElementById('util-ws-link').textContent = ws ? 'Track Your Order' : 'Where to Buy';
+
+      /* ── Main nav + mobile nav (color, plus scroll/megamenu overrides) ── */
+      syncNavAppearance();
+
+      /* ── Cart visibility ── */
+      document.getElementById('nav-cart').style.display = ws ? '' : 'none';
+
+      /* ── Auth ── */
+      document.getElementById('nav-profile').style.display = auth ? '' : 'none';
+      document.getElementById('nav-login').style.display   = auth ? 'none' : '';
+      document.getElementById('nav-signin').style.display  = auth ? 'none' : '';
+
+      /* ── account dot border color for light ── */
+      document.querySelectorAll('.ufs-nav__account-dot').forEach(function(dot) {
+        dot.style.borderColor = c === 'light' ? 'white' : '';
+      });
+
+      /* ── Mobile nav bar ── */
+      document.getElementById('mnav-cart').style.display = ws ? '' : 'none';
+
+      /* ── Mobile profile button — icon+dot when signed out (prompts
+         sign-in), avatar+points when signed in ── */
+      var mnavProfile = document.getElementById('mnav-profile');
+      mnavProfile.className = auth ? 'av av--sm' : 'ufs-mnav__btn';
+      mnavProfile.innerHTML = auth
+        ? '<div class="av-circle"><span class="av-initials">GB</span></div><div class="av-badge"><svg width="9" height="9" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/><circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/></svg>24.320</div>'
+        : '<img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/><span class="ufs-nav__account-dot is-alert"></span>';
+
+      /* ── Mobile drawer ── */
+      document.getElementById('drawer-ws-link').textContent = ws ? 'Track Your Order' : 'Where to Buy';
+
+      /* ── Controls active states ── */
+      document.getElementById('ctrl-view-desktop').classList.toggle('is-active', view === 'desktop');
+      document.getElementById('ctrl-view-mobile').classList.toggle('is-active', view === 'mobile');
+      ['dark','light','glass'].forEach(function(x) {
+        document.getElementById('ctrl-color-' + x).classList.toggle('is-active', x === c);
+      });
+      document.getElementById('ctrl-ws-true').classList.toggle('is-active', ws);
+      document.getElementById('ctrl-ws-false').classList.toggle('is-active', !ws);
+      document.getElementById('ctrl-auth-true').classList.toggle('is-active', auth);
+      document.getElementById('ctrl-auth-false').classList.toggle('is-active', !auth);
+
+      /* ── State badge ── */
+      var colorLabel = c.charAt(0).toUpperCase() + c.slice(1);
+      var wsLabel = ws ? 'Cart' : 'No Cart';
+      var authLabel = auth ? 'Logged In' : 'Sign In';
+      document.getElementById('state-text').textContent = colorLabel + ' · ' + wsLabel + ' · ' + authLabel;
+    }
+
+    function setColor(c)   { S.color   = c;    applyState(); refreshMobilePreview(); }
+    function setWebshop(v) { S.webshop = v;    applyState(); refreshMobilePreview(); }
+    function setAuth(v)    { S.auth    = v;    applyState(); refreshMobilePreview(); if (!v) { /* close sign-in if switching to logged in */ } }
+    function setView(v)    { S.view    = v;    closeMobileDrawer(); applyState(); refreshMobilePreview(); }
+
+    function toggleCtrlBar() {
+      ctrlBarOpen = !ctrlBarOpen;
+      document.body.classList.toggle('ctrl-bar-open', ctrlBarOpen);
+      document.getElementById('state-badge').setAttribute('aria-expanded', ctrlBarOpen);
+    }
+
+    function refreshMobilePreview() {
+      if (S.view !== 'mobile') return;
+      var params = new URLSearchParams({ embedded: '1', color: S.color, webshop: S.webshop, auth: S.auth });
+      document.getElementById('mobile-preview-frame').src = location.pathname + '?' + params.toString();
+    }
+
+    /* Apply initial state */
+    applyState();
+
+    /* ================================================================
+       SIGN-IN PANEL
+    ================================================================ */
+    function openSignIn(tab) {
+      document.getElementById('signin-backdrop').classList.add('is-open');
+      document.getElementById('signin-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      switchTab(tab || 'signin');
+    }
+    function closeSignIn() {
+      document.getElementById('signin-backdrop').classList.remove('is-open');
+      document.getElementById('signin-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+    function switchTab(t) {
+      var si = t === 'signin';
+      document.getElementById('tab-si').classList.toggle('is-active', si);
+      document.getElementById('tab-reg').classList.toggle('is-active', !si);
+      document.getElementById('form-signin').style.display   = si ? '' : 'none';
+      document.getElementById('form-register').style.display = si ? 'none' : '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+    }
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeSignIn(); closeAllMegamenus(); closeLangDrop(); closeMobileDrawer(); closeProfilePanel(); } });
+
+    /* ================================================================
+       PROFILE PANEL — signed-in avatar click (desktop #nav-profile,
+       mobile #mnav-profile via mnavProfileClick below)
+    ================================================================ */
+    function openProfilePanel() {
+      document.getElementById('profile-backdrop').classList.add('is-open');
+      document.getElementById('profile-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeProfilePanel() {
+      document.getElementById('profile-backdrop').classList.remove('is-open');
+      document.getElementById('profile-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    function mnavProfileClick() {
+      if (!S.auth) { closeMobileDrawer(); openSignIn('signin'); }
+      else { closeMobileDrawer(); openProfilePanel(); }
+    }
+
+    /* ================================================================
+       MOBILE DRAWER
+    ================================================================ */
+    function openMobileDrawer() {
+      document.getElementById('mobile-drawer-backdrop').classList.add('is-open');
+      document.getElementById('mobile-drawer').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeMobileDrawer() {
+      document.getElementById('mobile-drawer-backdrop').classList.remove('is-open');
+      document.getElementById('mobile-drawer').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+    function toggleDrawerAcc(trigger) {
+      var sub = trigger.nextElementSibling;
+      if (!sub || !sub.classList.contains('ufs-drawer-sub')) return;
+      var isOpen = trigger.classList.contains('is-open');
+      var parent = trigger.closest('.ufs-drawer-links') || trigger.closest('.ufs-drawer-util');
+      if (parent) {
+        parent.querySelectorAll('.ufs-drawer-acc-trigger.is-open').forEach(function(t) {
+          t.classList.remove('is-open');
+          var s = t.nextElementSibling;
+          if (s && s.classList.contains('ufs-drawer-sub')) s.classList.remove('is-open');
+        });
+      }
+      if (!isOpen) {
+        trigger.classList.add('is-open');
+        sub.classList.add('is-open');
+      }
+    }
+
+    /* Mobile drawer accordion sub-lists show only the first 4 items;
+       "View more" reveals the rest and removes itself (one-way, no
+       collapse-back). */
+    function showDrawerSubMore(btn) {
+      var sub = btn.closest('.ufs-drawer-sub');
+      if (sub) sub.querySelectorAll('.ufs-drawer-sub-link.is-extra').forEach(function(link) {
+        link.classList.remove('is-extra');
+      });
+      btn.style.display = 'none';
+    }
+
+    /* ================================================================
+       NAV APPEARANCE — derives #main-nav/#mobile-nav's color class from
+       three independent inputs: the Color control (S.color), whether
+       the page has scrolled past the glass→light threshold, and whether
+       a megamenu is open. Centralised here so none of the three can
+       stomp on the others (each just flips its own input and re-syncs).
+    ================================================================ */
+    function syncNavAppearance() {
+      var navColor = S.color;
+      if (navColor === 'glass' && navScrolled) navColor = 'light';
+      document.getElementById('mobile-nav').className = 'ufs-mnav ufs-mnav--' + navColor;
+      /* Megamenu only ever needs to swap glass away — once scroll has
+         already made the nav solid (light), there's no transparency
+         problem left for it to fix. */
+      var mainNavColor = (navColor === 'glass' && megamenuOpen) ? 'dark' : navColor;
+      document.getElementById('main-nav').className = 'ufs-nav ufs-nav--' + mainNavColor;
+    }
+
+    window.addEventListener('scroll', function() {
+      var shouldBeScrolled = window.scrollY >= NAV_SCROLL_SWAP_Y;
+      if (shouldBeScrolled !== navScrolled) {
+        navScrolled = shouldBeScrolled;
+        syncNavAppearance();
+      }
+    }, { passive: true });
+
+    /* ================================================================
+       MEGAMENU
+    ================================================================ */
+    function toggleMegamenu(id, linkEl) {
+      var panel = document.getElementById('mm-' + id);
+      if (!panel) return;
+      var isOpen = panel.classList.contains('is-open');
+      closeAllMegamenus();
+      if (!isOpen) {
+        panel.classList.add('is-open');
+        linkEl.classList.add('is-open');
+        megamenuOpen = true;
+        syncNavAppearance();
+      }
+    }
+
+    function closeAllMegamenus() {
+      document.querySelectorAll('.ufs-megamenu.is-open').forEach(function(p) { p.classList.remove('is-open'); });
+      document.querySelectorAll('#main-nav .ufs-nav__link.is-open').forEach(function(l) { l.classList.remove('is-open'); });
+      if (megamenuOpen) {
+        megamenuOpen = false;
+        syncNavAppearance();
+      }
+    }
+
+    document.addEventListener('click', function(e) {
+      var nav = document.getElementById('main-nav');
+      if (nav && !nav.contains(e.target)) closeAllMegamenus();
+    });
+
+    /* ================================================================
+       LANGUAGE DROPDOWN
+    ================================================================ */
+    function closeLangDrop() {
+      document.querySelectorAll('.ufs-util__lang-wrap.is-open').forEach(function(w) {
+        w.classList.remove('is-open');
+        var d = w.querySelector('.ufs-lang-drop');
+        if (d) d.classList.remove('is-open');
+      });
+    }
+    function toggleLangDrop(wrapId, dropId) {
+      var wrap = document.getElementById(wrapId);
+      var drop = document.getElementById(dropId);
+      var isOpen = wrap.classList.contains('is-open');
+      closeLangDrop();
+      if (!isOpen) {
+        wrap.classList.add('is-open');
+        drop.classList.add('is-open');
+      }
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.ufs-util__lang-wrap')) closeLangDrop();
+    });
+
+    /* ================================================================
+       FLOATING BAR E
+    ================================================================ */
+    var fbeState = { mic: false, ideas: false, ai: false, search: false };
+
+    function toggleFbe(mode) {
+      var wasOpen = fbeState[mode];
+      ['mic','ideas','ai','search'].forEach(function(m) {
+        fbeState[m] = false;
+        document.getElementById('fbe-panel-' + m).classList.remove('is-open');
+        document.getElementById('fbe-btn-' + m).classList.remove('is-active');
+      });
+      if (!wasOpen) {
+        fbeState[mode] = true;
+        document.getElementById('fbe-panel-' + mode).classList.add('is-open');
+        document.getElementById('fbe-btn-' + mode).classList.add('is-active');
+        if (mode === 'mic') resetMic();
+        if (mode === 'ai') setTimeout(function() { document.getElementById('fbe-ai-input').focus(); }, 240);
+        if (mode === 'search') setTimeout(function() { document.getElementById('fbe-search-panel-input').focus(); }, 240);
+      }
+    }
+
+    function closeFbe(mode) {
+      fbeState[mode] = false;
+      document.getElementById('fbe-panel-' + mode).classList.remove('is-open');
+      document.getElementById('fbe-btn-' + mode).classList.remove('is-active');
+    }
+
+    function resetMic() {
+      var ms = document.getElementById('fbe-mic-status');
+      ms.className = 'fbe-mic-status fbe-mic-status--listening';
+      ms.innerHTML = '<span class="fbe-mic-dot"></span> Listening…';
+      document.getElementById('fbe-wave').className = 'fbe-wave';
+      document.getElementById('fbe-mic-transcript').textContent = '';
+      document.getElementById('fbe-mic-transcript').style.display = 'none';
+      document.getElementById('fbe-mic-sim').style.display = 'flex';
+    }
+
+    function simMic(type) {
+      document.getElementById('fbe-wave').className = 'fbe-wave fbe-wave--paused';
+      document.getElementById('fbe-mic-sim').style.display = 'none';
+      var t = document.getElementById('fbe-mic-transcript');
+      if (type === 'search') {
+        document.getElementById('fbe-mic-status').innerHTML = '<span class="fbe-mic-dot"></span> Filling search…';
+        document.getElementById('fbe-mic-status').className = 'fbe-mic-status fbe-mic-status--processing';
+        t.textContent = '"Knorr sauces for pasta"'; t.style.display = 'block';
+        setTimeout(function() {
+          document.getElementById('fbe-input').value = 'Knorr sauces for pasta';
+          closeFbe('mic');
+          document.getElementById('fbe-input').focus();
+        }, 1300);
+      } else {
+        document.getElementById('fbe-mic-status').innerHTML = 'Sending to AI…';
+        document.getElementById('fbe-mic-status').className = 'fbe-mic-status fbe-mic-status--escalating';
+        t.textContent = '"What recipes can I make with demi-glace?"'; t.style.display = 'block';
+        setTimeout(function() {
+          closeFbe('mic');
+          setTimeout(function() { toggleFbe('ai'); }, 120);
+        }, 1500);
+      }
+    }
+
+    function sendAiMsg() {
+      var input = document.getElementById('fbe-ai-input');
+      var text = input.value.trim();
+      if (!text) return;
+      var msgs = document.getElementById('fbe-ai-msgs');
+      var um = document.createElement('div');
+      um.className = 'fbe-ai-msg fbe-ai-msg--user';
+      um.innerHTML = '<div class="fbe-ai-ava fbe-ai-ava--user">FC</div><div class="fbe-ai-bubble fbe-ai-bubble--user text-body-sm">' + text.replace(/</g,'&lt;') + '</div>';
+      msgs.appendChild(um);
+      input.value = '';
+      msgs.scrollTop = msgs.scrollHeight;
+      var typing = document.createElement('div');
+      typing.className = 'fbe-ai-msg'; typing.id = 'fbe-typing';
+      typing.innerHTML = '<div class="fbe-ai-ava fbe-ai-ava--ai">AI</div><div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm"><div class="fbe-typing"><div class="fbe-typing-dot"></div><div class="fbe-typing-dot"></div><div class="fbe-typing-dot"></div></div></div>';
+      msgs.appendChild(typing);
+      msgs.scrollTop = msgs.scrollHeight;
+      document.getElementById('fbe-fixed').classList.add('thinking');
+      setTimeout(function() {
+        var el = document.getElementById('fbe-typing'); if (el) el.remove();
+        var am = document.createElement('div');
+        am.className = 'fbe-ai-msg';
+        am.innerHTML = '<div class="fbe-ai-ava fbe-ai-ava--ai">AI</div><div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm">I found some relevant matches based on UFS products and recipes. Let me know if you want more details.</div>';
+        msgs.appendChild(am);
+        msgs.scrollTop = msgs.scrollHeight;
+        document.getElementById('fbe-fixed').classList.remove('thinking');
+      }, 1400);
+    }
+  </script>
+</body>
+</html>

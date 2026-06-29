@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Full Page Preview — UFS Design System — v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    /* ================================================================
+       PAGE-LOCAL VARS (not DS tokens — layout/decoration specific to
+       this prototype; everything else comes from tokens.css)
+    ================================================================ */
+    :root {
+      --ctrl-h: 48px;
+      --ctrl-reserve: 0px; /* layout space reserved for the bar; 0 until opened */
+      --nav-h:  68px;
+      --header-h: var(--nav-h); /* the utility bar is gone in v2, header is just the main nav now */
+      --mnav-h: 56px; /* mobile nav bar height, below the 768px breakpoint */
+      --food-gradient: linear-gradient(160deg, #3b1e08 0%, #7a3a10 55%, #2a1a0a 100%);
+    }
+
+    /* ================================================================
+       RESET & BASE
+    ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    /* Browsers don't make form controls inherit font-family from the page by
+       default (they get their own UA-stylesheet font) — without this, every
+       <button>/<input>/<select>/<textarea> silently renders in Arial/system-ui
+       instead of the DS typeface, regardless of any var(--font-family) set
+       elsewhere. Standard reset rule, ties every control to the DS by default. */
+    button, input, select, textarea { font-family: inherit; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-family);
+      background: var(--color-salt);
+      color: var(--color-brand-dark);
+      -webkit-font-smoothing: antialiased;
+      padding-top: var(--header-h);
+      padding-bottom: var(--ctrl-reserve);
+      transition: padding-bottom 0.28s ease;
+    }
+    /* Mobile breakpoint: 768px — the one DS-wide convention for this, see project memory */
+    @media (max-width: 768px) {
+      body { padding-top: var(--mnav-h); }
+    }
+    /* Mobile type sizes — DS defines a -mob-size token for display/h1-h6/price
+       scales. Scoped to this page only: tokens.css's base .text-display/.text-h*
+       classes stay desktop-only on purpose, since index-v2.html's type-scale docs
+       use the .text-h3--mobile etc. modifier classes to show static desktop-vs-
+       mobile swatches side by side — a real @media switch there would shrink the
+       "desktop" swatch too once the docs page itself is viewed below 768px. */
+    @media (max-width: 768px) {
+      .text-display { font-size: var(--text-display-mob-size); }
+      .text-h3       { font-size: var(--text-h3-mob-size); }
+      .text-h4       { font-size: var(--text-h4-mob-size); }
+    }
+    body.color-glass { background: var(--food-gradient) fixed; }
+    a { text-decoration: none; color: inherit; }
+
+    /* ================================================================
+       CONTROLS BAR
+    ================================================================ */
+    .ctrl-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 1100;
+      height: var(--ctrl-h);
+      background: var(--color-squid-900);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; align-items: center;
+      padding: 0 var(--space-6); gap: var(--space-6);
+      /* Hidden by default — slides in only once .ctrl-bar-open is toggled
+         on <body> via the state-badge click. translateY(100%) relies on
+         height staying fixed (never collapsed to 0), so --ctrl-reserve
+         carries the layout-space toggling instead of --ctrl-h itself. */
+      transform: translateY(100%); opacity: 0; pointer-events: none;
+      transition: transform 0.28s ease, opacity 0.28s ease;
+    }
+    .ctrl-brand {
+      display: flex; align-items: center; gap: var(--space-3);
+      flex-shrink: 0; padding-right: var(--space-6);
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .ctrl-brand img { height: 20px; display: block; filter: brightness(0) invert(1); opacity: 0.7; }
+    .ctrl-brand-label { font-weight: 600; color: rgba(255,255,255,0.35); white-space: nowrap; }
+    .ctrl-groups { display: flex; align-items: center; gap: var(--space-5); flex: 1; }
+    .ctrl-group { display: flex; align-items: center; gap: var(--space-2); }
+    .ctrl-label { font-size: var(--text-fine-print-size); font-weight: var(--text-btn-w); letter-spacing: var(--text-badge-ls); text-transform: uppercase; color: rgba(255,255,255,0.3); white-space: nowrap; }
+    .ctrl-toggle { display: flex; background: rgba(255,255,255,0.05); border-radius: var(--radius-full); padding: var(--space-1); gap: var(--space-1); }
+    .ctrl-btn {
+      height: 26px; padding: 0 var(--space-3);
+      border-radius: var(--radius-full); border: none;
+      font-family: var(--font-family); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w);
+      cursor: pointer; transition: background 0.15s, color 0.15s;
+      background: transparent; color: rgba(255,255,255,0.45);
+      white-space: nowrap;
+    }
+    .ctrl-btn:hover { color: rgba(255,255,255,0.75); }
+    .ctrl-btn.is-active { background: var(--color-brand-primary); color: var(--color-salt); }
+    .ctrl-sep { width: 1px; height: 22px; background: rgba(255,255,255,0.08); }
+
+    /* ================================================================
+       PAGE HEADER (fixed below controls)
+    ================================================================ */
+    .page-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    }
+
+    /* ── Language dropdown checkmark (reused by the drawer's own language
+       accordion — .ufs-drawer-sub-link.is-active .ufs-lang-drop__check —
+       the rest of the lang-dropdown system lived in the now-removed utility
+       bar and was deleted with it) ───────────────────────────────────── */
+    .ufs-lang-drop__check { color: var(--color-brand-dark); opacity: 0; flex-shrink: 0; }
+
+    /* ── Main nav ────────────────────────────────────────── */
+    .ufs-nav {
+      display: flex; align-items: center; position: relative;
+      padding: 0 var(--space-8); height: var(--nav-h);
+      transition: background 0.3s, box-shadow 0.3s, border-color 0.3s;
+    }
+    .ufs-nav--dark  { background: var(--color-brand-dark); }
+    .ufs-nav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-nav--glass { background: transparent; backdrop-filter: blur(12px); }
+    .ufs-nav__logo { flex-shrink: 0; margin-right: var(--space-9); }
+    .ufs-nav__logo img { height: var(--space-12); display: block; }
+    .ufs-nav__links { display: flex; align-items: center; flex: 1; gap: var(--space-1); }
+    .ufs-nav__link {
+      display: flex; align-items: center; gap: var(--space-1);
+      padding: 0 14px; height: var(--nav-h); cursor: pointer;
+      font-size: var(--text-body-size); font-weight: var(--text-btn-w); white-space: nowrap;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .ufs-nav--dark .ufs-nav__link,
+    .ufs-nav--glass .ufs-nav__link { color: rgba(255,255,255,0.82); }
+    .ufs-nav--light .ufs-nav__link { color: var(--color-brand-dark); }
+    .ufs-nav--dark .ufs-nav__link:hover, .ufs-nav--dark .ufs-nav__link.is-open,
+    .ufs-nav--glass .ufs-nav__link:hover, .ufs-nav--glass .ufs-nav__link.is-open { color: var(--color-salt); border-bottom-color: var(--color-brand-primary); }
+    .ufs-nav--light .ufs-nav__link:hover,
+    .ufs-nav--light .ufs-nav__link.is-open { color: var(--color-orange-700); border-bottom-color: var(--color-orange-500); }
+    .ufs-nav__link-chev { width: var(--space-5); height: var(--space-5); margin-top: var(--space-1); opacity: 1; flex-shrink: 0; display: block; transform: rotate(90deg); transition: transform 0.2s, opacity 0.15s; }
+    .ufs-nav__link.is-open .ufs-nav__link-chev { transform: rotate(-90deg); }
+    .ufs-nav--light .ufs-nav__link-chev { filter: none; }
+    .ufs-nav--dark .ufs-nav__link-chev,
+    .ufs-nav--glass .ufs-nav__link-chev { filter: brightness(0) invert(1); }
+    .ufs-nav__actions { display: flex; align-items: center; gap: 0; margin-left: auto; }
+    .ufs-nav__icon-btn {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; background: transparent;
+      transition: background 0.15s; position: relative;
+    }
+    .ufs-nav__icon-btn + .ufs-nav__icon-btn { margin-left: var(--space-3); }
+    .ufs-nav--dark .ufs-nav__icon-btn:hover,
+    .ufs-nav--glass .ufs-nav__icon-btn:hover { background: rgba(255,255,255,0.08); }
+    .ufs-nav--light .ufs-nav__icon-btn:hover { background: var(--color-mushroom-100); }
+    /* Burger — opens the same drawer mobile already uses. Sits before the
+       logo, not inside .ufs-nav__actions, so it gets its own near-identical
+       class rather than reusing .ufs-nav__icon-btn (which carries a sibling-
+       adjacency margin rule tuned for the actions row). */
+    .ufs-nav__burger-btn {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: var(--space-1); padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-full);
+      border: none; cursor: pointer; background: transparent;
+      margin-right: var(--space-4); flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .ufs-nav--dark .ufs-nav__burger-btn:hover,
+    .ufs-nav--glass .ufs-nav__burger-btn:hover { background: rgba(255,255,255,0.08); }
+    .ufs-nav--light .ufs-nav__burger-btn:hover { background: var(--color-mushroom-100); }
+    .ufs-nav__burger-label { font-size: var(--text-fine-print-size); font-weight: var(--text-btn-w); line-height: 1; }
+    .ufs-nav--dark .ufs-nav__burger-label,
+    .ufs-nav--glass .ufs-nav__burger-label { color: rgba(255,255,255,0.82); }
+    .ufs-nav--light .ufs-nav__burger-label { color: var(--color-brand-dark); }
+    .ufs-icon { display: block; }
+    .ufs-icon--20 { width: 20px; height: 20px; }
+    .ufs-icon--24 { width: var(--space-6); height: var(--space-6); }
+    .ufs-nav--dark  .ufs-icon,
+    .ufs-nav--glass .ufs-icon { filter: brightness(0) invert(1); opacity: 0.8; }
+    .ufs-nav--light .ufs-icon { filter: none; opacity: 0.75; }
+    .ufs-nav__badge {
+      position: absolute; top: var(--space-1); right: var(--space-1);
+      width: 16px; height: 16px; border-radius: var(--radius-full);
+      background: var(--color-brand-primary); color: var(--color-salt);
+      font-size: 9px; font-weight: var(--text-btn-w);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ufs-nav__account-dot {
+      position: absolute; top: 6px; right: 6px;
+      width: var(--space-3); height: var(--space-3); border-radius: 50%;
+      background: var(--color-brand-primary);
+      border: 2px solid var(--color-brand-dark);
+    }
+    .ufs-nav--light .ufs-nav__account-dot { border-color: var(--color-salt); }
+    .ufs-nav__account-dot.is-alert { background: var(--color-accessible-orange); }
+    .ufs-nav__account-dot.is-alert::after {
+      content: ''; position: absolute; inset: 0; border-radius: 50%;
+      background: var(--color-accessible-orange);
+      animation: account-dot-ping 1.6s cubic-bezier(0,0,0.2,1) infinite;
+    }
+    @keyframes account-dot-ping {
+      0%   { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    /* ── Megamenu ─────────────────────────────────────────── */
+    .ufs-megamenu {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--color-salt);
+      border-top: 2px solid var(--color-brand-primary);
+      box-shadow: var(--shadow-lg);
+      z-index: 100; display: none;
+    }
+    .ufs-megamenu.is-open { display: block; }
+    .mm-a { display: grid; grid-template-columns: 1fr 1fr 1fr 260px; min-height: 320px; }
+    .mm-b { display: grid; grid-template-columns: 1.8fr 1fr 1fr 260px; min-height: 320px; }
+    .mm-col { padding: var(--space-7) var(--space-6); border-right: 1px solid var(--color-mushroom-300); }
+    .mm-col:last-child { border-right: none; }
+    .mm-col-label { color: var(--color-accessible-orange); margin-bottom: var(--space-4); display: block; }
+    .mm-links { display: flex; flex-direction: column; }
+    .mm-link {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-2) 0; font-weight: var(--text-body-w);
+      color: var(--color-squid-500); border-bottom: 1px solid var(--color-mushroom-100);
+      cursor: pointer; transition: color 0.15s; gap: var(--space-2);
+    }
+    .mm-link:last-child { border-bottom: none; }
+    .mm-link:hover { color: var(--color-accessible-orange); }
+    .mm-link-arr { width: 14px; height: 14px; opacity: 0; transition: opacity 0.15s, transform 0.15s; flex-shrink: 0; }
+    .mm-link:hover .mm-link-arr { opacity: 1; transform: translateX(2px); }
+    .mm-featured { padding: var(--space-8) var(--space-7); background: var(--color-mushroom-100); border-right: 1px solid var(--color-mushroom-300); display: flex; flex-direction: column; justify-content: center; }
+    .mm-feat-over { color: var(--color-accessible-orange); margin-bottom: var(--space-3); }
+    .mm-feat-title { color: var(--color-brand-dark); margin-bottom: var(--space-3); }
+    .mm-feat-body { color: var(--color-mushroom-900); margin-bottom: var(--space-5); max-width: 34ch; }
+    .mm-feat-cta { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--text-btn-w); color: var(--color-orange-700); }
+    .mm-feat-cta:hover { color: var(--color-orange-900); }
+    .mm-promo { background: var(--color-squid-500); display: flex; flex-direction: column; overflow: hidden; }
+    .mm-promo-img { width: 100%; aspect-ratio: 16 / 9; background: linear-gradient(135deg, var(--color-squid-700) 0%, var(--color-squid-900) 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .mm-promo-img-placeholder { color: rgba(255,255,255,0.25); }
+    .mm-promo-body { padding: var(--space-5); flex: 1; display: flex; flex-direction: column; }
+    .mm-promo-over { color: var(--color-brand-primary); margin-bottom: var(--space-2); }
+    .mm-promo-title { color: var(--color-salt); margin-bottom: var(--space-3); flex: 1; }
+    .mm-promo-cta { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--text-btn-w); color: var(--color-brand-primary); }
+    .mm-promo-cta:hover { color: var(--color-orange-300); }
+
+    /* ================================================================
+       SEARCH OVERLAY — "Option B: Full overlay" ported from
+       nav-exploration.html's Search Patterns section, retuned to DS tokens.
+       Desktop drops a full-width panel below the nav; mobile (a separate,
+       differently-named "Full overlay" pattern in the same reference file)
+       takes over the full screen below the dev toolbar, matching how
+       .ufs-drawer already does a fixed full-screen takeover on mobile.
+    ================================================================ */
+    .ufs-search-overlay {
+      position: absolute; top: 100%; left: 0; right: 0;
+      background: var(--color-salt);
+      padding: var(--space-8) var(--space-10) var(--space-9);
+      z-index: 50;
+      border-top: 1px solid var(--color-mushroom-300);
+      box-shadow: var(--shadow-lg);
+      opacity: 0; pointer-events: none; transform: translateY(-8px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .ufs-search-overlay.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .ufs-search-overlay-inner { max-width: 680px; margin: 0 auto; }
+    .ufs-overlay-field {
+      display: flex; align-items: center; gap: var(--space-3);
+      border-bottom: 2px solid var(--color-brand-dark); padding-bottom: var(--space-3);
+      margin-bottom: var(--space-7);
+    }
+    .ufs-overlay-field img { opacity: 0.5; flex-shrink: 0; }
+    .ufs-overlay-field input {
+      flex: 1; border: none; outline: none;
+      font-family: var(--font-family); font-size: var(--text-h5-size); font-weight: var(--text-h5-w);
+      color: var(--color-brand-dark); background: transparent;
+    }
+    .ufs-overlay-field input::placeholder { color: var(--color-mushroom-500); font-weight: var(--text-body-w); }
+    .ufs-overlay-close {
+      width: var(--space-9); height: var(--space-9); border-radius: var(--radius-full);
+      background: var(--color-mushroom-100); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      transition: background 0.15s; color: var(--color-squid-500);
+    }
+    .ufs-overlay-close:hover { background: var(--color-mushroom-300); }
+    .ufs-overlay-close svg { width: var(--space-4); height: var(--space-4); }
+    .ufs-overlay-section-label { font-size: var(--text-badge-size); font-weight: var(--text-btn-w); letter-spacing: var(--text-body-xs-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .ufs-overlay-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .ufs-overlay-chip {
+      padding: var(--space-2) var(--space-4); border-radius: var(--radius-full);
+      border: 1.5px solid var(--color-mushroom-300); font-size: var(--text-btn-sm-size);
+      font-weight: var(--text-body-w); color: var(--color-squid-500); cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .ufs-overlay-chip:hover { border-color: var(--color-brand-primary); color: var(--color-brand-primary); }
+
+    /* Mobile — full-screen takeover, same fixed-positioning convention
+       .ufs-drawer already uses (anchored above the now-bottom dev toolbar). */
+    .ufs-msearch-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve);
+      background: var(--color-salt); z-index: 950;
+      padding: var(--space-5) var(--space-4); display: flex; flex-direction: column; gap: var(--space-6);
+      opacity: 0; pointer-events: none; transform: translateY(-12px);
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    .ufs-msearch-overlay.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .ufs-msearch-ov-header { display: flex; align-items: center; gap: var(--space-3); }
+    .ufs-msearch-ov-field { flex: 1; display: flex; align-items: center; gap: var(--space-2); border-bottom: 2px solid var(--color-brand-dark); padding-bottom: var(--space-2); }
+    .ufs-msearch-ov-field img { opacity: 0.5; flex-shrink: 0; }
+    .ufs-msearch-ov-input { flex: 1; border: none; outline: none; font-family: var(--font-family); font-size: var(--text-h6-size); font-weight: var(--text-h6-w); color: var(--color-brand-dark); background: transparent; }
+    .ufs-msearch-ov-input::placeholder { color: var(--color-mushroom-500); font-weight: var(--text-body-w); }
+    .ufs-msearch-ov-close { width: var(--space-9); height: var(--space-9); border-radius: var(--radius-full); background: var(--color-mushroom-100); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+    .ufs-msearch-ov-close:hover { background: var(--color-mushroom-300); }
+    .ufs-msearch-ov-close svg { width: var(--space-3); height: var(--space-3); }
+    .ufs-msearch-ov-label { font-size: var(--text-badge-size); font-weight: var(--text-btn-w); letter-spacing: var(--text-body-xs-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .ufs-msearch-ov-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+    .ufs-msearch-ov-chip { padding: var(--space-2) var(--space-3); border-radius: var(--radius-full); border: 1.5px solid var(--color-mushroom-300); font-size: var(--text-btn-sm-size); font-weight: var(--text-body-w); color: var(--color-squid-500); cursor: pointer; transition: border-color 0.15s, color 0.15s; }
+    .ufs-msearch-ov-chip:hover { border-color: var(--color-brand-primary); color: var(--color-brand-primary); }
+
+    /* ================================================================
+       MOBILE NAV BAR + DRAWER (below 768px)
+    ================================================================ */
+    .ufs-mnav { display: none; }
+    @media (max-width: 768px) {
+      .ufs-nav { display: none; }
+      .ufs-mnav { display: flex; align-items: center; height: var(--mnav-h); padding: 0 var(--space-4); gap: var(--space-3); transition: background 0.3s, border-color 0.3s; }
+    }
+    /* Dev toolbar "View: Mobile" — rather than forcing this same document's
+       chrome into a mobile shape (which breaks for any fixed-width component
+       wider than the simulated viewport — the sign-in panel is 420px, the
+       floating bar is 740px, etc.), render the mobile preview inside an
+       <iframe> set to a real 390px width. That gives it its own genuine
+       viewport, so the existing @media(max-width:768px) rule just works
+       naturally, with zero CSS overrides needed. */
+    #mobile-preview-frame {
+      display: none; position: fixed; top: 0; left: 50%;
+      transform: translateX(-50%); width: 390px; height: calc(100vh - var(--ctrl-reserve));
+      border: none;
+    }
+    body.view-mobile #real-page-content { display: none; }
+    body.view-mobile #mobile-preview-frame { display: block; }
+    body.view-mobile { padding-top: 0 !important; overflow: hidden; }
+    /* When this file is itself loaded inside that iframe (?embedded=1),
+       hide the dev toolbar and remove the space it would have reserved. */
+    body.is-embedded { --ctrl-reserve: 0px; }
+    body.is-embedded .ctrl-bar { display: none; }
+    /* Ctrl bar is hidden by default; the state-badge click toggles this. */
+    body.ctrl-bar-open { --ctrl-reserve: var(--ctrl-h); }
+    body.ctrl-bar-open .ctrl-bar { transform: translateY(0); opacity: 1; pointer-events: auto; }
+    .ufs-mnav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-mnav--dark  { background: var(--color-brand-dark); }
+    .ufs-mnav--glass { background: transparent; }
+    .ufs-mnav__btn {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; background: transparent; flex-shrink: 0;
+      transition: background 0.15s; position: relative;
+    }
+    .ufs-mnav--dark  .ufs-mnav__btn:hover,
+    .ufs-mnav--glass .ufs-mnav__btn:hover { background: rgba(255,255,255,0.08); }
+    .ufs-mnav--light .ufs-mnav__btn:hover { background: var(--color-mushroom-100); }
+    .ufs-mnav--dark  .ufs-icon,
+    .ufs-mnav--glass .ufs-icon { filter: brightness(0) invert(1); opacity: 0.85; }
+    .ufs-mnav--light .ufs-icon { filter: none; opacity: 0.8; }
+    .ufs-mnav__logo { height: var(--space-6); width: auto; display: block; flex-shrink: 0; }
+    .ufs-mnav__right { display: flex; align-items: center; gap: var(--space-1); flex-shrink: 0; margin-left: auto; }
+    .ufs-mnav__btn.is-dimmed .ufs-icon { opacity: 0.35; }
+
+    /* Drawer */
+    .ufs-drawer-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 900;
+      background: color-mix(in srgb, var(--color-squid-900) 45%, transparent); backdrop-filter: blur(2px);
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .ufs-drawer-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .ufs-drawer {
+      position: fixed; top: 0; left: 0; bottom: var(--ctrl-reserve); width: 420px; z-index: 901;
+      background: var(--color-salt);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.25,0.1,0.25,1), box-shadow 0.3s;
+      display: flex; flex-direction: column; overflow-y: auto;
+      box-shadow: none;
+    }
+    /* box-shadow only while open — closed, it sits flush at the viewport
+       edge post-translate, so its blur radius would otherwise bleed back
+       into view as an unwanted shadow on the page's lateral edge. */
+    .ufs-drawer.is-open { transform: translateX(0); box-shadow: var(--shadow-xl); }
+    /* Mobile keeps the near-full-width treatment; desktop (above) now also
+       opens this same drawer via the new nav burger, sized to match the
+       sign-in panel's own 420px width instead. */
+    @media (max-width: 768px) {
+      .ufs-drawer { width: calc(100% - 16px); }
+    }
+    .ufs-drawer-links { flex: 1; padding: var(--space-2) 0; }
+    .ufs-drawer-acc-trigger {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-4) var(--space-5); font-size: var(--text-body-size); font-weight: var(--text-btn-w);
+      color: var(--color-brand-dark); background: transparent; border: none;
+      border-bottom: 1px solid var(--color-mushroom-100);
+      cursor: pointer; transition: color 0.15s; text-align: left;
+    }
+    .ufs-drawer-acc-trigger:first-of-type { border-top: 1px solid var(--color-mushroom-100); }
+    .ufs-drawer-acc-trigger:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-acc-trigger.is-open { color: var(--color-accessible-orange); }
+    .ufs-drawer-acc-chev { width: var(--space-5); height: var(--space-5); transition: transform 0.2s; opacity: 0.3; flex-shrink: 0; }
+    .ufs-drawer-acc-label { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-drawer-acc-globe { width: var(--space-5); height: var(--space-5); flex-shrink: 0; }
+    .ufs-drawer-acc-trigger.is-open .ufs-drawer-acc-chev { transform: rotate(-90deg); opacity: 0.8; }
+    .ufs-drawer-sub { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; background: var(--color-mushroom-100); }
+    .ufs-drawer-sub.is-open { max-height: 300px; }
+    .ufs-drawer-sub-link {
+      display: block; padding: var(--space-3) var(--space-5) var(--space-3) var(--space-7);
+      font-size: var(--text-body-sm-size); color: var(--color-mushroom-900);
+      border-bottom: 1px solid var(--color-mushroom-200); cursor: pointer; transition: color 0.15s;
+    }
+    .ufs-drawer-sub-link:last-child { border-bottom: none; }
+    .ufs-drawer-sub-link:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-sub-link.is-active { color: var(--color-brand-dark); font-weight: var(--text-btn-w); }
+    .ufs-drawer-sub-link.is-active .ufs-lang-drop__check { opacity: 1; }
+    .ufs-drawer-util { padding: var(--space-4) var(--space-5); border-top: 1px solid var(--color-mushroom-300); }
+    .ufs-drawer-util-title { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .ufs-drawer-util-link { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); padding: var(--space-2) 0; cursor: pointer; display: block; transition: color 0.15s; }
+    .ufs-drawer-util-link:hover { color: var(--color-brand-primary); }
+    .ufs-drawer-util .ufs-drawer-acc-trigger { padding: var(--space-2) 0; font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); border: none; margin-top: var(--space-2); }
+    .ufs-drawer-util .ufs-drawer-acc-trigger:first-of-type { border-top: none; }
+    .ufs-drawer-util .ufs-drawer-sub-link { display: flex; align-items: center; justify-content: space-between; padding: var(--space-2) 0 var(--space-2) var(--space-3); border-bottom: none; }
+    .ufs-drawer-btn { flex: 1; display: flex; align-items: center; justify-content: center; height: var(--space-10); border-radius: var(--radius-md); font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w); cursor: pointer; }
+    .ufs-drawer-btn--primary { background: var(--color-accessible-orange); color: var(--color-salt); border: none; }
+    .ufs-drawer-btn--secondary { background: transparent; color: var(--color-accessible-orange); border: 1px solid var(--color-accessible-orange); }
+
+    /* DS buttons (for Sign In CTA in nav) */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: 54px; padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn-sm { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
+    /* Same font-size/padding/gap as the default .btn — only the height is reduced */
+    .btn-compressed { height: var(--space-12); }
+    .btn-icon-left { padding-left: var(--space-5); }
+    .btn-sm.btn-icon-left { padding-left: var(--space-3); }
+    .btn-sm.btn-icon-left img { width: var(--space-5); height: var(--space-5); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+    .btn-ghost { background: transparent; color: var(--color-accessible-orange); border-color: transparent; }
+    .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+    .ufs-nav__actions .btn { margin-left: var(--space-3); width: auto; }
+
+    /* Context modifier — use on a container that already has a dark/photo
+       background (no background of its own, unlike .btn-surface-dark) */
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+    .btn-on-dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+    .btn-on-dark .btn-ghost { color: var(--color-salt); }
+    .btn-on-dark .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+
+    /* Nav Sign In button (.btn-ghost) sits directly on the dark/glass nav
+       background — same on-dark ghost treatment as above, scoped to the nav. */
+    .ufs-nav--dark .btn-ghost,
+    .ufs-nav--glass .btn-ghost { color: var(--color-salt); }
+    .ufs-nav--dark .btn-ghost:hover:not(:disabled):not(.btn-loading),
+    .ufs-nav--glass .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+
+    /* ================================================================
+       PAGE CONTENT
+    ================================================================ */
+
+    /* ── Hero ────────────────────────────────────────────── */
+    .pg-hero {
+      min-height: 480px; display: flex; align-items: center;
+      background: var(--food-gradient);
+      padding: var(--space-20) var(--space-20) var(--space-25);
+      position: relative; overflow: hidden;
+    }
+    @media (max-width: 768px) {
+      .pg-hero { padding-left: var(--space-4); padding-right: var(--space-4); }
+    }
+    body.color-glass .pg-hero { background: transparent; min-height: 420px; }
+    .pg-hero::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(to right, rgba(10,7,22,0.7) 0%, rgba(10,7,22,0.2) 60%, transparent 100%);
+      pointer-events: none;
+    }
+    body.color-glass .pg-hero::after { background: linear-gradient(to right, rgba(10,7,22,0.55) 0%, rgba(10,7,22,0.1) 60%, transparent 100%); }
+    .pg-hero-content { position: relative; z-index: 1; max-width: 560px; }
+    .pg-hero-eyebrow { color: var(--color-brand-primary); margin-bottom: var(--space-4); }
+    .pg-hero-title { color: var(--color-salt); margin-bottom: var(--space-5); }
+    .pg-hero-sub { color: rgba(255,255,255,0.72); margin-bottom: var(--space-9); max-width: 440px; }
+    .pg-hero-actions { display: flex; gap: var(--space-4); flex-wrap: wrap; }
+
+    /* ── Products section ────────────────────────────────── */
+    .pg-products {
+      background: var(--color-salt); padding: var(--space-16) var(--space-20) var(--space-20);
+    }
+    body.color-glass .pg-products { background: var(--color-salt); }
+    .pg-section-eyebrow { color: var(--color-accessible-orange); margin-bottom: 10px; }
+    .pg-section-title { color: var(--color-brand-dark); margin-bottom: var(--space-2); }
+    .pg-section-sub { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); line-height: var(--text-body-sm-lh); margin-bottom: var(--space-10); }
+    .pg-cards-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-5); }
+    @media (max-width: 768px) {
+      .pg-products { padding-left: var(--space-4); padding-right: var(--space-4); }
+      .pg-cards-grid { grid-template-columns: 1fr; }
+    }
+    .pg-card {
+      border-radius: var(--radius-md); overflow: hidden;
+      border: 1px solid var(--color-mushroom-300);
+      background: var(--color-salt);
+      transition: box-shadow 0.2s, transform 0.2s; cursor: pointer;
+    }
+    .pg-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .pg-card-img {
+      height: 160px; position: relative; overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .pg-card-img-bg { position: absolute; inset: 0; }
+    .pg-card-brand {
+      position: absolute; top: 10px; left: 10px;
+      background: var(--color-salt); border-radius: var(--radius-xs);
+      padding: var(--space-1) var(--space-2);
+      color: var(--color-brand-dark);
+    }
+    .pg-card-fav {
+      position: absolute; top: var(--space-2); right: var(--space-2);
+      width: 28px; height: 28px; border-radius: 50%;
+      background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center;
+    }
+    .pg-card-fav img { width: 14px; height: 14px; opacity: 0.45; }
+    .pg-card-body { padding: 14px var(--space-4) 18px; }
+    .pg-card-title { font-weight: var(--text-btn-w); color: var(--color-brand-dark); margin-bottom: var(--space-1); }
+    .pg-card-desc  { color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
+    .pg-card-footer { display: flex; align-items: center; justify-content: space-between; }
+    .pg-card-tag { padding: var(--space-1) var(--space-2); border-radius: var(--radius-full); background: var(--color-mushroom-100); color: var(--color-mushroom-700); }
+    .pg-card-action {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--color-accessible-orange); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .pg-card-action img { width: 12px; height: 12px; filter: brightness(0) invert(1); }
+
+    /* ── Inspiration section ─────────────────────────────── */
+    .pg-inspiration { background: var(--color-mushroom-100); padding: var(--space-16) var(--space-20) var(--space-25); }
+    .pg-inspo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); margin-top: var(--space-10); }
+    @media (max-width: 768px) {
+      .pg-inspiration { padding-left: var(--space-4); padding-right: var(--space-4); }
+      .pg-inspo-grid { grid-template-columns: 1fr; }
+    }
+    .pg-inspo-feature {
+      border-radius: var(--radius-lg); overflow: hidden; cursor: pointer;
+      position: relative; min-height: 300px;
+      background: linear-gradient(135deg, #7a3a10, #3b1e08);
+      transition: box-shadow 0.2s;
+    }
+    .pg-inspo-feature:hover { box-shadow: var(--shadow-lg); }
+    .pg-inspo-small-col { display: flex; flex-direction: column; gap: var(--space-6); }
+    .pg-inspo-small {
+      flex: 1; border-radius: var(--radius-md); overflow: hidden; cursor: pointer;
+      border: 1px solid var(--color-mushroom-300); background: var(--color-salt);
+      transition: box-shadow 0.15s;
+    }
+    .pg-inspo-small:hover { box-shadow: var(--shadow-sm); }
+    .pg-inspo-small-img { height: 110px; }
+    .pg-inspo-small-body { padding: 14px var(--space-4); }
+    .pg-inspo-small-tag { color: var(--color-accessible-orange); margin-bottom: 6px; }
+    .pg-inspo-small-title { font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    .pg-inspo-feature-body { position: absolute; bottom: 0; left: 0; right: 0; padding: var(--space-7) var(--space-7) var(--space-8); background: linear-gradient(to top, rgba(0,0,0,0.75), transparent); }
+    .pg-inspo-feature-tag { color: var(--color-brand-primary); margin-bottom: var(--space-2); }
+    .pg-inspo-feature-title { color: var(--color-salt); margin-bottom: var(--space-3); }
+    .pg-inspo-feature-meta { color: rgba(255,255,255,0.55); }
+
+    /* Bottom spacing for floating bar */
+    .pg-bottom-space { height: 100px; }
+
+    /* ================================================================
+       FLOATING BAR E — fixed position
+    ================================================================ */
+    /* Gradient-spin border + ambient glow — same pattern as academy-catalog-b.html's .ai-prompt-wrapper */
+    @keyframes gradient-spin {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes ai-glow-pulse {
+      0%, 100% { box-shadow: 0 0 16px rgba(255,90,0,0.30), 0 0 36px rgba(213,54,176,0.18); }
+      50%       { box-shadow: 0 0 24px rgba(255,90,0,0.50), 0 0 48px rgba(213,54,176,0.30); }
+    }
+    .fbe-fixed {
+      position: fixed; bottom: calc(var(--ctrl-reserve) + var(--space-8)); left: 50%;
+      transform: translateX(-50%);
+      width: 740px; max-width: calc(100vw - 48px);
+      z-index: 500;
+      /* Preview only — local override, not yet promoted to --gradient-ai */
+      background: linear-gradient(135deg, #FF5A00 0%, var(--color-salt) 50%, #D536B0 100%);
+      background-size: 300% 300%;
+      border-radius: var(--radius-full);
+      padding: 2px;
+      animation: gradient-spin 5s ease infinite, ai-glow-pulse 3s ease-in-out infinite;
+      transition: box-shadow 0.3s;
+    }
+    /* Sped-up while the AI chat is composing a reply — toggled in sendAiMsg() */
+    .fbe-fixed.thinking {
+      animation: gradient-spin 1.5s ease infinite, ai-glow-pulse 1s ease-in-out infinite;
+    }
+    .fbe {
+      background: var(--color-salt);
+      border-radius: var(--radius-full);
+      display: flex; align-items: center; height: 68px;
+    }
+    /* Ask row — single AI input + voice button (replaces the old 4-button
+       icon group; Voice retriggers the existing mic panel below, Ideas/
+       Search no longer exist as bar buttons) */
+    .fbe__ask-row { display: flex; align-items: center; gap: var(--space-2); flex: 1; height: 100%; padding: 0 var(--space-2) 0 var(--space-5); }
+    .fbe__ask-icon { width: var(--space-5); height: var(--space-5); flex-shrink: 0; }
+    .fbe__ask-input {
+      flex: 1; min-width: 0; border: none; background: transparent;
+      font-family: var(--font-family); font-size: var(--text-body-size);
+      color: var(--color-brand-dark); outline: none; line-height: 1;
+    }
+    .fbe__ask-input::placeholder { color: var(--color-mushroom-900); }
+    .fbe__voice-btn {
+      width: 48px; height: 48px; border-radius: var(--radius-full);
+      display: flex; align-items: center; justify-content: center;
+      border: none; cursor: pointer; background: var(--color-mushroom-100);
+      flex-shrink: 0; margin-right: var(--space-3); transition: background 0.15s;
+    }
+    .fbe__voice-btn:hover, .fbe__voice-btn.is-active { background: var(--color-brand-dark); }
+    .fbe__voice-btn:hover svg, .fbe__voice-btn.is-active svg { filter: brightness(0) invert(1); }
+    .fbe__voice-btn svg { width: var(--space-5); height: var(--space-5); color: var(--color-squid-900); transition: filter 0.15s; }
+    /* Suggested prompts — shown above the bar on input focus */
+    .fbe__panel--prompts { left: 0; width: 100%; padding: var(--space-2); display: flex; flex-direction: column; gap: var(--space-1); }
+    .fbe-prompt-btn {
+      display: flex; align-items: center; gap: var(--space-3); width: 100%;
+      padding: var(--space-3) var(--space-4); border-radius: var(--radius-md);
+      border: none; background: transparent; cursor: pointer; text-align: left;
+      font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark);
+      transition: background 0.15s;
+    }
+    .fbe-prompt-btn:hover { background: var(--color-mushroom-100); }
+    .fbe-prompt-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.5; }
+    /* Search — kept only because the new nav search dropdown reuses these
+       exact classes for its own input row; no longer used inline in the bar */
+    .fbe__search {
+      flex: 1; display: flex; align-items: center; gap: var(--space-2);
+      padding: 0 var(--space-2) 0 var(--space-4); height: 100%;
+      border-radius: 0 var(--radius-full) var(--radius-full) 0; transition: background 0.15s;
+    }
+    .fbe__search:focus-within { background: var(--color-mushroom-100); }
+    .fbe__search-icon { width: var(--space-5); height: var(--space-5); flex-shrink: 0; opacity: 0.65; transition: opacity 0.15s, filter 0.15s; }
+    .fbe__search:focus-within .fbe__search-icon { opacity: 1; filter: invert(28%) sepia(85%) saturate(1800%) hue-rotate(3deg) brightness(80%); }
+    .fbe__input {
+      flex: 1; min-width: 0; border: none; background: transparent;
+      font-family: var(--font-family); font-size: var(--text-body-sm-size);
+      color: var(--color-brand-dark); outline: none; line-height: 1;
+    }
+    .fbe__input::placeholder { color: var(--color-mushroom-900); }
+    .fbe__submit {
+      width: 38px; height: 38px; border-radius: var(--radius-full);
+      background: var(--color-accessible-orange); border: none;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+      opacity: 0; pointer-events: none; transition: opacity 0.15s, background 0.15s;
+    }
+    .fbe__search:focus-within .fbe__submit { opacity: 1; pointer-events: all; }
+    .fbe__submit:hover { background: var(--color-orange-700); }
+    /* Panels */
+    .fbe__panel {
+      position: absolute; bottom: calc(100% + 10px);
+      background: var(--color-salt);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl), 0 0 0 1px var(--color-mushroom-300);
+      overflow: hidden; opacity: 0; pointer-events: none;
+      transform: translateY(10px);
+      transition: opacity 0.22s, transform 0.22s;
+    }
+    .fbe__panel.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .fbe__panel-close {
+      width: 26px; height: 26px; border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.12); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .fbe__panel-close--dark { background: rgba(255,255,255,0.12); }
+    .fbe__panel-close--light { background: var(--color-mushroom-100); }
+    .fbe__panel-close svg { width: 10px; height: 10px; display: block; }
+    /* Mic panel */
+    .fbe__panel--mic { left: 0; width: 288px; }
+    .fbe-mic-hd { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); background: var(--color-brand-dark); }
+    .fbe-mic-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-salt); }
+    .fbe-mic-title svg { width: 14px; height: 14px; }
+    .fbe-mic-body { padding: var(--space-4); }
+    .fbe-mic-status { display: flex; align-items: center; gap: 6px; margin-bottom: var(--space-3); }
+    .fbe-mic-status--listening { color: var(--color-accessible-orange); }
+    .fbe-mic-status--processing { color: var(--color-mushroom-700); }
+    .fbe-mic-status--escalating { color: var(--color-brand-dark); }
+    .fbe-mic-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: micDotPulse 1.2s ease-in-out infinite; }
+    @keyframes micDotPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    .fbe-wave { display: flex; align-items: center; gap: var(--space-1); height: 40px; justify-content: center; margin-bottom: var(--space-3); }
+    .fbe-wave-bar { width: 3px; border-radius: 2px; background: var(--color-accessible-orange); animation: micWave 0.8s ease-in-out infinite; }
+    .fbe-wave-bar:nth-child(1)  { height: 6px;  animation-delay:0.00s; }
+    .fbe-wave-bar:nth-child(2)  { height: 12px; animation-delay:0.07s; }
+    .fbe-wave-bar:nth-child(3)  { height: 20px; animation-delay:0.14s; }
+    .fbe-wave-bar:nth-child(4)  { height: 28px; animation-delay:0.21s; }
+    .fbe-wave-bar:nth-child(5)  { height: 36px; animation-delay:0.28s; }
+    .fbe-wave-bar:nth-child(6)  { height: 28px; animation-delay:0.21s; }
+    .fbe-wave-bar:nth-child(7)  { height: 20px; animation-delay:0.14s; }
+    .fbe-wave-bar:nth-child(8)  { height: 12px; animation-delay:0.07s; }
+    .fbe-wave-bar:nth-child(9)  { height: 6px;  animation-delay:0.00s; }
+    .fbe-wave-bar:nth-child(10) { height: 12px; animation-delay:0.07s; }
+    .fbe-wave-bar:nth-child(11) { height: 20px; animation-delay:0.14s; }
+    .fbe-wave-bar:nth-child(12) { height: 12px; animation-delay:0.07s; }
+    .fbe-wave-bar:nth-child(13) { height: 6px;  animation-delay:0.00s; }
+    @keyframes micWave { 0%,100%{transform:scaleY(0.3);opacity:0.4} 50%{transform:scaleY(1);opacity:1} }
+    .fbe-wave--paused .fbe-wave-bar { animation-play-state: paused; transform: scaleY(0.3); opacity: 0.3; }
+    .fbe-mic-transcript { display: none; font-weight: 600; color: var(--color-brand-dark); text-align: center; padding: 0 var(--space-2) var(--space-3); }
+    .fbe-mic-sim { display: flex; gap: var(--space-2); }
+    .fbe-mic-sim-btn { flex:1; height:32px; border-radius:var(--radius-sm); border:none; font-family:var(--font-family); font-size:var(--text-btn-sm-size); font-weight:var(--text-btn-sm-w); cursor:pointer; transition:background 0.15s; }
+    .fbe-mic-sim-btn--search { background:var(--color-mushroom-100); color:var(--color-mushroom-900); }
+    .fbe-mic-sim-btn--search:hover { background:var(--color-mushroom-300); }
+    .fbe-mic-sim-btn--ai { background:var(--color-brand-dark); color:var(--color-salt); }
+    .fbe-mic-sim-btn--ai:hover { background:var(--color-squid-700); }
+    .fbe-mic-footer { color:var(--color-mushroom-700); text-align:center; padding:var(--space-3) var(--space-4); border-top:1px solid var(--color-mushroom-300); }
+    /* AI chat panel */
+    .fbe__panel--ai { right: 0; width: 420px; height: 461px; display: flex; flex-direction: column; }
+    /* Mobile: standardize both remaining panels to the same width, centered
+       on screen (the bar itself is already centered via .fbe-fixed's
+       left:50%/translateX(-50%), so left:0 + width:100% rides on that for
+       free). .fbe__panel--prompts is already left:0;width:100% natively,
+       so it doesn't need an entry here. */
+    @media (max-width: 768px) {
+      .fbe__panel--mic, .fbe__panel--ai {
+        left: 0; right: auto; width: 100%;
+      }
+    }
+    .fbe-ai-hd { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); background: var(--color-brand-dark); flex-shrink: 0; }
+    .fbe-ai-title { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-salt); }
+    .fbe-ai-title img { width: 15px; height: 15px; filter: brightness(0) invert(1); opacity: 0.85; }
+    .fbe-ai-badge { font-size: 8px; font-weight: var(--text-btn-w); letter-spacing: 0.5px; text-transform: uppercase; background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.5); padding: var(--space-1) 6px; border-radius: var(--radius-full); }
+    .fbe-ai-msgs { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); flex: 1; overflow-y: auto; }
+    .fbe-ai-msg { display: flex; gap: var(--space-2); align-items: flex-start; }
+    .fbe-ai-msg--user { flex-direction: row-reverse; }
+    .fbe-ai-ava { width: 24px; height: 24px; border-radius: var(--radius-full); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 10px; font-weight: var(--text-btn-w); }
+    .fbe-ai-ava--ai { background: var(--color-brand-dark); color: var(--color-salt); }
+    .fbe-ai-ava--user { background: var(--color-accessible-orange); color: var(--color-salt); }
+    .fbe-ai-bubble { max-width: 80%; padding: var(--space-2) var(--space-3); }
+    .fbe-ai-bubble--ai { background: var(--color-mushroom-100); color: var(--color-brand-dark); border-radius: 4px 12px 12px 12px; }
+    .fbe-ai-bubble--user { background: var(--color-brand-dark); color: var(--color-salt); border-radius: 12px 4px 12px 12px; }
+    .fbe-ai-input-row { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-mushroom-300); flex-shrink: 0; }
+    .fbe-ai-input { flex: 1; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm); padding: var(--space-2) var(--space-3); height: 38px; font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); outline: none; transition: border-color 0.15s; }
+    .fbe-ai-input:focus { border-color: var(--color-brand-dark); }
+    .fbe-ai-send { width: 36px; height: 36px; border-radius: var(--radius-full); background: var(--color-brand-dark); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+    .fbe-ai-send:hover { background: var(--color-squid-700); }
+    .fbe-typing { display: flex; align-items: center; gap: var(--space-1); padding: var(--space-1) 0; }
+    .fbe-typing-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--color-mushroom-500); animation: tdot 1.2s ease-in-out infinite; }
+    .fbe-typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .fbe-typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes tdot { 0%,100%{transform:translateY(0);opacity:0.4} 50%{transform:translateY(-4px);opacity:1} }
+
+    /* ================================================================
+       SIGN-IN PANEL
+    ================================================================ */
+    .signin-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 900;
+      background: color-mix(in srgb, var(--color-squid-900) 55%, transparent); backdrop-filter: blur(3px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .signin-panel {
+      position: fixed; top: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 901;
+      width: 420px; background: var(--color-salt);
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s;
+      box-shadow: none;
+      display: flex; flex-direction: column;
+    }
+    /* box-shadow only while open — see .ufs-drawer's comment above for why. */
+    .signin-panel.is-open { transform: translateX(0); box-shadow: -8px 0 40px rgba(0,0,0,0.18); }
+    @media (max-width: 768px) {
+      .signin-panel { width: calc(100% - 16px); }
+    }
+    .signin-panel-hd {
+      height: var(--mnav-h); padding: 0 var(--space-4); display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--color-mushroom-300); flex-shrink: 0;
+    }
+    .signin-panel-logo { height: var(--space-6); }
+    .signin-close {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: var(--color-mushroom-100); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .signin-close:hover { background: var(--color-mushroom-300); }
+    .signin-close svg { width: 12px; height: 12px; }
+    .signin-panel-body { flex: 1; overflow-y: auto; padding: var(--space-7); }
+    /* DS form elements */
+    .fi-wrap { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; }
+    .fi-label { font-size: var(--text-btn-size); line-height: 22px; font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    .fi-field {
+      width: 100%; height: var(--space-12);
+      border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-body-sm-size); font-family: var(--font-family); font-weight: 400;
+      color: var(--color-brand-dark); background: var(--color-mushroom-100);
+      outline: none; box-sizing: border-box;
+      transition: border-color 0.15s; display: block;
+    }
+    .fi-field:focus { border-color: var(--color-brand-dark); }
+    /* Tabs */
+    .tab-bar { display: flex; gap: var(--space-1); background: var(--color-mushroom-300); border-radius: var(--radius-sm); padding: var(--space-1); }
+    .tab-btn { flex: 1; padding: var(--space-2) var(--space-5); border-radius: var(--radius-xs); font-size: var(--text-btn-sm-size); font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--color-mushroom-900); transition: all 0.15s; font-family: var(--font-family); }
+    .tab-btn.is-active { background: var(--color-salt); color: var(--color-brand-dark); box-shadow: var(--shadow-sm); }
+    .signin-form-fields { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-6); }
+    #form-register .signin-form-fields { margin-bottom: var(--space-3); }
+    .signin-forgot { color: var(--color-accessible-orange); cursor: pointer; text-align: right; margin-top: -8px; }
+    .signin-usp { color: var(--color-mushroom-700); text-align: center; margin-top: var(--space-5); }
+    /* USPs module (richer version, used in the Create Account tab) */
+    .signin-usps { margin-top: var(--space-7); padding: var(--space-5); background: var(--color-mushroom-100); border-radius: var(--radius-md); }
+    .signin-usps-title { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-squid-500); margin-bottom: var(--space-3); }
+    .signin-usp-item { display: flex; align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-3); }
+    .signin-usp-item:last-child { margin-bottom: 0; }
+    .signin-usp-item-icon { width: var(--space-9); height: var(--space-9); flex-shrink: 0; border-radius: var(--radius-sm); background: var(--color-salt); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); }
+    .signin-usp-item-icon img { width: 18px; height: 18px; }
+    .signin-usp-item-text { padding-top: 2px; }
+    .signin-usp-item-title { font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); margin-bottom: 1px; }
+    .signin-usp-item-desc { font-size: var(--text-body-xs-size); color: var(--color-squid-500); line-height: var(--text-body-xs-lh); }
+
+    /* State indicator badge — click toggles the ctrl-bar open/closed.
+       Sits at the true bottom corner while closed, then lifts to clear
+       the bar (108px) once .ctrl-bar-open is set on <body>. */
+    .state-badge {
+      position: fixed; bottom: 24px; right: 24px; z-index: 400;
+      background: var(--color-squid-900); color: rgba(255,255,255,0.7);
+      font-size: 10px; font-weight: var(--text-btn-w); letter-spacing: 0.4px;
+      padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+      line-height: 16px; border: none; display: block; text-align: left; cursor: pointer;
+      transition: bottom 0.28s ease, background 0.15s;
+    }
+    .state-badge:hover { background: var(--color-squid-700); }
+    body.ctrl-bar-open .state-badge { bottom: 108px; }
+    .state-badge strong { color: var(--color-salt); display: block; margin-bottom: 2px; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.5; }
+    @media (max-width: 768px) {
+      .state-badge { display: none; }
+    }
+  </style>
+</head>
+<body class="color-light">
+
+  <!-- ================================================================
+       CONTROLS BAR
+  ================================================================ -->
+  <div class="ctrl-bar" id="ctrl-bar">
+    <div class="ctrl-brand">
+      <img src="images/ufs-logo.png" alt="UFS"/>
+      <span class="ctrl-brand-label text-body-xs">Full Page Preview</span>
+    </div>
+    <div class="ctrl-groups">
+      <div class="ctrl-group">
+        <span class="ctrl-label">View</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-view-desktop" onclick="setView('desktop')">Desktop</button>
+          <button class="ctrl-btn"           id="ctrl-view-mobile"  onclick="setView('mobile')">Mobile</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Color</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-color-light" onclick="setColor('light')">Light</button>
+          <button class="ctrl-btn"           id="ctrl-color-dark"  onclick="setColor('dark')">Dark</button>
+          <button class="ctrl-btn"           id="ctrl-color-glass" onclick="setColor('glass')">Glass</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Webshop</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-ws-true"  onclick="setWebshop(true)">With Cart</button>
+          <button class="ctrl-btn"           id="ctrl-ws-false" onclick="setWebshop(false)">No Webshop</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">User</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-auth-false" onclick="setAuth(false)">Sign In</button>
+          <button class="ctrl-btn"           id="ctrl-auth-true"  onclick="setAuth(true)">Logged In</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <iframe id="mobile-preview-frame" title="Mobile preview"></iframe>
+
+  <div id="real-page-content">
+  <!-- ================================================================
+       PAGE HEADER (fixed)
+  ================================================================ -->
+  <header class="page-header" id="page-header">
+    <!-- Main nav -->
+    <nav class="ufs-nav ufs-nav--light" id="main-nav">
+      <button class="ufs-nav__burger-btn" onclick="openDrawer()">
+        <img class="ufs-icon ufs-icon--20" src="icons/menu.svg" alt=""/>
+        <span class="ufs-nav__burger-label">MENU</span>
+      </button>
+      <div class="ufs-nav__logo">
+        <img src="images/ufs-logo.png" alt="UFS" id="nav-logo"/>
+      </div>
+      <div class="ufs-nav__links">
+        <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)">Products <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)">Recipes <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)">Training &amp; Inspiration <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link" onclick="closeAllMegamenus()">Promotions</div>
+      </div>
+      <div class="ufs-nav__actions">
+        <!-- Search -->
+        <button class="ufs-nav__icon-btn" id="nav-search-btn" onclick="toggleSearchOverlay('nav')">
+          <img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt="Search"/>
+        </button>
+        <!-- Fav (always visible) -->
+        <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--24" src="icons/fav.svg" alt="Favourites"/></button>
+        <!-- Cart (webshop only) -->
+        <button class="ufs-nav__icon-btn" id="nav-cart" style="position:relative">
+          <img class="ufs-icon ufs-icon--24" src="icons/cart.svg" alt="Cart"/>
+          <span class="ufs-nav__badge">3</span>
+        </button>
+        <!-- Profile (auth) -->
+        <button class="ufs-nav__icon-btn" id="nav-profile" style="position:relative">
+          <img class="ufs-icon ufs-icon--24" src="icons/profile.svg" alt="Account"/>
+          <span class="ufs-nav__account-dot"></span>
+        </button>
+        <!-- Login / Create Account (non-auth) -->
+        <button class="btn btn-ghost btn-compressed" id="nav-login" style="display:none" onclick="openSignIn('signin')">Sign In</button>
+        <button class="btn btn-primary btn-icon-left btn-compressed" id="nav-signin" style="display:none" onclick="openSignIn('register')">
+          <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="" style="filter:brightness(0) invert(1)"/>Create Account
+        </button>
+      </div>
+
+      <!-- Search overlay (Option B — full overlay, ported from nav-exploration.html) -->
+      <div class="ufs-search-overlay" id="nav-search-overlay">
+        <div class="ufs-search-overlay-inner">
+          <div class="ufs-overlay-field">
+            <img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt=""/>
+            <input type="text" id="nav-search-overlay-input" placeholder="Search recipes, products, brands…" autocomplete="off"/>
+            <button class="ufs-overlay-close" onclick="closeSearchOverlay('nav')">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+            </button>
+          </div>
+          <div class="ufs-overlay-section-label">Trending searches</div>
+          <div class="ufs-overlay-chips">
+            <div class="ufs-overlay-chip">Pasta sauces</div>
+            <div class="ufs-overlay-chip">Knorr bouillon</div>
+            <div class="ufs-overlay-chip">Plant-based</div>
+            <div class="ufs-overlay-chip">Dessert recipes</div>
+            <div class="ufs-overlay-chip">Hellmann's mayo</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Megamenu: Products -->
+      <div class="ufs-megamenu" id="mm-products">
+        <div class="mm-a">
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Sauces &amp; Condiments</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Ketchup &amp; Tomato Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Mayonnaise &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Hot Sauces <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Vinegars &amp; Marinades <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Pastes &amp; Purees <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Dairy &amp; Fats</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Butter &amp; Spreads <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Cream &amp; Creamers <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Cooking Oils <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Cheese Products <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Culinary Bases</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Stocks &amp; Bouillons <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Gravy &amp; Sauce Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Soups &amp; Broths <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Seasoning Blends <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Dessert Mixes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-promo">
+            <div class="mm-promo-img"><span class="mm-promo-img-placeholder text-badge">Product Image</span></div>
+            <div class="mm-promo-body">
+              <div class="mm-promo-over text-overline">New Arrival</div>
+              <div class="mm-promo-title text-body">Knorr Professional Demi-Glace — now in 1 L packs</div>
+              <a class="mm-promo-cta text-body-sm">Explore range <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Megamenu: Recipes -->
+      <div class="ufs-megamenu" id="mm-recipes">
+        <div class="mm-b">
+          <div class="mm-featured">
+            <div class="mm-feat-over text-overline">Chef's Pick</div>
+            <div class="mm-feat-title text-h4">20-Minute Weeknight Recipes</div>
+            <div class="mm-feat-body text-body-sm">Fast, professional-quality dishes built around UFS pantry staples. New recipes added every week.</div>
+            <a class="mm-feat-cta text-body-sm">Browse recipes <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Recipes</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">All Recipes <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Starters &amp; Soups <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Mains &amp; Sides <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Desserts <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Sauces &amp; Dressings <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">By Cuisine</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Asian <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Mediterranean <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Latin American <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Classic European <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-promo">
+            <div class="mm-promo-img"><span class="mm-promo-img-placeholder text-badge">Editorial Image</span></div>
+            <div class="mm-promo-body">
+              <div class="mm-promo-over text-overline">Trending Now</div>
+              <div class="mm-promo-title text-body">Mastering Umami: a free online module for chefs</div>
+              <a class="mm-promo-cta text-body-sm">Start learning <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Megamenu: Training & Inspiration -->
+      <div class="ufs-megamenu" id="mm-training">
+        <div class="mm-a">
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Training</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Chef Training Videos <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Culinary Techniques <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Online Courses <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Certifications <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Inspiration</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Food Trends <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Menu Planning Tools <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Chef Spotlights <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Success Stories <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col">
+            <span class="mm-col-label text-overline">Resources</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm">Downloadable Guides <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">Webinars &amp; Events <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm">UFS Academy <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-promo">
+            <div class="mm-promo-img"><span class="mm-promo-img-placeholder text-badge">Academy Image</span></div>
+            <div class="mm-promo-body">
+              <div class="mm-promo-over text-overline">Free Module</div>
+              <div class="mm-promo-title text-body">Mastering Umami: a free online module for chefs</div>
+              <a class="mm-promo-cta text-body-sm">Start learning <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Mobile nav bar (below 768px) -->
+    <div class="ufs-mnav ufs-mnav--light" id="mobile-nav">
+      <button class="ufs-mnav__btn" onclick="openDrawer()"><img class="ufs-icon ufs-icon--20" src="icons/menu.svg" alt="Menu"/></button>
+      <img src="images/ufs-logo.png" alt="UFS" class="ufs-mnav__logo"/>
+      <div class="ufs-mnav__right">
+        <button class="ufs-mnav__btn" id="mnav-search-btn" onclick="toggleSearchOverlay('mnav')">
+          <img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt="Search"/>
+        </button>
+        <button class="ufs-mnav__btn"><img class="ufs-icon ufs-icon--20" src="icons/fav.svg" alt="Favourites"/></button>
+        <button class="ufs-mnav__btn" id="mnav-cart" style="position:relative">
+          <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="Cart"/>
+          <span class="ufs-nav__badge">3</span>
+        </button>
+        <button class="ufs-mnav__btn" id="mnav-profile" style="position:relative" onclick="mnavProfileClick()">
+          <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/>
+          <span class="ufs-nav__account-dot" id="mnav-profile-dot"></span>
+        </button>
+      </div>
+    </div>
+
+  </header>
+
+  <!-- Mobile search overlay (full-screen takeover) — kept as a sibling of
+       <header>, not nested inside it: .page-header is itself position:fixed
+       with its own z-index:100, which creates a stacking context that traps
+       anything nested inside it (regardless of that element's own z-index)
+       below other body-level fixed elements with a higher z-index, like
+       .fbe-fixed (500). Nesting this overlay inside <header> meant its
+       z-index:950 never actually competed against .fbe-fixed directly. -->
+  <div class="ufs-msearch-overlay" id="mnav-search-overlay">
+    <div class="ufs-msearch-ov-header">
+      <div class="ufs-msearch-ov-field">
+        <img class="ufs-icon ufs-icon--18" src="icons/Search.svg" alt=""/>
+        <input class="ufs-msearch-ov-input" type="text" id="mnav-search-overlay-input" placeholder="Search…" autocomplete="off"/>
+      </div>
+      <button class="ufs-msearch-ov-close" onclick="closeSearchOverlay('mnav')">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div>
+      <div class="ufs-msearch-ov-label">Trending</div>
+      <div class="ufs-msearch-ov-chips">
+        <div class="ufs-msearch-ov-chip">Pasta sauces</div>
+        <div class="ufs-msearch-ov-chip">Knorr</div>
+        <div class="ufs-msearch-ov-chip">Desserts</div>
+        <div class="ufs-msearch-ov-chip">Plant-based</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       MOBILE DRAWER
+  ================================================================ -->
+  <div class="ufs-drawer-backdrop" id="mobile-drawer-backdrop" onclick="closeDrawer()"></div>
+  <div class="ufs-drawer" id="mobile-drawer">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeDrawer()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="ufs-drawer-links">
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)">Products <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link">Sauces &amp; Condiments</a>
+        <a class="ufs-drawer-sub-link">Dairy &amp; Fats</a>
+        <a class="ufs-drawer-sub-link">Culinary Bases</a>
+        <a class="ufs-drawer-sub-link">View all products</a>
+      </div>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)">Recipes <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link">All Recipes</a>
+        <a class="ufs-drawer-sub-link">By Cuisine</a>
+        <a class="ufs-drawer-sub-link">View all recipes</a>
+      </div>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)">Training &amp; Inspiration <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link">Training Videos</a>
+        <a class="ufs-drawer-sub-link">Food Trends</a>
+        <a class="ufs-drawer-sub-link">UFS Academy</a>
+      </div>
+      <button class="ufs-drawer-acc-trigger" style="border-bottom:none">Promotions</button>
+    </div>
+    <div class="ufs-drawer-util">
+      <div class="ufs-drawer-util-title">More</div>
+      <a class="ufs-drawer-util-link">About Us</a>
+      <a class="ufs-drawer-util-link">Contact</a>
+      <a class="ufs-drawer-util-link">Help &amp; Support</a>
+      <a class="ufs-drawer-util-link" id="drawer-ws-link">Track Your Order</a>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)"><span class="ufs-drawer-acc-label"><svg class="ufs-icon ufs-drawer-acc-globe" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M40.5 22.5C40.5 12.7252 32.673 4.74882 22.9561 4.50571L22.4993 4.5L22.0425 4.50571C12.3268 4.74883 4.5 12.7255 4.5 22.5C4.5 32.4259 12.574 40.5 22.4993 40.5C32.4258 40.5 40.5 32.4261 40.5 22.5ZM7.5 22.5C7.5 14.3698 14.0039 7.72857 22.0802 7.50577L22.4993 7.5L22.9185 7.50577C30.9959 7.72856 37.5 14.3696 37.5 22.5C37.5 30.7692 30.7689 37.5 22.4993 37.5C14.2309 37.5 7.5 30.769 7.5 22.5Z" fill="currentColor"/><path d="M22.4993 4.75793C23.2686 4.75793 23.9026 5.33699 23.9892 6.083L23.9993 6.25793V38.7422C23.9993 39.5706 23.3277 40.2422 22.4993 40.2422C21.73 40.2422 21.096 39.6631 21.0094 38.9171L20.9993 38.7422V6.25793C20.9993 5.42951 21.6709 4.75793 22.4993 4.75793Z" fill="currentColor"/><path d="M20.1923 5.38265C20.8895 5.83016 21.0918 6.7581 20.6443 7.45525L20.4169 7.82245L20.0947 8.3692L19.8339 8.82738C19.2127 9.93341 18.5908 11.1515 18.0111 12.442C16.8394 15.0502 15.9955 17.6066 15.6185 19.9641C15.4765 20.8523 15.4036 21.6995 15.4036 22.4999C15.4036 23.2977 15.476 24.1418 15.6171 25.0267C15.9933 27.3861 16.8378 29.9447 18.011 32.555C18.5907 33.8448 19.2126 35.0623 19.8337 36.1677L20.2116 36.8269L20.5797 37.4373C20.6031 37.4747 20.6246 37.5086 20.6441 37.5389C21.0918 38.2359 20.8897 39.1639 20.1927 39.6116C19.4957 40.0594 18.5677 39.8573 18.1199 39.1602L17.8633 38.7454L17.3899 37.9399C17.3337 37.8418 17.2765 37.7409 17.2183 37.6374C16.5555 36.4577 15.8934 35.1615 15.2746 33.7849C14.0015 30.9522 13.0777 28.1533 12.6545 25.499C12.4895 24.4638 12.4036 23.4629 12.4036 22.4999C12.4036 21.5338 12.49 20.5294 12.6562 19.4904C13.0801 16.8388 14.0032 14.0426 15.2745 11.2126C15.8932 9.83542 16.5553 8.53855 17.2182 7.35834L17.7127 6.50088L18.1197 5.83467C18.5672 5.13751 19.4952 4.93514 20.1923 5.38265Z" fill="currentColor"/><path d="M25.2559 39.8584C24.5587 39.4109 24.3563 38.483 24.8039 37.7858L25.1288 37.2557L25.4796 36.6519C25.5231 36.5755 25.5681 36.4961 25.6143 36.4137C26.2355 35.3077 26.8574 34.0895 27.4371 32.7991C28.6088 30.1909 29.4527 27.6345 29.8297 25.277C29.9717 24.3888 30.0446 23.5416 30.0446 22.7411C30.0446 21.9434 29.9722 21.0993 29.8311 20.2144C29.4549 17.855 28.6104 15.2964 27.4372 12.686C26.8575 11.3962 26.2356 10.1788 25.6145 9.07341L25.129 8.23191L24.8041 7.70218C24.3564 7.00515 24.5585 6.07716 25.2555 5.62944C25.9525 5.18173 26.8805 5.38383 27.3282 6.08086L27.5014 6.3585L27.7353 6.74673L28.0583 7.30122C28.1144 7.3993 28.1716 7.50016 28.2298 7.60374C28.8927 8.78334 29.5548 10.0796 30.1735 11.4562C31.4467 14.2889 32.3705 17.0878 32.7937 19.7421C32.9587 20.7772 33.0446 21.7782 33.0446 22.7411C33.0446 23.7073 32.9581 24.7117 32.792 25.7507C32.3681 28.4023 31.445 31.1985 30.1736 34.0285C29.555 35.4057 28.8929 36.7025 28.23 37.8827L27.8935 38.4714L27.4307 39.2438L27.3285 39.4064C26.881 40.1036 25.953 40.306 25.2559 39.8584Z" fill="currentColor"/><path d="M36.9378 27.1875C37.7662 27.1875 38.4378 27.8591 38.4378 28.6875C38.4378 29.4568 37.8587 30.0908 37.1127 30.1774L36.9378 30.1875H7.3978C6.56937 30.1875 5.8978 29.5159 5.8978 28.6875C5.8978 27.9182 6.47686 27.2842 7.22286 27.1976L7.3978 27.1875H36.9378Z" fill="currentColor"/><path d="M38.35 16.8751C39.1784 16.8751 39.85 17.5467 39.85 18.3751C39.85 19.1444 39.2709 19.7784 38.5249 19.865L38.35 19.8751H6.88013C6.0517 19.8751 5.38013 19.2035 5.38013 18.3751C5.38013 17.6059 5.95919 16.9719 6.7052 16.8852L6.88013 16.8751H38.35Z" fill="currentColor"/></svg>United States &middot; EN</span><svg class="ufs-icon ufs-drawer-acc-chev" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M17.6214 9.49108C18.1294 9.42769 18.6277 9.53396 19.0577 9.79119L30.3572 20.8504C30.7807 21.2684 31.0104 21.8053 31.0453 22.3524C31.0753 22.8224 30.9617 23.2997 30.7046 23.7149L19.502 34.8638C19.0382 35.3216 18.4302 35.55 17.8224 35.55C17.2146 35.55 16.6066 35.3216 16.1428 34.8638C15.7193 34.4459 15.4896 33.9089 15.4547 33.3619C15.4247 32.8918 15.5383 32.4145 15.7955 31.9994L25.326 22.4998L16.1428 13.4352C15.7193 13.0173 15.4896 12.4803 15.4547 11.9333C15.4201 11.391 15.5766 10.839 15.9243 10.3841C16.4582 9.85219 17.0437 9.56315 17.6214 9.49108Z" fill="currentColor"/></svg></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link is-active">English <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link">العربية <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link">Español <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link ufs-lang-drop__change">Change country <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg></a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       PAGE CONTENT
+  ================================================================ -->
+  <main>
+    <!-- Hero -->
+    <section class="pg-hero btn-on-dark">
+      <div class="pg-hero-content">
+        <div class="pg-hero-eyebrow text-overline">Professional Culinary Solutions</div>
+        <h1 class="pg-hero-title text-display">Elevate every dish<br>with UFS</h1>
+        <p class="pg-hero-sub text-body">Premium sauces, culinary bases and seasonings trusted by chefs and foodservice operators worldwide.</p>
+        <div class="pg-hero-actions">
+          <button class="btn btn-primary">Explore Products</button>
+          <button class="btn btn-secondary">Watch how it works</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Products -->
+    <section class="pg-products">
+      <div class="pg-section-eyebrow text-overline">Our Portfolio</div>
+      <h2 class="pg-section-title text-h3">Featured Products</h2>
+      <p class="pg-section-sub">From classic stock bases to innovative sauces — everything you need in a professional kitchen.</p>
+      <div class="pg-cards-grid">
+        <!-- Card 1 -->
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:linear-gradient(135deg,#f0c89a 0%,#d4850a 100%)"></div>
+            <span class="pg-card-brand text-badge">Knorr</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm">Knorr Classic Demi-Glace</div>
+            <div class="pg-card-desc text-body-xs">Concentrated veal-based sauce — rich, glossy finish in minutes.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge">Sauce Base</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+        <!-- Card 2 -->
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:linear-gradient(135deg,#c8e0b0 0%,#5a9a30 100%)"></div>
+            <span class="pg-card-brand text-badge">Hellmann's</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm">Hellmann's Real Mayonnaise</div>
+            <div class="pg-card-desc text-body-xs">Classic creamy mayo made with responsibly sourced eggs.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge">Condiment</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+        <!-- Card 3 -->
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:linear-gradient(135deg,#e8b0c0 0%,#c02060 100%)"></div>
+            <span class="pg-card-brand text-badge">Knorr</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm">Knorr Chicken Bouillon</div>
+            <div class="pg-card-desc text-body-xs">Adds depth and warmth to soups, braises and risottos.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge">Stock Base</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+        <!-- Card 4 -->
+        <div class="pg-card">
+          <div class="pg-card-img">
+            <div class="pg-card-img-bg" style="background:linear-gradient(135deg,#b0c8f0 0%,#3060c0 100%)"></div>
+            <span class="pg-card-brand text-badge">Maizena</span>
+            <div class="pg-card-fav"><img src="icons/fav.svg" alt=""/></div>
+          </div>
+          <div class="pg-card-body">
+            <div class="pg-card-title text-body-sm">Maizena Corn Starch</div>
+            <div class="pg-card-desc text-body-xs">Smooth, lump-free thickening for sauces, soups and desserts.</div>
+            <div class="pg-card-footer">
+              <span class="pg-card-tag text-badge">Thickener</span>
+              <button class="pg-card-action"><img src="icons/cart.svg" alt=""/></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Inspiration -->
+    <section class="pg-inspiration">
+      <div class="pg-section-eyebrow text-overline">Chef's Picks</div>
+      <h2 class="pg-section-title text-h3">Recipes &amp; Inspiration</h2>
+      <p class="pg-section-sub">Curated techniques and recipes from UFS culinary experts and partner chefs.</p>
+      <div class="pg-inspo-grid">
+        <div class="pg-inspo-feature">
+          <div style="position:absolute;inset:0;background:url('') center/cover,linear-gradient(135deg,#7a3a10,#3b1e08)"></div>
+          <div class="pg-inspo-feature-body">
+            <div class="pg-inspo-feature-tag text-badge">Recipe of the Week</div>
+            <div class="pg-inspo-feature-title text-h4">Pan-seared salmon with classic demi-glace</div>
+            <div class="pg-inspo-feature-meta text-body-xs">By Chef Marco Valli &nbsp;·&nbsp; 25 min &nbsp;·&nbsp; Intermediate</div>
+          </div>
+        </div>
+        <div class="pg-inspo-small-col">
+          <div class="pg-inspo-small">
+            <div class="pg-inspo-small-img" style="background:linear-gradient(135deg,#c8e0b0,#5a9a30)"></div>
+            <div class="pg-inspo-small-body">
+              <div class="pg-inspo-small-tag text-badge">Technique</div>
+              <div class="pg-inspo-small-title text-body-sm">How to build a perfect pan sauce in 5 steps</div>
+            </div>
+          </div>
+          <div class="pg-inspo-small">
+            <div class="pg-inspo-small-img" style="background:linear-gradient(135deg,#f0c89a,#d4850a)"></div>
+            <div class="pg-inspo-small-body">
+              <div class="pg-inspo-small-tag text-badge">Training</div>
+              <div class="pg-inspo-small-title text-body-sm">UFS Academy: Sauce masterclass — now free</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="pg-bottom-space"></div>
+  </main>
+
+  <!-- ================================================================
+       FLOATING BAR E (fixed)
+  ================================================================ -->
+  <div class="fbe-fixed" id="fbe-fixed">
+    <!-- Mic panel -->
+    <div class="fbe__panel fbe__panel--mic" id="fbe-panel-mic">
+      <div class="fbe-mic-hd">
+        <div class="fbe-mic-title">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          Voice
+        </div>
+        <button class="fbe__panel-close fbe__panel-close--dark" onclick="closeFbe('mic')">
+          <svg viewBox="0 0 12 12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+        </button>
+      </div>
+      <div class="fbe-mic-body">
+        <div class="fbe-mic-status fbe-mic-status--listening text-badge" id="fbe-mic-status"><span class="fbe-mic-dot"></span> Listening…</div>
+        <div class="fbe-wave" id="fbe-wave">
+          <div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div>
+          <div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div>
+          <div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div>
+          <div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div><div class="fbe-wave-bar"></div>
+          <div class="fbe-wave-bar"></div>
+        </div>
+        <div class="fbe-mic-transcript text-body-sm" id="fbe-mic-transcript"></div>
+        <div class="fbe-mic-sim" id="fbe-mic-sim">
+          <button class="fbe-mic-sim-btn fbe-mic-sim-btn--search" onclick="simMic('search')">→ Search phrase</button>
+          <button class="fbe-mic-sim-btn fbe-mic-sim-btn--ai" onclick="simMic('ai')">→ Question</button>
+        </div>
+      </div>
+      <div class="fbe-mic-footer text-body-xs">Say something to search, or ask a question to escalate to AI.</div>
+    </div>
+    <!-- AI panel -->
+    <div class="fbe__panel fbe__panel--ai" id="fbe-panel-ai">
+      <div class="fbe-ai-hd">
+        <div class="fbe-ai-title"><img src="icons/chat.svg" alt=""/> Ask AI <span class="fbe-ai-badge">Beta</span></div>
+        <button class="fbe__panel-close fbe__panel-close--dark" onclick="closeFbe('ai')">
+          <svg viewBox="0 0 12 12" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+        </button>
+      </div>
+      <div class="fbe-ai-msgs" id="fbe-ai-msgs">
+        <div class="fbe-ai-msg">
+          <div class="fbe-ai-ava fbe-ai-ava--ai">AI</div>
+          <div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm">Hi! I'm the UFS AI. Ask me about products, recipes, or cooking techniques.</div>
+        </div>
+        <div class="fbe-ai-msg fbe-ai-msg--user">
+          <div class="fbe-ai-ava fbe-ai-ava--user">FC</div>
+          <div class="fbe-ai-bubble fbe-ai-bubble--user text-body-sm">What sauce works well with grilled salmon?</div>
+        </div>
+        <div class="fbe-ai-msg">
+          <div class="fbe-ai-ava fbe-ai-ava--ai">AI</div>
+          <div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm">Great choice! I'd recommend the <strong>Knorr Classic Demi-Glace</strong> — it adds depth without overpowering. Want me to find recipes using it?</div>
+        </div>
+      </div>
+      <div class="fbe-ai-input-row">
+        <input class="fbe-ai-input" id="fbe-ai-input" type="text" placeholder="Ask a follow-up…" onkeydown="if(event.key==='Enter')sendAiMsg()"/>
+        <button class="fbe-ai-send" onclick="sendAiMsg()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg>
+        </button>
+      </div>
+    </div>
+    <!-- Suggested prompts panel -->
+    <div class="fbe__panel fbe__panel--prompts" id="fbe-panel-prompts">
+      <button class="fbe-prompt-btn" onclick="submitAiPrompt('How do I engage more with Gen-Z diners?')">
+        <svg class="fbe-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        How do I engage more with Gen-Z diners?
+      </button>
+      <button class="fbe-prompt-btn" onclick="submitAiPrompt('Show me quick weeknight recipes')">
+        <svg class="fbe-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        Show me quick weeknight recipes
+      </button>
+      <button class="fbe-prompt-btn" onclick="submitAiPrompt('How do I store opened sauce bases?')">
+        <svg class="fbe-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        How do I store opened sauce bases?
+      </button>
+    </div>
+    <!-- Bar -->
+    <div class="fbe">
+      <div class="fbe__ask-row">
+        <svg class="fbe__ask-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 2L13.5 9.5L21 11L13.5 12.5L12 20L10.5 12.5L3 11L10.5 9.5L12 2Z" fill="url(#fbe-ask-icon-grad)"/>
+          <defs><linearGradient id="fbe-ask-icon-grad" x1="3" y1="2" x2="21" y2="20" gradientUnits="userSpaceOnUse">
+            <stop style="stop-color:var(--color-brand-primary)"/>
+            <stop offset="1" style="stop-color:var(--color-ai-accent)"/>
+          </linearGradient></defs>
+        </svg>
+        <input class="fbe__ask-input" id="fbe-ask-input" type="text" placeholder="" autocomplete="off"
+          onfocus="showPromptSuggestions(); pauseAskTypewriter();"
+          onblur="resumeAskTypewriter();"
+          onkeydown="if(event.key==='Enter'){event.preventDefault(); submitAiPrompt(this.value);}"/>
+      </div>
+      <button class="fbe__voice-btn" id="fbe-btn-mic" onclick="toggleFbe('mic')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- State badge — click to reveal/hide the ctrl-bar -->
+  <button class="state-badge" id="state-badge" type="button" onclick="toggleCtrlBar()" aria-expanded="false" aria-controls="ctrl-bar">
+    <strong>Current state</strong>
+    <span id="state-text">Light · Cart · Logged In</span>
+  </button>
+
+  <!-- ================================================================
+       SIGN-IN PANEL
+  ================================================================ -->
+  <div class="signin-backdrop" id="signin-backdrop" onclick="closeSignIn()"></div>
+  <div class="signin-panel" id="signin-panel">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeSignIn()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="signin-panel-body" id="signin-panel-body">
+      <div class="tab-bar" style="margin-bottom:24px">
+        <button class="tab-btn is-active" id="tab-si" onclick="switchTab('signin')">Sign In</button>
+        <button class="tab-btn" id="tab-reg" onclick="switchTab('register')">Create Account</button>
+      </div>
+      <!-- Sign In form -->
+      <div id="form-signin">
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label">Email address</label><input class="fi-field" type="email" placeholder="you@example.com"/></div>
+          <div class="fi-wrap"><label class="fi-label">Password</label><input class="fi-field" type="password" placeholder="••••••••"/></div>
+        </div>
+        <div class="signin-forgot text-body-xs">Forgot your password?</div>
+        <button class="btn btn-primary" style="width:100%;margin-top:20px" onclick="closeSignIn()">Sign In</button>
+        <div class="signin-usp text-body-xs">Access exclusive recipes, save your favourites<br>and manage your UFS account.</div>
+      </div>
+      <!-- Create Account form -->
+      <div id="form-register" style="display:none">
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label">Email address</label><input class="fi-field" type="email" placeholder="you@example.com"/></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="closeSignIn()">Continue</button>
+        <div class="signin-usps">
+          <div class="signin-usps-title">Why create an account?</div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/products.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title">Professional pricing</div>
+              <div class="signin-usp-item-desc">Access exclusive B2B prices and bulk discounts on all UFS products.</div>
+            </div>
+          </div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/recipes.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title">500+ chef recipes</div>
+              <div class="signin-usp-item-desc">Save and organise your favourites from our full recipe library.</div>
+            </div>
+          </div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/track.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title">Order tracking</div>
+              <div class="signin-usp-item-desc">View order history and track deliveries in real time.</div>
+            </div>
+          </div>
+          <div class="signin-usp-item">
+            <div class="signin-usp-item-icon"><img src="icons/chef.svg" alt=""/></div>
+            <div class="signin-usp-item-text">
+              <div class="signin-usp-item-title">UFS Academy</div>
+              <div class="signin-usp-item-desc">Free culinary training modules and certifications.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div><!-- /real-page-content -->
+
+  <script>
+    /* ================================================================
+       STATE
+    ================================================================ */
+    var S = { color: 'light', webshop: true, auth: false, view: 'desktop' };
+    var ctrlBarOpen = false; /* ctrl-bar hidden by default; toggled via the state-badge */
+    var navScrolled = false; /* true once scrolled past NAV_SCROLL_SWAP_Y — swaps glass nav to light */
+    var megamenuOpen = false;
+    var NAV_SCROLL_SWAP_Y = 250;
+
+    /* ── Embedded mode (this page loaded inside #mobile-preview-frame) ──
+       Reads state from the URL so the iframe mirrors the outer page's
+       Color/Webshop/User toggles instead of always starting from scratch. */
+    var isEmbedded = false;
+    (function () {
+      var params = new URLSearchParams(location.search);
+      if (params.get('embedded') !== '1') return;
+      isEmbedded = true;
+      if (params.has('color'))   S.color   = params.get('color');
+      if (params.has('webshop')) S.webshop = params.get('webshop') === 'true';
+      if (params.has('auth'))    S.auth    = params.get('auth') === 'true';
+    })();
+
+    function applyState() {
+      closeAllMegamenus();
+      var c = S.color, ws = S.webshop, auth = S.auth, view = S.view;
+
+      /* ── Body class (Glass changes page bg) ── */
+      document.body.className = 'color-' + c;
+      document.body.classList.toggle('view-mobile', view === 'mobile');
+      document.body.classList.toggle('is-embedded', isEmbedded);
+      document.body.classList.toggle('ctrl-bar-open', ctrlBarOpen);
+
+      /* ── Main nav + mobile nav (color, plus scroll/megamenu overrides) ── */
+      syncNavAppearance();
+
+      /* ── Cart visibility ── */
+      document.getElementById('nav-cart').style.display = ws ? '' : 'none';
+
+      /* ── Auth ── */
+      document.getElementById('nav-profile').style.display = auth ? '' : 'none';
+      document.getElementById('nav-login').style.display   = auth ? 'none' : '';
+      document.getElementById('nav-signin').style.display  = auth ? 'none' : '';
+
+      /* ── account dot border color for light ── */
+      document.querySelectorAll('.ufs-nav__account-dot').forEach(function(dot) {
+        dot.style.borderColor = c === 'light' ? 'white' : '';
+      });
+
+      /* ── Mobile nav bar ── */
+      document.getElementById('mnav-cart').style.display = ws ? '' : 'none';
+      document.getElementById('mnav-profile-dot').classList.toggle('is-alert', !auth);
+
+      /* ── Mobile drawer ── */
+      document.getElementById('drawer-ws-link').textContent = ws ? 'Track Your Order' : 'Where to Buy';
+
+      /* ── Controls active states ── */
+      document.getElementById('ctrl-view-desktop').classList.toggle('is-active', view === 'desktop');
+      document.getElementById('ctrl-view-mobile').classList.toggle('is-active', view === 'mobile');
+      ['dark','light','glass'].forEach(function(x) {
+        document.getElementById('ctrl-color-' + x).classList.toggle('is-active', x === c);
+      });
+      document.getElementById('ctrl-ws-true').classList.toggle('is-active', ws);
+      document.getElementById('ctrl-ws-false').classList.toggle('is-active', !ws);
+      document.getElementById('ctrl-auth-true').classList.toggle('is-active', auth);
+      document.getElementById('ctrl-auth-false').classList.toggle('is-active', !auth);
+
+      /* ── State badge ── */
+      var colorLabel = c.charAt(0).toUpperCase() + c.slice(1);
+      var wsLabel = ws ? 'Cart' : 'No Cart';
+      var authLabel = auth ? 'Logged In' : 'Sign In';
+      document.getElementById('state-text').textContent = colorLabel + ' · ' + wsLabel + ' · ' + authLabel;
+    }
+
+    function setColor(c)   { S.color   = c;    applyState(); refreshMobilePreview(); }
+    function setWebshop(v) { S.webshop = v;    applyState(); refreshMobilePreview(); }
+    function setAuth(v)    { S.auth    = v;    applyState(); refreshMobilePreview(); if (!v) { /* close sign-in if switching to logged in */ } }
+    function setView(v)    { S.view    = v;    closeDrawer(); applyState(); refreshMobilePreview(); }
+
+    function toggleCtrlBar() {
+      ctrlBarOpen = !ctrlBarOpen;
+      document.body.classList.toggle('ctrl-bar-open', ctrlBarOpen);
+      document.getElementById('state-badge').setAttribute('aria-expanded', ctrlBarOpen);
+    }
+
+    function refreshMobilePreview() {
+      if (S.view !== 'mobile') return;
+      var params = new URLSearchParams({ embedded: '1', color: S.color, webshop: S.webshop, auth: S.auth });
+      document.getElementById('mobile-preview-frame').src = location.pathname + '?' + params.toString();
+    }
+
+    /* Apply initial state */
+    applyState();
+
+    /* ================================================================
+       SIGN-IN PANEL
+    ================================================================ */
+    function openSignIn(tab) {
+      document.getElementById('signin-backdrop').classList.add('is-open');
+      document.getElementById('signin-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      switchTab(tab || 'signin');
+    }
+    function closeSignIn() {
+      document.getElementById('signin-backdrop').classList.remove('is-open');
+      document.getElementById('signin-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+    function switchTab(t) {
+      var si = t === 'signin';
+      document.getElementById('tab-si').classList.toggle('is-active', si);
+      document.getElementById('tab-reg').classList.toggle('is-active', !si);
+      document.getElementById('form-signin').style.display   = si ? '' : 'none';
+      document.getElementById('form-register').style.display = si ? 'none' : '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+    }
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeSignIn(); closeAllMegamenus(); closeSearchOverlay('nav'); closeSearchOverlay('mnav'); closeDrawer(); closePromptSuggestions(); } });
+
+    function mnavProfileClick() {
+      if (!S.auth) { closeDrawer(); openSignIn('signin'); }
+    }
+
+    /* ================================================================
+       MOBILE DRAWER
+    ================================================================ */
+    function openDrawer() {
+      document.getElementById('mobile-drawer-backdrop').classList.add('is-open');
+      document.getElementById('mobile-drawer').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+      document.getElementById('mobile-drawer-backdrop').classList.remove('is-open');
+      document.getElementById('mobile-drawer').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+    function toggleDrawerAcc(trigger) {
+      var sub = trigger.nextElementSibling;
+      if (!sub || !sub.classList.contains('ufs-drawer-sub')) return;
+      var isOpen = trigger.classList.contains('is-open');
+      var parent = trigger.closest('.ufs-drawer-links') || trigger.closest('.ufs-drawer-util');
+      if (parent) {
+        parent.querySelectorAll('.ufs-drawer-acc-trigger.is-open').forEach(function(t) {
+          t.classList.remove('is-open');
+          var s = t.nextElementSibling;
+          if (s && s.classList.contains('ufs-drawer-sub')) s.classList.remove('is-open');
+        });
+      }
+      if (!isOpen) {
+        trigger.classList.add('is-open');
+        sub.classList.add('is-open');
+      }
+    }
+
+    /* ================================================================
+       NAV APPEARANCE — derives #main-nav/#mobile-nav's color class from
+       three independent inputs: the Color control (S.color), whether
+       the page has scrolled past the glass→light threshold, and whether
+       a megamenu is open. Centralised here so none of the three can
+       stomp on the others (each just flips its own input and re-syncs).
+    ================================================================ */
+    function syncNavAppearance() {
+      var navColor = S.color;
+      if (navColor === 'glass' && navScrolled) navColor = 'light';
+      document.getElementById('mobile-nav').className = 'ufs-mnav ufs-mnav--' + navColor;
+      /* Megamenu only ever needs to swap glass away — once scroll has
+         already made the nav solid (light), there's no transparency
+         problem left for it to fix. */
+      var mainNavColor = (navColor === 'glass' && megamenuOpen) ? 'dark' : navColor;
+      document.getElementById('main-nav').className = 'ufs-nav ufs-nav--' + mainNavColor;
+    }
+
+    window.addEventListener('scroll', function() {
+      var shouldBeScrolled = window.scrollY >= NAV_SCROLL_SWAP_Y;
+      if (shouldBeScrolled !== navScrolled) {
+        navScrolled = shouldBeScrolled;
+        syncNavAppearance();
+      }
+    }, { passive: true });
+
+    /* ================================================================
+       MEGAMENU
+    ================================================================ */
+    function toggleMegamenu(id, linkEl) {
+      var panel = document.getElementById('mm-' + id);
+      if (!panel) return;
+      var isOpen = panel.classList.contains('is-open');
+      closeAllMegamenus();
+      if (!isOpen) {
+        panel.classList.add('is-open');
+        linkEl.classList.add('is-open');
+        megamenuOpen = true;
+        syncNavAppearance();
+      }
+    }
+
+    function closeAllMegamenus() {
+      document.querySelectorAll('.ufs-megamenu.is-open').forEach(function(p) { p.classList.remove('is-open'); });
+      document.querySelectorAll('#main-nav .ufs-nav__link.is-open').forEach(function(l) { l.classList.remove('is-open'); });
+      if (megamenuOpen) {
+        megamenuOpen = false;
+        syncNavAppearance();
+      }
+    }
+
+    document.addEventListener('click', function(e) {
+      var nav = document.getElementById('main-nav');
+      if (nav && !nav.contains(e.target)) closeAllMegamenus();
+    });
+
+    /* ================================================================
+       SEARCH OVERLAY — "Option B: Full overlay" toggle, desktop + mobile
+    ================================================================ */
+    function closeSearchOverlay(which) {
+      var id = which === 'mnav' ? 'mnav-search-overlay' : 'nav-search-overlay';
+      document.getElementById(id).classList.remove('is-open');
+    }
+    function toggleSearchOverlay(which) {
+      var id = which === 'mnav' ? 'mnav-search-overlay' : 'nav-search-overlay';
+      var inputId = which === 'mnav' ? 'mnav-search-overlay-input' : 'nav-search-overlay-input';
+      var overlay = document.getElementById(id);
+      var isOpen = overlay.classList.contains('is-open');
+      closeSearchOverlay('nav');
+      closeSearchOverlay('mnav');
+      if (!isOpen) {
+        overlay.classList.add('is-open');
+        setTimeout(function() { document.getElementById(inputId).focus(); }, 220);
+      }
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.ufs-nav') && !e.target.closest('#nav-search-overlay')) closeSearchOverlay('nav');
+      if (!e.target.closest('.ufs-mnav') && !e.target.closest('#mnav-search-overlay')) closeSearchOverlay('mnav');
+    });
+
+    /* ================================================================
+       FLOATING BAR E
+    ================================================================ */
+    var fbeState = { mic: false, ai: false };
+
+    function toggleFbe(mode) {
+      var wasOpen = fbeState[mode];
+      ['mic','ai'].forEach(function(m) {
+        fbeState[m] = false;
+        document.getElementById('fbe-panel-' + m).classList.remove('is-open');
+      });
+      document.getElementById('fbe-btn-mic').classList.remove('is-active');
+      closePromptSuggestions();
+      if (!wasOpen) {
+        fbeState[mode] = true;
+        document.getElementById('fbe-panel-' + mode).classList.add('is-open');
+        if (mode === 'mic') {
+          resetMic();
+          document.getElementById('fbe-btn-mic').classList.add('is-active');
+        }
+        if (mode === 'ai') setTimeout(function() { document.getElementById('fbe-ai-input').focus(); }, 240);
+      }
+    }
+
+    function closeFbe(mode) {
+      fbeState[mode] = false;
+      document.getElementById('fbe-panel-' + mode).classList.remove('is-open');
+      if (mode === 'mic') document.getElementById('fbe-btn-mic').classList.remove('is-active');
+    }
+
+    function resetMic() {
+      var ms = document.getElementById('fbe-mic-status');
+      ms.className = 'fbe-mic-status fbe-mic-status--listening';
+      ms.innerHTML = '<span class="fbe-mic-dot"></span> Listening…';
+      document.getElementById('fbe-wave').className = 'fbe-wave';
+      document.getElementById('fbe-mic-transcript').textContent = '';
+      document.getElementById('fbe-mic-transcript').style.display = 'none';
+      document.getElementById('fbe-mic-sim').style.display = 'flex';
+    }
+
+    function simMic(type) {
+      document.getElementById('fbe-wave').className = 'fbe-wave fbe-wave--paused';
+      document.getElementById('fbe-mic-sim').style.display = 'none';
+      var t = document.getElementById('fbe-mic-transcript');
+      if (type === 'search') {
+        document.getElementById('fbe-mic-status').innerHTML = '<span class="fbe-mic-dot"></span> Filling search…';
+        document.getElementById('fbe-mic-status').className = 'fbe-mic-status fbe-mic-status--processing';
+        t.textContent = '"Knorr sauces for pasta"'; t.style.display = 'block';
+        setTimeout(function() {
+          document.getElementById('fbe-ask-input').value = 'Knorr sauces for pasta';
+          closeFbe('mic');
+          document.getElementById('fbe-ask-input').focus();
+        }, 1300);
+      } else {
+        document.getElementById('fbe-mic-status').innerHTML = 'Sending to AI…';
+        document.getElementById('fbe-mic-status').className = 'fbe-mic-status fbe-mic-status--escalating';
+        t.textContent = '"What recipes can I make with demi-glace?"'; t.style.display = 'block';
+        setTimeout(function() {
+          closeFbe('mic');
+          setTimeout(function() { toggleFbe('ai'); }, 120);
+        }, 1500);
+      }
+    }
+
+    /* ── Ask bar: suggested prompts + submit-to-AI flow ── */
+    function showPromptSuggestions() {
+      closeFbe('mic');
+      closeFbe('ai');
+      document.getElementById('fbe-panel-prompts').classList.add('is-open');
+    }
+    function closePromptSuggestions() {
+      document.getElementById('fbe-panel-prompts').classList.remove('is-open');
+    }
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.fbe-fixed')) closePromptSuggestions();
+    });
+
+    function submitAiPrompt(text) {
+      text = (text || '').trim();
+      if (!text) return;
+      closePromptSuggestions();
+      document.getElementById('fbe-ask-input').value = '';
+      if (!fbeState.ai) toggleFbe('ai');
+      seedAiChat(text);
+    }
+
+    function seedAiChat(text) {
+      var msgs = document.getElementById('fbe-ai-msgs');
+      var um = document.createElement('div');
+      um.className = 'fbe-ai-msg fbe-ai-msg--user';
+      um.innerHTML = '<div class="fbe-ai-ava fbe-ai-ava--user">FC</div><div class="fbe-ai-bubble fbe-ai-bubble--user text-body-sm">' + text.replace(/</g,'&lt;') + '</div>';
+      msgs.appendChild(um);
+      msgs.scrollTop = msgs.scrollHeight;
+      var typing = document.createElement('div');
+      typing.className = 'fbe-ai-msg'; typing.id = 'fbe-typing';
+      typing.innerHTML = '<div class="fbe-ai-ava fbe-ai-ava--ai">AI</div><div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm"><div class="fbe-typing"><div class="fbe-typing-dot"></div><div class="fbe-typing-dot"></div><div class="fbe-typing-dot"></div></div></div>';
+      msgs.appendChild(typing);
+      msgs.scrollTop = msgs.scrollHeight;
+      document.getElementById('fbe-fixed').classList.add('thinking');
+      setTimeout(function() {
+        var el = document.getElementById('fbe-typing'); if (el) el.remove();
+        var am = document.createElement('div');
+        am.className = 'fbe-ai-msg';
+        am.innerHTML = '<div class="fbe-ai-ava fbe-ai-ava--ai">AI</div><div class="fbe-ai-bubble fbe-ai-bubble--ai text-body-sm">I found some relevant matches based on UFS products and recipes. Let me know if you want more details.</div>';
+        msgs.appendChild(am);
+        msgs.scrollTop = msgs.scrollHeight;
+        document.getElementById('fbe-fixed').classList.remove('thinking');
+      }, 1400);
+    }
+
+    function sendAiMsg() {
+      var input = document.getElementById('fbe-ai-input');
+      var text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      seedAiChat(text);
+    }
+
+    /* ── Ask bar: typewriter-cycling placeholder, ported from
+       academy-catalog-b.html's .ai-prompt-input — same 3 prompts already
+       used by the suggested-prompts panel, typed/deleted character by
+       character on a loop, paused while the input is focused. ── */
+    var askPrompts = [
+      'How do I engage more with Gen-Z diners?',
+      'Show me quick weeknight recipes',
+      'How do I store opened sauce bases?'
+    ];
+    var askPIdx = 0, askCharIdx = 0, askDeleting = false;
+    var askTypeTimer = null;
+    function askTypeStep() {
+      var input = document.getElementById('fbe-ask-input');
+      if (input === document.activeElement) { askScheduleNext(200); return; }
+      var current = askPrompts[askPIdx];
+      if (!askDeleting) {
+        askCharIdx++;
+        input.placeholder = current.slice(0, askCharIdx);
+        if (askCharIdx === current.length) {
+          askDeleting = true;
+          askScheduleNext(2000);
+          return;
+        }
+      } else {
+        askCharIdx--;
+        input.placeholder = current.slice(0, askCharIdx);
+        if (askCharIdx === 0) {
+          askDeleting = false;
+          askPIdx = (askPIdx + 1) % askPrompts.length;
+          askScheduleNext(400);
+          return;
+        }
+      }
+      askScheduleNext(askDeleting ? 28 : 55);
+    }
+    function askScheduleNext(delay) {
+      clearTimeout(askTypeTimer);
+      askTypeTimer = setTimeout(askTypeStep, delay);
+    }
+    function pauseAskTypewriter() {
+      clearTimeout(askTypeTimer);
+      document.getElementById('fbe-ask-input').placeholder = 'Ask me anything';
+    }
+    function resumeAskTypewriter() {
+      var input = document.getElementById('fbe-ask-input');
+      askPIdx = 0; askCharIdx = 0; askDeleting = false;
+      input.placeholder = '';
+      if (!input.value) askScheduleNext(400);
+    }
+    askScheduleNext(600);
+  </script>
+</body>
+</html>
