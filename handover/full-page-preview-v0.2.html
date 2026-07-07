@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>Full Page Preview — UFS Design System — v3</title>
+  <title>Full Page Preview — UFS Design System — v0.2</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="tokens.css" />
   <style>
     @font-face {
@@ -26,7 +26,9 @@
       --ctrl-reserve: 0px; /* layout space reserved for the bar; 0 until opened */
       --util-h: 36px;
       --nav-h:  68px;
-      --mnav-h: 56px; /* mobile nav bar height, below the 768px breakpoint */
+      --mnav-h:         56px; /* mobile nav bar height */
+      --msearch-bar-h:  52px; /* mobile sticky search bar below the nav row */
+      --bottom-nav-h:   var(--space-20); /* mobile bottom navigation bar */
       --food-gradient: linear-gradient(160deg, #3b1e08 0%, #7a3a10 55%, #2a1a0a 100%);
     }
 
@@ -62,7 +64,7 @@
       background: var(--color-squid-900);
       border-top: 1px solid rgba(255,255,255,0.06);
       display: flex; align-items: center;
-      padding: 0 var(--space-6); gap: var(--space-6);
+      padding: 0 0 0 var(--space-6); gap: var(--space-6);
       transform: translateY(100%); opacity: 0; pointer-events: none;
       transition: transform 0.28s ease, opacity 0.28s ease;
     }
@@ -73,6 +75,12 @@
     }
     .ctrl-brand img { height: 20px; display: block; filter: brightness(0) invert(1); opacity: 0.7; }
     .ctrl-brand-label { font-weight: 600; color: rgba(255,255,255,0.35); white-space: nowrap; }
+    .ctrl-version-select {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      color: rgba(255,255,255,0.7); font-size: var(--text-fine-print-size); font-weight: 600;
+      font-family: inherit; padding: 3px 8px; border-radius: 4px; cursor: pointer;
+    }
+    .ctrl-version-select:focus { outline: none; }
     .ctrl-groups { display: flex; align-items: center; gap: var(--space-5); flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
     .ctrl-groups::-webkit-scrollbar { display: none; }
     .ctrl-group { display: flex; align-items: center; gap: var(--space-2); }
@@ -170,13 +178,23 @@
       background-size: 100% calc(var(--util-h) + var(--nav-h));
       background-position: 0 calc(-1 * var(--util-h)); background-repeat: no-repeat;
     }
-    .ufs-nav__logo { flex-shrink: 0; margin-right: var(--space-7); }
-    .ufs-nav__logo img { height: var(--space-12); display: block; }
-    .ufs-nav__links { display: flex; align-items: center; flex: 1; gap: var(--space-1); }
+    .ufs-nav--glass::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      width: 100%;
+      height: 250px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    .ufs-nav__logo { flex-shrink: 0; margin-right: var(--space-4); }
+    .ufs-nav__logo img { height: var(--space-10); display: block; }
+    .ufs-nav__links { display: flex; align-items: center; flex: 1; gap: 0; }
     .ufs-nav__link {
       display: flex; align-items: center; gap: var(--space-1);
       padding: 0 var(--space-3); height: var(--nav-h); cursor: pointer;
-      font-size: var(--text-body-size); font-weight: var(--text-btn-w); white-space: nowrap;
+      font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); white-space: nowrap;
       border-bottom: 2px solid transparent;
       transition: color 0.15s, background 0.15s, border-color 0.15s;
     }
@@ -200,6 +218,85 @@
       transition: background 0.15s; position: relative;
     }
     .ufs-nav__icon-btn + .ufs-nav__icon-btn { margin-left: var(--space-3); }
+
+    /* Desktop always-visible search bar */
+    .ufs-nav-search { position: relative; display: flex; align-items: center; gap: var(--space-2); margin-right: var(--space-4); transition: left 0.28s ease, right 0.28s ease; }
+    body.ai-on .ufs-nav-search { display: none; }
+
+    /* Expanded / search-active state */
+    .ufs-nav__links { transition: opacity 0.15s ease; }
+    .ufs-nav.search-active .ufs-nav__links { opacity: 0; pointer-events: none; flex: 0 0 0; overflow: hidden; min-width: 0; }
+    .ufs-nav.search-active .ufs-nav__actions { flex: 0 0 auto; margin-left: auto; }
+    .ufs-nav.search-active .ufs-nav-search {
+      position: absolute;
+      left: calc(var(--search-exp-offset) + 48px);
+      right: var(--search-exp-offset);
+      top: 50%;
+      transform: translateY(-50%);
+      margin: 0;
+    }
+    .ufs-nav.search-active .ufs-nav-search-input { width: 100%; }
+
+    /* Close button (hidden until search-active) */
+    .ufs-nav-search-close {
+      display: none; flex-shrink: 0;
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      border: none; cursor: pointer; background: var(--color-mushroom-100);
+      align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .ufs-nav-search-close:hover { background: var(--color-mushroom-300); }
+    .ufs-nav-search-close svg { width: 12px; height: 12px; stroke: var(--color-brand-dark); }
+    .ufs-nav.search-active .ufs-nav-search-close { display: flex; }
+    .ufs-nav--dark .ufs-nav-search-close,
+    .ufs-nav--glass .ufs-nav-search-close { background: rgba(255,255,255,0.1); }
+    .ufs-nav--dark .ufs-nav-search-close:hover,
+    .ufs-nav--glass .ufs-nav-search-close:hover { background: rgba(255,255,255,0.18); }
+    .ufs-nav--dark .ufs-nav-search-close svg,
+    .ufs-nav--glass .ufs-nav-search-close svg { stroke: white; }
+    .ufs-nav-search-mic {
+      display: none;
+      position: absolute;
+      right: calc(var(--space-10) + var(--space-2) + var(--space-2));
+      top: 50%; transform: translateY(-50%);
+      width: var(--space-8); height: var(--space-8); border-radius: var(--radius-full);
+      border: none; cursor: pointer; background: transparent;
+      align-items: center; justify-content: center; transition: background 0.15s;
+      z-index: 1;
+    }
+    .ufs-nav-search-mic svg { width: var(--space-5); height: var(--space-5); color: var(--color-squid-900); transition: filter 0.15s; }
+    .ufs-nav-search-mic:hover { background: var(--color-mushroom-300); }
+    .ufs-nav-search-mic.is-active { background: var(--color-accessible-orange) !important; animation: mic-btn-pulse 1.4s ease-in-out infinite; }
+    .ufs-nav-search-mic.is-active svg { filter: brightness(0) invert(1) !important; }
+    .ufs-nav.search-active .ufs-nav-search-mic { display: flex; }
+    .ufs-nav.search-active .ufs-nav-search-input { padding-right: calc(var(--space-2) + var(--space-8) + var(--space-2)); }
+    .ufs-nav--dark .ufs-nav-search-mic svg,
+    .ufs-nav--glass .ufs-nav-search-mic svg { color: white; }
+    [dir="rtl"] .ufs-nav-search-mic { right: auto; left: calc(var(--space-10) + var(--space-2) + var(--space-2)); }
+
+    .ufs-nav-search-input {
+      height: var(--space-12); width: 300px;
+      padding: 0 var(--space-4) 0 calc(var(--space-3) + var(--space-5) + var(--space-2));
+      border-radius: var(--radius-full);
+      border: 1px solid var(--color-mushroom-300);
+      background: var(--color-mushroom-100);
+      font-family: var(--font-family); font-size: var(--text-body-sm-size);
+      color: var(--color-brand-dark);
+      outline: none; cursor: text;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .ufs-nav-search-input::placeholder { color: var(--color-mushroom-900); }
+    .ufs-nav-search-input:hover { border-color: var(--color-mushroom-900); }
+    .ufs-nav-search-input:focus { border-color: var(--color-brand-primary); box-shadow: 0 0 0 3px rgba(255,90,0,0.12); }
+    .ufs-nav-search-icon { position: absolute; left: var(--space-3); width: var(--space-5); height: var(--space-5); pointer-events: none; opacity: 0.75; z-index: 1; }
+    .ufs-nav--dark .ufs-nav-search-input { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: var(--color-salt); }
+    .ufs-nav--dark .ufs-nav-search-input::placeholder { color: rgba(255,255,255,0.45); }
+    .ufs-nav--glass .ufs-nav-search-input { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.5); color: var(--color-salt); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    .ufs-nav--glass .ufs-nav-search-input::placeholder { color: rgba(255,255,255,1); }
+    .ufs-nav--dark .ufs-nav-search-input:focus,
+    .ufs-nav--glass .ufs-nav-search-input:focus { border-color: rgba(255,255,255,0.7); box-shadow: 0 0 0 3px rgba(255,255,255,0.08); }
+    .ufs-nav--dark .ufs-nav-search-icon,
+    .ufs-nav--glass .ufs-nav-search-icon { filter: brightness(0) invert(1); opacity: 0.8; }
+
     .ufs-nav--dark .ufs-nav__icon-btn:hover,
     .ufs-nav--glass .ufs-nav__icon-btn:hover { background: rgba(255,255,255,0.08); }
     .ufs-nav--light .ufs-nav__icon-btn:hover { background: var(--color-mushroom-100); }
@@ -294,6 +391,18 @@
     .mm-feat-body { color: var(--color-mushroom-900); margin-bottom: var(--space-5); max-width: 34ch; }
     .mm-feat-cta { display: inline-flex; align-items: center; gap: 6px; font-weight: var(--text-btn-w); color: var(--color-orange-700); }
     .mm-feat-cta:hover { color: var(--color-orange-900); }
+    .mm-brands { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-4) var(--space-7); background: var(--color-mushroom-100); border-top: 1px solid var(--color-mushroom-300); }
+    .mm-brands-scroll-wrap { position: relative; flex: 1; min-width: 0; margin-right: calc(-1 * var(--space-7)); }
+    .mm-brands-list { display: flex; align-items: center; gap: var(--space-8); overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding: var(--space-2) var(--space-10) var(--space-2) var(--space-10); margin: 0; }
+    .mm-brands-list::-webkit-scrollbar { display: none; }
+    .mm-brands-scroll-btn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: var(--space-10); height: var(--space-10); border-radius: var(--radius-sm); background: white; border: 1px solid var(--color-accessible-orange); box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.2s; padding: 0; }
+    .mm-brands-scroll-btn--prev { left: 0; }
+    .mm-brands-scroll-btn--next { right: 24px; }
+    .mm-brands-scroll-btn.is-hidden { opacity: 0; pointer-events: none; }
+    .mm-brands-scroll-btn svg { width: 18px; height: 18px; stroke: var(--color-accessible-orange); }
+    .mm-brand-item { display: block; flex-shrink: 0; width: 80px; height: 80px; border-radius: var(--radius-full); box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .mm-brand-item:hover { transform: scale(1.06); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+    .mm-brand-item img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: var(--radius-full); }
     .mm-promo { background: var(--color-squid-500); display: flex; flex-direction: column; overflow: hidden; }
     .mm-promo-img { width: 100%; aspect-ratio: 16 / 9; background: var(--color-mushroom-300); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .mm-promo-img-placeholder { color: rgba(255,255,255,0.25); }
@@ -316,35 +425,15 @@
       box-shadow: var(--shadow-lg);
       opacity: 0; pointer-events: none; transform: translateY(-8px);
       transition: opacity 0.2s, transform 0.2s;
-      max-height: calc(100dvh - var(--nav-h) - var(--ctrl-reserve));
+      max-height: calc(80dvh - var(--nav-h) - var(--ctrl-reserve));
       overflow: hidden;
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
     }
     .ufs-search-overlay.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
-    .ufs-search-overlay-inner { max-width: 680px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
-    .ufs-overlay-field {
-      display: flex; align-items: center; gap: var(--space-3);
-      border-bottom: 2px solid var(--color-brand-dark); padding-bottom: var(--space-3);
-      margin-bottom: var(--space-7);
-      position: sticky; top: 0; background: var(--color-salt); z-index: 1;
-    }
-    .ufs-overlay-field img { opacity: 0.5; flex-shrink: 0; }
-    .ufs-overlay-field input {
-      flex: 1; border: none; outline: none;
-      font-family: var(--font-family); font-size: var(--text-h5-size); font-weight: var(--text-h5-w);
-      color: var(--color-brand-dark); background: transparent;
-    }
-    .ufs-overlay-field input::placeholder { color: var(--color-mushroom-500); font-weight: var(--text-body-w); }
-    .ufs-overlay-close {
-      width: var(--space-9); height: var(--space-9); border-radius: var(--radius-full);
-      background: var(--color-mushroom-100); border: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      transition: background 0.15s; color: var(--color-squid-500);
-    }
-    .ufs-overlay-close:hover { background: var(--color-mushroom-300); }
-    .ufs-overlay-close svg { width: var(--space-4); height: var(--space-4); }
+    .ufs-search-overlay-inner { margin-left: calc(var(--search-exp-offset) + 48px); margin-right: var(--search-exp-offset); width: auto; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+
     .ufs-overlay-section-label { font-size: var(--text-badge-size); font-weight: var(--text-btn-w); letter-spacing: var(--text-body-xs-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
     .ufs-overlay-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
     .ufs-overlay-chip {
@@ -358,14 +447,16 @@
     /* Mobile — full-screen takeover, same fixed-positioning convention
        .ufs-drawer already uses (anchored above the now-bottom dev toolbar). */
     .ufs-msearch-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve);
+      position: fixed; top: calc(var(--mnav-h) + var(--space-12) + var(--space-2) * 2); left: 0; right: 0; bottom: var(--ctrl-reserve);
       background: var(--color-salt); z-index: 950;
       padding: var(--space-5) var(--space-4); display: flex; flex-direction: column; gap: var(--space-6);
-      opacity: 0; pointer-events: none; transform: translateY(-12px);
+      opacity: 0; pointer-events: none; transform: translateY(-8px);
       transition: opacity 0.2s, transform 0.2s;
+      border-top: 1px solid var(--color-mushroom-300); box-shadow: var(--shadow-lg);
+      overflow-y: auto;
     }
     .ufs-msearch-overlay.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
-    .ufs-msearch-ov-header { display: flex; align-items: center; gap: var(--space-3); }
+    .ufs-msearch-ov-header { display: none; }
     .ufs-msearch-ov-field { flex: 1; display: flex; align-items: center; gap: var(--space-2); border-bottom: 2px solid var(--color-brand-dark); padding-bottom: var(--space-2); }
     .ufs-msearch-ov-field img { opacity: 0.5; flex-shrink: 0; }
     .ufs-msearch-ov-input { flex: 1; border: none; outline: none; font-family: var(--font-family); font-size: var(--text-h6-size); font-weight: var(--text-h6-w); color: var(--color-brand-dark); background: transparent; }
@@ -416,8 +507,8 @@
     /* Category results */
     .ufs-search-category { margin-bottom: var(--space-5); }
     .ufs-search-category:last-child { margin-bottom: 0; }
-    .ufs-search-category-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-3); }
-    .ufs-search-category-label { color: var(--color-mushroom-700); text-transform: uppercase; letter-spacing: var(--text-body-xs-ls); font-weight: var(--text-btn-w); }
+    .ufs-search-category-header { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-3); color: var(--color-squid-900); }
+    .ufs-search-category-label { color: var(--color-squid-700); text-transform: uppercase; letter-spacing: var(--text-body-xs-ls); font-weight: var(--text-btn-w); }
     .ufs-search-see-all-cat { display: inline-flex; align-items: center; gap: 4px; color: var(--color-accessible-orange); cursor: pointer; font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); background: none; border: none; font-family: var(--font-family); }
     .ufs-search-see-all-cat svg { width: 10px; height: 10px; flex-shrink: 0; }
     .ufs-search-see-all-cat:hover { color: var(--color-orange-700); }
@@ -440,6 +531,13 @@
       .ufs-util, .ufs-nav { display: none; }
       .ufs-mnav { display: flex; align-items: center; position: sticky; top: 0; z-index: 100; height: var(--mnav-h); padding: 0 var(--space-4); gap: var(--space-3); transition: background 0.3s, border-color 0.3s; }
     }
+    .ai-chat-overlay { display: none; }
+    .search-body-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.3); z-index: 49; cursor: default;
+    }
+    .search-body-overlay.is-active { display: block; }
+    @media (max-width: 768px) { .search-body-overlay { display: none !important; } }
     #mobile-preview-frame {
       display: none; position: fixed; top: 0; left: 50%;
       transform: translateX(-50%); width: 390px; height: calc(100vh - var(--ctrl-reserve));
@@ -452,6 +550,10 @@
     body.is-embedded { --ctrl-reserve: 0px; }
     body.is-embedded .ctrl-bar { display: none; }
     body.ctrl-bar-open { --ctrl-reserve: var(--ctrl-h); }
+    @media (max-width: 768px) {
+      body.ai-on { --ctrl-reserve: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px)); }
+      body.is-embedded { --ctrl-reserve: 0px; }
+    }
     body.ctrl-bar-open .ctrl-bar { transform: translateY(0); opacity: 1; pointer-events: auto; }
     .ufs-mnav--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
     .ufs-mnav--dark  { background: var(--color-brand-dark); }
@@ -474,13 +576,13 @@
 
     /* Drawer */
     .ufs-drawer-backdrop {
-      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 900;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900;
       background: color-mix(in srgb, var(--color-squid-900) 45%, transparent); backdrop-filter: blur(2px);
       opacity: 0; pointer-events: none; transition: opacity 0.25s;
     }
     .ufs-drawer-backdrop.is-open { opacity: 1; pointer-events: all; }
     .ufs-drawer {
-      position: fixed; top: 0; left: 0; bottom: var(--ctrl-reserve); width: calc(100% - 16px); z-index: 901;
+      position: fixed; top: 0; left: 0; bottom: 0; width: calc(100% - 16px); z-index: 901;
       background: var(--color-salt);
       transform: translateX(-100%);
       transition: transform 0.3s cubic-bezier(0.25,0.1,0.25,1), box-shadow 0.3s;
@@ -489,6 +591,7 @@
     }
     .ufs-drawer.is-open { transform: translateX(0); box-shadow: var(--shadow-xl); }
     .ufs-drawer-links { flex: 1; padding: var(--space-2) 0; }
+    @media (max-width: 768px) { .ufs-drawer-links { padding: 0; } }
     .ufs-drawer-acc-trigger {
       width: 100%; display: flex; align-items: center; justify-content: space-between;
       padding: var(--space-4) var(--space-5); font-size: var(--text-body-size); font-weight: var(--text-btn-w);
@@ -504,7 +607,7 @@
     .ufs-drawer-acc-globe { width: var(--space-5); height: var(--space-5); flex-shrink: 0; }
     .ufs-drawer-acc-trigger.is-open .ufs-drawer-acc-chev { transform: rotate(-90deg); opacity: 0.8; }
     .ufs-drawer-sub { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; background: var(--color-mushroom-100); }
-    .ufs-drawer-sub.is-open { max-height: 800px; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
+    .ufs-drawer-sub.is-open { max-height: 1000px; border-radius: 0 0 var(--radius-sm) var(--radius-sm); }
     .ufs-drawer-sub-link {
       display: block; padding: var(--space-3) var(--space-5) var(--space-3) var(--space-7);
       font-size: var(--text-body-sm-size); color: var(--color-mushroom-900);
@@ -525,6 +628,12 @@
     .ufs-drawer-sub-more-chev { width: var(--space-4); height: var(--space-4); transform: rotate(90deg); opacity: 0.8; flex-shrink: 0; }
     .ufs-drawer-sub-link.is-active { color: var(--color-brand-dark); font-weight: var(--text-btn-w); }
     .ufs-drawer-sub-link.is-active .ufs-lang-drop__check { opacity: 1; }
+    .drawer-brands { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-mushroom-300); }
+    .drawer-brands-list { display: flex; align-items: center; gap: var(--space-4); overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding: var(--space-2) var(--space-5) var(--space-2) var(--space-5); margin-right: calc(-1 * var(--space-5)); margin-left: calc(-1 * var(--space-5)); }
+    .drawer-brands-list::-webkit-scrollbar { display: none; }
+    .drawer-brand-item { display: block; flex-shrink: 0; width: var(--space-16); height: var(--space-16); border-radius: var(--radius-full); box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.2s ease, box-shadow 0.2s ease; }
+    .drawer-brand-item:hover { transform: scale(1.06); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+    .drawer-brand-item img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: var(--radius-full); }
     .ufs-drawer-util { padding: var(--space-4) var(--space-5); border-top: 1px solid var(--color-mushroom-300); }
     .ufs-drawer-util-title { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
     .ufs-drawer-util-link { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); padding: var(--space-2) 0; cursor: pointer; display: block; transition: color 0.15s; }
@@ -540,7 +649,7 @@
     /* DS buttons */
     .btn {
       display: inline-flex; align-items: center; justify-content: center;
-      gap: var(--space-2); height: 54px; padding: 0 var(--space-6);
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
       border-radius: var(--radius-sm);
       font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
       white-space: nowrap; line-height: 1;
@@ -552,7 +661,6 @@
     .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
     .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
     .btn-sm { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
-    .btn-compressed { height: var(--space-12); }
     .btn-icon-left { padding-left: var(--space-5); }
     .btn-sm.btn-icon-left { padding-left: var(--space-3); }
     .btn-sm.btn-icon-left img { width: var(--space-5); height: var(--space-5); }
@@ -562,7 +670,7 @@
     .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
     .btn-ghost { background: transparent; color: var(--color-accessible-orange); border-color: transparent; }
     .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
-    .ufs-nav__actions .btn { margin-left: var(--space-3); width: auto; }
+    .ufs-nav__actions .btn { margin-left: var(--space-8); width: auto; }
     .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
     .btn-on-dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
     .btn-on-dark .btn-ghost { color: var(--color-salt); }
@@ -586,25 +694,88 @@
       position: relative; overflow: hidden;
     }
     body.color-glass .pg-hero { min-height: calc(420px + var(--util-h) + var(--nav-h)); }
+    /* Mobile sticky search bar */
+    .ufs-msearch-bar { display: none; }
     @media (max-width: 768px) {
+      .ufs-msearch-bar {
+        display: flex; align-items: center;
+        position: sticky; top: var(--mnav-h); z-index: 99;
+        padding: var(--space-2) var(--space-4);
+        transition: background 0.3s, border-color 0.3s, transform 0.3s ease;
+      }
+      .ufs-msearch-bar.is-hidden { transform: translateY(-100%); pointer-events: none; }
+      .ufs-msearch-bar-close {
+        display: none; flex-shrink: 0;
+        width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+        border: none; cursor: pointer; background: var(--color-mushroom-100);
+        align-items: center; justify-content: center; transition: background 0.15s; margin-left: var(--space-2);
+      }
+      .ufs-msearch-bar-close svg { width: 12px; height: 12px; stroke: var(--color-brand-dark); }
+      .ufs-msearch-bar-close:hover { background: var(--color-mushroom-300); }
+      .ufs-msearch-bar.search-active .ufs-msearch-bar-close { display: flex; }
+      .ufs-msearch-bar-mic {
+        display: none; position: absolute;
+        right: var(--space-2); top: 50%; transform: translateY(-50%);
+        width: var(--space-8); height: var(--space-8); border-radius: var(--radius-full);
+        border: none; cursor: pointer; background: transparent;
+        align-items: center; justify-content: center; transition: background 0.15s; z-index: 1;
+      }
+      .ufs-msearch-bar-mic svg { width: var(--space-5); height: var(--space-5); color: var(--color-squid-900); transition: filter 0.15s; }
+      .ufs-msearch-bar-mic:hover { background: var(--color-mushroom-300); }
+      .ufs-msearch-bar-mic.is-active { background: var(--color-accessible-orange) !important; animation: mic-btn-pulse 1.4s ease-in-out infinite; }
+      .ufs-msearch-bar-mic.is-active svg { filter: brightness(0) invert(1) !important; }
+      .ufs-msearch-bar.search-active .ufs-msearch-bar-mic { display: flex; }
+      .ufs-msearch-bar.search-active .ufs-msearch-bar-input { padding-right: calc(var(--space-2) + var(--space-8) + var(--space-2)); }
+      .ufs-msearch-bar--light { background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); }
+      .ufs-msearch-bar--dark  { background: var(--color-brand-dark); }
+      .ufs-msearch-bar--glass { background: linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0) 100%); }
+      .ufs-msearch-bar-field { flex: 1; position: relative; display: flex; align-items: center; }
+      .ufs-msearch-bar-input {
+        width: 100%; height: var(--space-12);
+        padding: 0 var(--space-4) 0 calc(var(--space-3) + var(--space-5) + var(--space-2));
+        border-radius: var(--radius-full);
+        border: 1px solid var(--color-mushroom-300);
+        background: var(--color-mushroom-100);
+        font-family: var(--font-family); font-size: var(--text-body-sm-size);
+        color: var(--color-brand-dark);
+        outline: none; cursor: text;
+        transition: border-color 0.15s;
+      }
+      .ufs-msearch-bar-input::placeholder { color: var(--color-mushroom-900); }
+      .ufs-msearch-bar-input:focus { border-color: var(--color-brand-primary); }
+      .ufs-msearch-bar-icon { position: absolute; left: var(--space-3); width: var(--space-5); height: var(--space-5); pointer-events: none; opacity: 0.75; }
+      .ufs-msearch-bar--dark .ufs-msearch-bar-input,
+      .ufs-msearch-bar--glass .ufs-msearch-bar-input { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: var(--color-salt); }
+      .ufs-msearch-bar--dark .ufs-msearch-bar-input::placeholder,
+      .ufs-msearch-bar--glass .ufs-msearch-bar-input::placeholder { color: rgba(255,255,255,0.45); }
+      .ufs-msearch-bar--dark .ufs-msearch-bar-icon,
+      .ufs-msearch-bar--glass .ufs-msearch-bar-icon { filter: brightness(0) invert(1); }
+
       .pg-hero {
-        min-height: calc(540px + var(--mnav-h));
-        margin-top: calc(-1 * var(--mnav-h));
-        padding: calc(var(--space-20) + var(--mnav-h)) var(--space-4) var(--space-8);
+        min-height: calc(540px + var(--mnav-h) + var(--msearch-bar-h));
+        margin-top: calc(-1 * (var(--mnav-h) + var(--msearch-bar-h)));
+        padding: calc(var(--space-20) + var(--mnav-h) + var(--msearch-bar-h)) var(--space-4) var(--space-8);
         align-items: flex-end;
       }
-      body.color-glass .pg-hero { min-height: calc(540px + var(--mnav-h)); }
+      body.color-glass .pg-hero { min-height: calc(540px + var(--mnav-h) + var(--msearch-bar-h)); }
+    }
+    .pg-hero::before {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(34, 29, 55, 0.3);
+      pointer-events: none;
+      z-index: 0;
     }
     .pg-hero::after {
       content: ''; position: absolute; inset: 0;
       background: linear-gradient(to right, rgba(10,7,22,0.7) 0%, rgba(10,7,22,0.2) 60%, transparent 100%);
       pointer-events: none;
+      z-index: 0;
     }
     body.color-glass .pg-hero::after { background: linear-gradient(to right, rgba(10,7,22,0.55) 0%, rgba(10,7,22,0.1) 60%, transparent 100%); }
     .pg-hero-content { position: relative; z-index: 1; max-width: 560px; }
     .pg-hero-eyebrow { color: var(--color-brand-primary); margin-bottom: var(--space-4); }
     .pg-hero-title { color: var(--color-salt); margin-bottom: var(--space-5); }
-    .pg-hero-sub { color: rgba(255,255,255,0.72); margin-bottom: var(--space-9); max-width: 440px; }
+    .pg-hero-sub { color: var(--color-salt); margin-bottom: var(--space-9); max-width: 440px; }
     .pg-hero-actions { display: flex; gap: var(--space-4); flex-wrap: wrap; }
 
     /* ── Products section ────────────────────────────────── */
@@ -648,7 +819,7 @@
     .pg-card-title { font-weight: var(--text-btn-w); color: var(--color-brand-dark); margin-bottom: var(--space-1); }
     .pg-card-desc  { color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
     .pg-card-footer { display: flex; align-items: center; justify-content: space-between; }
-    .pg-card-tag { padding: var(--space-1) var(--space-2); border-radius: var(--radius-full); background: var(--color-mushroom-100); color: var(--color-mushroom-700); }
+    .pg-card-tag { padding: var(--space-1) var(--space-2); border-radius: var(--radius-full); background: var(--color-mushroom-100); color: var(--color-mushroom-900); }
     .pg-card-action {
       width: 28px; height: 28px; border-radius: 50%;
       background: var(--color-accessible-orange); border: none; cursor: pointer;
@@ -784,7 +955,9 @@
       .fbe__panel--ai {
         left: 0; right: auto; width: 100%;
       }
-      .fbe-fixed { width: calc(100vw - 32px); max-width: none; }
+      .fbe-fixed { display: none !important; }
+      body.ai-on .ufs-msearch-bar { display: none !important; }
+      body.ai-on { --msearch-bar-h: 0px; }
       .fbe { height: 54px; }
       .fbe__ask-input { font-size: var(--text-body-sm-size); }
       .fbe__ask-row { padding: 0 var(--space-2) 0 var(--space-3); }
@@ -818,13 +991,13 @@
        SIGN-IN PANEL
     ================================================================ */
     .signin-backdrop {
-      position: fixed; top: 0; left: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 900;
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900;
       background: color-mix(in srgb, var(--color-squid-900) 55%, transparent); backdrop-filter: blur(3px);
       opacity: 0; pointer-events: none; transition: opacity 0.3s;
     }
     .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
     .signin-panel {
-      position: fixed; top: 0; right: 0; bottom: var(--ctrl-reserve); z-index: 901;
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 901;
       width: 420px; background: var(--color-salt);
       transform: translateX(100%);
       transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s;
@@ -860,12 +1033,8 @@
       transition: border-color 0.15s; display: block;
     }
     .fi-field:focus { border-color: var(--color-brand-dark); }
-    .tab-bar { display: flex; gap: var(--space-1); background: var(--color-mushroom-300); border-radius: var(--radius-sm); padding: var(--space-1); }
-    .tab-btn { flex: 1; padding: var(--space-2) var(--space-5); border-radius: var(--radius-xs); font-size: var(--text-btn-sm-size); font-weight: 600; cursor: pointer; border: none; background: transparent; color: var(--color-mushroom-900); transition: all 0.15s; font-family: var(--font-family); }
-    .tab-btn.is-active { background: var(--color-salt); color: var(--color-brand-dark); box-shadow: var(--shadow-sm); }
-    .signin-form-fields { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-6); }
-    #form-register .signin-form-fields { margin-bottom: var(--space-3); }
-    .signin-forgot { color: var(--color-accessible-orange); cursor: pointer; text-align: right; margin-top: -8px; }
+    .signin-panel-title { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); margin-bottom: var(--space-6); }
+    .signin-form-fields { display: flex; flex-direction: column; gap: var(--space-4); margin-bottom: var(--space-3); }
     .signin-usp { color: var(--color-mushroom-700); text-align: center; margin-top: var(--space-5); }
     .signin-usps { margin-top: var(--space-7); padding: var(--space-5); background: var(--color-mushroom-100); border-radius: var(--radius-md); }
     .signin-usps-title { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-squid-500); margin-bottom: var(--space-3); }
@@ -876,6 +1045,7 @@
     .signin-usp-item-text { padding-top: 2px; }
     .signin-usp-item-title { font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); margin-bottom: 1px; }
     .signin-usp-item-desc { font-size: var(--text-body-xs-size); color: var(--color-squid-500); line-height: var(--text-body-xs-lh); }
+    .signin-help-link { display: block; text-align: center; margin-top: var(--space-5); margin-bottom: var(--space-5); font-size: var(--text-body-sm-size); color: var(--color-accessible-orange); cursor: pointer; background: none; border: none; font-family: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
     /* ================================================================
        PROFILE PANEL
@@ -978,12 +1148,15 @@
     ================================================================ */
 
     /* Arabic font & typography */
-    [dir="rtl"] { font-family: 'Cairo', sans-serif; }
+    [dir="rtl"] { font-family: 'IBM Plex Arabic', sans-serif; }
     [dir="rtl"] * { letter-spacing: 0 !important; }
     [dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3,
     [dir="rtl"] h4, [dir="rtl"] h5, [dir="rtl"] h6,
     [dir="rtl"] p, [dir="rtl"] span, [dir="rtl"] li,
     [dir="rtl"] div { line-height: 1.75; }
+
+    /* Chef's Hand font not available in Arabic — reset to inherited text style */
+    [dir="rtl"] [class*="text-ch-"] { font-family: inherit; font-size: inherit; line-height: inherit; font-weight: inherit; }
 
     /* Hero gradient — dark edge on the right (leading side in RTL) */
     [dir="rtl"] .pg-hero::after {
@@ -998,7 +1171,7 @@
     [dir="rtl"] .pg-card-fav   { right: auto; left: var(--space-2); }
 
     /* Nav action button margin */
-    [dir="rtl"] .ufs-nav__actions .btn { margin-left: 0; margin-right: var(--space-3); }
+    [dir="rtl"] .ufs-nav__actions .btn { margin-left: 0; margin-right: var(--space-8); }
 
     /* Badge & account dot flip to leading corner */
     [dir="rtl"] .ufs-nav__badge    { right: auto; left: var(--space-1); }
@@ -1023,7 +1196,14 @@
     [dir="rtl"] .state-badge { right: auto; left: 24px; }
 
     /* Logo margin flips to left in RTL */
-    [dir="rtl"] .ufs-nav__logo { margin-right: 0; margin-left: var(--space-7); }
+    [dir="rtl"] .ufs-nav__logo { margin-right: 0; margin-left: var(--space-4); }
+
+    /* Search bar — flip margin, icon side, and input padding in RTL */
+    [dir="rtl"] .ufs-nav-search { margin-right: 0; margin-left: var(--space-4); }
+    [dir="rtl"] .ufs-nav-search-icon { left: auto; right: var(--space-3); }
+    [dir="rtl"] .ufs-nav-search-input { padding: 0 calc(var(--space-3) + var(--space-5) + var(--space-2)) 0 var(--space-4); }
+    [dir="rtl"] .ufs-nav.search-active .ufs-nav__actions { margin-left: 0; margin-right: auto; }
+    [dir="rtl"] .ufs-nav.search-active .ufs-nav-search-input { padding-right: var(--space-4); padding-left: calc(var(--space-2) + var(--space-8) + var(--space-2)); }
 
     /* Nav icon buttons — spacing flips sides */
     [dir="rtl"] .ufs-nav__icon-btn + .ufs-nav__icon-btn { margin-left: 0; margin-right: var(--space-3); }
@@ -1069,6 +1249,204 @@
     /* Keep developer chrome always LTR */
     [dir="rtl"] .ctrl-bar,
     [dir="rtl"] .state-badge { direction: ltr; }
+
+    /* ================================================================
+       MOBILE BOTTOM NAVIGATION
+    ================================================================ */
+    .ufs-bottom-nav { display: none; }
+    .ufs-bottom-nav__ai-fab { display: none; }
+    @media (max-width: 768px) {
+      .ufs-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px));
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+        padding: var(--space-4) var(--space-10);
+        padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+        justify-content: space-between;
+        align-items: flex-start;
+        z-index: 200;
+        transition: transform 0.3s ease;
+      }
+      .ufs-bottom-nav.is-hidden {
+        transform: translateY(100%);
+      }
+      .ufs-bottom-nav__item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        min-width: 46px;
+        cursor: pointer;
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--color-squid-900);
+        text-decoration: none;
+        transition: color 0.15s ease;
+      }
+      .ufs-bottom-nav__item.is-active {
+        color: var(--color-accessible-orange);
+      }
+      .ufs-bottom-nav__icon {
+        width: var(--space-6);
+        height: var(--space-6);
+        flex-shrink: 0;
+        fill: currentColor;
+      }
+      .ufs-bottom-nav__label {
+        font-size: var(--text-body-xs-size);
+        line-height: var(--text-body-xs-lh);
+        text-align: center;
+        white-space: nowrap;
+      }
+
+      /* ── AI ON: ChefAI FAB ── */
+      body.ai-on .ufs-bottom-nav { padding: var(--space-4); }
+      .ufs-bottom-nav__spacer { display: none; width: 70px; flex-shrink: 0; }
+      body.ai-on .ufs-bottom-nav__spacer { display: block; }
+      .ufs-bottom-nav__ai-fab {
+        display: none;
+        position: fixed;
+        z-index: 201;
+        left: 50%;
+        bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) - 61px);
+        transform: translateX(-50%);
+        width: 70px; height: 70px;
+        border-radius: var(--radius-full);
+        background: white;
+        border: none;
+        box-shadow: 0 0 8px 0px rgba(255, 90, 0, 0.45), 0 0 8px 3px rgba(213, 54, 176, 0.3);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        cursor: pointer;
+        padding: 0;
+        transition: transform 0.3s ease, bottom 0.3s ease;
+      }
+      body.ai-on .ufs-bottom-nav__ai-fab { display: flex; }
+      body.ai-on .ufs-bottom-nav__ai-fab.is-mini {
+        bottom: calc(var(--space-4) + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%) scale(0.8);
+      }
+      .ufs-bottom-nav__ai-icon { width: var(--space-5); height: var(--space-5); display: block; }
+      .ufs-bottom-nav__ai-label {
+        font-size: var(--text-body-xs-size);
+        line-height: var(--text-body-xs-lh);
+        font-weight: 400;
+        white-space: nowrap;
+        background: linear-gradient(90deg, #FF5A00 0%, #D536B0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      /* ── Mobile AI chat overlay ── */
+      .ai-chat-overlay {
+        display: block;
+        position: fixed; inset: 0;
+        z-index: 1100;
+        background: rgba(0,0,0,0.45);
+        opacity: 0; pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+      .ai-chat-overlay.is-open { opacity: 1; pointer-events: all; }
+      .ai-chat-panel {
+        position: absolute; left: 0; right: 0; bottom: 0;
+        height: 90dvh;
+        background: white;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        display: flex; flex-direction: column;
+        transform: translateY(100%);
+        transition: transform 0.38s cubic-bezier(0.32,0.72,0,1);
+        overflow: hidden;
+      }
+      .ai-chat-overlay.is-open .ai-chat-panel { transform: translateY(0); }
+      .ai-chat-hd {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: var(--space-5) var(--space-5) var(--space-4);
+        border-bottom: 1px solid var(--color-mushroom-200);
+        flex-shrink: 0;
+      }
+      .ai-chat-hd-title {
+        display: flex; align-items: center; gap: var(--space-2);
+        font-size: var(--text-h6-size); font-weight: var(--text-h6-w);
+        color: var(--color-brand-dark);
+      }
+      .ai-chat-hd-icon { width: 22px; height: 22px; }
+      .ai-chat-badge {
+        font-size: var(--text-badge-size); font-weight: var(--text-btn-w);
+        letter-spacing: var(--text-badge-ls); text-transform: uppercase;
+        color: white; background: linear-gradient(135deg,#FF5A00,#D536B0);
+        border-radius: var(--radius-sm); padding: 2px var(--space-2);
+        margin-left: var(--space-2);
+      }
+      .ai-chat-close {
+        width: var(--space-8); height: var(--space-8);
+        border-radius: var(--radius-full); border: none;
+        background: var(--color-mushroom-200); cursor: pointer;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      }
+      .ai-chat-msgs {
+        flex: 1; overflow-y: auto; padding: var(--space-5);
+        display: flex; flex-direction: column; gap: var(--space-4);
+      }
+      .ai-chat-msg { display: flex; gap: var(--space-3); align-items: flex-start; }
+      .ai-chat-msg--user { flex-direction: row-reverse; }
+      .ai-chat-ava {
+        width: var(--space-8); height: var(--space-8); border-radius: var(--radius-full);
+        display: flex; align-items: center; justify-content: center;
+        font-size: var(--text-badge-size); font-weight: var(--text-btn-w);
+        flex-shrink: 0;
+      }
+      .ai-chat-ava--ai { background: linear-gradient(135deg,#FF5A00,#D536B0); color: white; }
+      .ai-chat-ava--user { background: var(--color-mushroom-200); color: var(--color-brand-dark); }
+      .ai-chat-bubble {
+        max-width: 75%; padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-md); font-size: var(--text-body-sm-size);
+        line-height: var(--text-body-sm-lh);
+      }
+      .ai-chat-bubble--ai { background: var(--color-mushroom-100); color: var(--color-brand-dark); border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md); }
+      .ai-chat-bubble--user { background: var(--color-brand-dark); color: white; border-radius: var(--radius-md) 0 var(--radius-md) var(--radius-md); }
+      .ai-chat-prompts {
+        display: flex; flex-direction: column; gap: var(--space-2);
+        padding: 0 var(--space-5) var(--space-4); flex-shrink: 0;
+      }
+      .ai-chat-prompt-btn {
+        display: flex; align-items: center; gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        background: var(--color-mushroom-100); border: none;
+        border-radius: var(--radius-md); cursor: pointer;
+        font-size: var(--text-body-sm-size); color: var(--color-brand-dark);
+        font-family: var(--font-family); text-align: left;
+        transition: background 0.15s;
+      }
+      .ai-chat-prompt-btn:hover { background: var(--color-mushroom-200); }
+      .ai-chat-prompt-icon { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.5; }
+      .ai-chat-input-row {
+        display: flex; align-items: center; gap: var(--space-2);
+        padding: var(--space-4) var(--space-5);
+        padding-bottom: calc(var(--space-4) + env(safe-area-inset-bottom,0px));
+        border-top: 1px solid var(--color-mushroom-200); flex-shrink: 0;
+      }
+      .ai-chat-input {
+        flex: 1; height: var(--space-10); border-radius: var(--radius-full);
+        border: 1.5px solid var(--color-mushroom-300); padding: 0 var(--space-4);
+        font-family: var(--font-family); font-size: var(--text-body-sm-size);
+        color: var(--color-brand-dark); background: white; outline: none;
+      }
+      .ai-chat-input:focus { border-color: var(--color-accessible-orange); }
+      .ai-chat-send {
+        width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+        background: linear-gradient(135deg,#FF5A00,#D536B0); border: none;
+        display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+      }
+    }
 
     /* ================================================================
        FOOTER
@@ -1270,7 +1648,10 @@
         width: 100%;
       }
       .ufs-footer__main {
-        padding: var(--space-10) var(--space-4) var(--space-25);
+        padding: var(--space-10) var(--space-4);
+      }
+      body.ai-on .ufs-footer__main {
+        padding-bottom: var(--space-25);
       }
       .ufs-footer__cols {
         grid-template-columns: 1fr 1fr;
@@ -1279,15 +1660,15 @@
       .ufs-footer__cols > .ufs-footer__col:first-child {
         grid-column: 1 / -1;
         display: flex;
-        flex-direction: row;
+        flex-direction: column;
         align-items: center;
+        text-align: center;
         gap: var(--space-4);
         padding-bottom: var(--space-4);
         border-bottom: 1px solid rgba(255,255,255,0.08);
       }
       .ufs-footer__brand-logo {
         margin-bottom: 0;
-        flex-shrink: 0;
       }
       .ufs-footer__bottom {
         flex-direction: column-reverse;
@@ -1308,8 +1689,10 @@
   ================================================================ -->
   <div class="ctrl-bar" id="ctrl-bar">
     <div class="ctrl-brand">
-      <img src="images/ufs-logo.png" alt="UFS"/>
-      <span class="ctrl-brand-label text-body-xs">Full Page Preview — v3</span>
+      <select class="ctrl-version-select" onchange="window.location.href=this.value">
+        <option value="full-page-preview-v0.1.html">v0.1</option>
+        <option value="full-page-preview-v0.2.html" selected>v0.2</option>
+      </select>
     </div>
     <div class="ctrl-groups">
       <div class="ctrl-group">
@@ -1317,15 +1700,6 @@
         <div class="ctrl-toggle">
           <button class="ctrl-btn is-active" id="ctrl-view-desktop" onclick="setView('desktop')">Desktop</button>
           <button class="ctrl-btn"           id="ctrl-view-mobile"  onclick="setView('mobile')">Mobile</button>
-        </div>
-      </div>
-      <div class="ctrl-sep"></div>
-      <div class="ctrl-group">
-        <span class="ctrl-label">Color</span>
-        <div class="ctrl-toggle">
-          <button class="ctrl-btn is-active" id="ctrl-color-light" onclick="setColor('light')">Light</button>
-          <button class="ctrl-btn"           id="ctrl-color-dark"  onclick="setColor('dark')">Dark</button>
-          <button class="ctrl-btn"           id="ctrl-color-glass" onclick="setColor('glass')">Glass</button>
         </div>
       </div>
       <div class="ctrl-sep"></div>
@@ -1346,10 +1720,28 @@
       </div>
       <div class="ctrl-sep"></div>
       <div class="ctrl-group">
-        <span class="ctrl-label">Direction</span>
+        <span class="ctrl-label">AI Integration</span>
         <div class="ctrl-toggle">
-          <button class="ctrl-btn is-active" id="ctrl-dir-ltr" onclick="setDir('ltr')">LTR</button>
-          <button class="ctrl-btn"           id="ctrl-dir-rtl" onclick="setDir('rtl')">RTL</button>
+          <button class="ctrl-btn is-active" id="ctrl-ai-false" onclick="setAI(false)">OFF</button>
+          <button class="ctrl-btn"           id="ctrl-ai-true"  onclick="setAI(true)">ON</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Language</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-lang-en" onclick="setLang('en')">EN</button>
+          <button class="ctrl-btn"           id="ctrl-lang-de" onclick="setLang('de')">DE</button>
+          <button class="ctrl-btn"           id="ctrl-lang-ar" onclick="setLang('ar')">AR</button>
+        </div>
+      </div>
+      <div class="ctrl-sep"></div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Color</span>
+        <div class="ctrl-toggle">
+          <button class="ctrl-btn is-active" id="ctrl-color-light" onclick="setColor('light')">Light</button>
+          <button class="ctrl-btn"           id="ctrl-color-dark"  onclick="setColor('dark')">Dark</button>
+          <button class="ctrl-btn"           id="ctrl-color-glass" onclick="setColor('glass')">Glass</button>
         </div>
       </div>
     </div>
@@ -1367,9 +1759,7 @@
       <div class="ufs-util__links">
         <span class="ufs-util__link" data-i18n="about">About Us</span>
         <span class="ufs-util__sep"></span>
-        <span class="ufs-util__link" data-i18n="contact">Contact</span>
-        <span class="ufs-util__sep"></span>
-        <span class="ufs-util__link" data-i18n="support">Help &amp; Support</span>
+        <span class="ufs-util__link" data-i18n="support">Contact &amp; Support</span>
         <span class="ufs-util__sep"></span>
         <span class="ufs-util__link" id="util-ws-link">Track Your Order</span>
       </div>
@@ -1378,16 +1768,17 @@
           <div class="ufs-util__lang text-body-xs" onclick="toggleLangDrop('lang-wrap-1','lang-drop-1')"><svg class="ufs-icon ufs-icon-globe" viewBox="0 0 45 45" fill="none" aria-hidden="true" style="width:var(--space-5);height:var(--space-5);flex-shrink:0"><path fill-rule="evenodd" clip-rule="evenodd" d="M40.5 22.5C40.5 12.7252 32.673 4.74882 22.9561 4.50571L22.4993 4.5L22.0425 4.50571C12.3268 4.74883 4.5 12.7255 4.5 22.5C4.5 32.4259 12.574 40.5 22.4993 40.5C32.4258 40.5 40.5 32.4261 40.5 22.5ZM7.5 22.5C7.5 14.3698 14.0039 7.72857 22.0802 7.50577L22.4993 7.5L22.9185 7.50577C30.9959 7.72856 37.5 14.3696 37.5 22.5C37.5 30.7692 30.7689 37.5 22.4993 37.5C14.2309 37.5 7.5 30.769 7.5 22.5Z" fill="currentColor"/><path d="M22.4993 4.75793C23.2686 4.75793 23.9026 5.33699 23.9892 6.083L23.9993 6.25793V38.7422C23.9993 39.5706 23.3277 40.2422 22.4993 40.2422C21.73 40.2422 21.096 39.6631 21.0094 38.9171L20.9993 38.7422V6.25793C20.9993 5.42951 21.6709 4.75793 22.4993 4.75793Z" fill="currentColor"/><path d="M20.1923 5.38265C20.8895 5.83016 21.0918 6.7581 20.6443 7.45525L20.4169 7.82245L20.0947 8.3692L19.8339 8.82738C19.2127 9.93341 18.5908 11.1515 18.0111 12.442C16.8394 15.0502 15.9955 17.6066 15.6185 19.9641C15.4765 20.8523 15.4036 21.6995 15.4036 22.4999C15.4036 23.2977 15.476 24.1418 15.6171 25.0267C15.9933 27.3861 16.8378 29.9447 18.011 32.555C18.5907 33.8448 19.2126 35.0623 19.8337 36.1677L20.2116 36.8269L20.5797 37.4373C20.6031 37.4747 20.6246 37.5086 20.6441 37.5389C21.0918 38.2359 20.8897 39.1639 20.1927 39.6116C19.4957 40.0594 18.5677 39.8573 18.1199 39.1602L17.8633 38.7454L17.3899 37.9399C17.3337 37.8418 17.2765 37.7409 17.2183 37.6374C16.5555 36.4577 15.8934 35.1615 15.2746 33.7849C14.0015 30.9522 13.0777 28.1533 12.6545 25.499C12.4895 24.4638 12.4036 23.4629 12.4036 22.4999C12.4036 21.5338 12.49 20.5294 12.6562 19.4904C13.0801 16.8388 14.0032 14.0426 15.2745 11.2126C15.8932 9.83542 16.5553 8.53855 17.2182 7.35834L17.7127 6.50088L18.1197 5.83467C18.5672 5.13751 19.4952 4.93514 20.1923 5.38265Z" fill="currentColor"/><path d="M25.2559 39.8584C24.5587 39.4109 24.3563 38.483 24.8039 37.7858L25.1288 37.2557L25.4796 36.6519C25.5231 36.5755 25.5681 36.4961 25.6143 36.4137C26.2355 35.3077 26.8574 34.0895 27.4371 32.7991C28.6088 30.1909 29.4527 27.6345 29.8297 25.277C29.9717 24.3888 30.0446 23.5416 30.0446 22.7411C30.0446 21.9434 29.9722 21.0993 29.8311 20.2144C29.4549 17.855 28.6104 15.2964 27.4372 12.686C26.8575 11.3962 26.2356 10.1788 25.6145 9.07341L25.129 8.23191L24.8041 7.70218C24.3564 7.00515 24.5585 6.07716 25.2555 5.62944C25.9525 5.18173 26.8805 5.38383 27.3282 6.08086L27.5014 6.3585L27.7353 6.74673L28.0583 7.30122C28.1144 7.3993 28.1716 7.50016 28.2298 7.60374C28.8927 8.78334 29.5548 10.0796 30.1735 11.4562C31.4467 14.2889 32.3705 17.0878 32.7937 19.7421C32.9587 20.7772 33.0446 21.7782 33.0446 22.7411C33.0446 23.7073 32.9581 24.7117 32.792 25.7507C32.3681 28.4023 31.445 31.1985 30.1736 34.0285C29.555 35.4057 28.8929 36.7025 28.23 37.8827L27.8935 38.4714L27.4307 39.2438L27.3285 39.4064C26.881 40.1036 25.953 40.306 25.2559 39.8584Z" fill="currentColor"/><path d="M36.9378 27.1875C37.7662 27.1875 38.4378 27.8591 38.4378 28.6875C38.4378 29.4568 37.8587 30.0908 37.1127 30.1774L36.9378 30.1875H7.3978C6.56937 30.1875 5.8978 29.5159 5.8978 28.6875C5.8978 27.9182 6.47686 27.2842 7.22286 27.1976L7.3978 27.1875H36.9378Z" fill="currentColor"/><path d="M38.35 16.8751C39.1784 16.8751 39.85 17.5467 39.85 18.3751C39.85 19.1444 39.2709 19.7784 38.5249 19.865L38.35 19.8751H6.88013C6.0517 19.8751 5.38013 19.2035 5.38013 18.3751C5.38013 17.6059 5.95919 16.9719 6.7052 16.8852L6.88013 16.8751H38.35Z" fill="currentColor"/></svg><span data-i18n="country-locale">United States &middot; EN</span> <svg class="ufs-icon ufs-lang-drop-arrow" viewBox="0 0 45 45" fill="none" aria-hidden="true" style="width:9px;height:9px;transform:rotate(90deg)"><path d="M17.6214 9.49108C18.1294 9.42769 18.6277 9.53396 19.0577 9.79119L30.3572 20.8504C30.7807 21.2684 31.0104 21.8053 31.0453 22.3524C31.0753 22.8224 30.9617 23.2997 30.7046 23.7149L19.502 34.8638C19.0382 35.3216 18.4302 35.55 17.8224 35.55C17.2146 35.55 16.6066 35.3216 16.1428 34.8638C15.7193 34.4459 15.4896 33.9089 15.4547 33.3619C15.4247 32.8918 15.5383 32.4145 15.7955 31.9994L25.326 22.4998L16.1428 13.4352C15.7193 13.0173 15.4896 12.4803 15.4547 11.9333C15.4201 11.391 15.5766 10.839 15.9243 10.3841C16.4582 9.85219 17.0437 9.56315 17.6214 9.49108Z" fill="currentColor"/></svg></div>
           <div class="ufs-lang-drop" id="lang-drop-1">
             <div class="ufs-lang-drop__list">
-              <div class="ufs-lang-drop__item is-active" id="lang-item-en">
+              <div class="ufs-lang-drop__item is-active" id="lang-item-en" onclick="setLang('en');toggleLangDrop('lang-wrap-1','lang-drop-1')">
                 <div class="ufs-lang-drop__item-name"><span>English</span><span class="ufs-lang-drop__item-code">EN</span></div>
                 <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg>
               </div>
-              <div class="ufs-lang-drop__item" id="lang-item-ar">
-                <div class="ufs-lang-drop__item-name"><span>العربية</span><span class="ufs-lang-drop__item-code">AR</span></div>
+              <div class="ufs-lang-drop__item" id="lang-item-de" onclick="setLang('de');toggleLangDrop('lang-wrap-1','lang-drop-1')">
+                <div class="ufs-lang-drop__item-name"><span>Deutsch</span><span class="ufs-lang-drop__item-code">DE</span></div>
                 <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg>
               </div>
-              <div class="ufs-lang-drop__item">
-                <div class="ufs-lang-drop__item-name"><span>Español</span><span class="ufs-lang-drop__item-code">ES</span></div>
+              <div class="ufs-lang-drop__item" id="lang-item-ar" onclick="setLang('ar');toggleLangDrop('lang-wrap-1','lang-drop-1')">
+                <div class="ufs-lang-drop__item-name"><span>العربية</span><span class="ufs-lang-drop__item-code">AR</span></div>
+                <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg>
               </div>
             </div>
             <div class="ufs-lang-drop__website">
@@ -1399,6 +1790,9 @@
       </div>
     </div>
 
+    <!-- Search body overlay (desktop only) -->
+    <div class="search-body-overlay" id="search-body-overlay" onclick="closeSearchOverlay('nav'); closeAllMegamenus();"></div>
+
     <!-- Main nav -->
     <nav class="ufs-nav ufs-nav--light" id="main-nav">
       <div class="ufs-nav__logo">
@@ -1409,14 +1803,22 @@
         <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
         <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
         <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-promotions">Promotions</div>
+        <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
       </div>
       <div class="ufs-nav__actions">
-        <!-- Search (v2 addition — before favourites) -->
-        <button class="ufs-nav__icon-btn" id="nav-search-btn" onclick="toggleSearchOverlay('nav')">
-          <img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt="Search"/>
-        </button>
-        <!-- Fav (always visible) -->
-        <button class="ufs-nav__icon-btn"><img class="ufs-icon ufs-icon--24" src="icons/fav.svg" alt="Favourites"/></button>
+        <!-- Search bar (always visible) -->
+        <div class="ufs-nav-search">
+          <img class="ufs-nav-search-icon" src="icons/Search.svg" alt=""/>
+          <input class="ufs-nav-search-input" type="text" id="nav-search-btn" data-i18n-ph="search-ph" placeholder="What are you looking for?" autocomplete="off" onfocus="activateNavSearch()" oninput="handleSearchInput('nav', this.value)"/>
+          <button class="ufs-nav-search-mic" id="nav-btn-mic" onclick="toggleNavMic()" aria-label="Voice search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+          <button class="ufs-nav-search-close" onclick="closeSearchOverlay('nav')" aria-label="Close search">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+          </button>
+        </div>
+        <!-- Fav (auth only) -->
+        <button class="ufs-nav__icon-btn" id="nav-fav"><img class="ufs-icon ufs-icon--24" src="icons/fav.svg" alt="Favourites"/></button>
         <!-- Cart (webshop only) -->
         <button class="ufs-nav__icon-btn" id="nav-cart" style="position:relative">
           <img class="ufs-icon ufs-icon--24" src="icons/cart.svg" alt="Cart"/>
@@ -1433,23 +1835,16 @@
             24.320
           </div>
         </div>
-        <!-- Login / Create Account (non-auth) -->
-        <button class="btn btn-ghost btn-compressed" id="nav-login" style="display:none" onclick="openSignIn('signin')" data-i18n="nav-sign-in">Sign In</button>
-        <button class="btn btn-primary btn-icon-left btn-compressed" id="nav-signin" style="display:none" onclick="openSignIn('register')">
-          <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="" style="filter:brightness(0) invert(1)"/><span data-i18n="nav-create">Create Account</span>
+        <!-- Account CTA (non-auth) -->
+        <button class="btn btn-primary btn-icon-left" id="nav-signin" style="display:none" onclick="openSignIn()">
+          <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="" style="filter:brightness(0) invert(1)"/><span data-i18n="nav-create">Account</span>
         </button>
       </div>
 
       <!-- Search overlay (desktop — full-width panel below the nav) -->
       <div class="ufs-search-overlay" id="nav-search-overlay">
         <div class="ufs-search-overlay-inner">
-          <div class="ufs-overlay-field">
-            <img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt=""/>
-            <input type="text" id="nav-search-overlay-input" placeholder="Search recipes, products, brands…" data-i18n-ph="search-ph" autocomplete="off" oninput="handleSearchInput('nav', this.value)"/>
-            <button class="ufs-overlay-close" onclick="closeSearchOverlay('nav')">
-              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
-            </button>
-          </div>
+
           <!-- Trending state -->
           <div id="nav-search-trending">
             <div class="ufs-overlay-section-label" data-i18n="search-trending">Trending searches</div>
@@ -1521,6 +1916,33 @@
               <div class="mm-promo-title text-body" data-i18n="mm-promo1-title">Knorr Professional Demi-Glace — now in 1 L packs</div>
               <a class="mm-promo-cta text-body-sm"><span data-i18n="mm-promo1-cta">Explore range</span> <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
             </div>
+          </div>
+        </div>
+        <div class="mm-brands">
+          <span class="mm-col-label text-overline" style="margin-bottom:0;flex-shrink:0" data-i18n="mm-brands-label">Our brands:</span>
+          <div class="mm-brands-scroll-wrap">
+            <button class="mm-brands-scroll-btn mm-brands-scroll-btn--prev is-hidden" id="mm-brands-prev" onclick="mmBrandsScroll(-1)" aria-label="Previous brands">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <div class="mm-brands-list" id="mm-brands-list" onscroll="mmBrandsUpdateArrows()">
+              <a class="mm-brand-item" href="#" aria-label="Knorr"><img src="images/brands/knorr.png" alt="Knorr"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Hellmann's"><img src="images/brands/hellmanns.png" alt="Hellmann's"/></a>
+              <a class="mm-brand-item" href="#" aria-label="The Vegetarian Butcher"><img src="images/brands/vegetarian-butcher.png" alt="The Vegetarian Butcher"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Carte d'Or"><img src="images/brands/carte-dor.png" alt="Carte d'Or"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Knorr"><img src="images/brands/knorr.png" alt="Knorr"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Hellmann's"><img src="images/brands/hellmanns.png" alt="Hellmann's"/></a>
+              <a class="mm-brand-item" href="#" aria-label="The Vegetarian Butcher"><img src="images/brands/vegetarian-butcher.png" alt="The Vegetarian Butcher"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Carte d'Or"><img src="images/brands/carte-dor.png" alt="Carte d'Or"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Knorr"><img src="images/brands/knorr.png" alt="Knorr"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Hellmann's"><img src="images/brands/hellmanns.png" alt="Hellmann's"/></a>
+              <a class="mm-brand-item" href="#" aria-label="The Vegetarian Butcher"><img src="images/brands/vegetarian-butcher.png" alt="The Vegetarian Butcher"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Carte d'Or"><img src="images/brands/carte-dor.png" alt="Carte d'Or"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Knorr"><img src="images/brands/knorr.png" alt="Knorr"/></a>
+              <a class="mm-brand-item" href="#" aria-label="Hellmann's"><img src="images/brands/hellmanns.png" alt="Hellmann's"/></a>
+            </div>
+            <button class="mm-brands-scroll-btn mm-brands-scroll-btn--next" id="mm-brands-next" onclick="mmBrandsScroll(1)" aria-label="Next brands">
+              <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -1607,22 +2029,33 @@
 
     <!-- Mobile nav bar (below 768px) -->
     <div class="ufs-mnav ufs-mnav--light" id="mobile-nav">
-      <button class="ufs-mnav__btn" onclick="openMobileDrawer()"><img class="ufs-icon ufs-icon--20" src="icons/menu.svg" alt="Menu"/></button>
+      <button class="ufs-mnav__btn" onclick="openMobileDrawer()"><img class="ufs-icon ufs-icon--24" src="icons/menu.svg" alt="Menu"/></button>
       <img src="images/ufs-logo.png" alt="UFS" class="ufs-mnav__logo"/>
       <div class="ufs-mnav__right">
-        <button class="ufs-mnav__btn" id="mnav-search-btn" onclick="toggleSearchOverlay('mnav')">
-          <img class="ufs-icon ufs-icon--20" src="icons/Search.svg" alt="Search"/>
-        </button>
-        <button class="ufs-mnav__btn"><img class="ufs-icon ufs-icon--20" src="icons/fav.svg" alt="Favourites"/></button>
+        <button class="ufs-mnav__btn" id="mnav-search-toggle" style="display:none" onclick="showMobileSearchBar(true)"><img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt="Search"/></button>
+        <button class="ufs-mnav__btn" id="mnav-fav"><img class="ufs-icon ufs-icon--24" src="icons/fav.svg" alt="Favourites"/></button>
         <button class="ufs-mnav__btn" id="mnav-cart" style="position:relative">
-          <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="Cart"/>
+          <img class="ufs-icon ufs-icon--24" src="icons/cart.svg" alt="Cart"/>
           <span class="ufs-nav__badge">3</span>
         </button>
         <button class="ufs-mnav__btn" id="mnav-profile" style="position:relative" onclick="mnavProfileClick()">
-          <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/>
+          <img class="ufs-icon ufs-icon--24" src="icons/profile.svg" alt="Account"/>
           <span class="ufs-nav__account-dot is-alert"></span>
         </button>
       </div>
+    </div>
+    <!-- Mobile sticky search bar (below the nav row) -->
+    <div class="ufs-msearch-bar ufs-msearch-bar--light" id="mobile-search-bar">
+      <div class="ufs-msearch-bar-field">
+        <img class="ufs-msearch-bar-icon" src="icons/Search.svg" alt=""/>
+        <input class="ufs-msearch-bar-input" type="text" id="mnav-search-btn" data-i18n-ph="search-ph" placeholder="What are you looking for?" autocomplete="off" onfocus="activateMobileSearch()" oninput="handleSearchInput('mnav', this.value)"/>
+        <button class="ufs-msearch-bar-mic" id="mnav-btn-mic" onclick="toggleMnavMic()" aria-label="Voice search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+      </div>
+      <button class="ufs-msearch-bar-close" onclick="closeSearchOverlay('mnav')" aria-label="Close search">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+      </button>
     </div>
   </header>
 
@@ -1682,6 +2115,25 @@
     <div class="ufs-drawer-links">
       <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)"><span data-i18n="nav-products">Products</span> <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
       <div class="ufs-drawer-sub">
+        <div class="drawer-brands">
+          <span class="mm-col-label text-overline" style="margin-bottom:0">Our brands:</span>
+          <div class="drawer-brands-list">
+            <a class="drawer-brand-item" href="#" aria-label="Knorr"><img src="images/brands/knorr.png" alt="Knorr"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Hellmann's"><img src="images/brands/hellmanns.png" alt="Hellmann's"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="The Vegetarian Butcher"><img src="images/brands/vegetarian-butcher.png" alt="The Vegetarian Butcher"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Carte d'Or"><img src="images/brands/carte-dor.png" alt="Carte d'Or"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Knorr"><img src="images/brands/knorr.png" alt="Knorr"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Hellmann's"><img src="images/brands/hellmanns.png" alt="Hellmann's"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="The Vegetarian Butcher"><img src="images/brands/vegetarian-butcher.png" alt="The Vegetarian Butcher"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Carte d'Or"><img src="images/brands/carte-dor.png" alt="Carte d'Or"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Knorr"><img src="images/brands/knorr.png" alt="Knorr"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Hellmann's"><img src="images/brands/hellmanns.png" alt="Hellmann's"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="The Vegetarian Butcher"><img src="images/brands/vegetarian-butcher.png" alt="The Vegetarian Butcher"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Carte d'Or"><img src="images/brands/carte-dor.png" alt="Carte d'Or"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Knorr"><img src="images/brands/knorr.png" alt="Knorr"/></a>
+            <a class="drawer-brand-item" href="#" aria-label="Hellmann's"><img src="images/brands/hellmanns.png" alt="Hellmann's"/></a>
+          </div>
+        </div>
         <a class="ufs-drawer-sub-link" data-i18n="mm-ketchup">Ketchup &amp; Tomato Sauces</a>
         <a class="ufs-drawer-sub-link" data-i18n="mm-mayo">Mayonnaise &amp; Dressings</a>
         <a class="ufs-drawer-sub-link" data-i18n="mm-hot-sauces">Hot Sauces</a>
@@ -1726,19 +2178,19 @@
         <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-academy">UFS Academy</a>
         <button class="ufs-drawer-sub-more" onclick="showDrawerSubMore(this)"><span data-i18n="dr-view-more">View more</span> <img class="ufs-drawer-sub-more-chev" src="icons/arrow.svg" alt=""/></button>
       </div>
-      <button class="ufs-drawer-acc-trigger" style="border-bottom:none" data-i18n="nav-promotions">Promotions</button>
+      <button class="ufs-drawer-acc-trigger" data-i18n="nav-promotions">Promotions</button>
+      <button class="ufs-drawer-acc-trigger" style="border-bottom:none" data-i18n="nav-loyalty">Loyalty Program</button>
     </div>
     <div class="ufs-drawer-util">
       <div class="ufs-drawer-util-title" data-i18n="dr-more">More</div>
       <a class="ufs-drawer-util-link" data-i18n="about">About Us</a>
-      <a class="ufs-drawer-util-link" data-i18n="contact">Contact</a>
-      <a class="ufs-drawer-util-link" data-i18n="support">Help &amp; Support</a>
+      <a class="ufs-drawer-util-link" data-i18n="support">Contact &amp; Support</a>
       <a class="ufs-drawer-util-link" id="drawer-ws-link">Track Your Order</a>
       <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)"><span class="ufs-drawer-acc-label"><svg class="ufs-icon ufs-drawer-acc-globe" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M40.5 22.5C40.5 12.7252 32.673 4.74882 22.9561 4.50571L22.4993 4.5L22.0425 4.50571C12.3268 4.74883 4.5 12.7255 4.5 22.5C4.5 32.4259 12.574 40.5 22.4993 40.5C32.4258 40.5 40.5 32.4261 40.5 22.5ZM7.5 22.5C7.5 14.3698 14.0039 7.72857 22.0802 7.50577L22.4993 7.5L22.9185 7.50577C30.9959 7.72856 37.5 14.3696 37.5 22.5C37.5 30.7692 30.7689 37.5 22.4993 37.5C14.2309 37.5 7.5 30.769 7.5 22.5Z" fill="currentColor"/><path d="M22.4993 4.75793C23.2686 4.75793 23.9026 5.33699 23.9892 6.083L23.9993 6.25793V38.7422C23.9993 39.5706 23.3277 40.2422 22.4993 40.2422C21.73 40.2422 21.096 39.6631 21.0094 38.9171L20.9993 38.7422V6.25793C20.9993 5.42951 21.6709 4.75793 22.4993 4.75793Z" fill="currentColor"/><path d="M20.1923 5.38265C20.8895 5.83016 21.0918 6.7581 20.6443 7.45525L20.4169 7.82245L20.0947 8.3692L19.8339 8.82738C19.2127 9.93341 18.5908 11.1515 18.0111 12.442C16.8394 15.0502 15.9955 17.6066 15.6185 19.9641C15.4765 20.8523 15.4036 21.6995 15.4036 22.4999C15.4036 23.2977 15.476 24.1418 15.6171 25.0267C15.9933 27.3861 16.8378 29.9447 18.011 32.555C18.5907 33.8448 19.2126 35.0623 19.8337 36.1677L20.2116 36.8269L20.5797 37.4373C20.6031 37.4747 20.6246 37.5086 20.6441 37.5389C21.0918 38.2359 20.8897 39.1639 20.1927 39.6116C19.4957 40.0594 18.5677 39.8573 18.1199 39.1602L17.8633 38.7454L17.3899 37.9399C17.3337 37.8418 17.2765 37.7409 17.2183 37.6374C16.5555 36.4577 15.8934 35.1615 15.2746 33.7849C14.0015 30.9522 13.0777 28.1533 12.6545 25.499C12.4895 24.4638 12.4036 23.4629 12.4036 22.4999C12.4036 21.5338 12.49 20.5294 12.6562 19.4904C13.0801 16.8388 14.0032 14.0426 15.2745 11.2126C15.8932 9.83542 16.5553 8.53855 17.2182 7.35834L17.7127 6.50088L18.1197 5.83467C18.5672 5.13751 19.4952 4.93514 20.1923 5.38265Z" fill="currentColor"/><path d="M25.2559 39.8584C24.5587 39.4109 24.3563 38.483 24.8039 37.7858L25.1288 37.2557L25.4796 36.6519C25.5231 36.5755 25.5681 36.4961 25.6143 36.4137C26.2355 35.3077 26.8574 34.0895 27.4371 32.7991C28.6088 30.1909 29.4527 27.6345 29.8297 25.277C29.9717 24.3888 30.0446 23.5416 30.0446 22.7411C30.0446 21.9434 29.9722 21.0993 29.8311 20.2144C29.4549 17.855 28.6104 15.2964 27.4372 12.686C26.8575 11.3962 26.2356 10.1788 25.6145 9.07341L25.129 8.23191L24.8041 7.70218C24.3564 7.00515 24.5585 6.07716 25.2555 5.62944C25.9525 5.18173 26.8805 5.38383 27.3282 6.08086L27.5014 6.3585L27.7353 6.74673L28.0583 7.30122C28.1144 7.3993 28.1716 7.50016 28.2298 7.60374C28.8927 8.78334 29.5548 10.0796 30.1735 11.4562C31.4467 14.2889 32.3705 17.0878 32.7937 19.7421C32.9587 20.7772 33.0446 21.7782 33.0446 22.7411C33.0446 23.7073 32.9581 24.7117 32.792 25.7507C32.3681 28.4023 31.445 31.1985 30.1736 34.0285C29.555 35.4057 28.8929 36.7025 28.23 37.8827L27.8935 38.4714L27.4307 39.2438L27.3285 39.4064C26.881 40.1036 25.953 40.306 25.2559 39.8584Z" fill="currentColor"/><path d="M36.9378 27.1875C37.7662 27.1875 38.4378 27.8591 38.4378 28.6875C38.4378 29.4568 37.8587 30.0908 37.1127 30.1774L36.9378 30.1875H7.3978C6.56937 30.1875 5.8978 29.5159 5.8978 28.6875C5.8978 27.9182 6.47686 27.2842 7.22286 27.1976L7.3978 27.1875H36.9378Z" fill="currentColor"/><path d="M38.35 16.8751C39.1784 16.8751 39.85 17.5467 39.85 18.3751C39.85 19.1444 39.2709 19.7784 38.5249 19.865L38.35 19.8751H6.88013C6.0517 19.8751 5.38013 19.2035 5.38013 18.3751C5.38013 17.6059 5.95919 16.9719 6.7052 16.8852L6.88013 16.8751H38.35Z" fill="currentColor"/></svg><span data-i18n="country-locale">United States &middot; EN</span></span><svg class="ufs-icon ufs-drawer-acc-chev" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M17.6214 9.49108C18.1294 9.42769 18.6277 9.53396 19.0577 9.79119L30.3572 20.8504C30.7807 21.2684 31.0104 21.8053 31.0453 22.3524C31.0753 22.8224 30.9617 23.2997 30.7046 23.7149L19.502 34.8638C19.0382 35.3216 18.4302 35.55 17.8224 35.55C17.2146 35.55 16.6066 35.3216 16.1428 34.8638C15.7193 34.4459 15.4896 33.9089 15.4547 33.3619C15.4247 32.8918 15.5383 32.4145 15.7955 31.9994L25.326 22.4998L16.1428 13.4352C15.7193 13.0173 15.4896 12.4803 15.4547 11.9333C15.4201 11.391 15.5766 10.839 15.9243 10.3841C16.4582 9.85219 17.0437 9.56315 17.6214 9.49108Z" fill="currentColor"/></svg></button>
       <div class="ufs-drawer-sub">
-        <a class="ufs-drawer-sub-link is-active" id="drawer-lang-en">English <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
-        <a class="ufs-drawer-sub-link" id="drawer-lang-ar">العربية <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
-        <a class="ufs-drawer-sub-link">Español <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link is-active" id="drawer-lang-en" onclick="setLang('en')">English <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link" id="drawer-lang-de" onclick="setLang('de')">Deutsch <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
+        <a class="ufs-drawer-sub-link" id="drawer-lang-ar" onclick="setLang('ar')">العربية <svg class="ufs-lang-drop__check" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2 7 5.5 10.5 12 3.5"/></svg></a>
         <a class="ufs-drawer-sub-link ufs-lang-drop__change">Change country <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6h8M6 2l4 4-4 4"/></svg></a>
       </div>
     </div>
@@ -1868,7 +2320,7 @@
   <!-- ================================================================
        FLOATING BAR — v2 AI ask-row variant
   ================================================================ -->
-  <div class="fbe-fixed" id="fbe-fixed">
+  <div class="fbe-fixed" id="fbe-fixed" style="display:none">
     <!-- AI panel -->
     <div class="fbe__panel fbe__panel--ai" id="fbe-panel-ai">
       <div class="fbe-ai-hd">
@@ -1952,53 +2404,40 @@
       </button>
     </div>
     <div class="signin-panel-body" id="signin-panel-body">
-      <div class="tab-bar" style="margin-bottom:24px">
-        <button class="tab-btn is-active" id="tab-si" onclick="switchTab('signin')" data-i18n="si-tab-signin">Sign In</button>
-        <button class="tab-btn" id="tab-reg" onclick="switchTab('register')" data-i18n="si-tab-register">Create Account</button>
+      <h2 class="signin-panel-title" data-i18n="si-merged-title">Sign in or Create an Account</h2>
+      <div class="signin-form-fields">
+        <div class="fi-wrap"><label class="fi-label" data-i18n="si-contact-label">Enter your email or mobile number</label><input class="fi-field" type="text" placeholder="you@example.com" dir="ltr" autocomplete="email"/></div>
       </div>
-      <div id="form-signin">
-        <div class="signin-form-fields">
-          <div class="fi-wrap"><label class="fi-label" data-i18n="si-email-label">Email address</label><input class="fi-field" type="email" placeholder="you@example.com" dir="ltr"/></div>
-          <div class="fi-wrap"><label class="fi-label" data-i18n="si-pw-label">Password</label><input class="fi-field" type="password" placeholder="••••••••" dir="ltr"/></div>
+      <button class="btn btn-primary" style="width:100%" onclick="closeSignIn()" data-i18n="si-continue-btn">Continue</button>
+      <button class="signin-help-link" data-i18n="si-need-help">Need help?</button>
+      <div class="signin-usps">
+        <div class="signin-usps-title" data-i18n="si-why">Why create an account?</div>
+        <div class="signin-usp-item">
+          <div class="signin-usp-item-icon"><img src="icons/products.svg" alt=""/></div>
+          <div class="signin-usp-item-text">
+            <div class="signin-usp-item-title" data-i18n="si-usp1-title">Professional pricing</div>
+            <div class="signin-usp-item-desc" data-i18n="si-usp1-desc">Access exclusive B2B prices and bulk discounts on all UFS products.</div>
+          </div>
         </div>
-        <div class="signin-forgot text-body-xs" data-i18n="si-forgot">Forgot your password?</div>
-        <button class="btn btn-primary" style="width:100%;margin-top:20px" onclick="closeSignIn()" data-i18n="si-signin-btn">Sign In</button>
-        <div class="signin-usp text-body-xs" data-i18n="si-usp">Access exclusive recipes, save your favourites and manage your UFS account.</div>
-      </div>
-      <div id="form-register" style="display:none">
-        <div class="signin-form-fields">
-          <div class="fi-wrap"><label class="fi-label" data-i18n="si-email-label">Email address</label><input class="fi-field" type="email" placeholder="you@example.com" dir="ltr"/></div>
+        <div class="signin-usp-item">
+          <div class="signin-usp-item-icon"><img src="icons/recipes.svg" alt=""/></div>
+          <div class="signin-usp-item-text">
+            <div class="signin-usp-item-title" data-i18n="si-usp2-title">500+ chef recipes</div>
+            <div class="signin-usp-item-desc" data-i18n="si-usp2-desc">Save and organise your favourites from our full recipe library.</div>
+          </div>
         </div>
-        <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="closeSignIn()" data-i18n="si-continue-btn">Continue</button>
-        <div class="signin-usps">
-          <div class="signin-usps-title" data-i18n="si-why">Why create an account?</div>
-          <div class="signin-usp-item">
-            <div class="signin-usp-item-icon"><img src="icons/products.svg" alt=""/></div>
-            <div class="signin-usp-item-text">
-              <div class="signin-usp-item-title" data-i18n="si-usp1-title">Professional pricing</div>
-              <div class="signin-usp-item-desc" data-i18n="si-usp1-desc">Access exclusive B2B prices and bulk discounts on all UFS products.</div>
-            </div>
+        <div class="signin-usp-item">
+          <div class="signin-usp-item-icon"><img src="icons/track.svg" alt=""/></div>
+          <div class="signin-usp-item-text">
+            <div class="signin-usp-item-title" data-i18n="si-usp3-title">Order tracking</div>
+            <div class="signin-usp-item-desc" data-i18n="si-usp3-desc">View order history and track deliveries in real time.</div>
           </div>
-          <div class="signin-usp-item">
-            <div class="signin-usp-item-icon"><img src="icons/recipes.svg" alt=""/></div>
-            <div class="signin-usp-item-text">
-              <div class="signin-usp-item-title" data-i18n="si-usp2-title">500+ chef recipes</div>
-              <div class="signin-usp-item-desc" data-i18n="si-usp2-desc">Save and organise your favourites from our full recipe library.</div>
-            </div>
-          </div>
-          <div class="signin-usp-item">
-            <div class="signin-usp-item-icon"><img src="icons/track.svg" alt=""/></div>
-            <div class="signin-usp-item-text">
-              <div class="signin-usp-item-title" data-i18n="si-usp3-title">Order tracking</div>
-              <div class="signin-usp-item-desc" data-i18n="si-usp3-desc">View order history and track deliveries in real time.</div>
-            </div>
-          </div>
-          <div class="signin-usp-item">
-            <div class="signin-usp-item-icon"><img src="icons/chef.svg" alt=""/></div>
-            <div class="signin-usp-item-text">
-              <div class="signin-usp-item-title" data-i18n="si-usp4-title">UFS Academy</div>
-              <div class="signin-usp-item-desc" data-i18n="si-usp4-desc">Free culinary training modules and certifications.</div>
-            </div>
+        </div>
+        <div class="signin-usp-item">
+          <div class="signin-usp-item-icon"><img src="icons/chef.svg" alt=""/></div>
+          <div class="signin-usp-item-text">
+            <div class="signin-usp-item-title" data-i18n="si-usp4-title">UFS Academy</div>
+            <div class="signin-usp-item-desc" data-i18n="si-usp4-desc">Free culinary training modules and certifications.</div>
           </div>
         </div>
       </div>
@@ -2073,7 +2512,7 @@
         <!-- Brand column: logo + tagline -->
         <div class="ufs-footer__col">
           <img src="images/ufs-logo.png" class="ufs-footer__brand-logo" alt="UFS" />
-          <p class="ufs-footer__brand-tagline" data-i18n="footer-tagline">Products and services created by chefs for chefs</p>
+          <p class="ufs-footer__brand-tagline" data-i18n-html="footer-tagline">Products and services created <span class="text-ch-h5" style="display:block">by chefs for chefs</span></p>
         </div>
         <!-- Company -->
         <div class="ufs-footer__col">
@@ -2138,9 +2577,24 @@
     /* ================================================================
        STATE
     ================================================================ */
-    var S = { color: 'light', webshop: true, auth: false, view: 'desktop', dir: 'ltr' };
+    var S = { color: 'light', webshop: true, auth: false, ai: false, view: 'desktop', dir: 'ltr', lang: 'en' };
     var ctrlBarOpen = false;
     var navScrolled = false;
+    var mSearchBarHidden = false;
+    var lastScrollY = 0;
+
+    function hideMobileSearchBar() {
+      if (mSearchBarHidden) return;
+      mSearchBarHidden = true;
+      document.getElementById('mobile-search-bar').classList.add('is-hidden');
+      document.getElementById('mnav-search-toggle').style.display = 'flex';
+    }
+    function showMobileSearchBar(withFocus) {
+      mSearchBarHidden = false;
+      document.getElementById('mobile-search-bar').classList.remove('is-hidden');
+      document.getElementById('mnav-search-toggle').style.display = 'none';
+      if (withFocus) setTimeout(function() { document.getElementById('mnav-search-btn').focus(); }, 300);
+    }
     var megamenuOpen = false;
     var searchOverlayOpen = false;
     var NAV_SCROLL_SWAP_Y = 250;
@@ -2153,6 +2607,7 @@
       if (params.has('color'))   S.color   = params.get('color');
       if (params.has('webshop')) S.webshop = params.get('webshop') === 'true';
       if (params.has('auth'))    S.auth    = params.get('auth') === 'true';
+      if (params.has('ai'))      S.ai      = params.get('ai') === 'true';
       if (params.has('dir'))     S.dir     = params.get('dir');
     })();
 
@@ -2160,15 +2615,15 @@
        TRANSLATIONS & DIRECTION
     ================================================================ */
     var T_EN = {
-      'about':'About Us','contact':'Contact','support':'Help & Support','track':'Track Your Order','where-to-buy':'Where to Buy',
+      'about':'About Us','contact':'Contact','support':'Contact & Support','track':'Track Your Order','where-to-buy':'Where to Buy',
       'country-locale':'United States · EN','lang-country':'You\'re on the <span class="ufs-lang-drop__website-country">United States</span> website','change-country':'Change country',
-      'nav-products':'Products','nav-recipes':'Recipes','nav-training':'Training & Inspiration','nav-promotions':'Promotions',
-      'nav-sign-in':'Sign In','nav-create':'Create Account',
+      'nav-products':'Products','nav-recipes':'Recipes','nav-training':'Training & Inspiration','nav-promotions':'Promotions','nav-loyalty':'Loyalty Program',
+      'nav-sign-in':'Sign In','nav-create':'Account',
       'mm-sauces-col':'Sauces & Condiments','mm-dairy-col':'Dairy & Fats','mm-bases-col':'Culinary Bases',
       'mm-ketchup':'Ketchup & Tomato Sauces','mm-mayo':'Mayonnaise & Dressings','mm-hot-sauces':'Hot Sauces','mm-vinegar':'Vinegars & Marinades','mm-pastes':'Pastes & Purees',
       'mm-butter':'Butter & Spreads','mm-cream':'Cream & Creamers','mm-oils':'Cooking Oils','mm-cheese':'Cheese Products',
       'mm-stocks':'Stocks & Bouillons','mm-gravy':'Gravy & Sauce Mixes','mm-soups':'Soups & Broths','mm-season':'Seasoning Blends','mm-dessert-mix':'Dessert Mixes',
-      'mm-promo1-over':'New Arrival','mm-promo1-title':'Knorr Professional Demi-Glace — now in 1 L packs','mm-promo1-cta':'Explore range',
+      'mm-brands-label':'Our brands:','mm-promo1-over':'New Arrival','mm-promo1-title':'Knorr Professional Demi-Glace — now in 1 L packs','mm-promo1-cta':'Explore range',
       'mm-chefs-pick':"Chef's Pick",'mm-rec-feat-title':'20-Minute Weeknight Recipes',
       'mm-rec-feat-body':'Fast, professional-quality dishes built around UFS pantry staples. New recipes added every week.','mm-rec-feat-cta':'Browse recipes',
       'mm-recipes-col':'Recipes','mm-cuisine-col':'By Cuisine','mm-all-recipes':'All Recipes','mm-starters':'Starters & Soups','mm-mains':'Mains & Sides',
@@ -2195,8 +2650,9 @@
       'inspo-feat-meta':'By Chef Marco Valli  ·  25 min  ·  Intermediate',
       'inspo-small1-tag':'Technique','inspo-small1-title':'How to build a perfect pan sauce in 5 steps',
       'inspo-small2-tag':'Training','inspo-small2-title':'UFS Academy: Sauce masterclass — now free',
-      'search-ph':'Search recipes, products, brands…','msearch-ph':'Search…',
+      'search-ph':'What are you looking for?','msearch-ph':'Search…',
       'search-trending':'Trending searches','msearch-trending':'Trending',
+      'search-trending-auth':'Recently searched','msearch-trending-auth':'Recently searched',
       'search-chip1':'Pasta sauces','search-chip2':'Knorr bouillon','search-chip3':'Plant-based','search-chip4':'Dessert recipes','search-chip5':"Hellmann's mayo",
       'msearch-chip1':'Pasta sauces','msearch-chip2':'Knorr','msearch-chip3':'Desserts','msearch-chip4':'Plant-based',
       'search-ask-ai-prefix':'Ask Chef AI for "','search-see-all-prefix':'See all results for "','search-see-all-btn':'See all',
@@ -2207,10 +2663,8 @@
       'fbe-ai-reply':'Great choice! I\'d recommend the <strong>Knorr Classic Demi-Glace</strong> — it adds depth without overpowering. Want me to find recipes using it?',
       'fbe-input-ph':'Ask a follow-up…',
       'fbe-prompt1':'How do I engage more with Gen-Z diners?','fbe-prompt2':'Show me quick weeknight recipes','fbe-prompt3':'How do I store opened sauce bases?',
-      'si-tab-signin':'Sign In','si-tab-register':'Create Account',
-      'si-email-label':'Email address','si-pw-label':'Password','si-forgot':'Forgot your password?','si-signin-btn':'Sign In',
-      'si-usp':'Access exclusive recipes, save your favourites and manage your UFS account.','si-continue-btn':'Continue',
-      'si-why':'Why create an account?',
+      'si-merged-title':'Sign in or Create an Account','si-contact-label':'Enter your email or mobile number',
+      'si-continue-btn':'Continue','si-why':'Why create an account?','si-need-help':'Need help?',
       'si-usp1-title':'Professional pricing','si-usp1-desc':'Access exclusive B2B prices and bulk discounts on all UFS products.',
       'si-usp2-title':'500+ chef recipes','si-usp2-desc':'Save and organise your favourites from our full recipe library.',
       'si-usp3-title':'Order tracking','si-usp3-desc':'View order history and track deliveries in real time.',
@@ -2221,7 +2675,7 @@
       'state-light':'Light','state-dark':'Dark','state-glass':'Glass','state-cart':'Cart','state-no-cart':'No Cart','state-logged-in':'Logged In','state-signin':'Sign In',
       'footer-heading':'Stay in the loop','footer-sub':'Sign up to receive recipe ideas, industry trends, special offers, and more in your inbox.',
       'footer-input-ph':'Enter your email','footer-subscribe':'Subscribe',
-      'footer-tagline':'Products and services created by chefs for chefs',
+      'footer-tagline':'Products and services created <span class="text-ch-h5" style="display:block">by chefs for chefs</span>',
       'footer-col-company':'Company','footer-about':'About Us','footer-brands':'Brands','footer-sustainability':'Sustainability','footer-trade':'Trade Terms','footer-partners':'Partners',
       'footer-col-support':'Help & Support','footer-track':'Track My Order','footer-shipping':'Shipping Info','footer-returns':'Returns & Exchanges','footer-faq':'FAQ','footer-contact':'Contact Us',
       'footer-col-legal':'Legal','footer-privacy':'Privacy Policy','footer-cookie':'Cookie Policy','footer-terms':'Terms and Conditions','footer-accessibility':'Accessibility',
@@ -2229,15 +2683,15 @@
     };
 
     var T_AR = {
-      'about':'من نحن','contact':'اتصل بنا','support':'المساعدة والدعم','track':'تتبع طلبك','where-to-buy':'أين تشتري',
+      'about':'من نحن','contact':'اتصل بنا','support':'التواصل والدعم','track':'تتبع طلبك','where-to-buy':'أين تشتري',
       'country-locale':'المملكة العربية السعودية · AR','lang-country':'أنت على الموقع السعودي','change-country':'تغيير الدولة',
-      'nav-products':'المنتجات','nav-recipes':'الوصفات','nav-training':'التدريب والإلهام','nav-promotions':'العروض',
+      'nav-products':'المنتجات','nav-recipes':'الوصفات','nav-training':'التدريب والإلهام','nav-promotions':'العروض','nav-loyalty':'برنامج الولاء',
       'nav-sign-in':'تسجيل الدخول','nav-create':'إنشاء حساب',
       'mm-sauces-col':'الصلصات والتوابل','mm-dairy-col':'الألبان والدهون','mm-bases-col':'الأسس الطهوية',
       'mm-ketchup':'الكاتشب وصلصات الطماطم','mm-mayo':'المايونيز والتتبيلات','mm-hot-sauces':'الصلصات الحارة','mm-vinegar':'الخل والمتبلات','mm-pastes':'المعجونات والهريسة',
       'mm-butter':'الزبدة والمدهونات','mm-cream':'الكريمة والمبيضات','mm-oils':'زيوت الطهي','mm-cheese':'منتجات الجبن',
       'mm-stocks':'المرق والأسس','mm-gravy':'خلطات المرق والصلصة','mm-soups':'الشوربات والحساء','mm-season':'خلطات التوابل','mm-dessert-mix':'خلطات الحلويات',
-      'mm-promo1-over':'وصول جديد','mm-promo1-title':'ديمي جلاس نوبر الاحترافي — الآن في عبوات 1 لتر','mm-promo1-cta':'استكشف المنتجات',
+      'mm-brands-label':'علاماتنا التجارية:','mm-promo1-over':'وصول جديد','mm-promo1-title':'ديمي جلاس نوبر الاحترافي — الآن في عبوات 1 لتر','mm-promo1-cta':'استكشف المنتجات',
       'mm-chefs-pick':'اختيار الطاهي','mm-rec-feat-title':'وصفات أيام الأسبوع في 20 دقيقة',
       'mm-rec-feat-body':'أطباق سريعة بجودة احترافية مبنية على مواد UFS. وصفات جديدة كل أسبوع.','mm-rec-feat-cta':'تصفح الوصفات',
       'mm-recipes-col':'الوصفات','mm-cuisine-col':'حسب المطبخ','mm-all-recipes':'جميع الوصفات','mm-starters':'المقبلات والشوربات','mm-mains':'الأطباق الرئيسية والمرافقة',
@@ -2264,8 +2718,9 @@
       'inspo-feat-meta':'بقلم الطاهي ماركو فالي  ·  25 دقيقة  ·  متوسط',
       'inspo-small1-tag':'تقنية','inspo-small1-title':'كيف تصنع صلصة مقلاة مثالية في 5 خطوات',
       'inspo-small2-tag':'تدريب','inspo-small2-title':'أكاديمية UFS: ماستركلاس الصلصة — مجاناً الآن',
-      'search-ph':'ابحث عن وصفات ومنتجات وعلامات تجارية…','msearch-ph':'بحث…',
+      'search-ph':'ماذا تبحث عن؟','msearch-ph':'بحث…',
       'search-trending':'البحث الرائج','msearch-trending':'رائج',
+      'search-trending-auth':'بحثت مؤخراً','msearch-trending-auth':'بحثت مؤخراً',
       'search-chip1':'صلصات المعكرونة','search-chip2':'مرق نوبر','search-chip3':'نباتي','search-chip4':'وصفات الحلويات','search-chip5':'مايونيز هيلمان',
       'msearch-chip1':'صلصات المعكرونة','msearch-chip2':'نوبر','msearch-chip3':'الحلويات','msearch-chip4':'نباتي',
       'search-ask-ai-prefix':'اسأل طاهي AI عن "','search-see-all-prefix':'عرض جميع نتائج "','search-see-all-btn':'عرض الكل',
@@ -2276,10 +2731,8 @@
       'fbe-ai-reply':'خيار رائع! أنصحك بـ <strong>ديمي جلاس الكلاسيكي من نوبر</strong> — يضيف عمقًا دون إخفاء الطعم. هل تريد وصفات باستخدامه؟',
       'fbe-input-ph':'اطرح سؤالاً...',
       'fbe-prompt1':'كيف أجذب زبائن الجيل Z؟','fbe-prompt2':'أرني وصفات سريعة لأيام الأسبوع','fbe-prompt3':'كيف أحفظ قواعد الصلصة بعد الفتح؟',
-      'si-tab-signin':'تسجيل الدخول','si-tab-register':'إنشاء حساب',
-      'si-email-label':'البريد الإلكتروني','si-pw-label':'كلمة المرور','si-forgot':'نسيت كلمة المرور؟','si-signin-btn':'تسجيل الدخول',
-      'si-usp':'احصل على وصول حصري للوصفات وتفضيلاتك وحساب UFS.','si-continue-btn':'متابعة',
-      'si-why':'لماذا تنشئ حسابًا؟',
+      'si-merged-title':'تسجيل الدخول أو إنشاء حساب','si-contact-label':'أدخل البريد الإلكتروني أو رقم الجوال',
+      'si-continue-btn':'متابعة','si-why':'لماذا تنشئ حسابًا؟','si-need-help':'هل تحتاج إلى مساعدة؟',
       'si-usp1-title':'أسعار احترافية','si-usp1-desc':'احصل على أسعار B2B حصرية وخصومات على جميع منتجات UFS.',
       'si-usp2-title':'+500 وصفة من الطهاة','si-usp2-desc':'احفظ ونظّم مفضلاتك من مكتبة الوصفات الكاملة.',
       'si-usp3-title':'تتبع الطلبات','si-usp3-desc':'اطّلع على سجل الطلبات وتتبع التسليمات في الوقت الفعلي.',
@@ -2290,11 +2743,79 @@
       'state-light':'فاتح','state-dark':'داكن','state-glass':'زجاجي','state-cart':'سلة','state-no-cart':'بدون سلة','state-logged-in':'مسجل','state-signin':'تسجيل الدخول',
       'footer-heading':'ابقَ على اطلاع','footer-sub':'اشترك لتلقّي أفكار الوصفات واتجاهات الصناعة والعروض الخاصة والمزيد في بريدك الوارد.',
       'footer-input-ph':'أدخل بريدك الإلكتروني','footer-subscribe':'اشترك',
-      'footer-tagline':'منتجات وخدمات أنشأها طهاة من أجل طهاة',
+      'footer-tagline':'منتجات وخدمات أنشأها <span class="text-ch-h5">طهاة من أجل طهاة</span>',
       'footer-col-company':'الشركة','footer-about':'من نحن','footer-brands':'العلامات التجارية','footer-sustainability':'الاستدامة','footer-trade':'شروط التجارة','footer-partners':'الشركاء',
       'footer-col-support':'المساعدة والدعم','footer-track':'تتبع طلبي','footer-shipping':'معلومات الشحن','footer-returns':'الإرجاع والاستبدال','footer-faq':'الأسئلة الشائعة','footer-contact':'اتصل بنا',
       'footer-col-legal':'القانونية','footer-privacy':'سياسة الخصوصية','footer-cookie':'سياسة ملفات تعريف الارتباط','footer-terms':'الشروط والأحكام','footer-accessibility':'إمكانية الوصول',
       'footer-copyright':'© 2027 UFS. جميع الحقوق محفوظة.'
+    };
+
+    var T_DE = {
+      'about':'Über uns','contact':'Kontakt','support':'Kontakt & Support','track':'Bestellung verfolgen','where-to-buy':'Wo kaufen',
+      'country-locale':'Deutschland · DE','lang-country':'Sie befinden sich auf der deutschen <span class="ufs-lang-drop__website-country">Website</span>','change-country':'Land wechseln',
+      'nav-products':'Produkte','nav-recipes':'Rezepte','nav-training':'Training & Inspiration','nav-promotions':'Aktionen','nav-loyalty':'Treueprogramm',
+      'nav-sign-in':'Anmelden','nav-create':'Konto',
+      'mm-sauces-col':'Saucen & Würzmittel','mm-dairy-col':'Milchprodukte & Fette','mm-bases-col':'Kulinarische Basen',
+      'mm-ketchup':'Ketchup & Tomatensaucen','mm-mayo':'Mayonnaise & Dressings','mm-hot-sauces':'Scharfe Saucen','mm-vinegar':'Essig & Marinaden','mm-pastes':'Pasten & Pürees',
+      'mm-butter':'Butter & Aufstriche','mm-cream':'Sahne & Kaffeesahne','mm-oils':'Speiseöle','mm-cheese':'Käseprodukte',
+      'mm-stocks':'Fonds & Brühen','mm-gravy':'Braten- & Saucenmischungen','mm-soups':'Suppen & Brühen','mm-season':'Gewürzmischungen','mm-dessert-mix':'Dessertmischungen',
+      'mm-brands-label':'Unsere Marken:','mm-promo1-over':'Neu eingetroffen','mm-promo1-title':'Knorr Professional Demi-Glace — jetzt in 1-L-Packungen','mm-promo1-cta':'Sortiment entdecken',
+      'mm-chefs-pick':'Chefs Empfehlung','mm-rec-feat-title':'Rezepte für unter der Woche in 20 Minuten',
+      'mm-rec-feat-body':'Schnelle Gerichte in Profiqualität auf Basis von UFS-Zutaten. Jede Woche neue Rezepte.','mm-rec-feat-cta':'Rezepte entdecken',
+      'mm-recipes-col':'Rezepte','mm-cuisine-col':'Nach Küche','mm-all-recipes':'Alle Rezepte','mm-starters':'Vorspeisen & Suppen','mm-mains':'Hauptgerichte & Beilagen',
+      'mm-desserts':'Desserts','mm-sauces-dress':'Saucen & Dressings','mm-asian':'Asiatisch','mm-med':'Mediterran','mm-latin':'Lateinamerikanisch','mm-european':'Klassisch europäisch',
+      'mm-promo2-over':'Trendthema','mm-promo2-title':'Umami meistern: ein kostenloses Online-Modul für Köche','mm-promo2-cta':'Jetzt lernen',
+      'mm-training-col':'Training','mm-inspo-col':'Inspiration','mm-resources-col':'Ressourcen',
+      'mm-chef-videos':'Koch-Trainingsvideos','mm-culinary':'Kochtechniken','mm-online-courses':'Online-Kurse','mm-certs':'Zertifizierungen',
+      'mm-food-trends':'Food-Trends','mm-menu-plan':'Menüplanungstools','mm-chef-spot':'Koch-Spotlights','mm-success':'Erfolgsgeschichten',
+      'mm-guides':'Downloadbare Leitfäden','mm-webinars':'Webinare & Veranstaltungen','mm-academy':'UFS Academy',
+      'mm-promo3-over':'Kostenloses Modul','mm-promo3-title':'Umami meistern: ein kostenloses Online-Modul für Köche','mm-promo3-cta':'Jetzt lernen',
+      'dr-view-more':'Mehr anzeigen','dr-more':'Mehr',
+      'hero-eyebrow':'Professionelle kulinarische Lösungen','hero-title':'Jedes Gericht verfeinern<br>mit UFS',
+      'hero-sub':'Premium-Saucen, kulinarische Basen und Gewürze – weltweit vertraut bei Köchen und Gastronomiebetreibern.',
+      'hero-btn-products':'Produkte entdecken','hero-btn-watch':'Trailer ansehen',
+      'prod-eyebrow':'Unser Portfolio','prod-title':'Ausgewählte Produkte',
+      'prod-sub':'Von klassischen Fondsbasen bis hin zu innovativen Saucen – alles, was Sie in einer professionellen Küche brauchen.',
+      'card1-title':'Knorr Classic Demi-Glace','card1-desc':'Konzentrierte Kalbsfleischsauce – reichhaltige, glänzende Note in Minuten.','card1-tag':'Saucenbasis',
+      'card2-title':'Hellmann\'s echte Mayonnaise','card2-desc':'Klassische cremige Mayo aus verantwortungsvoll gewonnenen Eiern.','card2-tag':'Würzmittel',
+      'card3-title':'Knorr Hühnerbrühe','card3-desc':'Verleiht Suppen, Schmorgerichten und Risotto Tiefe und Wärme.','card3-tag':'Fondbasis',
+      'card4-title':'Maizena Maisstärke','card4-desc':'Klumpenfreies, gleichmäßiges Andicken für Saucen, Suppen und Desserts.','card4-tag':'Verdickungsmittel',
+      'inspo-eyebrow':'Chefs Empfehlungen','inspo-title':'Rezepte & Inspiration',
+      'inspo-sub':'Ausgewählte Techniken und Rezepte von UFS-Kochexperten und Partnerköchen.',
+      'inspo-feat-tag':'Rezept der Woche','inspo-feat-title':'Gebratener Lachs mit klassischer Demi-Glace',
+      'inspo-feat-meta':'Von Chefkoch Marco Valli  ·  25 Min.  ·  Mittel',
+      'inspo-small1-tag':'Technik','inspo-small1-title':'In 5 Schritten zur perfekten Pfannensauce',
+      'inspo-small2-tag':'Training','inspo-small2-title':'UFS Academy: Saucen-Masterclass – jetzt kostenlos',
+      'search-ph':'Was suchen Sie?','msearch-ph':'Suchen…',
+      'search-trending':'Trendsuchen','msearch-trending':'Trends',
+      'search-trending-auth':'Zuletzt gesucht','msearch-trending-auth':'Zuletzt gesucht',
+      'search-chip1':'Pastasaucen','search-chip2':'Knorr Brühe','search-chip3':'Pflanzlich','search-chip4':'Dessertrezepte','search-chip5':'Hellmann\'s Mayo',
+      'msearch-chip1':'Pastasaucen','msearch-chip2':'Knorr','msearch-chip3':'Desserts','msearch-chip4':'Pflanzlich',
+      'search-ask-ai-prefix':'Chef AI fragen nach „','search-see-all-prefix':'Alle Ergebnisse für „','search-see-all-btn':'Alle anzeigen',
+      'search-cat-products':'Produkte','search-cat-inspiration':'Inspiration','search-cat-training':'Training',
+      'fbe-title':'AI fragen','fbe-badge':'Beta',
+      'fbe-ai-intro':'Hallo! Ich bin die UFS KI. Stellen Sie mir Fragen zu Produkten, Rezepten oder Kochtechniken.',
+      'fbe-user-sample':'Welche Sauce passt gut zu gegrilltem Lachs?',
+      'fbe-ai-reply':'Ausgezeichnete Wahl! Ich empfehle die <strong>Knorr Classic Demi-Glace</strong> – sie verleiht Tiefe, ohne zu dominieren. Soll ich Rezepte damit finden?',
+      'fbe-input-ph':'Folgefrage stellen…',
+      'fbe-prompt1':'Wie spreche ich Gen-Z-Gäste besser an?','fbe-prompt2':'Zeig mir schnelle Rezepte für unter der Woche','fbe-prompt3':'Wie lagere ich geöffnete Saucenbasen?',
+      'si-merged-title':'Anmelden oder Konto erstellen','si-contact-label':'E-Mail oder Mobilnummer eingeben',
+      'si-continue-btn':'Weiter','si-why':'Warum ein Konto erstellen?','si-need-help':'Hilfe benötigt?',
+      'si-usp1-title':'Professionelle Preise','si-usp1-desc':'Exklusive B2B-Preise und Mengenrabatte auf alle UFS-Produkte.',
+      'si-usp2-title':'500+ Rezepte von Köchen','si-usp2-desc':'Favoriten speichern und aus unserer gesamten Rezeptbibliothek organisieren.',
+      'si-usp3-title':'Bestellverfolgung','si-usp3-desc':'Bestellverlauf einsehen und Lieferungen in Echtzeit verfolgen.',
+      'si-usp4-title':'UFS Academy','si-usp4-desc':'Kostenlose Kochtrainingsmodule und Zertifizierungen.',
+      'pp-role':'Sous chef · Le Cordon Bleu','pp-loyalty':'Treuepunkte','pp-see-details':'Details ansehen',
+      'pp-personal':'Meine persönlichen Daten','pp-settings':'Kontoeinstellungen','pp-cookbook':'Kochbuch','pp-orders':'Bestelllisten','pp-certs':'Trainingszertifikate (4)',
+      'pp-view-profile':'Vollständiges Profil anzeigen','pp-logout':'Abmelden','state-label':'Aktueller Status',
+      'state-light':'Hell','state-dark':'Dunkel','state-glass':'Glas','state-cart':'Warenkorb','state-no-cart':'Kein Warenkorb','state-logged-in':'Angemeldet','state-signin':'Anmelden',
+      'footer-heading':'Bleiben Sie auf dem Laufenden','footer-sub':'Abonnieren Sie unseren Newsletter für Rezeptideen, Branchentrends, Sonderangebote und mehr.',
+      'footer-input-ph':'E-Mail-Adresse eingeben','footer-subscribe':'Abonnieren',
+      'footer-tagline':'Produkte und Dienstleistungen <span class="text-ch-h5">von Köchen für Köche</span>',
+      'footer-col-company':'Unternehmen','footer-about':'Über uns','footer-brands':'Marken','footer-sustainability':'Nachhaltigkeit','footer-trade':'Handelsbedingungen','footer-partners':'Partner',
+      'footer-col-support':'Hilfe & Support','footer-track':'Meine Bestellung verfolgen','footer-shipping':'Versandinfo','footer-returns':'Rücksendung & Umtausch','footer-faq':'FAQ','footer-contact':'Kontakt',
+      'footer-col-legal':'Rechtliches','footer-privacy':'Datenschutzrichtlinie','footer-cookie':'Cookie-Richtlinie','footer-terms':'Allgemeine Geschäftsbedingungen','footer-accessibility':'Barrierefreiheit',
+      'footer-copyright':'© 2027 UFS. Alle Rechte vorbehalten.'
     };
 
     var MOCK_SUGGESTIONS_AR = [
@@ -2321,9 +2842,32 @@
       ]
     };
 
+    var MOCK_SUGGESTIONS_DE = [
+      'Knorr Hühnerbrühe','Knorr Demi-Glace','Knorr Gemüsefond','Knorr Rinderbouillon',
+      'Hellmann\'s Mayonnaise','Pastasaucen','Scharfe Saucen','Pfannensauce-Techniken',
+      'Pflanzliche Proteine','Dessertrezepte','Fleischfond reduzieren','Sahnesaucen-Basen',
+      'Kräuteröle','Tipps zum Eindicken','Suppenbasen','Brühenmischungen','Salatdressings'
+    ];
+    var MOCK_RESULTS_DE = {
+      products: [
+        { title: 'Knorr Classic Demi-Glace', color: 'var(--color-mushroom-300)' },
+        { title: 'Hellmann\'s echte Mayonnaise', color: 'var(--color-mushroom-300)' },
+        { title: 'Knorr Hühnerbrühe', color: 'var(--color-mushroom-300)' }
+      ],
+      inspiration: [
+        { title: 'Gebratener Lachs mit Demi-Glace', color: 'var(--color-mushroom-300)' },
+        { title: 'Schnelle Rezepte für unter der Woche', color: 'var(--color-mushroom-300)' },
+        { title: 'Umami meistern: Saucenbasen', color: 'var(--color-mushroom-300)' }
+      ],
+      training: [
+        { title: 'In 5 Schritten zur perfekten Pfannensauce', color: 'var(--color-mushroom-300)' },
+        { title: 'Saucen-Masterclass – kostenloses Modul', color: 'var(--color-mushroom-300)' },
+        { title: 'Kochtechniken: Fonds und Suppen', color: 'var(--color-mushroom-300)' }
+      ]
+    };
+
     function applyTranslations() {
-      var ar = S.dir === 'rtl';
-      var T = ar ? T_AR : T_EN;
+      var T = S.lang === 'ar' ? T_AR : S.lang === 'de' ? T_DE : T_EN;
       document.querySelectorAll('[data-i18n]').forEach(function(el) {
         var v = T[el.getAttribute('data-i18n')];
         if (v !== undefined) el.textContent = v;
@@ -2348,46 +2892,48 @@
       'أرني وصفات سريعة لأيام الأسبوع',
       'كيف أحفظ قواعد الصلصة بعد الفتح؟'
     ];
+    var askPrompts_DE = [
+      'Wie spreche ich Gen-Z-Gäste besser an?',
+      'Zeig mir schnelle Rezepte für unter der Woche',
+      'Wie lagere ich geöffnete Saucenbasen?'
+    ];
 
-    function setDir(d) {
-      S.dir = d;
+    function setLang(lang) {
+      var d = lang === 'ar' ? 'rtl' : 'ltr';
+      S.lang = lang;
+      S.dir  = d;
       document.documentElement.dir  = d;
-      document.documentElement.lang = d === 'rtl' ? 'ar' : 'en';
-      document.getElementById('ctrl-dir-ltr').classList.toggle('is-active', d === 'ltr');
-      document.getElementById('ctrl-dir-rtl').classList.toggle('is-active', d === 'rtl');
-      /* Sync active language in dropdowns */
-      var ar = d === 'rtl';
-      document.getElementById('lang-item-en').classList.toggle('is-active', !ar);
-      document.getElementById('lang-item-ar').classList.toggle('is-active', ar);
-      document.getElementById('drawer-lang-en').classList.toggle('is-active', !ar);
-      document.getElementById('drawer-lang-ar').classList.toggle('is-active', ar);
+      document.documentElement.lang = lang;
+      ['en','de','ar'].forEach(function(l) {
+        document.getElementById('ctrl-lang-' + l).classList.toggle('is-active', l === lang);
+        document.getElementById('lang-item-' + l).classList.toggle('is-active', l === lang);
+        document.getElementById('drawer-lang-' + l).classList.toggle('is-active', l === lang);
+      });
       applyTranslations();
-      /* Also update the FBE prompt buttons' data-prompt so they submit in the right language */
-      var ar = d === 'rtl';
-      document.getElementById('fbe-prompt-1').dataset.prompt = ar ? 'كيف أجذب زبائن الجيل Z؟' : 'How do I engage more with Gen-Z diners?';
-      document.getElementById('fbe-prompt-2').dataset.prompt = ar ? 'أرني وصفات سريعة لأيام الأسبوع' : 'Show me quick weeknight recipes';
-      document.getElementById('fbe-prompt-3').dataset.prompt = ar ? 'كيف أحفظ قواعد الصلصة بعد الفتح؟' : 'How do I store opened sauce bases?';
+      var prompts = lang === 'ar' ? askPrompts_AR : lang === 'de' ? askPrompts_DE : askPrompts_EN;
+      document.getElementById('fbe-prompt-1').dataset.prompt = prompts[0];
+      document.getElementById('fbe-prompt-2').dataset.prompt = prompts[1];
+      document.getElementById('fbe-prompt-3').dataset.prompt = prompts[2];
       refreshMobilePreview();
-      /* Restart typewriter in the right language */
       askPIdx = 0; askCharIdx = 0; askDeleting = false;
       clearTimeout(askTypeTimer);
       document.getElementById('fbe-ask-input').placeholder = '';
       askScheduleNext(400);
-      /* Refresh search if open */
-      var navInput = document.getElementById('nav-search-overlay-input');
+      var navInput = document.getElementById('nav-search-btn');
       if (navInput && navInput.value) handleSearchInput('nav', navInput.value);
-      var mnavInput = document.getElementById('mnav-search-overlay-input');
+      var mnavInput = document.getElementById('mnav-search-btn');
       if (mnavInput && mnavInput.value) handleSearchInput('mnav', mnavInput.value);
-      /* Re-apply dynamic ws link */
       applyState();
     }
+
+    function setDir(d) { setLang(d === 'rtl' ? 'ar' : 'en'); }
 
     function applyState() {
       closeAllMegamenus();
       var c = S.color, ws = S.webshop, auth = S.auth, view = S.view;
 
       document.body.className = 'color-' + c;
-      document.body.classList.toggle('view-mobile', view === 'mobile');
+      document.body.classList.toggle('view-mobile', view === 'mobile' && !isEmbedded);
       document.body.classList.toggle('is-embedded', isEmbedded);
       document.body.classList.toggle('ctrl-bar-open', ctrlBarOpen);
 
@@ -2396,7 +2942,7 @@
       util.className = 'ufs-util ufs-util--' + (c === 'light' ? 'light' : c === 'glass' ? 'glass' : 'dark');
 
       /* ── Webshop link ── */
-      var T_ws = S.dir === 'rtl' ? T_AR : T_EN;
+      var T_ws = S.lang === 'ar' ? T_AR : S.lang === 'de' ? T_DE : T_EN;
       var wsText = ws ? T_ws['track'] : T_ws['where-to-buy'];
       document.getElementById('util-ws-link').textContent = wsText;
       document.getElementById('drawer-ws-link').textContent = wsText;
@@ -2409,7 +2955,8 @@
 
       /* ── Auth ── */
       document.getElementById('nav-profile').style.display = auth ? '' : 'none';
-      document.getElementById('nav-login').style.display   = auth ? 'none' : '';
+      document.getElementById('nav-fav').style.display     = auth ? '' : 'none';
+      document.getElementById('mnav-fav').style.display    = auth ? '' : 'none';
       document.getElementById('nav-signin').style.display  = auth ? 'none' : '';
 
       /* ── account dot border color for light ── */
@@ -2425,7 +2972,7 @@
       mnavProfile.className = auth ? 'av av--sm' : 'ufs-mnav__btn';
       mnavProfile.innerHTML = auth
         ? '<div class="av-circle"><span class="av-initials">GB</span></div><div class="av-badge"><svg width="9" height="9" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/><circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/></svg>24.320</div>'
-        : '<img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="Account"/><span class="ufs-nav__account-dot is-alert"></span>';
+        : '<img class="ufs-icon ufs-icon--24" src="icons/profile.svg" alt="Account"/><span class="ufs-nav__account-dot is-alert"></span>';
 
       /* ── Mobile drawer ── */
       /* ws link already updated above */
@@ -2440,22 +2987,39 @@
       document.getElementById('ctrl-ws-false').classList.toggle('is-active', !ws);
       document.getElementById('ctrl-auth-true').classList.toggle('is-active', auth);
       document.getElementById('ctrl-auth-false').classList.toggle('is-active', !auth);
+      document.getElementById('ctrl-ai-true').classList.toggle('is-active', S.ai);
+      document.getElementById('ctrl-ai-false').classList.toggle('is-active', !S.ai);
+
+      /* ── AI integration ── */
+      document.getElementById('fbe-fixed').style.display = S.ai ? '' : 'none';
+      document.body.classList.toggle('ai-on', S.ai);
 
       /* ── State badge ── */
-      var Ts = S.dir === 'rtl' ? T_AR : T_EN;
+      var Ts = S.lang === 'ar' ? T_AR : S.lang === 'de' ? T_DE : T_EN;
       var colorLabel = Ts['state-' + c] || (c.charAt(0).toUpperCase() + c.slice(1));
       var wsLabel    = ws   ? Ts['state-cart']      : Ts['state-no-cart'];
       var authLabel  = auth ? Ts['state-logged-in'] : Ts['state-signin'];
       document.getElementById('state-text').textContent = colorLabel + ' · ' + wsLabel + ' · ' + authLabel;
 
-      /* ── Direction ctrl buttons ── */
-      document.getElementById('ctrl-dir-ltr').classList.toggle('is-active', S.dir === 'ltr');
-      document.getElementById('ctrl-dir-rtl').classList.toggle('is-active', S.dir === 'rtl');
+      /* ── Language ctrl buttons ── */
+      ['en','de','ar'].forEach(function(l) {
+        document.getElementById('ctrl-lang-' + l).classList.toggle('is-active', S.lang === l);
+      });
+
+      /* ── Search trending label ── */
+      var Tl = S.lang === 'ar' ? T_AR : S.lang === 'de' ? T_DE : T_EN;
+      var navTrendKey  = auth ? 'search-trending-auth'  : 'search-trending';
+      var mnavTrendKey = auth ? 'msearch-trending-auth' : 'msearch-trending';
+      var navTrendEl  = document.querySelector('#nav-search-trending .ufs-overlay-section-label');
+      var mnavTrendEl = document.querySelector('#mnav-search-trending .ufs-msearch-ov-label');
+      if (navTrendEl)  navTrendEl.textContent  = Tl[navTrendKey];
+      if (mnavTrendEl) mnavTrendEl.textContent = Tl[mnavTrendKey];
     }
 
     function setColor(c)        { S.color        = c; applyState(); refreshMobilePreview(); }
     function setWebshop(v)      { S.webshop      = v; applyState(); refreshMobilePreview(); }
     function setAuth(v)         { S.auth         = v; applyState(); refreshMobilePreview(); }
+    function setAI(v)           { S.ai           = v; applyState(); refreshMobilePreview(); }
     function setView(v)         { S.view         = v; closeMobileDrawer(); applyState(); refreshMobilePreview(); }
 
 
@@ -2467,7 +3031,7 @@
 
     function refreshMobilePreview() {
       if (S.view !== 'mobile') return;
-      var params = new URLSearchParams({ embedded: '1', color: S.color, webshop: S.webshop, auth: S.auth, dir: S.dir });
+      var params = new URLSearchParams({ embedded: '1', color: S.color, webshop: S.webshop, auth: S.auth, ai: S.ai, dir: S.dir });
       document.getElementById('mobile-preview-frame').src = location.pathname + '?' + params.toString();
     }
 
@@ -2478,28 +3042,40 @@
     }
     applyState();
     applyTranslations();
+    refreshMobilePreview();
+
+    /* ================================================================
+       BRANDS SCROLL (desktop megamenu)
+    ================================================================ */
+    function mmBrandsScroll(dir) {
+      var list = document.getElementById('mm-brands-list');
+      if (!list) return;
+      var target = dir > 0 ? list.scrollWidth - list.clientWidth : 0;
+      list.scrollTo({ left: target, behavior: 'smooth' });
+    }
+    function mmBrandsUpdateArrows() {
+      var list = document.getElementById('mm-brands-list');
+      var prev = document.getElementById('mm-brands-prev');
+      var next = document.getElementById('mm-brands-next');
+      if (!list || !prev || !next) return;
+      prev.classList.toggle('is-hidden', list.scrollLeft <= 0);
+      next.classList.toggle('is-hidden', list.scrollLeft >= list.scrollWidth - list.clientWidth - 1);
+    }
+    mmBrandsUpdateArrows();
 
     /* ================================================================
        SIGN-IN PANEL
     ================================================================ */
-    function openSignIn(tab) {
+    function openSignIn() {
       document.getElementById('signin-backdrop').classList.add('is-open');
       document.getElementById('signin-panel').classList.add('is-open');
       document.body.style.overflow = 'hidden';
-      switchTab(tab || 'signin');
+      document.getElementById('signin-panel-body').scrollTop = 0;
     }
     function closeSignIn() {
       document.getElementById('signin-backdrop').classList.remove('is-open');
       document.getElementById('signin-panel').classList.remove('is-open');
       document.body.style.overflow = '';
-    }
-    function switchTab(t) {
-      var si = t === 'signin';
-      document.getElementById('tab-si').classList.toggle('is-active', si);
-      document.getElementById('tab-reg').classList.toggle('is-active', !si);
-      document.getElementById('form-signin').style.display   = si ? '' : 'none';
-      document.getElementById('form-register').style.display = si ? 'none' : '';
-      document.getElementById('signin-panel-body').scrollTop = 0;
     }
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
@@ -2509,6 +3085,7 @@
         closeMobileDrawer();
         closeProfilePanel();
         closeSearchOverlay('nav');
+        document.getElementById('nav-search-btn').blur();
         closeSearchOverlay('mnav');
         closePromptSuggestions();
         if (micActive) { if (recognition) try { recognition.abort(); } catch(x) {} _stopMicUI(); resumeAskTypewriter(); }
@@ -2530,7 +3107,7 @@
     }
 
     function mnavProfileClick() {
-      if (!S.auth) { closeMobileDrawer(); openSignIn('signin'); }
+      if (!S.auth) { closeMobileDrawer(); openSignIn(); }
       else { closeMobileDrawer(); openProfilePanel(); }
     }
 
@@ -2579,16 +3156,43 @@
       var navColor = S.color;
       if (navColor === 'glass' && navScrolled) navColor = 'light';
       document.getElementById('mobile-nav').className = 'ufs-mnav ufs-mnav--' + navColor;
+      var mobileSearchBar = document.getElementById('mobile-search-bar');
+      var searchBarWasHidden = mobileSearchBar.classList.contains('is-hidden');
+      var searchBarWasActive = mobileSearchBar.classList.contains('search-active');
+      mobileSearchBar.className = 'ufs-msearch-bar ufs-msearch-bar--' + navColor;
+      if (searchBarWasHidden) mobileSearchBar.classList.add('is-hidden');
+      if (searchBarWasActive) mobileSearchBar.classList.add('search-active');
       var mainNavColor = (navColor === 'glass' && (megamenuOpen || searchOverlayOpen)) ? 'light' : navColor;
-      document.getElementById('main-nav').className = 'ufs-nav ufs-nav--' + mainNavColor;
+      var mainNav = document.getElementById('main-nav');
+      var searchWasActive = mainNav.classList.contains('search-active');
+      mainNav.className = 'ufs-nav ufs-nav--' + mainNavColor;
+      if (searchWasActive) mainNav.classList.add('search-active');
     }
 
     window.addEventListener('scroll', function() {
-      var shouldBeScrolled = window.scrollY >= NAV_SCROLL_SWAP_Y;
+      var currentY = window.scrollY;
+      var shouldBeScrolled = currentY >= NAV_SCROLL_SWAP_Y;
       if (shouldBeScrolled !== navScrolled) {
         navScrolled = shouldBeScrolled;
         syncNavAppearance();
       }
+      if (currentY > lastScrollY && currentY > 300 && !mSearchBarHidden) {
+        hideMobileSearchBar();
+      } else if (currentY < lastScrollY && mSearchBarHidden) {
+        showMobileSearchBar(false);
+      }
+      var bottomNav = document.getElementById('bottom-nav');
+      var aiFab = document.getElementById('bottom-nav-ai-fab');
+      if (bottomNav) {
+        if (currentY > lastScrollY && currentY > 300) {
+          bottomNav.classList.add('is-hidden');
+          if (S.ai && aiFab) aiFab.classList.add('is-mini');
+        } else if (currentY < lastScrollY) {
+          bottomNav.classList.remove('is-hidden');
+          if (aiFab) aiFab.classList.remove('is-mini');
+        }
+      }
+      lastScrollY = currentY;
     }, { passive: true });
 
     /* ================================================================
@@ -2604,12 +3208,15 @@
         linkEl.classList.add('is-open');
         megamenuOpen = true;
         syncNavAppearance();
+        if (id === 'products') mmBrandsUpdateArrows();
+        document.getElementById('search-body-overlay').classList.add('is-active');
       }
     }
     function closeAllMegamenus() {
       document.querySelectorAll('.ufs-megamenu.is-open').forEach(function(p) { p.classList.remove('is-open'); });
       document.querySelectorAll('#main-nav .ufs-nav__link.is-open').forEach(function(l) { l.classList.remove('is-open'); });
       if (megamenuOpen) { megamenuOpen = false; syncNavAppearance(); }
+      document.getElementById('search-body-overlay').classList.remove('is-active');
     }
     document.addEventListener('click', function(e) {
       var nav = document.getElementById('main-nav');
@@ -2661,10 +3268,9 @@
       if (seeAll) seeAll.style.display = '';
 
       /* Suggestions */
-      var ar = S.dir === 'rtl';
-      var activeSuggestions = ar ? MOCK_SUGGESTIONS_AR : MOCK_SUGGESTIONS;
-      var activeResults = ar ? MOCK_RESULTS_AR : MOCK_RESULTS;
-      var T_s = ar ? T_AR : T_EN;
+      var activeSuggestions = S.lang === 'ar' ? MOCK_SUGGESTIONS_AR : S.lang === 'de' ? MOCK_SUGGESTIONS_DE : MOCK_SUGGESTIONS;
+      var activeResults = S.lang === 'ar' ? MOCK_RESULTS_AR : S.lang === 'de' ? MOCK_RESULTS_DE : MOCK_RESULTS;
+      var T_s = S.lang === 'ar' ? T_AR : S.lang === 'de' ? T_DE : T_EN;
       var q = value.toLowerCase();
       var sugs = activeSuggestions.filter(function(s) { return s.toLowerCase().indexOf(q) !== -1; }).slice(0, 4);
       var re = new RegExp('(' + _escapeRe(value) + ')', 'gi');
@@ -2709,7 +3315,7 @@
     }
 
     function fillSearch(which, value) {
-      var inputId = which === 'mnav' ? 'mnav-search-overlay-input' : 'nav-search-overlay-input';
+      var inputId = which === 'mnav' ? 'mnav-search-btn' : 'nav-search-btn';
       var inp = document.getElementById(inputId);
       inp.value = value;
       handleSearchInput(which, value);
@@ -2717,7 +3323,7 @@
     }
 
     function submitChefAI(which) {
-      var inputId = which === 'mnav' ? 'mnav-search-overlay-input' : 'nav-search-overlay-input';
+      var inputId = which === 'mnav' ? 'mnav-search-btn' : 'nav-search-btn';
       var query = document.getElementById(inputId).value.trim();
       if (!query) return;
       closeSearchOverlay('nav');
@@ -2764,6 +3370,45 @@
       document.body.style.top = '';
       window.scrollTo(0, _searchScrollY);
     }
+    var searchCloseTimer = null;
+    function activateNavSearch() {
+      var navEl = document.getElementById('main-nav');
+      if (searchCloseTimer) {
+        clearTimeout(searchCloseTimer);
+        searchCloseTimer = null;
+        navEl.querySelector('.ufs-nav-search').style.cssText = '';
+      }
+      if (navEl.classList.contains('search-active')) return;
+      closeAllMegamenus();
+      var searchEl = navEl.querySelector('.ufs-nav-search');
+      var navRect = navEl.getBoundingClientRect();
+      var searchRect = searchEl.getBoundingClientRect();
+      var offset = S.dir === 'rtl'
+        ? searchRect.left - navRect.left
+        : navRect.right - searchRect.right;
+      var startLeft = searchRect.left - navRect.left;
+      var startRight = navRect.right - searchRect.right;
+      navEl.style.setProperty('--search-exp-offset', offset + 'px');
+      navEl.style.setProperty('--search-collapsed-left', startLeft + 'px');
+      navEl.style.setProperty('--search-collapsed-right', startRight + 'px');
+      navEl.classList.add('search-active');
+      searchEl.style.left = startLeft + 'px';
+      searchEl.style.right = startRight + 'px';
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          searchEl.style.left = '';
+          searchEl.style.right = '';
+        });
+      });
+      document.getElementById('nav-search-overlay').classList.add('is-open');
+      document.getElementById('search-body-overlay').classList.add('is-active');
+      searchOverlayOpen = true;
+      syncNavAppearance();
+      document.getElementById('fbe-fixed').classList.add('behind-search');
+      _lockBodyScroll();
+      handleSearchInput('nav', '');
+    }
+
     function closeSearchOverlay(which) {
       var id = which === 'mnav' ? 'mnav-search-overlay' : 'nav-search-overlay';
       var overlay = document.getElementById(id);
@@ -2771,14 +3416,47 @@
       overlay.classList.remove('is-open');
       if (which === 'nav' && searchOverlayOpen) {
         searchOverlayOpen = false;
-        syncNavAppearance();
+        if (navMicActive) { if (navRecognition) try { navRecognition.abort(); } catch(e) {} _stopNavMicUI(); }
+        document.getElementById('search-body-overlay').classList.remove('is-active');
         document.getElementById('fbe-fixed').classList.remove('behind-search');
+        var navEl = document.getElementById('main-nav');
+        var searchEl = navEl.querySelector('.ufs-nav-search');
+        searchEl.style.left = navEl.style.getPropertyValue('--search-collapsed-left');
+        searchEl.style.right = navEl.style.getPropertyValue('--search-collapsed-right');
+        searchCloseTimer = setTimeout(function() {
+          searchCloseTimer = null;
+          searchEl.style.left = '';
+          searchEl.style.right = '';
+          navEl.classList.remove('search-active');
+          document.getElementById('nav-search-btn').value = '';
+          syncNavAppearance();
+          if (wasOpen) _unlockBodyScroll();
+        }, 280);
+      } else if (which === 'mnav' && wasOpen) {
+        document.getElementById('mobile-search-bar').classList.remove('search-active');
+        document.getElementById('mnav-search-btn').value = '';
+        document.getElementById('mnav-search-btn').blur();
+        document.body.style.overflow = '';
+        if (mnavMicActive) { if (mnavRecognition) try { mnavRecognition.abort(); } catch(e) {} _stopMnavMicUI(); }
+      } else {
+        if (wasOpen) _unlockBodyScroll();
       }
-      if (wasOpen) _unlockBodyScroll();
+    }
+
+    function activateMobileSearch() {
+      var bar = document.getElementById('mobile-search-bar');
+      if (bar.classList.contains('search-active')) return;
+      bar.classList.add('search-active');
+      var overlay = document.getElementById('mnav-search-overlay');
+      if (!overlay.classList.contains('is-open')) {
+        overlay.classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        handleSearchInput('mnav', '');
+      }
     }
     function toggleSearchOverlay(which) {
       var id = which === 'mnav' ? 'mnav-search-overlay' : 'nav-search-overlay';
-      var inputId = which === 'mnav' ? 'mnav-search-overlay-input' : 'nav-search-overlay-input';
+      var inputId = which === 'mnav' ? 'mnav-search-btn' : 'nav-search-btn';
       var overlay = document.getElementById(id);
       var isOpen = overlay.classList.contains('is-open');
       closeSearchOverlay('nav');
@@ -2800,7 +3478,7 @@
     }
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.ufs-nav') && !e.target.closest('#nav-search-overlay')) closeSearchOverlay('nav');
-      if (!e.target.closest('.ufs-mnav') && !e.target.closest('#mnav-search-overlay')) closeSearchOverlay('mnav');
+      if (!e.target.closest('.ufs-mnav') && !e.target.closest('#mobile-search-bar') && !e.target.closest('#mnav-search-overlay')) closeSearchOverlay('mnav');
     });
 
     /* ================================================================
@@ -2904,6 +3582,111 @@
       try { recognition.start(); } catch(e) {}
     }
 
+    var navMicActive = false;
+    var navRecognition = null;
+    function _stopNavMicUI() {
+      navMicActive = false;
+      document.getElementById('nav-btn-mic').classList.remove('is-active');
+      document.getElementById('nav-search-btn').placeholder = '';
+    }
+    function toggleNavMic() {
+      if (navMicActive) {
+        if (navRecognition) try { navRecognition.abort(); } catch(e) {}
+        _stopNavMicUI();
+        return;
+      }
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        document.getElementById('nav-search-btn').placeholder = 'Voice not supported in this browser';
+        setTimeout(function() { document.getElementById('nav-search-btn').placeholder = ''; }, 2800);
+        return;
+      }
+      navRecognition = new SR();
+      navRecognition.lang = document.documentElement.lang || 'en-US';
+      navRecognition.interimResults = true;
+      navRecognition.continuous = false;
+      navRecognition.maxAlternatives = 1;
+      navRecognition.onstart = function() {
+        navMicActive = true;
+        document.getElementById('nav-btn-mic').classList.add('is-active');
+        var inp = document.getElementById('nav-search-btn');
+        inp.value = '';
+        inp.placeholder = 'Listening…';
+      };
+      navRecognition.onresult = function(e) {
+        var transcript = '';
+        for (var i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+        var inp = document.getElementById('nav-search-btn');
+        inp.value = transcript;
+        handleSearchInput('nav', transcript);
+      };
+      navRecognition.onend = function() {
+        _stopNavMicUI();
+        var val = document.getElementById('nav-search-btn').value;
+        if (val) handleSearchInput('nav', val);
+      };
+      navRecognition.onerror = function(e) {
+        _stopNavMicUI();
+        if (e.error === 'not-allowed') {
+          document.getElementById('nav-search-btn').placeholder = 'Microphone access denied';
+          setTimeout(function() { document.getElementById('nav-search-btn').placeholder = ''; }, 2800);
+        }
+      };
+      try { navRecognition.start(); } catch(e) {}
+    }
+
+    var mnavMicActive = false;
+    var mnavRecognition = null;
+    function _stopMnavMicUI() {
+      mnavMicActive = false;
+      document.getElementById('mnav-btn-mic').classList.remove('is-active');
+      document.getElementById('mnav-search-btn').placeholder = '';
+    }
+    function toggleMnavMic() {
+      if (mnavMicActive) {
+        if (mnavRecognition) try { mnavRecognition.abort(); } catch(e) {}
+        _stopMnavMicUI();
+        return;
+      }
+      var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        document.getElementById('mnav-search-btn').placeholder = 'Voice not supported';
+        setTimeout(function() { document.getElementById('mnav-search-btn').placeholder = ''; }, 2800);
+        return;
+      }
+      mnavRecognition = new SR();
+      mnavRecognition.lang = document.documentElement.lang || 'en-US';
+      mnavRecognition.interimResults = true;
+      mnavRecognition.continuous = false;
+      mnavRecognition.maxAlternatives = 1;
+      mnavRecognition.onstart = function() {
+        mnavMicActive = true;
+        document.getElementById('mnav-btn-mic').classList.add('is-active');
+        var inp = document.getElementById('mnav-search-btn');
+        inp.value = ''; inp.placeholder = 'Listening…';
+      };
+      mnavRecognition.onresult = function(e) {
+        var transcript = '';
+        for (var i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+        var inp = document.getElementById('mnav-search-btn');
+        inp.value = transcript;
+        handleSearchInput('mnav', transcript);
+      };
+      mnavRecognition.onend = function() {
+        _stopMnavMicUI();
+        var val = document.getElementById('mnav-search-btn').value;
+        if (val) handleSearchInput('mnav', val);
+      };
+      mnavRecognition.onerror = function(e) {
+        _stopMnavMicUI();
+        if (e.error === 'not-allowed') {
+          document.getElementById('mnav-search-btn').placeholder = 'Microphone access denied';
+          setTimeout(function() { document.getElementById('mnav-search-btn').placeholder = ''; }, 2800);
+        }
+      };
+      try { mnavRecognition.start(); } catch(e) {}
+    }
+
     /* ── Ask bar: suggested prompts + submit-to-AI ── */
     function showPromptSuggestions() {
       closeFbe('ai');
@@ -2963,7 +3746,7 @@
     function askTypeStep() {
       var input = document.getElementById('fbe-ask-input');
       if (input === document.activeElement) { askScheduleNext(200); return; }
-      var askPrompts = S.dir === 'rtl' ? askPrompts_AR : askPrompts_EN;
+      var askPrompts = S.lang === 'ar' ? askPrompts_AR : S.lang === 'de' ? askPrompts_DE : askPrompts_EN;
       var current = askPrompts[askPIdx % askPrompts.length];
       if (!askDeleting) {
         askCharIdx++;
@@ -2988,6 +3771,108 @@
       if (!input.value) askScheduleNext(400);
     }
     askScheduleNext(600);
+
+    function openAIChat() {
+      document.getElementById('ai-chat-overlay').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeAIChat(e) {
+      if (e && e.target !== document.getElementById('ai-chat-overlay')) return;
+      document.getElementById('ai-chat-overlay').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    function bottomNavActivate(el) {
+      document.querySelectorAll('.ufs-bottom-nav__item').forEach(function(item) {
+        item.classList.remove('is-active');
+      });
+      el.classList.add('is-active');
+    }
   </script>
+
+  <!-- Mobile AI chat overlay -->
+  <div class="ai-chat-overlay" id="ai-chat-overlay" onclick="closeAIChat(event)">
+    <div class="ai-chat-panel" id="ai-chat-panel">
+      <div class="ai-chat-hd">
+        <div class="ai-chat-hd-title">
+          <img class="ai-chat-hd-icon" src="icons/chef-ai.svg" alt=""/>
+          ChefAI <span class="ai-chat-badge">Beta</span>
+        </div>
+        <button class="ai-chat-close" onclick="closeAIChat()" aria-label="Close">
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+        </button>
+      </div>
+      <div class="ai-chat-msgs" id="ai-chat-msgs">
+        <div class="ai-chat-msg">
+          <div class="ai-chat-ava ai-chat-ava--ai">AI</div>
+          <div class="ai-chat-bubble ai-chat-bubble--ai">Hi! I'm ChefAI. Ask me about products, recipes, or cooking techniques.</div>
+        </div>
+        <div class="ai-chat-msg ai-chat-msg--user">
+          <div class="ai-chat-ava ai-chat-ava--user">FC</div>
+          <div class="ai-chat-bubble ai-chat-bubble--user">What sauce works well with grilled salmon?</div>
+        </div>
+        <div class="ai-chat-msg">
+          <div class="ai-chat-ava ai-chat-ava--ai">AI</div>
+          <div class="ai-chat-bubble ai-chat-bubble--ai">Great choice! I'd recommend the <strong>Knorr Classic Demi-Glace</strong> — it adds depth without overpowering. Want me to find recipes using it?</div>
+        </div>
+      </div>
+      <div class="ai-chat-prompts">
+        <button class="ai-chat-prompt-btn">
+          <svg class="ai-chat-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          How do I engage more with Gen-Z diners?
+        </button>
+        <button class="ai-chat-prompt-btn">
+          <svg class="ai-chat-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Show me quick weeknight recipes
+        </button>
+        <button class="ai-chat-prompt-btn">
+          <svg class="ai-chat-prompt-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          How do I store opened sauce bases?
+        </button>
+      </div>
+      <div class="ai-chat-input-row">
+        <input class="ai-chat-input" type="text" placeholder="Ask a follow-up…" onkeydown="if(event.key==='Enter')this.blur()"/>
+        <button class="ai-chat-send" aria-label="Send">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <button class="ufs-bottom-nav__ai-fab" id="bottom-nav-ai-fab" onclick="openAIChat()" aria-label="ChefAI">
+    <img class="ufs-bottom-nav__ai-icon" src="icons/chef-ai.svg" alt=""/>
+    <span class="ufs-bottom-nav__ai-label">ChefAI</span>
+  </button>
+  <nav class="ufs-bottom-nav" id="bottom-nav" aria-label="Main navigation">
+    <button class="ufs-bottom-nav__item is-active" onclick="bottomNavActivate(this)" aria-label="Home">
+      <svg class="ufs-bottom-nav__icon" viewBox="0 0 45 45" fill="none" aria-hidden="true">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M35.6281 15.9671L25.7007 7.26398C23.8164 5.57867 20.9666 5.57867 19.0823 7.26398L9.15489 15.9671C8.09173 16.9179 7.48897 18.2801 7.50015 19.7064V34.1674C7.50015 36.9088 9.72265 39.1311 12.464 39.1311H32.319C35.0603 39.1311 37.2827 36.9088 37.2827 34.1674V19.6899C37.2893 18.2693 36.6869 16.9141 35.6281 15.9671ZM19.0823 35.822V27.5491C19.0823 26.6353 19.8231 25.8945 20.7369 25.8945H24.046C24.9598 25.8945 25.7006 26.6353 25.7006 27.5491V35.822H19.0823ZM32.3189 35.822H29.0097V27.5491C29.0097 24.8077 26.7874 22.5854 24.046 22.5854H20.7369C17.9955 22.5854 15.7731 24.8077 15.7731 27.5491V35.822H12.464C11.5502 35.822 10.8094 35.0812 10.8094 34.1674V19.6899C10.81 19.2146 11.0149 18.7626 11.372 18.4489L21.2994 9.76241C21.924 9.21368 22.8588 9.21368 23.4835 9.76241L33.4109 18.4489C33.768 18.7626 33.9729 19.2146 33.9735 19.6899V34.1674C33.9735 35.0812 33.2327 35.822 32.3189 35.822Z" fill="currentColor"/>
+      </svg>
+      <span class="ufs-bottom-nav__label">Home</span>
+    </button>
+    <button class="ufs-bottom-nav__item" onclick="bottomNavActivate(this)" aria-label="Recipes">
+      <svg class="ufs-bottom-nav__icon" viewBox="0 0 45 45" fill="none" aria-hidden="true">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M19.5 6.3V16.128L18 17.334V6.3C18 5.30589 17.3284 4.5 16.5 4.5C15.6716 4.5 15 5.30589 15 6.3V17.334L13.5 16.128V6.3C13.5 5.30589 12.8284 4.5 12 4.5C11.1716 4.5 10.5 5.30589 10.5 6.3V17.1C10.5026 17.7021 10.7559 18.2628 11.175 18.594L15 21.672V38.7C15 39.6941 15.6716 40.5 16.5 40.5C17.3284 40.5 18 39.6941 18 38.7V21.672L21.825 18.594C22.2441 18.2628 22.4974 17.7021 22.5 17.1V6.3C22.5 5.30589 21.8284 4.5 21 4.5C20.1716 4.5 19.5 5.30589 19.5 6.3ZM33 4.5C28.8579 4.5 25.5 8.52944 25.5 13.5V24.3C25.5 25.2941 26.1716 26.1 27 26.1H31.5V38.7C31.5 39.6941 32.1716 40.5 33 40.5C33.8284 40.5 34.5 39.6941 34.5 38.7V6.3C34.5 5.30589 33.8284 4.5 33 4.5V4.5ZM28.5 22.5V13.5C28.499 11.2106 29.7012 9.16918 31.5 8.40602V22.5H28.5Z" fill="currentColor"/>
+      </svg>
+      <span class="ufs-bottom-nav__label">Recipes</span>
+    </button>
+    <div class="ufs-bottom-nav__spacer" aria-hidden="true"></div>
+    <button class="ufs-bottom-nav__item" onclick="bottomNavActivate(this)" aria-label="Training">
+      <svg class="ufs-bottom-nav__icon" viewBox="0 0 45 45" fill="none" aria-hidden="true">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M24.1409 4.8766L22.4991 6.53821L20.8589 4.8766C20.5437 4.55726 20.0862 4.42888 19.6536 4.53842L12.9648 6.23234C10.3666 6.89033 8.45582 9.12979 8.18934 11.8293L6 34.0934C6.01052 34.785 6.56836 35.3571 7.2692 35.3571L13.6152 35.357L13.6153 39.2143C13.6153 39.9244 14.1836 40.5 14.8846 40.5H30.1153L30.2633 40.4914C30.8945 40.4171 31.3845 39.8736 31.3845 39.2143L31.3842 35.357L37.7306 35.3571C38.4816 35.3571 39.0683 34.7004 38.9936 33.9435L36.8105 11.8293C36.544 9.12979 34.6333 6.89033 32.035 6.23234L25.3462 4.53842C24.9137 4.42888 24.4562 4.55726 24.1409 4.8766ZM19.5721 7.21002L20.7037 8.35626L19.064 10.0195L18.9538 10.1468C18.8188 10.3253 18.7324 10.5367 18.7033 10.7596L18.6922 10.9286L18.692 37.9275L16.1531 37.9278L16.1538 34.0714L16.1453 33.9215C16.0719 33.2821 15.5355 32.7857 14.8846 32.7857L8.6713 32.7848L10.7152 12.0852L10.7486 11.8318C10.9969 10.3267 12.1036 9.10101 13.5805 8.72699L19.5721 7.21002ZM31.4194 8.72699L25.4273 7.20869L21.2301 11.4604L21.2299 37.9275L28.845 37.9278L28.8461 34.0714C28.8461 33.4121 29.336 32.8686 29.9673 32.7944L30.1153 32.7857L36.3268 32.7848L34.2847 12.0852C34.1332 10.5507 33.0963 9.26399 31.662 8.79712L31.4194 8.72699ZM23.7692 31.5C23.0682 31.5 22.4999 32.0756 22.4999 32.7857C22.4999 33.4958 23.0682 34.0714 23.7692 34.0714C24.4701 34.0714 25.0384 33.4958 25.0384 32.7857C25.0384 32.0756 24.4701 31.5 23.7692 31.5ZM22.4999 27.6429C22.4999 26.9328 23.0682 26.3572 23.7692 26.3572C24.4701 26.3572 25.0384 26.9328 25.0384 27.6429C25.0384 28.3529 24.4701 28.9286 23.7692 28.9286C23.0682 28.9286 22.4999 28.3529 22.4999 27.6429ZM23.7692 21.2143C23.0682 21.2143 22.4999 21.7899 22.4999 22.5C22.4999 23.2101 23.0682 23.7857 23.7692 23.7857C24.4701 23.7857 25.0384 23.2101 25.0384 22.5C25.0384 21.7899 24.4701 21.2143 23.7692 21.2143ZM22.4999 17.3572C22.4999 16.6471 23.0682 16.0714 23.7692 16.0714C24.4701 16.0714 25.0384 16.6471 25.0384 17.3572C25.0384 18.0672 24.4701 18.6429 23.7692 18.6429C23.0682 18.6429 22.4999 18.0672 22.4999 17.3572Z" fill="currentColor"/>
+        <path d="M15 16.5C15.7647 16.5 16.3958 16.9426 16.4883 17.5146L16.5 17.6602L16.4883 31.5C16.4883 31.5 15.8284 33 15 33C14.2353 33 13.5117 33 13.5117 33L13.5 31.8398V17.6602C13.5 17.0194 14.1716 16.5 15 16.5Z" fill="currentColor"/>
+        <path d="M30 16.5C30.7647 16.5 31.3958 16.9426 31.4883 17.5146L31.5 17.6602V33C31.5 33 30.8284 33 30 33C29.2353 33 28.5 31.5 28.5 31.5V17.6602C28.5 17.0194 29.1716 16.5 30 16.5Z" fill="currentColor"/>
+      </svg>
+      <span class="ufs-bottom-nav__label">Training</span>
+    </button>
+    <button class="ufs-bottom-nav__item" onclick="bottomNavActivate(this)" aria-label="Products">
+      <svg class="ufs-bottom-nav__icon" viewBox="0 0 45 45" fill="none" aria-hidden="true">
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M11.5449 3H15.4541C16.8471 3 17.6037 4.07137 17.5735 5.40924L17.5647 6.63616L17.5725 9.444L17.874 10.3563L18.3875 11.9453L18.6946 12.9253L19.1026 14.2775L19.3395 15.101L19.5485 15.8626L19.8095 16.8897L19.9486 17.4982L20.0599 18.0461L20.1435 18.5339L20.1994 18.9619C20.3646 20.5247 20.2729 21.2139 19.818 22.2259L19.7084 22.4787L19.6125 22.7175L19.788 26.5886L19.8373 27.3021L19.8867 27.7924L19.9184 28.0446L20.5355 32.3475L20.7583 34.016L20.8652 34.9713L20.9446 35.8468C21.0757 37.5191 21.0386 38.7241 20.8107 39.534C20.4101 40.9544 19.348 41.8398 17.8739 41.9921L17.6963 41.9998L13.5231 41.9335L9.30272 41.9998L9.12509 41.9921C7.65055 41.8398 6.58855 40.9538 6.18925 39.5331C5.94263 38.6567 5.91946 37.3157 6.09186 35.4129L6.18522 34.4944L6.24212 34.0045L6.46406 32.345L6.82717 29.8131L6.91072 29.1922L6.99083 28.4871L7.06746 27.698L7.14054 26.8251L7.21003 25.8688L7.27589 24.8292L7.33805 23.7066L7.3845 22.7145L7.33384 22.5815L7.08422 21.9997C6.71378 21.1048 6.64699 20.4057 6.7996 18.9623L6.82407 18.7556L6.89378 18.2977L6.99123 17.7799C7.00979 17.6885 7.0295 17.5947 7.05038 17.4983L7.18954 16.8898L7.35657 16.2204L7.55151 15.4896L7.77443 14.6971L8.16135 13.3917L8.61148 11.9453L8.94678 10.9019L9.426 9.444L9.4337 6.18329L9.42554 5.41141C9.39526 4.07137 10.1519 3 11.5449 3ZM14.565 6H12.432L12.4238 9.94153L12.1707 10.7001L11.5252 12.6833L11.1066 14.0207L10.7443 15.2283L10.5342 15.9607L10.3491 16.6345L10.1189 17.5345L9.9969 18.0603L9.90025 18.5263L9.82893 18.932C9.80939 19.0572 9.79408 19.1723 9.78301 19.2773L9.75783 19.524L9.72512 19.9221C9.69444 20.4369 9.74876 20.6199 9.9185 20.996L10.0369 21.2667C10.22 21.699 10.3323 22.041 10.3782 22.3459L10.3934 22.6371C10.3837 22.8507 10.3739 23.0608 10.3638 23.2675L10.269 25.0341L10.2007 26.1086L10.1281 27.1008L10.0113 28.4352L9.92809 29.2227L9.84048 29.9286L9.4365 32.7506L9.21908 34.3754C9.202 34.5172 9.18587 34.656 9.17068 34.7918L9.0907 35.5698L9.03264 36.2733C9.01687 36.4951 9.00465 36.7042 8.99588 36.9002L8.97979 37.4486C8.97283 38.0418 9.0068 38.4706 9.07722 38.7209C9.12362 38.886 9.1549 38.9482 9.26219 38.9799L9.3585 38.9985L13.5231 38.9339L17.64 38.9985L17.7373 38.9798C17.8234 38.9543 17.8609 38.9092 17.8963 38.8077L17.9231 38.7205C18.0035 38.4348 18.0363 37.9157 18.0148 37.186L17.9885 36.5996C17.9824 36.4953 17.9754 36.3879 17.9675 36.2774L17.9095 35.5764C17.8981 35.4534 17.8857 35.3273 17.8724 35.1981L17.7814 34.3874L17.6405 33.3205L17.4807 32.1616L16.951 28.4896L16.8654 27.7544L16.8386 27.4386L16.7936 26.7721L16.6068 22.6368L16.622 22.3459C16.6771 21.98 16.8279 21.5608 17.0817 20.996L17.1338 20.8772C17.2456 20.6133 17.2899 20.4305 17.281 20.0822L17.2605 19.7373C17.2496 19.6051 17.2346 19.4535 17.216 19.2769L17.1962 19.1119L17.1376 18.7364L17.0536 18.3006L16.9443 17.8047C16.9239 17.7171 16.9026 17.627 16.8801 17.5344L16.7329 16.9492L16.4648 15.9607L16.1402 14.8403L15.6196 13.1434L14.999 11.2172L14.5752 9.94127L14.5692 8.75112L14.565 6Z" fill="currentColor"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M22.5 13.5H36.7774C37.9564 13.5 39 14.3954 38.9967 15.7201L37.479 38.3799C37.479 39.6053 36.4337 40.5 35.2551 40.5H24.8253C23.9175 40.5 23.2178 39.7 23.3386 38.8003C23.3527 38.6956 23.3647 38.5767 23.3748 38.4438L23.3986 38.0032C23.4016 37.9228 23.404 37.8389 23.4059 37.7516L23.411 37.1866L23.4034 36.54L23.3829 35.8131L23.3385 34.8045L23.232 34.5197C22.9105 33.6186 22.6461 32.6264 22.4372 31.5431L22.3186 30.8821L21.9944 29.0156L21.9194 28.5081L21.8727 28.0282L21.6845 24.5365C21.6688 24.2291 21.748 23.9243 21.9115 23.6635C22.5869 22.5856 22.9108 21.5561 22.9108 20.5555C22.9108 20.1907 22.81 19.6868 22.6136 19.0816C22.4734 18.6494 22.2906 18.1821 22.0643 17.6647L21.4483 16.3249L21.1196 15.5863L21.0828 15.4915C20.7448 14.517 21.4685 13.5 22.5 13.5ZM34.5345 37.5L35.9415 16.5H24.828L25.0016 16.9051C25.1216 17.195 25.2305 17.4752 25.3284 17.7491L25.4671 18.1556C25.7523 19.0343 25.9108 19.8268 25.9108 20.5555C25.9108 21.8581 25.5794 23.1482 24.9319 24.4154L24.7035 24.8355L24.8545 27.6581L24.9013 28.1789L24.973 28.6449L25.3806 30.9628C25.5974 32.0904 25.8777 33.0829 26.2188 33.9396C26.2793 34.0913 26.3145 34.2519 26.3232 34.415C26.3331 34.6017 26.3422 34.7838 26.3504 34.9613L26.3899 35.9716L26.4091 36.8733L26.409 37.5H34.5345Z" fill="currentColor"/>
+        <path fill-rule="evenodd" clip-rule="evenodd" d="M24.4572 19.6502H38.3377V25.96H22.9319L24.4572 19.6502ZM35.337 22.959V22.65H26.817L26.742 22.959H35.337Z" fill="currentColor"/>
+      </svg>
+      <span class="ufs-bottom-nav__label">Products</span>
+    </button>
+  </nav>
 </body>
 </html>
