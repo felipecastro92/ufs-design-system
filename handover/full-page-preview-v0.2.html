@@ -2068,14 +2068,6 @@
           <button class="ctrl-btn"           id="ctrl-auth-true"  onclick="setAuth(true)">Logged In</button>
         </div>
       </div>
-      <div class="ctrl-sep"></div>
-      <div class="ctrl-group">
-        <span class="ctrl-label">Password Step</span>
-        <div class="ctrl-toggle">
-          <button class="ctrl-btn"           id="reg-pw-mode-inline" onclick="setRegPasswordMode('inline')">Inline</button>
-          <button class="ctrl-btn is-active" id="reg-pw-mode-step"   onclick="setRegPasswordMode('step')">Separate step</button>
-        </div>
-      </div>
       <div class="ctrl-sep" id="ctrl-sep-ai"></div>
       <div class="ctrl-group" id="ctrl-group-ai">
         <span class="ctrl-label">AI Integration</span>
@@ -3255,8 +3247,22 @@
           </label>
         </div>
 
-        <!-- reg-password-block gets relocated here (inline mode) or into #reg-step-password (separate-step mode) by JS -->
-        <div class="reg-password-block" id="reg-password-block" style="display:none; margin-bottom:var(--space-5)">
+        <button class="btn btn-primary" style="width:100%" id="reg-account-btn" disabled onclick="regAccountContinue()">Continue</button>
+      </div>
+
+      <!-- STEP 3 — password -->
+      <div id="reg-step-password" style="display:none">
+        <h2 class="signin-panel-title">Create an account</h2>
+        <div class="reg-email-chip">
+          <span id="reg-email-display-2">email@email.com</span>
+          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
+        </div>
+        <div class="reg-email-chip">
+          <span id="reg-business-display">My restaurant</span>
+          <button class="reg-email-edit" onclick="regBackToAccount()">Edit</button>
+        </div>
+
+        <div class="reg-password-block" id="reg-password-block" style="margin-bottom:var(--space-5)">
           <div class="fi-wrap">
             <label class="fi-label">Password</label>
             <input class="fi-field" type="password" id="reg-password-input" placeholder="Minimum 8 characters" dir="ltr" autocomplete="new-password" oninput="regCheckPassword()" onkeydown="regPasswordEnter(event)"/>
@@ -3268,20 +3274,6 @@
           </div>
         </div>
 
-        <button class="btn btn-primary" style="width:100%" id="reg-account-btn" disabled onclick="regAccountContinue()">Continue</button>
-      </div>
-
-      <!-- STEP 3 — password (separate-step prototype mode only) -->
-      <div id="reg-step-password" style="display:none">
-        <h2 class="signin-panel-title">Create an account</h2>
-        <div class="reg-email-chip">
-          <span id="reg-email-display-2">email@email.com</span>
-          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
-        </div>
-        <div class="reg-email-chip">
-          <span id="reg-business-display">My restaurant</span>
-          <button class="reg-email-edit" onclick="regBackToAccount()">Edit</button>
-        </div>
         <button class="btn btn-primary" style="width:100%" id="reg-password-btn" disabled onclick="regCreateAccount()">Create account</button>
       </div>
 
@@ -3969,11 +3961,7 @@
 
     /* ================================================================
        REGISTRATION FLOW
-       regPasswordMode is a prototype-only toggle (not a real product
-       state) so both password-step layouts can be compared side by side.
     ================================================================ */
-    var regPasswordMode      = 'step'; // 'inline' | 'step'
-    var regPasswordRevealed  = false;
     var regFullName          = 'Giuseppe Buscicchio';
     var regInitialsText      = 'GB';
 
@@ -4064,7 +4052,6 @@
     }
 
     function regValidateStep2() {
-      if (regPasswordRevealed) return; // gating handed off to regCheckPassword() once revealed
       var ok = document.getElementById('reg-terms').checked && document.getElementById('reg-age').checked;
       document.getElementById('reg-account-btn').disabled = !ok;
     }
@@ -4076,8 +4063,7 @@
       document.getElementById('reg-pw-check-upper').classList.toggle('is-met', okUpper);
       document.getElementById('reg-pw-check-num').classList.toggle('is-met', okNum);
       var allOk = okLen && okUpper && okNum;
-      var btn = regPasswordMode === 'inline' ? document.getElementById('reg-account-btn') : document.getElementById('reg-password-btn');
-      btn.disabled = !allOk;
+      document.getElementById('reg-password-btn').disabled = !allOk;
     }
 
     // Enter-key submit helpers — these forms aren't <form> elements (the
@@ -4105,48 +4091,15 @@
 
     function regPasswordEnter(event) {
       if (event.key !== 'Enter') return;
-      regStepEnter(event, regPasswordMode === 'inline' ? 'reg-account-btn' : 'reg-password-btn');
+      regStepEnter(event, 'reg-password-btn');
     }
 
     function regAccountContinue() {
-      var pwBlock = document.getElementById('reg-password-block');
-      if (regPasswordMode === 'inline') {
-        regPasswordRevealed = true;
-        pwBlock.style.display = '';
-        document.getElementById('reg-account-btn').textContent = 'Create account';
-        document.getElementById('reg-account-btn').onclick = regCreateAccount;
-        document.getElementById('reg-account-btn').disabled = true;
-        document.getElementById('reg-password-input').focus();
-      } else {
-        pwBlock.style.display = '';
-        document.getElementById('reg-step-password').insertBefore(pwBlock, document.getElementById('reg-password-btn'));
-        document.getElementById('reg-business-display').textContent = document.getElementById('reg-business').value.trim() || 'Your business';
-        document.getElementById('reg-step-account').style.display  = 'none';
-        document.getElementById('reg-step-password').style.display = '';
-        document.getElementById('signin-panel-body').scrollTop = 0;
-        document.getElementById('reg-password-input').focus();
-      }
-    }
-
-    function setRegPasswordMode(mode) {
-      regPasswordMode = mode;
-      document.getElementById('reg-pw-mode-inline').classList.toggle('is-active', mode === 'inline');
-      document.getElementById('reg-pw-mode-step').classList.toggle('is-active', mode === 'step');
-
-      // Switching layouts mid-flow resets back to the account-details step
-      // so the comparison always starts from the same place.
-      regPasswordRevealed = false;
-      var pwBlock = document.getElementById('reg-password-block');
-      pwBlock.style.display = 'none';
-      document.getElementById('reg-step-account').insertBefore(pwBlock, document.getElementById('reg-account-btn'));
-      document.getElementById('reg-step-password').style.display = 'none';
-      document.getElementById('reg-account-btn').textContent = 'Continue';
-      document.getElementById('reg-account-btn').onclick = regAccountContinue;
-      document.getElementById('reg-password-btn').disabled = true;
-      if (document.getElementById('reg-step-email').style.display === 'none') {
-        document.getElementById('reg-step-account').style.display = '';
-      }
-      regValidateStep2();
+      document.getElementById('reg-business-display').textContent = document.getElementById('reg-business').value.trim() || 'Your business';
+      document.getElementById('reg-step-account').style.display  = 'none';
+      document.getElementById('reg-step-password').style.display = '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+      document.getElementById('reg-password-input').focus();
     }
 
     function regApplyIdentity(fullName) {
@@ -4175,7 +4128,6 @@
     }
 
     function regResetFlow() {
-      regPasswordRevealed = false;
       document.getElementById('reg-step-email').style.display    = '';
       document.getElementById('reg-step-account').style.display  = 'none';
       document.getElementById('reg-step-password').style.display = 'none';
@@ -4200,14 +4152,7 @@
       document.getElementById('reg-password-input').value = '';
       regCheckPassword();
 
-      var pwBlock = document.getElementById('reg-password-block');
-      pwBlock.style.display = 'none';
-      document.getElementById('reg-step-account').insertBefore(pwBlock, document.getElementById('reg-account-btn'));
-
-      var accBtn = document.getElementById('reg-account-btn');
-      accBtn.textContent = 'Continue';
-      accBtn.disabled = true;
-      accBtn.onclick = regAccountContinue;
+      document.getElementById('reg-account-btn').disabled = true;
       document.getElementById('reg-password-btn').disabled = true;
     }
 
