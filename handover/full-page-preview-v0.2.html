@@ -1113,6 +1113,14 @@
     .fi-pw-check-item.is-met .fi-pw-check-dot { background: var(--color-success); border-color: var(--color-success); }
     .fi-pw-check-item.is-met .fi-pw-check-dot img { opacity: 1; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .reg-submit-btn { position: relative; overflow: hidden; }
+    .reg-submit-btn.is-loading { opacity: 1; cursor: default; }
+    .reg-submit-btn-label { position: relative; z-index: 1; }
+    .reg-submit-btn-bar {
+      position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
+      background: rgba(255,255,255,0.32);
+      transition: width 2s linear;
+    }
     .reg-success { text-align: center; padding: var(--space-8) 0; }
     .reg-success-icon { margin: 0 auto var(--space-6); }
     .reg-success .signin-panel-title { margin-bottom: var(--space-7); }
@@ -3274,7 +3282,10 @@
           </div>
         </div>
 
-        <button class="btn btn-primary" style="width:100%" id="reg-password-btn" disabled onclick="regCreateAccount()">Create account</button>
+        <button class="btn btn-primary reg-submit-btn" style="width:100%" id="reg-password-btn" disabled onclick="regSubmitPassword()">
+          <span class="reg-submit-btn-label">Create account</span>
+          <span class="reg-submit-btn-bar" id="reg-submit-btn-bar"></span>
+        </button>
       </div>
 
       <!-- STEP 4 — success -->
@@ -4037,6 +4048,7 @@
       document.getElementById('reg-postal').value     = biz.postal;
       document.getElementById('reg-phone-code').value = biz.dialCode;
       document.getElementById('reg-phone').value      = biz.phone;
+      document.getElementById('reg-business-type').focus();
     }
 
     function regAddCustomBusiness() {
@@ -4048,7 +4060,7 @@
       document.getElementById('reg-postal').value     = '';
       document.getElementById('reg-phone-code').value = '+39';
       document.getElementById('reg-phone').value      = '';
-      document.getElementById('reg-business').focus();
+      document.getElementById('reg-address').focus();
     }
 
     function regValidateStep2() {
@@ -4095,11 +4107,41 @@
     }
 
     function regAccountContinue() {
+      regResetSubmitButton();
       document.getElementById('reg-business-display').textContent = document.getElementById('reg-business').value.trim() || 'Your business';
       document.getElementById('reg-step-account').style.display  = 'none';
       document.getElementById('reg-step-password').style.display = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
       document.getElementById('reg-password-input').focus();
+    }
+
+    var regSubmitTimeout = null;
+
+    function regResetSubmitButton() {
+      if (regSubmitTimeout) { clearTimeout(regSubmitTimeout); regSubmitTimeout = null; }
+      var btn = document.getElementById('reg-password-btn');
+      var input = document.getElementById('reg-password-input');
+      btn.classList.remove('is-loading');
+      input.disabled = false;
+      var bar = document.getElementById('reg-submit-btn-bar');
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+      void bar.offsetWidth; // force reflow so the next fill re-triggers the transition
+      bar.style.transition = '';
+    }
+
+    function regSubmitPassword() {
+      var btn = document.getElementById('reg-password-btn');
+      if (btn.disabled || btn.classList.contains('is-loading')) return;
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+      document.getElementById('reg-password-input').disabled = true;
+      var bar = document.getElementById('reg-submit-btn-bar');
+      requestAnimationFrame(function() { bar.style.width = '100%'; });
+      regSubmitTimeout = setTimeout(function() {
+        regSubmitTimeout = null;
+        regCreateAccount();
+      }, 2000);
     }
 
     function regApplyIdentity(fullName) {
@@ -4150,6 +4192,7 @@
       document.getElementById('reg-biz-suggest').classList.remove('is-open');
       document.getElementById('reg-biz-suggest').innerHTML = '';
       document.getElementById('reg-password-input').value = '';
+      regResetSubmitButton();
       regCheckPassword();
 
       document.getElementById('reg-account-btn').disabled = true;
