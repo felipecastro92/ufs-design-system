@@ -1073,6 +1073,7 @@
     }
     .reg-biz-suggest-item:hover { background: var(--color-mushroom-100); }
     .reg-biz-suggest-item + .reg-biz-suggest-item { border-top: 1px solid var(--color-mushroom-100); }
+    .reg-biz-suggest-item--add { color: var(--color-mushroom-700); font-style: italic; border-top: 1px solid var(--color-mushroom-300) !important; }
     .fi-select {
       appearance: none; -webkit-appearance: none;
       background-image: url('icons/arrow.svg'); background-repeat: no-repeat;
@@ -3197,19 +3198,19 @@
         </div>
 
         <div class="signin-form-fields">
-          <div class="fi-wrap"><label class="fi-label">Name</label><input class="fi-field" type="text" id="reg-name" placeholder="Mario" autocomplete="given-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
-          <div class="fi-wrap"><label class="fi-label">Lastname</label><input class="fi-field" type="text" id="reg-lastname" placeholder="Bianchi" autocomplete="family-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+          <div class="fi-wrap"><label class="fi-label">Name</label><input class="fi-field" type="text" id="reg-name" placeholder="Please enter your name(s)" autocomplete="given-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+          <div class="fi-wrap"><label class="fi-label">Lastname</label><input class="fi-field" type="text" id="reg-lastname" placeholder="Please enter your last name(s)" autocomplete="family-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
           <div class="fi-wrap" style="position:relative">
             <label class="fi-label">Business name</label>
-            <input class="fi-field" type="text" id="reg-business" placeholder="My restaurant" autocomplete="off" oninput="regBusinessNameInput(this.value)" onfocus="regBusinessNameInput(this.value)" onblur="regBusinessNameBlur()" onkeydown="regBusinessNameEnter(event)"/>
+            <input class="fi-field" type="text" id="reg-business" placeholder="Please enter your business name" autocomplete="off" oninput="regBusinessNameInput(this.value)" onfocus="regBusinessNameInput(this.value)" onblur="regBusinessNameBlur()" onkeydown="regBusinessNameEnter(event)"/>
             <div class="reg-biz-suggest" id="reg-biz-suggest"></div>
           </div>
 
           <div class="reg-extra-fields" id="reg-extra-fields">
-            <div class="fi-wrap"><label class="fi-label">Address</label><input class="fi-field" type="text" id="reg-address" placeholder="Via Roma 12" autocomplete="address-line1" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+            <div class="fi-wrap"><label class="fi-label">Address</label><input class="fi-field" type="text" id="reg-address" placeholder="Please enter your address" autocomplete="address-line1" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
             <div class="fi-row">
-              <div class="fi-wrap"><label class="fi-label">City</label><input class="fi-field" type="text" id="reg-city" placeholder="Milano" autocomplete="address-level2" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
-              <div class="fi-wrap"><label class="fi-label">Postal code</label><input class="fi-field" type="text" id="reg-postal" placeholder="20121" autocomplete="postal-code" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+              <div class="fi-wrap"><label class="fi-label">City</label><input class="fi-field" type="text" id="reg-city" placeholder="Enter your city" autocomplete="address-level2" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+              <div class="fi-wrap"><label class="fi-label">Postal code</label><input class="fi-field" type="text" id="reg-postal" placeholder="e.g. 20121" autocomplete="postal-code" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
             </div>
             <div class="fi-wrap">
               <label class="fi-label">Phone</label>
@@ -3223,7 +3224,7 @@
                   <option value="+34">+34</option>
                   <option value="+971">+971</option>
                 </select>
-                <input class="fi-field fi-phone-number" type="tel" id="reg-phone" placeholder="345 678 9012" autocomplete="tel-national" onkeydown="regStepEnter(event,'reg-account-btn')"/>
+                <input class="fi-field fi-phone-number" type="tel" id="reg-phone" placeholder="e.g. 345 678 9012" autocomplete="tel-national" onkeydown="regStepEnter(event,'reg-account-btn')"/>
               </div>
             </div>
           </div>
@@ -4007,14 +4008,24 @@
       { name: 'Ristorante Milano',  address: 'Via Torino 21',     city: 'Milano',   postal: '20123', dialCode: '+39', phone: '351 887 3345' }
     ];
 
+    function regEscapeHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     function regBusinessNameInput(value) {
-      var q = value.trim().toLowerCase();
+      var typed = value.trim();
+      var q = typed.toLowerCase();
       var box = document.getElementById('reg-biz-suggest');
-      var matches = q ? regBusinessSuggestions.filter(function(b) { return b.name.toLowerCase().indexOf(q) !== -1; }) : [];
-      if (!matches.length) { box.classList.remove('is-open'); box.innerHTML = ''; return; }
-      box.innerHTML = matches.map(function(b) {
+      if (!q) { box.classList.remove('is-open'); box.innerHTML = ''; return; }
+      var matches = regBusinessSuggestions.filter(function(b) { return b.name.toLowerCase().indexOf(q) !== -1; });
+      var html = matches.map(function(b) {
         return '<div class="reg-biz-suggest-item" onmousedown="regSelectBusiness(\'' + b.name.replace(/'/g, "\\'") + '\')">' + b.name + '</div>';
       }).join('');
+      if (typed.length >= 1) {
+        html += '<div class="reg-biz-suggest-item reg-biz-suggest-item--add" onmousedown="regAddCustomBusiness()">Add &quot;' + regEscapeHtml(typed) + '&quot;</div>';
+      }
+      if (!html) { box.classList.remove('is-open'); box.innerHTML = ''; return; }
+      box.innerHTML = html;
       box.classList.add('is-open');
     }
 
@@ -4038,6 +4049,18 @@
       document.getElementById('reg-postal').value     = biz.postal;
       document.getElementById('reg-phone-code').value = biz.dialCode;
       document.getElementById('reg-phone').value      = biz.phone;
+    }
+
+    function regAddCustomBusiness() {
+      document.getElementById('reg-biz-suggest').classList.remove('is-open');
+      document.getElementById('reg-biz-suggest').innerHTML = '';
+      document.getElementById('reg-extra-fields').classList.add('is-visible');
+      document.getElementById('reg-address').value    = '';
+      document.getElementById('reg-city').value       = '';
+      document.getElementById('reg-postal').value     = '';
+      document.getElementById('reg-phone-code').value = '+39';
+      document.getElementById('reg-phone').value      = '';
+      document.getElementById('reg-business').focus();
     }
 
     function regValidateStep2() {
@@ -4073,7 +4096,8 @@
       var box = document.getElementById('reg-biz-suggest');
       var first = box.querySelector('.reg-biz-suggest-item');
       if (box.classList.contains('is-open') && first) {
-        regSelectBusiness(first.textContent);
+        if (first.classList.contains('reg-biz-suggest-item--add')) { regAddCustomBusiness(); }
+        else { regSelectBusiness(first.textContent); }
         return;
       }
       regStepEnter(event, 'reg-account-btn');
