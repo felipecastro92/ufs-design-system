@@ -348,6 +348,7 @@
     }
     .av--sm .av-initials { font-size: 9px; }
     .av--md .av-initials { font-size: 11px; }
+    .av-icon-mail { width: 28px; height: 28px; filter: brightness(0) invert(1); }
     .av-badge {
       display: inline-flex; align-items: center; justify-content: center; gap: 0;
       background: var(--color-salt); border: 0.5px solid var(--color-gold);
@@ -1119,11 +1120,14 @@
     .reg-submit-btn-bar {
       position: absolute; left: 0; top: 0; bottom: 0; width: 0%;
       background: rgba(255,255,255,0.32);
-      transition: width 2s linear;
+      transition: width 1s linear;
     }
     .reg-success { text-align: center; padding: var(--space-8) 0; }
     .reg-success-icon { margin: 0 auto var(--space-6); }
     .reg-success .signin-panel-title { margin-bottom: var(--space-7); }
+    #nl-step-success .signin-panel-title { margin-bottom: var(--space-3); }
+    .reg-success-sub { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-squid-500); margin-bottom: var(--space-7); }
+    .reg-success .signin-usps { text-align: left; }
     .av-check-badge {
       position: absolute; right: -1px; bottom: -1px;
       width: 22px; height: 22px; border-radius: var(--radius-full);
@@ -3352,6 +3356,110 @@
       </div>
     </div>
   </div>
+
+  <!-- ================================================================
+       NEWSLETTER PANEL — triggered from the footer "Stay in the loop"
+       form, independent of the Account sign-in/registration panel.
+  ================================================================ -->
+  <div class="signin-backdrop" id="newsletter-backdrop" onclick="closeNewsletter()"></div>
+  <div class="signin-panel" id="newsletter-panel">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeNewsletter()">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="signin-panel-body" id="newsletter-panel-body">
+
+      <div id="nl-step-form">
+        <h2 class="signin-panel-title">Join our newsletter</h2>
+
+        <div class="reg-email-chip" id="nl-email-chip-display">
+          <span id="nl-email-display">email@email.com</span>
+          <button class="reg-email-edit" onclick="nlEditEmail()">Edit</button>
+        </div>
+        <div class="fi-wrap" id="nl-email-chip-edit" style="display:none; margin-bottom:var(--space-3)">
+          <input class="fi-field" type="email" id="nl-email-input" dir="ltr" autocomplete="email" onkeydown="nlEmailEditEnter(event)" onblur="nlConfirmEmailEdit()"/>
+        </div>
+
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label">Name</label><input class="fi-field" type="text" id="nl-name" placeholder="Please enter your name(s)" autocomplete="given-name" oninput="nlValidate()" onkeydown="regStepEnter(event,'nl-subscribe-btn')"/></div>
+          <div class="fi-wrap"><label class="fi-label">Lastname</label><input class="fi-field" type="text" id="nl-lastname" placeholder="Please enter your last name(s)" autocomplete="family-name" oninput="nlValidate()" onkeydown="regStepEnter(event,'nl-subscribe-btn')"/></div>
+          <div class="fi-wrap">
+            <label class="fi-label">Business type</label>
+            <select class="fi-field fi-select" id="nl-business-type" onchange="nlValidate()">
+              <option value="" disabled selected>Select business type</option>
+              <option value="hotel">Hotel</option>
+              <option value="restaurant">Restaurant</option>
+              <option value="school-canteen">School canteen</option>
+              <option value="catering">Catering</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fi-checkbox-row">
+          <label class="fi-checkbox">
+            <input type="checkbox" id="nl-consent" onchange="nlValidate()"/>
+            <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+            <span class="fi-checkbox-label">I want to receive offers and updates related to my profession from trusted Unilever brands including culinary inspirations, promotions and other relevant industry information.</span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary reg-submit-btn" style="width:100%" id="nl-subscribe-btn" disabled onclick="nlSubmit()">
+          <span class="reg-submit-btn-label">Subscribe</span>
+          <span class="reg-submit-btn-bar" id="nl-submit-btn-bar"></span>
+        </button>
+      </div>
+
+      <div id="nl-step-success" style="display:none">
+        <div class="reg-success">
+          <div class="reg-success-icon">
+            <div class="av av--xl">
+              <div class="av-circle"><img class="av-icon-mail" src="icons/email.svg" alt=""/></div>
+              <span class="av-check-badge"><img src="icons/check.svg" alt=""/></span>
+            </div>
+          </div>
+          <h2 class="signin-panel-title" id="nl-success-title">You're subscribed, Giuseppe!</h2>
+          <p class="reg-success-sub">Unlock the best inspiration, loyalty rewards and professional training by finalising your account.</p>
+          <button class="btn btn-primary" style="width:100%" onclick="nlFinishAccount()">Finish my account</button>
+
+          <div class="signin-usps">
+            <div class="signin-usps-title">Why create an account?</div>
+            <div class="signin-usp-item">
+              <div class="signin-usp-item-icon"><img src="icons/products.svg" alt=""/></div>
+              <div class="signin-usp-item-text">
+                <div class="signin-usp-item-title">Professional pricing</div>
+                <div class="signin-usp-item-desc">Access exclusive B2B prices and bulk discounts on all UFS products.</div>
+              </div>
+            </div>
+            <div class="signin-usp-item">
+              <div class="signin-usp-item-icon"><img src="icons/recipes.svg" alt=""/></div>
+              <div class="signin-usp-item-text">
+                <div class="signin-usp-item-title">500+ chef recipes</div>
+                <div class="signin-usp-item-desc">Save and organise your favourites from our full recipe library.</div>
+              </div>
+            </div>
+            <div class="signin-usp-item">
+              <div class="signin-usp-item-icon"><img src="icons/track.svg" alt=""/></div>
+              <div class="signin-usp-item-text">
+                <div class="signin-usp-item-title">Order tracking</div>
+                <div class="signin-usp-item-desc">View order history and track deliveries in real time.</div>
+              </div>
+            </div>
+            <div class="signin-usp-item">
+              <div class="signin-usp-item-icon"><img src="icons/chef.svg" alt=""/></div>
+              <div class="signin-usp-item-text">
+                <div class="signin-usp-item-title">UFS Academy</div>
+                <div class="signin-usp-item-desc">Free culinary training modules and certifications.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
   </div><!-- /real-page-content -->
 
   <footer class="ufs-footer" id="site-footer">
@@ -3361,8 +3469,8 @@
         <h2 class="ufs-footer__nl-heading" data-i18n="footer-heading">Stay in the loop</h2>
         <p class="ufs-footer__nl-sub" data-i18n="footer-sub">Sign up to receive recipe ideas, industry trends, special offers, and more in your inbox.</p>
       </div>
-      <form class="ufs-footer__nl-form" onsubmit="return false">
-        <input class="ufs-footer__nl-input" type="email" dir="ltr" placeholder="Enter your email" data-i18n-ph="footer-input-ph" autocomplete="email" />
+      <form class="ufs-footer__nl-form" onsubmit="return nlSubmitFooterEmail(event)">
+        <input class="ufs-footer__nl-input" type="email" id="footer-nl-email" dir="ltr" placeholder="Enter your email" data-i18n-ph="footer-input-ph" autocomplete="email" />
         <button class="ufs-footer__nl-btn" type="submit" data-i18n="footer-subscribe">Subscribe</button>
       </form>
     </div>
@@ -4141,7 +4249,7 @@
       regSubmitTimeout = setTimeout(function() {
         regSubmitTimeout = null;
         regCreateAccount();
-      }, 2000);
+      }, 1000);
     }
 
     function regApplyIdentity(fullName) {
@@ -4200,6 +4308,143 @@
     }
 
     /* ================================================================
+       NEWSLETTER FLOW
+    ================================================================ */
+    function nlSubmitFooterEmail(event) {
+      event.preventDefault();
+      var input = document.getElementById('footer-nl-email');
+      var email = input.value.trim();
+      if (!email || !input.checkValidity()) { input.focus(); return false; }
+      openNewsletter(email);
+      return false;
+    }
+
+    function openNewsletter(email) {
+      nlResetFlow();
+      document.getElementById('nl-email-display').textContent = email;
+      document.getElementById('newsletter-backdrop').classList.add('is-open');
+      document.getElementById('newsletter-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('newsletter-panel-body').scrollTop = 0;
+      document.getElementById('footer-nl-email').value = '';
+    }
+
+    function closeNewsletter() {
+      document.getElementById('newsletter-backdrop').classList.remove('is-open');
+      document.getElementById('newsletter-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    function nlEditEmail() {
+      document.getElementById('nl-email-chip-display').style.display = 'none';
+      document.getElementById('nl-email-chip-edit').style.display    = '';
+      var input = document.getElementById('nl-email-input');
+      input.value = document.getElementById('nl-email-display').textContent;
+      input.focus();
+    }
+
+    function nlConfirmEmailEdit() {
+      var input = document.getElementById('nl-email-input');
+      var email = input.value.trim();
+      if (email) document.getElementById('nl-email-display').textContent = email;
+      document.getElementById('nl-email-chip-edit').style.display    = 'none';
+      document.getElementById('nl-email-chip-display').style.display = '';
+    }
+
+    function nlEmailEditEnter(event) {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      document.getElementById('nl-email-input').blur();
+    }
+
+    function nlValidate() {
+      var ok = document.getElementById('nl-name').value.trim()
+        && document.getElementById('nl-lastname').value.trim()
+        && document.getElementById('nl-business-type').value
+        && document.getElementById('nl-consent').checked;
+      document.getElementById('nl-subscribe-btn').disabled = !ok;
+    }
+
+    var nlSubmitTimeout = null;
+
+    function nlResetSubmitButton() {
+      if (nlSubmitTimeout) { clearTimeout(nlSubmitTimeout); nlSubmitTimeout = null; }
+      var btn = document.getElementById('nl-subscribe-btn');
+      btn.classList.remove('is-loading');
+      var bar = document.getElementById('nl-submit-btn-bar');
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+      void bar.offsetWidth; // force reflow so the next fill re-triggers the transition
+      bar.style.transition = '';
+    }
+
+    function nlSetFieldsDisabled(v) {
+      ['nl-name', 'nl-lastname', 'nl-business-type', 'nl-consent'].forEach(function(id) {
+        document.getElementById(id).disabled = v;
+      });
+    }
+
+    function nlSubmit() {
+      var btn = document.getElementById('nl-subscribe-btn');
+      if (btn.disabled || btn.classList.contains('is-loading')) return;
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+      nlSetFieldsDisabled(true);
+      var bar = document.getElementById('nl-submit-btn-bar');
+      requestAnimationFrame(function() { bar.style.width = '100%'; });
+      nlSubmitTimeout = setTimeout(function() {
+        nlSubmitTimeout = null;
+        nlComplete();
+      }, 1000);
+    }
+
+    function nlComplete() {
+      var name = document.getElementById('nl-name').value.trim();
+      document.getElementById('nl-success-title').textContent = "You're subscribed" + (name ? ', ' + name : '') + '!';
+      document.getElementById('nl-step-form').style.display    = 'none';
+      document.getElementById('nl-step-success').style.display = '';
+      document.getElementById('newsletter-panel-body').scrollTop = 0;
+    }
+
+    function nlFinishAccount() {
+      var email    = document.getElementById('nl-email-display').textContent;
+      var name     = document.getElementById('nl-name').value.trim();
+      var lastname = document.getElementById('nl-lastname').value.trim();
+      var bizType  = document.getElementById('nl-business-type').value;
+      var consent  = document.getElementById('nl-consent').checked;
+
+      closeNewsletter();
+      openSignIn();
+
+      document.getElementById('reg-email-input').value           = email;
+      document.getElementById('reg-email-display').textContent   = email;
+      document.getElementById('reg-email-display-2').textContent = email;
+      document.getElementById('reg-name').value          = name;
+      document.getElementById('reg-lastname').value      = lastname;
+      document.getElementById('reg-business-type').value = bizType;
+      document.getElementById('reg-terms').checked       = consent;
+
+      document.getElementById('reg-step-email').style.display   = 'none';
+      document.getElementById('reg-step-account').style.display = '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+      regValidateStep2();
+    }
+
+    function nlResetFlow() {
+      document.getElementById('nl-step-form').style.display    = '';
+      document.getElementById('nl-step-success').style.display = 'none';
+      document.getElementById('nl-email-chip-display').style.display = '';
+      document.getElementById('nl-email-chip-edit').style.display    = 'none';
+      document.getElementById('nl-name').value          = '';
+      document.getElementById('nl-lastname').value      = '';
+      document.getElementById('nl-business-type').value = '';
+      document.getElementById('nl-consent').checked     = false;
+      nlSetFieldsDisabled(false);
+      nlResetSubmitButton();
+      document.getElementById('nl-subscribe-btn').disabled = true;
+    }
+
+    /* ================================================================
        SIGN-IN PANEL
     ================================================================ */
     function openSignIn() {
@@ -4217,6 +4462,7 @@
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         closeSignIn();
+        closeNewsletter();
         closeAllMegamenus();
         closeLangDrop();
         closeMobileDrawer();
