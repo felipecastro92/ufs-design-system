@@ -371,6 +371,7 @@
     }
     .ufs-megamenu.is-open { display: block; }
     .mm-a { display: grid; grid-template-columns: 1fr 1fr 1fr 260px; min-height: 320px; }
+    .mm-a2 { display: grid; grid-template-columns: 1fr 1fr; min-height: 320px; }
     .mm-b { display: grid; grid-template-columns: 1.8fr 1fr 1fr 260px; min-height: 320px; }
     .mm-col { padding: var(--space-7) var(--space-6); border-right: 1px solid var(--color-mushroom-300); }
     .mm-col:last-child { border-right: none; }
@@ -779,6 +780,179 @@
     .pg-hero-sub { color: var(--color-salt); margin-bottom: var(--space-9); max-width: 440px; }
     .pg-hero-actions { display: flex; gap: var(--space-4); flex-wrap: wrap; }
 
+    /* ── Flex Carousel ───────────────────────────────────── */
+    /* Local component tokens — the 3 colour variants below only override
+       these, every rule underneath reads from them instead of hardcoding
+       a colour, so a variant is purely a token swap, no rule duplication. */
+    .ufs-flex-carousel {
+      --carousel-title-color: var(--color-brand-dark);
+      --carousel-desc-color: var(--color-mushroom-900);
+      --carousel-btn-border: var(--color-accessible-orange);
+      --carousel-btn-color: var(--color-accessible-orange);
+      --carousel-btn-hover-bg: var(--color-mushroom-100);
+      --carousel-card-bg: var(--color-mushroom-100);
+      --carousel-dot-inactive: var(--color-squid-300);
+      --carousel-arrow-border: var(--color-squid-300);
+      --carousel-arrow-color: var(--color-squid-300);
+      --carousel-arrow-bg: var(--color-salt);
+      --carousel-arrow-active-bg: var(--color-mushroom-300);
+      background: var(--color-salt);
+      padding: var(--space-20) var(--space-24);
+      display: flex; flex-direction: column; gap: var(--space-8);
+    }
+    .ufs-flex-carousel__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6); }
+    .ufs-flex-carousel__intro { display: flex; flex-direction: column; gap: var(--space-3); flex: 1; min-width: 0; }
+    .ufs-flex-carousel__title { color: var(--carousel-title-color); margin: 0; }
+    .ufs-flex-carousel__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--carousel-desc-color); margin: 0; }
+    .ufs-flex-carousel__cta { flex-shrink: 0; border-color: var(--carousel-btn-border); color: var(--carousel-btn-color); }
+    .ufs-flex-carousel__cta:hover:not(:disabled):not(.btn-loading) { background: var(--carousel-btn-hover-bg); }
+    .ufs-flex-carousel__cta--mobile { display: none; }
+
+    /* Bleed: the scrollable/clip area spans the true screen edge on BOTH
+       sides (so cards stay visible all the way to the edge while scrolling
+       out, instead of being clipped early at the section's own padding).
+       The trailing edge uses real padding on the track (browsers respect
+       end-edge padding in a scroll container), but the leading edge needs a
+       real flex-item spacer instead of padding-left — Chromium doesn't
+       honor start-edge padding on a scrollable flex container (it just
+       starts scrollLeft at that offset, hiding it) — so a spacer recreates
+       the "first card lines up with the title" resting alignment reliably. */
+    .ufs-flex-carousel__track-wrap { align-self: stretch; margin-left: calc(-1 * var(--space-24)); margin-right: calc(-1 * var(--space-24)); }
+    .ufs-carousel-track {
+      display: flex;
+      overflow-x: auto; scroll-behavior: smooth;
+      scrollbar-width: none; -ms-overflow-style: none;
+      padding-right: var(--space-24);
+    }
+    .ufs-carousel-track::-webkit-scrollbar { display: none; }
+    .ufs-carousel-spacer { flex: 0 0 var(--space-24); }
+    .ufs-carousel-card {
+      width: 270px; height: 270px; flex-shrink: 0;
+      background: var(--carousel-card-bg); border-radius: var(--radius-lg);
+      margin-right: var(--space-8);
+    }
+    .ufs-carousel-card:last-child { margin-right: 0; }
+
+    .ufs-flex-carousel__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+
+    /* Pagination — dynamic/"shrinking window" bullets, mirrors the Figma spec:
+       active = wide pill, then two normal dots, one smaller, one smallest;
+       everything beyond that window collapses away. All properties transition
+       so moving the active index animates the whole row, not just a swap. */
+    .ufs-carousel-dots { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-carousel-dot {
+      width: 6px; height: 6px; border-radius: var(--radius-full);
+      background: var(--carousel-dot-inactive); border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+      transition: width 0.25s ease, height 0.25s ease, background-color 0.25s ease, opacity 0.25s ease, margin 0.25s ease;
+    }
+    .ufs-carousel-dot.is-active { width: 30px; height: 6px; border-radius: 50px; background: var(--color-brand-primary); }
+    .ufs-carousel-dot.is-near   { width: 6px; height: 6px; }
+    .ufs-carousel-dot.is-far    { width: 4px; height: 4px; }
+    .ufs-carousel-dot.is-edge   { width: 2px; height: 2px; }
+    .ufs-carousel-dot.is-hidden { width: 0; height: 0; opacity: 0; margin-left: -4px; margin-right: -4px; pointer-events: none; }
+
+    .ufs-flex-carousel__arrows { display: flex; align-items: center; gap: var(--space-4); }
+    .ufs-carousel-arrow {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border: 1px solid var(--carousel-arrow-border); border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs);
+      background: var(--carousel-arrow-bg); color: var(--carousel-arrow-color);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .ufs-carousel-arrow--next { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+    .ufs-carousel-arrow svg { width: 14px; height: 14px; display: block; }
+    .ufs-carousel-arrow--prev svg { transform: scaleX(-1); }
+    /* Same hover treatment as .btn-secondary — background fill only, no
+       border/icon colour shift — using the same per-variant hover token the
+       secondary CTA uses, so both controls react identically in every variant. */
+    .ufs-carousel-arrow:hover:not(:disabled) { background: var(--carousel-btn-hover-bg); }
+    .ufs-carousel-arrow:active:not(:disabled) { background: var(--carousel-arrow-active-bg); }
+    .ufs-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Colour variants — pure token swaps against the custom properties above.
+       "Image" additionally needs a background image + overlay, and blurs the
+       (still-transparent) card placeholders for the frosted-glass look. */
+    .ufs-flex-carousel--squid {
+      background: var(--color-brand-dark);
+      --carousel-title-color: var(--color-salt);
+      --carousel-desc-color: rgba(255,255,255,0.75);
+      --carousel-btn-border: var(--color-salt);
+      --carousel-btn-color: var(--color-salt);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.12);
+      --carousel-card-bg: color-mix(in srgb, var(--color-mushroom-500) 30%, transparent);
+      --carousel-dot-inactive: var(--color-mushroom-500);
+      --carousel-arrow-border: var(--color-mushroom-500);
+      --carousel-arrow-color: var(--color-mushroom-500);
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-active-bg: rgba(255,255,255,0.2);
+    }
+    .ufs-flex-carousel--mushroom {
+      background: var(--color-mushroom-100);
+      --carousel-card-bg: var(--color-salt);
+      /* Section bg IS mushroom-100, so the default mushroom-100 hover fill
+         would be invisible — fill white instead for both CTA and arrows.
+         Arrows rest transparent (no fill) and only fill white on hover. */
+      --carousel-btn-hover-bg: var(--color-salt);
+      --carousel-arrow-bg: transparent;
+    }
+    /* mushroom-100 is too light for the #FF5A00 active dot (2.83:1) — swap
+       to orange-700 on this variant so the indicator clears AA 3:1 (4.09:1). */
+    .ufs-flex-carousel--mushroom .ufs-carousel-dot.is-active { background: var(--color-orange-700); }
+    .ufs-flex-carousel--image {
+      background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/M_GPP_6074.jpg');
+      background-size: cover, cover; background-position: center, center; background-repeat: no-repeat, no-repeat;
+      --carousel-title-color: var(--color-salt);
+      --carousel-desc-color: rgba(255,255,255,0.75);
+      --carousel-btn-border: var(--color-salt);
+      --carousel-btn-color: var(--color-salt);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.15);
+      --carousel-card-bg: rgba(255,255,255,0.5);
+      --carousel-dot-inactive: var(--color-salt);
+      --carousel-arrow-border: var(--color-salt);
+      --carousel-arrow-color: var(--color-salt);
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-active-bg: rgba(255,255,255,0.25);
+    }
+    .ufs-flex-carousel--image .ufs-carousel-card { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+
+    @media (max-width: 768px) {
+      .ufs-flex-carousel { padding: 56px var(--space-4); gap: var(--space-6); }
+      .ufs-flex-carousel__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-flex-carousel__cta { display: none; }
+      .ufs-flex-carousel__cta--mobile { display: block; width: 100%; }
+      .ufs-carousel-track { padding-right: var(--space-4); }
+      .ufs-carousel-spacer { flex-basis: var(--space-4); }
+      .ufs-carousel-card { margin-right: var(--space-6); }
+      .ufs-carousel-card:last-child { margin-right: 0; }
+      .ufs-flex-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); }
+      .ufs-flex-carousel__foot { justify-content: center; }
+      .ufs-carousel-dots { flex: 1; justify-content: center; }
+      .ufs-flex-carousel__arrows { display: none; }
+    }
+
+    /* ── Flex Carousel — RTL (full mirror) ─────────────────
+       The track scrolls horizontally, so the carousel fully mirrors under
+       dir="rtl": cards rest at the RIGHT and advance leftward, the arrow pair
+       swaps sides + flips its chevrons, and the trailing bleed + inter-card
+       spacing move to the opposite (logical) edge. The head row, pagination
+       dots and the arrow group re-order automatically via flex — only the
+       physical (non-logical) properties below need an explicit flip.
+       Scroll behaviour: Chromium reports NEGATIVE scrollLeft in RTL; the JS
+       keeps a signed stepSize() (so goTo/scroll-sync cancel correctly) and
+       only guards maxIndex() with Math.abs(step). No markup changes. */
+    [dir="rtl"] .ufs-carousel-track { padding-right: 0; padding-left: var(--space-24); }
+    [dir="rtl"] .ufs-carousel-card { margin-right: 0; margin-left: var(--space-8); }
+    [dir="rtl"] .ufs-carousel-card:last-child { margin-left: 0; }
+    [dir="rtl"] .ufs-carousel-arrow { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-carousel-arrow--next { border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-carousel-arrow--prev svg { transform: none; }
+    [dir="rtl"] .ufs-carousel-arrow--next svg { transform: scaleX(-1); }
+    @media (max-width: 768px) {
+      [dir="rtl"] .ufs-carousel-track { padding-right: 0; padding-left: var(--space-4); }
+      [dir="rtl"] .ufs-carousel-card { margin-right: 0; margin-left: var(--space-6); }
+      [dir="rtl"] .ufs-carousel-card:last-child { margin-left: 0; }
+    }
+
     /* ── Products section ────────────────────────────────── */
     .pg-products {
       background: var(--color-salt); padding: var(--space-16) var(--space-20) var(--space-20);
@@ -1034,6 +1208,20 @@
       transition: border-color 0.15s; display: block;
     }
     .fi-field:focus { border-color: var(--color-brand-dark); }
+    .fi-field.is-invalid { border-color: var(--color-error); }
+    .fi-contact-wrap { position: relative; }
+    .fi-contact-wrap .fi-field { transition: padding-left 0.15s, border-color 0.15s; }
+    .fi-contact-wrap.has-icon .fi-field { padding-left: var(--space-10); }
+    .fi-contact-icon {
+      position: absolute; left: var(--space-4); top: 50%; transform: translateY(-50%);
+      width: 18px; height: 18px; opacity: 0; pointer-events: none; transition: opacity 0.15s;
+    }
+    .fi-contact-icon.is-provisional { opacity: 0.35; }
+    .fi-contact-icon.is-resolved { opacity: 0.85; }
+    [dir="rtl"] .fi-contact-wrap.has-icon .fi-field { padding-left: var(--space-4); padding-right: var(--space-10); }
+    [dir="rtl"] .fi-contact-icon { left: auto; right: var(--space-4); }
+    .fi-contact-hint { font-size: var(--text-body-xs-size); color: var(--color-mushroom-700); line-height: var(--text-body-xs-lh); margin-top: var(--space-1); min-height: 16px; }
+    .fi-contact-hint.is-error { color: var(--color-error); }
     .signin-panel-title { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); margin-bottom: var(--space-3); }
     .signin-form-fields { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-3); }
     .signin-usp { color: var(--color-mushroom-700); text-align: center; margin-top: var(--space-5); }
@@ -1804,6 +1992,12 @@
     body.ctx-checkout #ctrl-group-ai, body.ctx-checkout #ctrl-sep-ai
     { display: none; }
 
+    /* AI Integration control hidden in every context */
+    #ctrl-group-ai, #ctrl-sep-ai { display: none; }
+
+    /* Registration page option hidden from the Page control (keep Homepage / Landing / Checkout) */
+    #ctrl-ctx-registration { display: none; }
+
     /* Page bodies — one per context */
     #landing-main, #registration-main, #checkout-main { display: none; }
     body.ctx-landing #homepage-main, body.ctx-registration #homepage-main, body.ctx-checkout #homepage-main { display: none; }
@@ -2042,7 +2236,6 @@
   <div class="ctrl-bar" id="ctrl-bar">
     <div class="ctrl-brand">
       <select class="ctrl-version-select" onchange="window.location.href=this.value">
-        <option value="full-page-preview-v0.1.html">v0.1</option>
         <option value="full-page-preview-v0.2.html" selected>v0.2</option>
       </select>
     </div>
@@ -2164,7 +2357,7 @@
         <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
         <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
         <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
-        <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-promotions">Promotions</div>
+        <div class="ufs-nav__link" onclick="toggleMegamenu('promotions', this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
         <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
       </div>
       <div class="ufs-nav__actions">
@@ -2399,6 +2592,30 @@
               <div class="mm-promo-over text-overline" data-i18n="mm-promo3-over">Free Module</div>
               <div class="mm-promo-title text-body" data-i18n="mm-promo3-title">Mastering Umami: a free online module for chefs</div>
               <a class="mm-promo-cta text-body-sm"><span data-i18n="mm-promo3-cta">Start learning</span> <img class="ufs-icon" src="icons/arrow.svg" alt="" style="width:11px;height:11px"/></a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Megamenu: Promotions -->
+      <div class="ufs-megamenu" id="mm-promotions">
+        <div class="mm-a2">
+          <div class="mm-col">
+            <span class="mm-col-label text-overline" data-i18n="mm-promotions-col1">Current Offers</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-promo-seasonal">Seasonal Deals</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-promo-bundle">Bundle Discounts</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-promo-clearance">Clearance Items</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-promo-samples">Free Samples</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+            </div>
+          </div>
+          <div class="mm-col" style="border-right:none">
+            <span class="mm-col-label text-overline" data-i18n="mm-promotions-col2">Loyalty &amp; Rewards</span>
+            <div class="mm-links">
+              <div class="mm-link text-body-sm"><span data-i18n="mm-promo-points">Points Program</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-promo-referral">Referral Bonus</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-promo-perks">Member Perks</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
+              <div class="mm-link text-body-sm"><span data-i18n="mm-promo-events">Exclusive Events</span> <img class="mm-link-arr" src="icons/arrow.svg" alt=""/></div>
             </div>
           </div>
         </div>
@@ -2646,7 +2863,18 @@
         <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-academy">UFS Academy</a>
         <button class="ufs-drawer-sub-more" onclick="showDrawerSubMore(this)"><span data-i18n="dr-view-more">View more</span> <img class="ufs-drawer-sub-more-chev" src="icons/arrow.svg" alt=""/></button>
       </div>
-      <button class="ufs-drawer-acc-trigger" data-i18n="nav-promotions">Promotions</button>
+      <button class="ufs-drawer-acc-trigger" onclick="toggleDrawerAcc(this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-icon ufs-drawer-acc-chev" src="icons/arrow.svg" alt=""/></button>
+      <div class="ufs-drawer-sub">
+        <a class="ufs-drawer-sub-link" data-i18n="mm-promo-seasonal">Seasonal Deals</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-promo-bundle">Bundle Discounts</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-promo-clearance">Clearance Items</a>
+        <a class="ufs-drawer-sub-link" data-i18n="mm-promo-samples">Free Samples</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-promo-points">Points Program</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-promo-referral">Referral Bonus</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-promo-perks">Member Perks</a>
+        <a class="ufs-drawer-sub-link is-extra" data-i18n="mm-promo-events">Exclusive Events</a>
+        <button class="ufs-drawer-sub-more" onclick="showDrawerSubMore(this)"><span data-i18n="dr-view-more">View more</span> <img class="ufs-drawer-sub-more-chev" src="icons/arrow.svg" alt=""/></button>
+      </div>
       <button class="ufs-drawer-acc-trigger" style="border-bottom:none" data-i18n="nav-loyalty">Loyalty Program</button>
     </div>
     <div class="ufs-drawer-util">
@@ -2680,6 +2908,257 @@
         </div>
       </div>
     </section>
+
+    <!-- Flex Carousel -->
+    <section class="ufs-flex-carousel">
+      <div class="ufs-flex-carousel__head">
+        <div class="ufs-flex-carousel__intro">
+          <h2 class="ufs-flex-carousel__title text-h3" data-i18n="carousel-title">Carousel title</h2>
+          <p class="ufs-flex-carousel__desc" data-i18n="carousel-desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+        </div>
+        <button class="btn btn-secondary ufs-flex-carousel__cta" data-i18n="carousel-cta">Discover more items</button>
+      </div>
+
+      <div class="ufs-flex-carousel__track-wrap">
+        <div class="ufs-carousel-track">
+          <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+        </div>
+      </div>
+
+      <div class="ufs-flex-carousel__foot">
+        <div class="ufs-carousel-dots"></div>
+        <div class="ufs-flex-carousel__arrows">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile" data-i18n="carousel-cta">Discover more items</button>
+    </section>
+
+    <!-- Flex Carousel — Squid Ink variant -->
+    <section class="ufs-flex-carousel ufs-flex-carousel--squid">
+      <div class="ufs-flex-carousel__head">
+        <div class="ufs-flex-carousel__intro">
+          <h2 class="ufs-flex-carousel__title text-h3" data-i18n="carousel-title">Carousel title</h2>
+          <p class="ufs-flex-carousel__desc" data-i18n="carousel-desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+        </div>
+        <button class="btn btn-secondary ufs-flex-carousel__cta" data-i18n="carousel-cta">Discover more items</button>
+      </div>
+
+      <div class="ufs-flex-carousel__track-wrap">
+        <div class="ufs-carousel-track">
+          <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+        </div>
+      </div>
+
+      <div class="ufs-flex-carousel__foot">
+        <div class="ufs-carousel-dots"></div>
+        <div class="ufs-flex-carousel__arrows">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile" data-i18n="carousel-cta">Discover more items</button>
+    </section>
+
+    <!-- Flex Carousel — Mushroom-100 variant -->
+    <section class="ufs-flex-carousel ufs-flex-carousel--mushroom">
+      <div class="ufs-flex-carousel__head">
+        <div class="ufs-flex-carousel__intro">
+          <h2 class="ufs-flex-carousel__title text-h3" data-i18n="carousel-title">Carousel title</h2>
+          <p class="ufs-flex-carousel__desc" data-i18n="carousel-desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+        </div>
+        <button class="btn btn-secondary ufs-flex-carousel__cta" data-i18n="carousel-cta">Discover more items</button>
+      </div>
+
+      <div class="ufs-flex-carousel__track-wrap">
+        <div class="ufs-carousel-track">
+          <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+        </div>
+      </div>
+
+      <div class="ufs-flex-carousel__foot">
+        <div class="ufs-carousel-dots"></div>
+        <div class="ufs-flex-carousel__arrows">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile" data-i18n="carousel-cta">Discover more items</button>
+    </section>
+
+    <!-- Flex Carousel — Background-image variant -->
+    <section class="ufs-flex-carousel ufs-flex-carousel--image">
+      <div class="ufs-flex-carousel__head">
+        <div class="ufs-flex-carousel__intro">
+          <h2 class="ufs-flex-carousel__title text-h3" data-i18n="carousel-title">Carousel title</h2>
+          <p class="ufs-flex-carousel__desc" data-i18n="carousel-desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+        </div>
+        <button class="btn btn-secondary ufs-flex-carousel__cta" data-i18n="carousel-cta">Discover more items</button>
+      </div>
+
+      <div class="ufs-flex-carousel__track-wrap">
+        <div class="ufs-carousel-track">
+          <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+          <div class="ufs-carousel-card"></div>
+        </div>
+      </div>
+
+      <div class="ufs-flex-carousel__foot">
+        <div class="ufs-carousel-dots"></div>
+        <div class="ufs-flex-carousel__arrows">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile" data-i18n="carousel-cta">Discover more items</button>
+    </section>
+
+  <script>
+    /* Flex Carousel — arrows/dots move one card at a time; pagination uses a
+       "dynamic bullets" window (active pill + shrinking neighbors) that slides
+       and animates as the active card changes. Scoped per instance so this
+       still works once colour variants add more copies of .ufs-flex-carousel. */
+    (function() {
+      function initFlexCarousel(root) {
+        var track = root.querySelector('.ufs-carousel-track');
+        var dotsWrap = root.querySelector('.ufs-carousel-dots');
+        var prevBtn = root.querySelector('.ufs-carousel-arrow--prev');
+        var nextBtn = root.querySelector('.ufs-carousel-arrow--next');
+        if (!track || !dotsWrap) return;
+        var cards = Array.prototype.slice.call(track.querySelectorAll('.ufs-carousel-card'));
+        var activeIndex = 0;
+        var scrollTicking = false;
+
+        function stepSize() {
+          if (cards.length < 2) return cards.length ? cards[0].getBoundingClientRect().width : 0;
+          return cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
+        }
+        function maxIndex() {
+          var step = stepSize();
+          if (!step) return 0;
+          /* stepSize() is signed (negative in RTL, where Chromium reports
+             negative scrollLeft); the reachable index count is direction-
+             agnostic, so divide by the magnitude. goTo()/scroll-sync keep the
+             signed step so their scrollLeft math cancels in both directions. */
+          return Math.max(0, Math.round((track.scrollWidth - track.clientWidth) / Math.abs(step)));
+        }
+        function render() {
+          var maxI = maxIndex();
+          var dots = dotsWrap.querySelectorAll('.ufs-carousel-dot');
+          dots.forEach(function(dot, i) {
+            dot.classList.remove('is-active', 'is-near', 'is-far', 'is-edge', 'is-hidden');
+            if (i > maxI) { dot.classList.add('is-hidden'); return; }
+            var dist = Math.abs(i - activeIndex);
+            if (dist === 0) dot.classList.add('is-active');
+            else if (dist <= 2) dot.classList.add('is-near');
+            else if (dist === 3) dot.classList.add('is-far');
+            else if (dist === 4) dot.classList.add('is-edge');
+            else dot.classList.add('is-hidden');
+            dot.setAttribute('aria-current', dist === 0 ? 'true' : 'false');
+          });
+          if (prevBtn) prevBtn.disabled = activeIndex <= 0;
+          if (nextBtn) nextBtn.disabled = activeIndex >= maxI;
+        }
+        function goTo(index) {
+          activeIndex = Math.max(0, Math.min(maxIndex(), index));
+          track.scrollTo({ left: activeIndex * stepSize(), behavior: 'smooth' });
+          render();
+        }
+
+        cards.forEach(function(_, i) {
+          var dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'ufs-carousel-dot';
+          dot.setAttribute('aria-label', 'Go to item ' + (i + 1));
+          dot.addEventListener('click', function() { goTo(i); });
+          dotsWrap.appendChild(dot);
+        });
+        if (prevBtn) prevBtn.addEventListener('click', function() { goTo(activeIndex - 1); });
+        if (nextBtn) nextBtn.addEventListener('click', function() { goTo(activeIndex + 1); });
+
+        /* rAF-throttled so the pagination (and, on mobile, that's the only
+           visible control since arrows are hidden there) tracks a touch
+           swipe live as it happens, not just after the gesture/momentum
+           settles — a post-scroll debounce reads as "not reflecting" the
+           swipe on a real device. */
+        track.addEventListener('scroll', function() {
+          if (scrollTicking) return;
+          scrollTicking = true;
+          requestAnimationFrame(function() {
+            var step = stepSize();
+            if (step) activeIndex = Math.max(0, Math.min(maxIndex(), Math.round(track.scrollLeft / step)));
+            render();
+            scrollTicking = false;
+          });
+        }, { passive: true });
+
+        window.addEventListener('resize', function() { render(); });
+        render();
+      }
+
+      document.querySelectorAll('.ufs-flex-carousel').forEach(initFlexCarousel);
+    })();
+  </script>
 
     <!-- Products -->
     <section class="pg-products">
@@ -3156,7 +3635,14 @@
       <div id="reg-step-email">
         <h2 class="signin-panel-title" data-i18n="si-merged-title">Sign in or Create an Account</h2>
         <div class="signin-form-fields">
-          <div class="fi-wrap"><label class="fi-label" data-i18n="si-contact-label">Enter your email or mobile number</label><input class="fi-field" type="text" id="reg-email-input" placeholder="you@example.com" dir="ltr" autocomplete="email" onkeydown="if(event.key==='Enter'){event.preventDefault();regSubmitEmail();}"/></div>
+          <div class="fi-wrap">
+            <label class="fi-label" data-i18n="si-contact-label">Enter your email or mobile number</label>
+            <div class="fi-contact-wrap" id="reg-contact-wrap">
+              <img class="fi-contact-icon" id="reg-contact-icon" src="icons/email.svg" alt=""/>
+              <input class="fi-field" type="text" id="reg-email-input" placeholder="you@example.com" dir="ltr" autocomplete="email" oninput="regContactDetect()" onblur="regContactCommit()" onkeydown="if(event.key==='Enter'){event.preventDefault();regSubmitEmail();}"/>
+            </div>
+            <div class="fi-contact-hint" id="reg-contact-hint" aria-live="polite"></div>
+          </div>
         </div>
         <button class="btn btn-primary" style="width:100%" onclick="regSubmitEmail()" data-i18n="si-continue-btn">Continue</button>
         <button class="signin-help-link" data-i18n="si-need-help">Need help?</button>
@@ -3606,6 +4092,8 @@
       'mm-food-trends':'Food Trends','mm-menu-plan':'Menu Planning Tools','mm-chef-spot':'Chef Spotlights','mm-success':'Success Stories',
       'mm-guides':'Downloadable Guides','mm-webinars':'Webinars & Events','mm-academy':'UFS Academy',
       'mm-promo3-over':'Free Module','mm-promo3-title':'Mastering Umami: a free online module for chefs','mm-promo3-cta':'Start learning',
+      'mm-promotions-col1':'Current Offers','mm-promo-seasonal':'Seasonal Deals','mm-promo-bundle':'Bundle Discounts','mm-promo-clearance':'Clearance Items','mm-promo-samples':'Free Samples',
+      'mm-promotions-col2':'Loyalty & Rewards','mm-promo-points':'Points Program','mm-promo-referral':'Referral Bonus','mm-promo-perks':'Member Perks','mm-promo-events':'Exclusive Events',
       'dr-view-more':'View more','dr-more':'More',
       'hero-eyebrow':'Professional Culinary Solutions','hero-title':'Elevate every dish<br>with UFS',
       'hero-sub':'Premium sauces, culinary bases and seasonings trusted by chefs and foodservice operators worldwide.',
@@ -3651,7 +4139,8 @@
       'footer-col-company':'Company','footer-about':'About Us','footer-brands':'Brands','footer-sustainability':'Sustainability','footer-trade':'Trade Terms','footer-partners':'Partners',
       'footer-col-support':'Help & Support','footer-track':'Track My Order','footer-shipping':'Shipping Info','footer-returns':'Returns & Exchanges','footer-faq':'FAQ','footer-contact':'Contact Us',
       'footer-col-legal':'Legal','footer-privacy':'Privacy Policy','footer-cookie':'Cookie Policy','footer-terms':'Terms and Conditions','footer-accessibility':'Accessibility',
-      'footer-copyright':'© 2027 UFS. All rights reserved.'
+      'footer-copyright':'© 2027 UFS. All rights reserved.',
+      'carousel-title':'Carousel title','carousel-desc':'Carousel description this can be optional if it’s needed to add some context','carousel-cta':'Discover more items'
     };
 
     var T_AR = {
@@ -3675,6 +4164,8 @@
       'mm-food-trends':'اتجاهات الطعام','mm-menu-plan':'أدوات تخطيط القائمة','mm-chef-spot':'أضواء على الطهاة','mm-success':'قصص النجاح',
       'mm-guides':'أدلة قابلة للتنزيل','mm-webinars':'الندوات والفعاليات','mm-academy':'أكاديمية UFS',
       'mm-promo3-over':'وحدة مجانية','mm-promo3-title':'إتقان الأومامي: وحدة مجانية للطهاة','mm-promo3-cta':'ابدأ التعلم',
+      'mm-promotions-col1':'العروض الحالية','mm-promo-seasonal':'عروض موسمية','mm-promo-bundle':'خصومات الحزم','mm-promo-clearance':'تصفية المخزون','mm-promo-samples':'عينات مجانية',
+      'mm-promotions-col2':'الولاء والمكافآت','mm-promo-points':'برنامج النقاط','mm-promo-referral':'مكافأة الإحالة','mm-promo-perks':'مزايا الأعضاء','mm-promo-events':'فعاليات حصرية',
       'dr-view-more':'عرض المزيد','dr-more':'المزيد',
       'hero-eyebrow':'حلول الطهي الاحترافية','hero-title':'ارتقِ بكل طبق<br>مع UFS',
       'hero-sub':'صلصات فاخرة وأسس طهوية وتوابل موثوقة من قِبَل الطهاة والمشغلين في قطاع الخدمات الغذائية حول العالم.',
@@ -3720,7 +4211,8 @@
       'footer-col-company':'الشركة','footer-about':'من نحن','footer-brands':'العلامات التجارية','footer-sustainability':'الاستدامة','footer-trade':'شروط التجارة','footer-partners':'الشركاء',
       'footer-col-support':'المساعدة والدعم','footer-track':'تتبع طلبي','footer-shipping':'معلومات الشحن','footer-returns':'الإرجاع والاستبدال','footer-faq':'الأسئلة الشائعة','footer-contact':'اتصل بنا',
       'footer-col-legal':'القانونية','footer-privacy':'سياسة الخصوصية','footer-cookie':'سياسة ملفات تعريف الارتباط','footer-terms':'الشروط والأحكام','footer-accessibility':'إمكانية الوصول',
-      'footer-copyright':'© 2027 UFS. جميع الحقوق محفوظة.'
+      'footer-copyright':'© 2027 UFS. جميع الحقوق محفوظة.',
+      'carousel-title':'عنوان الكاروسيل','carousel-desc':'وصف الكاروسيل، ويمكن أن يكون اختياريًا عند الحاجة إلى إضافة بعض السياق.','carousel-cta':'اكتشف المزيد'
     };
 
     var T_DE = {
@@ -3744,6 +4236,8 @@
       'mm-food-trends':'Food-Trends','mm-menu-plan':'Menüplanungstools','mm-chef-spot':'Koch-Spotlights','mm-success':'Erfolgsgeschichten',
       'mm-guides':'Downloadbare Leitfäden','mm-webinars':'Webinare & Veranstaltungen','mm-academy':'UFS Academy',
       'mm-promo3-over':'Kostenloses Modul','mm-promo3-title':'Umami meistern: ein kostenloses Online-Modul für Köche','mm-promo3-cta':'Jetzt lernen',
+      'mm-promotions-col1':'Aktuelle Angebote','mm-promo-seasonal':'Saisonale Angebote','mm-promo-bundle':'Bundle-Rabatte','mm-promo-clearance':'Ausverkauf','mm-promo-samples':'Gratisproben',
+      'mm-promotions-col2':'Treue & Prämien','mm-promo-points':'Punkteprogramm','mm-promo-referral':'Empfehlungsbonus','mm-promo-perks':'Mitgliedervorteile','mm-promo-events':'Exklusive Events',
       'dr-view-more':'Mehr anzeigen','dr-more':'Mehr',
       'hero-eyebrow':'Professionelle kulinarische Lösungen','hero-title':'Jedes Gericht verfeinern<br>mit UFS',
       'hero-sub':'Premium-Saucen, kulinarische Basen und Gewürze – weltweit vertraut bei Köchen und Gastronomiebetreibern.',
@@ -3789,7 +4283,8 @@
       'footer-col-company':'Unternehmen','footer-about':'Über uns','footer-brands':'Marken','footer-sustainability':'Nachhaltigkeit','footer-trade':'Handelsbedingungen','footer-partners':'Partner',
       'footer-col-support':'Hilfe & Support','footer-track':'Meine Bestellung verfolgen','footer-shipping':'Versandinfo','footer-returns':'Rücksendung & Umtausch','footer-faq':'FAQ','footer-contact':'Kontakt',
       'footer-col-legal':'Rechtliches','footer-privacy':'Datenschutzrichtlinie','footer-cookie':'Cookie-Richtlinie','footer-terms':'Allgemeine Geschäftsbedingungen','footer-accessibility':'Barrierefreiheit',
-      'footer-copyright':'© 2027 UFS. Alle Rechte vorbehalten.'
+      'footer-copyright':'© 2027 UFS. Alle Rechte vorbehalten.',
+      'carousel-title':'Karussell-Titel','carousel-desc':'Karussell-Beschreibung – optional, falls zusätzlicher Kontext benötigt wird','carousel-cta':'Weitere Artikel entdecken'
     };
 
     var MOCK_SUGGESTIONS_AR = [
@@ -4084,9 +4579,182 @@
     var regFullName          = 'Giuseppe Buscicchio';
     var regInitialsText      = 'GB';
 
+    // ================================================================
+    // Unified email/phone sign-in field — live detection + demo phone parsing.
+    // This is an illustrative subset (7 countries, simplified NSN-length checks
+    // and trunk-prefix rules) standing in for a real parser. A production build
+    // should replace REG_PHONE_COUNTRIES/regParsePhone with a proper library
+    // (e.g. libphonenumber-js) rather than extending this by hand.
+    // ================================================================
+    var regContactMode = null; // 'email' | 'phone' | null, set by regContactDetect()
+
+    var REG_PHONE_COUNTRIES = [
+      { iso: 'US', dial: '+1',  nsnLen: [10],    trunkZero: false, locales: ['en-US', 'en-CA'] },
+      { iso: 'GB', dial: '+44', nsnLen: [10],    trunkZero: true,  locales: ['en-GB'] },
+      { iso: 'IT', dial: '+39', nsnLen: [9, 10], trunkZero: false, locales: ['it', 'it-IT'] },
+      { iso: 'FR', dial: '+33', nsnLen: [9],     trunkZero: true,  locales: ['fr', 'fr-FR'] },
+      { iso: 'ES', dial: '+34', nsnLen: [9],     trunkZero: false, locales: ['es', 'es-ES'] },
+      { iso: 'DE', dial: '+49', nsnLen: [10, 11],trunkZero: true,  locales: ['de', 'de-DE'] },
+      { iso: 'BR', dial: '+55', nsnLen: [10, 11],trunkZero: false, locales: ['pt-BR'] }
+    ];
+
+    // Best-guess default country from the browser locale — a real build would
+    // likely also weigh IP geolocation. Always overridable by typing an explicit '+'.
+    function regDefaultCountry() {
+      var lang = navigator.language || 'en-US';
+      var short = lang.split('-')[0];
+      for (var i = 0; i < REG_PHONE_COUNTRIES.length; i++) {
+        if (REG_PHONE_COUNTRIES[i].locales.indexOf(lang) !== -1) return REG_PHONE_COUNTRIES[i];
+      }
+      for (var j = 0; j < REG_PHONE_COUNTRIES.length; j++) {
+        if (REG_PHONE_COUNTRIES[j].locales.indexOf(short) !== -1) return REG_PHONE_COUNTRIES[j];
+      }
+      return REG_PHONE_COUNTRIES[0]; // fallback: US
+    }
+
+    // Strips spaces/dashes/parens and normalizes a leading '00' to '+', regardless
+    // of whether the text was typed or pasted.
+    function regCleanPhoneChars(raw) {
+      var s = raw.trim().replace(/[\s\-().]/g, '');
+      if (s.slice(0, 2) === '00') s = '+' + s.slice(2);
+      return s;
+    }
+
+    function regLooksLikePhone(raw) {
+      var s = raw.trim();
+      if (!s || s.indexOf('@') !== -1) return false;
+      return /^[+0]?[\d\s\-().]{1,}$/.test(s) && /\d/.test(s);
+    }
+
+    function regGroupDigits(digits) {
+      // simple 3-3-(rest, up to 4) grouping for a readable demo format, not locale-accurate.
+      // The last chunk absorbs any remainder <= 4 so a 10-digit number reads "345 123 4567",
+      // not an orphaned trailing single digit like "345 123 456 7".
+      var out = [], i = 0, n = digits.length;
+      while (i < n) {
+        if (n - i <= 4) { out.push(digits.slice(i)); break; }
+        out.push(digits.slice(i, i + 3));
+        i += 3;
+      }
+      return out.join(' ');
+    }
+
+    // Resolves raw input against either an explicit '+countrycode' the user typed,
+    // or defaultCountry (inferred from locale) if none was given.
+    function regParsePhone(raw, defaultCountry) {
+      var cleaned = regCleanPhoneChars(raw);
+      var country, nsn;
+
+      if (cleaned.charAt(0) === '+') {
+        var byLongestDial = REG_PHONE_COUNTRIES.slice().sort(function (a, b) { return b.dial.length - a.dial.length; });
+        country = null;
+        for (var i = 0; i < byLongestDial.length; i++) {
+          if (cleaned.indexOf(byLongestDial[i].dial) === 0) { country = byLongestDial[i]; nsn = cleaned.slice(country.dial.length); break; }
+        }
+        if (!country) return { valid: false, reason: 'unknown-country-code' };
+      } else {
+        country = defaultCountry;
+        nsn = (country.trunkZero && cleaned.charAt(0) === '0') ? cleaned.slice(1) : cleaned;
+      }
+
+      if (!nsn || !/^\d+$/.test(nsn)) return { valid: false, reason: 'non-digit' };
+      if (country.nsnLen.indexOf(nsn.length) === -1) return { valid: false, reason: 'length', country: country };
+
+      return { valid: true, country: country, formatted: country.dial + ' ' + regGroupDigits(nsn) };
+    }
+
+    // Runs on every keystroke: picks email/phone/neutral, updates the leading icon
+    // (dim while still-typing/unresolved, solid once parsed successfully) and the
+    // assumed-country hint. Deliberately does NOT reformat the text live — only
+    // the icon/hint update per keystroke — to avoid the caret jumping mid-type.
+    function regContactDetect() {
+      var input = document.getElementById('reg-email-input');
+      var wrap  = document.getElementById('reg-contact-wrap');
+      var icon  = document.getElementById('reg-contact-icon');
+      var hint  = document.getElementById('reg-contact-hint');
+      var val   = input.value;
+
+      input.classList.remove('is-invalid');
+      hint.classList.remove('is-error');
+
+      if (!val.trim()) {
+        regContactMode = null;
+        wrap.classList.remove('has-icon');
+        icon.classList.remove('is-provisional', 'is-resolved');
+        hint.textContent = '';
+        return;
+      }
+
+      if (val.indexOf('@') !== -1) {
+        regContactMode = 'email';
+        wrap.classList.add('has-icon');
+        icon.src = 'icons/email.svg';
+        icon.classList.remove('is-provisional');
+        icon.classList.add('is-resolved');
+        hint.textContent = '';
+        return;
+      }
+
+      if (regLooksLikePhone(val)) {
+        regContactMode = 'phone';
+        wrap.classList.add('has-icon');
+        icon.src = 'icons/phone.svg';
+        var result = regParsePhone(val, regDefaultCountry());
+        if (result.valid) {
+          icon.classList.remove('is-provisional');
+          icon.classList.add('is-resolved');
+          hint.textContent = val.charAt(0) === '+' ? '' :
+            'Assuming ' + result.country.iso + ' (' + result.country.dial + ') based on your device — include a ‘+’ and country code if that’s not right.';
+        } else {
+          icon.classList.remove('is-resolved');
+          icon.classList.add('is-provisional');
+          hint.textContent = '';
+        }
+        return;
+      }
+
+      regContactMode = null;
+      wrap.classList.remove('has-icon');
+      icon.classList.remove('is-provisional', 'is-resolved');
+      hint.textContent = '';
+    }
+
+    // Commits the canonical, reformatted value once the user leaves the field —
+    // this is where the visible "cleaned result" (+39 345 123 4567) actually appears.
+    function regContactCommit() {
+      var input = document.getElementById('reg-email-input');
+      var val = input.value.trim();
+      if (!val || regContactMode !== 'phone') return;
+
+      var result = regParsePhone(val, regDefaultCountry());
+      if (result.valid) {
+        input.value = result.formatted;
+        // Stand-in for the canonical E.164 string a real backend would store/match on.
+        input.dataset.canonical = result.formatted.replace(/\s/g, '');
+        document.getElementById('reg-contact-icon').classList.remove('is-provisional');
+        document.getElementById('reg-contact-icon').classList.add('is-resolved');
+      }
+    }
+
     function regSubmitEmail() {
-      var email = document.getElementById('reg-email-input').value.trim();
-      if (!email) { document.getElementById('reg-email-input').focus(); return; }
+      var input = document.getElementById('reg-email-input');
+      var hint  = document.getElementById('reg-contact-hint');
+
+      regContactCommit();
+      var email = input.value.trim();
+      if (!email) { input.focus(); return; }
+
+      var isValidEmail = regContactMode === 'email' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      var isValidPhone = regContactMode === 'phone' && regParsePhone(email, regDefaultCountry()).valid;
+
+      if (!isValidEmail && !isValidPhone) {
+        input.classList.add('is-invalid');
+        hint.classList.add('is-error');
+        hint.textContent = 'Enter a valid email or mobile number, including your country code.';
+        input.focus();
+        return;
+      }
+
       document.getElementById('reg-email-display').textContent   = email;
       document.getElementById('reg-email-display-2').textContent = email;
       document.getElementById('reg-step-email').style.display   = 'none';
@@ -4284,6 +4952,7 @@
       document.getElementById('reg-step-success').style.display  = 'none';
 
       document.getElementById('reg-email-input').value    = '';
+      regContactDetect();
       document.getElementById('reg-business-display').textContent = '';
       document.getElementById('reg-name').value           = '';
       document.getElementById('reg-lastname').value       = '';
@@ -4417,6 +5086,7 @@
       openSignIn();
 
       document.getElementById('reg-email-input').value           = email;
+      regContactDetect();
       document.getElementById('reg-email-display').textContent   = email;
       document.getElementById('reg-email-display-2').textContent = email;
       document.getElementById('reg-name').value          = name;

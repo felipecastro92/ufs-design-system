@@ -1,0 +1,1685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flex Carousel — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.25); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-700); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-700); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.45); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-id  { color: #d2a8ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+    .t-st  { color: #fde68a; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 200px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .token-note { color: var(--color-mushroom-700); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       TOKEN COMPARISON TABLE (variant overrides)
+    ═══════════════════════════════════════ */
+    .variant-table-wrap { overflow-x: auto; margin-top: 10px; max-width: 1600px; }
+    .variant-table { border-collapse: collapse; width: 100%; min-width: 780px; font-size: 12px; }
+    .variant-table th, .variant-table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--color-mushroom-300); white-space: nowrap; }
+    .variant-table th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-mushroom-700); background: var(--color-mushroom-100); }
+    .variant-table td:first-child, .variant-table th:first-child { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .variant-table td:not(:first-child) { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .variant-table td.is-unset { color: var(--color-mushroom-500); font-style: italic; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       INTRO GRID
+    ═══════════════════════════════════════ */
+    .intro-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-top: 28px; max-width: 860px; }
+    .intro-card { background: var(--color-salt); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-xs); border-top: 3px solid var(--color-brand-dark); }
+    .intro-card-icon { font-size: 20px; margin-bottom: 10px; }
+    .intro-card-title { font-size: 13px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 5px; }
+    .intro-card-text  { font-size: 12px; line-height: 18px; color: var(--color-smoke); }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow-x: auto; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the component's own @media (max-width: 768px) block scoped
+       to .pv-mobile with !important. Doc-only; not a production class. */
+    .pv-mobile .ufs-flex-carousel { padding: 56px var(--space-4) !important; gap: var(--space-6) !important; }
+    .pv-mobile .ufs-flex-carousel__desc { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mobile .ufs-flex-carousel__cta { display: none !important; }
+    .pv-mobile .ufs-flex-carousel__cta--mobile { display: block !important; width: 100% !important; }
+    .pv-mobile .ufs-carousel-track { padding-right: var(--space-4) !important; }
+    .pv-mobile .ufs-carousel-spacer { flex-basis: var(--space-4) !important; }
+    .pv-mobile .ufs-carousel-card { margin-right: var(--space-6) !important; }
+    .pv-mobile .ufs-flex-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)) !important; margin-right: calc(-1 * var(--space-4)) !important; }
+    .pv-mobile .ufs-flex-carousel__foot { justify-content: center !important; }
+    .pv-mobile .ufs-carousel-dots { flex: 1 !important; justify-content: center !important; }
+    .pv-mobile .ufs-flex-carousel__arrows { display: none !important; }
+
+    /* DS buttons — the carousel CTA reuses .btn/.btn-secondary, so the
+       previews below need the base button system available, not just the
+       carousel's own CSS. */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+
+    /* ═══════════════════════════════════════
+       FLEX CAROUSEL COMPONENT CSS — mirrored 1:1 from
+       handover/full-page-preview-v0.2.html (source of truth)
+    ═══════════════════════════════════════ */
+
+    /* ── Flex Carousel ───────────────────────────────────── */
+    /* Local component tokens — the 3 colour variants below only override
+       these, every rule underneath reads from them instead of hardcoding
+       a colour, so a variant is purely a token swap, no rule duplication. */
+    .ufs-flex-carousel {
+      --carousel-title-color: var(--color-brand-dark);
+      --carousel-desc-color: var(--color-mushroom-900);
+      --carousel-btn-border: var(--color-accessible-orange);
+      --carousel-btn-color: var(--color-accessible-orange);
+      --carousel-btn-hover-bg: var(--color-mushroom-100);
+      --carousel-card-bg: var(--color-mushroom-100);
+      --carousel-dot-inactive: var(--color-squid-300);
+      --carousel-arrow-border: var(--color-squid-300);
+      --carousel-arrow-color: var(--color-squid-300);
+      --carousel-arrow-bg: var(--color-salt);
+      --carousel-arrow-active-bg: var(--color-mushroom-300);
+      background: var(--color-salt);
+      padding: var(--space-20) var(--space-24);
+      display: flex; flex-direction: column; gap: var(--space-8);
+    }
+    .ufs-flex-carousel__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6); }
+    .ufs-flex-carousel__intro { display: flex; flex-direction: column; gap: var(--space-3); flex: 1; min-width: 0; }
+    .ufs-flex-carousel__title { color: var(--carousel-title-color); margin: 0; }
+    .ufs-flex-carousel__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--carousel-desc-color); margin: 0; }
+    .ufs-flex-carousel__cta { flex-shrink: 0; border-color: var(--carousel-btn-border); color: var(--carousel-btn-color); }
+    .ufs-flex-carousel__cta:hover:not(:disabled):not(.btn-loading) { background: var(--carousel-btn-hover-bg); }
+    .ufs-flex-carousel__cta--mobile { display: none; }
+
+    /* Bleed: the scrollable/clip area spans the true screen edge on BOTH
+       sides (so cards stay visible all the way to the edge while scrolling
+       out, instead of being clipped early at the section's own padding).
+       The trailing edge uses real padding on the track (browsers respect
+       end-edge padding in a scroll container), but the leading edge needs a
+       real flex-item spacer instead of padding-left — Chromium doesn't
+       honor start-edge padding on a scrollable flex container (it just
+       starts scrollLeft at that offset, hiding it) — so a spacer recreates
+       the "first card lines up with the title" resting alignment reliably. */
+    .ufs-flex-carousel__track-wrap { align-self: stretch; margin-left: calc(-1 * var(--space-24)); margin-right: calc(-1 * var(--space-24)); }
+    .ufs-carousel-track {
+      display: flex;
+      overflow-x: auto; scroll-behavior: smooth;
+      scrollbar-width: none; -ms-overflow-style: none;
+      padding-right: var(--space-24);
+    }
+    .ufs-carousel-track::-webkit-scrollbar { display: none; }
+    .ufs-carousel-spacer { flex: 0 0 var(--space-24); }
+    .ufs-carousel-card {
+      width: 270px; height: 270px; flex-shrink: 0;
+      background: var(--carousel-card-bg); border-radius: var(--radius-lg);
+      margin-right: var(--space-8);
+    }
+    .ufs-carousel-card:last-child { margin-right: 0; }
+
+    .ufs-flex-carousel__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+
+    /* Pagination — dynamic/"shrinking window" bullets, mirrors the Figma spec:
+       active = wide pill, then two normal dots, one smaller, one smallest;
+       everything beyond that window collapses away. All properties transition
+       so moving the active index animates the whole row, not just a swap. */
+    .ufs-carousel-dots { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-carousel-dot {
+      width: 6px; height: 6px; border-radius: var(--radius-full);
+      background: var(--carousel-dot-inactive); border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+      transition: width 0.25s ease, height 0.25s ease, background-color 0.25s ease, opacity 0.25s ease, margin 0.25s ease;
+    }
+    .ufs-carousel-dot.is-active { width: 30px; height: 6px; border-radius: 50px; background: var(--color-brand-primary); }
+    .ufs-carousel-dot.is-near   { width: 6px; height: 6px; }
+    .ufs-carousel-dot.is-far    { width: 4px; height: 4px; }
+    .ufs-carousel-dot.is-edge   { width: 2px; height: 2px; }
+    .ufs-carousel-dot.is-hidden { width: 0; height: 0; opacity: 0; margin-left: -4px; margin-right: -4px; pointer-events: none; }
+
+    .ufs-flex-carousel__arrows { display: flex; align-items: center; gap: var(--space-4); }
+    .ufs-carousel-arrow {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border: 1px solid var(--carousel-arrow-border); border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs);
+      background: var(--carousel-arrow-bg); color: var(--carousel-arrow-color);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .ufs-carousel-arrow--next { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+    .ufs-carousel-arrow svg { width: 14px; height: 14px; display: block; }
+    .ufs-carousel-arrow--prev svg { transform: scaleX(-1); }
+    /* Same hover treatment as .btn-secondary — background fill only, no
+       border/icon colour shift — using the same per-variant hover token the
+       secondary CTA uses, so both controls react identically in every variant. */
+    .ufs-carousel-arrow:hover:not(:disabled) { background: var(--carousel-btn-hover-bg); }
+    .ufs-carousel-arrow:active:not(:disabled) { background: var(--carousel-arrow-active-bg); }
+    .ufs-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* Colour variants — pure token swaps against the custom properties above.
+       "Image" additionally needs a background image + overlay, and blurs the
+       (still-transparent) card placeholders for the frosted-glass look. */
+    .ufs-flex-carousel--squid {
+      background: var(--color-brand-dark);
+      --carousel-title-color: var(--color-salt);
+      --carousel-desc-color: rgba(255,255,255,0.75);
+      --carousel-btn-border: var(--color-salt);
+      --carousel-btn-color: var(--color-salt);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.12);
+      --carousel-card-bg: color-mix(in srgb, var(--color-mushroom-500) 30%, transparent);
+      --carousel-dot-inactive: var(--color-mushroom-500);
+      --carousel-arrow-border: var(--color-mushroom-500);
+      --carousel-arrow-color: var(--color-mushroom-500);
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-active-bg: rgba(255,255,255,0.2);
+    }
+    .ufs-flex-carousel--mushroom {
+      background: var(--color-mushroom-100);
+      --carousel-card-bg: var(--color-salt);
+      /* Section bg IS mushroom-100, so the default mushroom-100 hover fill
+         would be invisible — fill white instead for both CTA and arrows.
+         Arrows rest transparent (no fill) and only fill white on hover. */
+      --carousel-btn-hover-bg: var(--color-salt);
+      --carousel-arrow-bg: transparent;
+    }
+    /* mushroom-100 is too light for the #FF5A00 active dot (2.83:1) — swap
+       to orange-700 on this variant so the indicator clears AA 3:1 (4.09:1). */
+    .ufs-flex-carousel--mushroom .ufs-carousel-dot.is-active { background: var(--color-orange-700); }
+    .ufs-flex-carousel--image {
+      background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/M_GPP_6074.jpg');
+      background-size: cover, cover; background-position: center, center; background-repeat: no-repeat, no-repeat;
+      --carousel-title-color: var(--color-salt);
+      --carousel-desc-color: rgba(255,255,255,0.75);
+      --carousel-btn-border: var(--color-salt);
+      --carousel-btn-color: var(--color-salt);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.15);
+      --carousel-card-bg: rgba(255,255,255,0.5);
+      --carousel-dot-inactive: var(--color-salt);
+      --carousel-arrow-border: var(--color-salt);
+      --carousel-arrow-color: var(--color-salt);
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-active-bg: rgba(255,255,255,0.25);
+    }
+    .ufs-flex-carousel--image .ufs-carousel-card { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+
+    @media (max-width: 768px) {
+      .ufs-flex-carousel { padding: 56px var(--space-4); gap: var(--space-6); }
+      .ufs-flex-carousel__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-flex-carousel__cta { display: none; }
+      .ufs-flex-carousel__cta--mobile { display: block; width: 100%; }
+      .ufs-carousel-track { padding-right: var(--space-4); }
+      .ufs-carousel-spacer { flex-basis: var(--space-4); }
+      .ufs-carousel-card { margin-right: var(--space-6); }
+      .ufs-carousel-card:last-child { margin-right: 0; }
+      .ufs-flex-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); }
+      .ufs-flex-carousel__foot { justify-content: center; }
+      .ufs-carousel-dots { flex: 1; justify-content: center; }
+      .ufs-flex-carousel__arrows { display: none; }
+    }
+
+    /* ── Flex Carousel — RTL (full mirror) ─────────────────
+       Physical (non-logical) properties flipped under dir="rtl"; the head row,
+       dots and arrow group re-order automatically via flex. See the i18n / RTL
+       section for the full explanation. Scoped to dir="rtl" so the forced-RTL
+       preview on this page mirrors while the rest of the doc stays LTR. */
+    [dir="rtl"] .ufs-carousel-track { padding-right: 0; padding-left: var(--space-24); }
+    [dir="rtl"] .ufs-carousel-card { margin-right: 0; margin-left: var(--space-8); }
+    [dir="rtl"] .ufs-carousel-card:last-child { margin-left: 0; }
+    [dir="rtl"] .ufs-carousel-arrow { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-carousel-arrow--next { border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-carousel-arrow--prev svg { transform: none; }
+    [dir="rtl"] .ufs-carousel-arrow--next svg { transform: scaleX(-1); }
+    @media (max-width: 768px) {
+      [dir="rtl"] .ufs-carousel-track { padding-right: 0; padding-left: var(--space-4); }
+      [dir="rtl"] .ufs-carousel-card { margin-right: 0; margin-left: var(--space-6); }
+      [dir="rtl"] .ufs-carousel-card:last-child { margin-left: 0; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy — 3 Rows</a>
+      <a href="#cards" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Card Placeholders</a>
+      <a href="#pagination" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Pagination — Dynamic Bullets</a>
+      <a href="#arrows" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Arrow Controls</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behaviour</div>
+      <a href="#bleed" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Edge-to-Edge Bleed</a>
+      <a href="#interaction" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Interaction &amp; Scroll</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#responsive" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop vs. Mobile</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#variants" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Colour Variants</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source of truth: full-page-preview-v0.2.html<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Flex Carousel</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Flex <span>Carousel</span></h1>
+        <p class="doc-header-desc">Structure, pagination/arrow behaviour, responsive rules and the 4 colour variants — documented for implementation.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">full-page-preview-v0.2.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════
+         OVERVIEW
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A self-contained, full-width section built from 3 stacked rows: a <strong>title + description + secondary CTA</strong> row, a horizontally-scrolling <strong>card track</strong>, and a <strong>pagination + arrow controls</strong> row. Every preview on this page is the real, working component — not a screenshot — so the arrows, dots and swipe behaviour below are fully interactive.</p>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Card content/design is not final — the 10 cards below are placeholders (fixed 270×270, <code>--color-mushroom-100</code>, <code>--radius-lg</code>). The component doesn't care what's inside a card or how many there are; both are safe to change without touching the JS.</div>
+      </div>
+
+      <div class="intro-grid">
+        <div class="intro-card">
+          <div class="intro-card-icon">🧱</div>
+          <div class="intro-card-title">3-row structure</div>
+          <div class="intro-card-text">Head (intro + CTA), track (cards), foot (pagination + arrows) — each documented in its own section below.</div>
+        </div>
+        <div class="intro-card">
+          <div class="intro-card-icon">📱</div>
+          <div class="intro-card-title">Independent mobile layout</div>
+          <div class="intro-card-text">Below 768px the CTA relocates below the track as a full-width block, arrows disappear, and only centred pagination remains — see Desktop vs. Mobile.</div>
+        </div>
+        <div class="intro-card">
+          <div class="intro-card-icon">🎨</div>
+          <div class="intro-card-title">4 colour looks, 1 codebase</div>
+          <div class="intro-card-text">Default, Squid Ink, Mushroom-100 and a background-image variant are all the same markup/JS — only a handful of CSS custom properties change. See Colour Variants.</div>
+        </div>
+      </div>
+
+      <div class="ds-card" style="max-width:none;padding:0;overflow:hidden;">
+            <section class="ufs-flex-carousel">
+              <div class="ufs-flex-carousel__head">
+                <div class="ufs-flex-carousel__intro">
+                  <h2 class="ufs-flex-carousel__title text-h3">Carousel title</h2>
+                  <p class="ufs-flex-carousel__desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+                </div>
+                <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+              </div>
+
+              <div class="ufs-flex-carousel__track-wrap">
+                <div class="ufs-carousel-track">
+                  <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                </div>
+              </div>
+
+              <div class="ufs-flex-carousel__foot">
+                <div class="ufs-carousel-dots"></div>
+                <div class="ufs-flex-carousel__arrows">
+                  <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                  </button>
+                  <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+            </section>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         ANATOMY — 3 ROWS
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy — 3 Rows</h2>
+      <p class="section-desc">The component is a single <code>&lt;section class="ufs-flex-carousel"&gt;</code> containing three direct row groups, always in this order. Live preview and full markup are above (Overview) — this is the complete reference code for the default look.</p>
+
+      <div class="ds-card">
+        <div class="card-subtitle">Row 1 — <code>.ufs-flex-carousel__head</code></div>
+        <div class="card-desc" style="margin-bottom:12px">Title + optional description in <code>.ufs-flex-carousel__intro</code> (flex: 1, so it eats remaining width), plus the secondary CTA — aligned via <code>align-items: flex-end</code> so the shorter button sits flush with the baseline of the taller text stack.</div>
+        <div class="pv-light" style="margin-bottom:24px;">
+          <div class="ufs-flex-carousel" style="padding:20px 24px;">
+            <div class="ufs-flex-carousel__head">
+              <div class="ufs-flex-carousel__intro">
+                <h2 class="ufs-flex-carousel__title text-h3">Carousel title</h2>
+                <p class="ufs-flex-carousel__desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+              </div>
+              <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Row 2 — <code>.ufs-flex-carousel__track-wrap</code> → <code>.ufs-carousel-track</code></div>
+        <div class="card-desc" style="margin-bottom:12px">A horizontally-scrolling flex row. First child is an invisible <code>.ufs-carousel-spacer</code> (not a card — see Edge-to-Edge Bleed for why), followed by N <code>.ufs-carousel-card</code> placeholders.</div>
+        <div class="pv-light" style="margin-bottom:24px;">
+          <div class="ufs-flex-carousel" style="padding:20px 0;">
+            <div class="ufs-flex-carousel__track-wrap" style="margin-left:0;margin-right:0;">
+              <div class="ufs-carousel-track" style="overflow-x:visible;">
+                <div class="ufs-carousel-spacer" aria-hidden="true" style="flex-basis:24px;"></div>
+                <div class="ufs-carousel-card"></div>
+                <div class="ufs-carousel-card"></div>
+                <div class="ufs-carousel-card"></div>
+                <div class="ufs-carousel-card"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Row 3 — <code>.ufs-flex-carousel__foot</code></div>
+        <div class="card-desc" style="margin-bottom:12px">Pagination dots (<code>.ufs-carousel-dots</code>) on the left, arrow controls (<code>.ufs-flex-carousel__arrows</code>) on the right — <code>justify-content: space-between</code>. A second, mobile-only CTA (<code>.ufs-flex-carousel__cta--mobile</code>) sits after this row, hidden on desktop.</div>
+        <div class="pv-light">
+          <div class="ufs-flex-carousel" style="padding:20px 24px;">
+            <div class="ufs-flex-carousel__foot">
+              <div class="ufs-carousel-dots">
+                <button type="button" class="ufs-carousel-dot is-active" aria-label="Go to item 1" aria-current="true"></button>
+                <button type="button" class="ufs-carousel-dot is-near" aria-label="Go to item 2" aria-current="false"></button>
+                <button type="button" class="ufs-carousel-dot is-near" aria-label="Go to item 3" aria-current="false"></button>
+                <button type="button" class="ufs-carousel-dot is-far" aria-label="Go to item 4" aria-current="false"></button>
+                <button type="button" class="ufs-carousel-dot is-edge" aria-label="Go to item 5" aria-current="false"></button>
+              </div>
+              <div class="ufs-flex-carousel__arrows">
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items" disabled>
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                </button>
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+                <div class="code-block-wrap">
+                  <div class="code-tabs">
+                    <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+                    <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+                  </div>
+                  <div class="code-panel active" data-tab="anatomy-html">
+                    <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body">    <span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel"</span><span class="t-tag">&gt;</span>
+              <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel__head"</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel__intro"</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel__title text-h3"</span><span class="t-tag">&gt;</span>Carousel title<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel__desc"</span><span class="t-tag">&gt;</span>Carousel description this can be optional if it&amp;rsquo;s needed to add some context<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary ufs-flex-carousel__cta"</span><span class="t-tag">&gt;</span>Discover more items<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+              <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+              <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel__track-wrap"</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-track"</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-spacer"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+              <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+              <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel__foot"</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dots"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel__arrows"</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-arrow ufs-carousel-arrow--prev"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Previous items"</span><span class="t-tag">&gt;</span>
+                    <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 12 12"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"4 2 8 6 4 10"</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-arrow ufs-carousel-arrow--next"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Next items"</span><span class="t-tag">&gt;</span>
+                    <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 12 12"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"4 2 8 6 4 10"</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+              <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+              <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile"</span><span class="t-tag">&gt;</span>Discover more items<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+            <span class="t-tag">&lt;/section</span><span class="t-tag">&gt;</span></pre>
+                  </div>
+                  <div class="code-panel" data-tab="anatomy-css">
+                    <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body">    <span class="t-cm">/* ── Flex Carousel ───────────────────────────────────── */</span>
+            /* Local component tokens — the 3 colour variants below only override
+               these, every rule underneath reads from them instead of hardcoding
+               a colour, so a variant is purely a token swap, no rule duplication. */
+            .ufs-flex-carousel {
+              --carousel-title-color: var(--color-brand-dark);
+              --carousel-desc-color: var(--color-mushroom-900);
+              --carousel-btn-border: var(--color-accessible-orange);
+              --carousel-btn-color: var(--color-accessible-orange);
+              --carousel-btn-hover-bg: var(--color-mushroom-100);
+              --carousel-card-bg: var(--color-mushroom-100);
+              --carousel-dot-inactive: var(--color-squid-300);
+              --carousel-arrow-border: var(--color-squid-300);
+              --carousel-arrow-color: var(--color-squid-300);
+              --carousel-arrow-bg: var(--color-salt);
+              --carousel-arrow-active-bg: var(--color-mushroom-300);
+              background: var(--color-salt);
+              padding: var(--space-20) var(--space-24);
+              display: flex; flex-direction: column; gap: var(--space-8);
+            }
+            <span class="t-pr">.ufs-flex-carousel__head</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">flex-end</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; }
+            <span class="t-pr">.ufs-flex-carousel__intro</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; }
+            <span class="t-pr">.ufs-flex-carousel__title</span> { <span class="t-pr">color</span>: <span class="t-va">var(--carousel-title-color)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+            <span class="t-pr">.ufs-flex-carousel__desc</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--carousel-desc-color)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+            <span class="t-pr">.ufs-flex-carousel__cta</span> { <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">border-color</span>: <span class="t-va">var(--carousel-btn-border)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--carousel-btn-color)</span>; }
+            <span class="t-pr">.ufs-flex-carousel__cta:hover:not(:disabled):not(.btn-loading)</span> { <span class="t-pr">background</span>: <span class="t-va">var(--carousel-btn-hover-bg)</span>; }
+            <span class="t-pr">.ufs-flex-carousel__cta--mobile</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+
+            /* Bleed: the scrollable/clip area spans the true screen edge on BOTH
+               sides (so cards stay visible all the way to the edge while scrolling
+               out, instead of being clipped early at the section's own padding).
+               The trailing edge uses real padding on the track (browsers respect
+               end-edge padding in a scroll container), but the leading edge needs a
+               real flex-item spacer instead of padding-left — Chromium doesn't
+               honor start-edge padding on a scrollable flex container (it just
+               starts scrollLeft at that offset, hiding it) — so a spacer recreates
+               the "first card lines up with the title" resting alignment reliably. */
+            <span class="t-pr">.ufs-flex-carousel__track-wrap</span> { <span class="t-pr">align-self</span>: <span class="t-vl">stretch</span>; <span class="t-pr">margin-left</span>: <span class="t-vl">calc(-1 * var(--space-24))</span>; <span class="t-pr">margin-right</span>: <span class="t-vl">calc(-1 * var(--space-24))</span>; }
+            .ufs-carousel-track {
+              display: flex;
+              overflow-x: auto; scroll-behavior: smooth;
+              scrollbar-width: none; -ms-overflow-style: none;
+              padding-right: var(--space-24);
+            }
+            <span class="t-pr">.ufs-carousel-track::-webkit-scrollbar</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+            <span class="t-pr">.ufs-carousel-spacer</span> { <span class="t-pr">flex</span>: <span class="t-vl">0 0 var(--space-24)</span>; }
+            .ufs-carousel-card {
+              width: 270px; height: 270px; flex-shrink: 0;
+              background: var(--carousel-card-bg); border-radius: var(--radius-lg);
+              margin-right: var(--space-8);
+            }
+            <span class="t-pr">.ufs-carousel-card:last-child</span> { <span class="t-pr">margin-right</span>: <span class="t-vl">0</span>; }
+
+            <span class="t-pr">.ufs-flex-carousel__foot</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; }</pre>
+                  </div>
+                </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Section padding</span><span class="token-var">--space-20 --space-24</span><span class="token-note">80px vertical, 96px horizontal (desktop)</span></div>
+          <div class="token-row"><span class="token-prop">Row gap</span><span class="token-var">--space-8</span><span class="token-note">between head / track / foot</span></div>
+          <div class="token-row"><span class="token-prop">Title ↔ description gap</span><span class="token-var">--space-3</span><span class="token-note"></span></div>
+          <div class="token-row"><span class="token-prop">Title style</span><span class="token-var">.text-h3</span><span class="token-note">shared DS heading scale, auto-shrinks on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Card size</span><span class="token-var">270 × 270px</span><span class="token-note">fixed, not responsive</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>Every rule in this component reads its colours from local custom properties (<code>--carousel-*</code>) defined on <code>.ufs-flex-carousel</code> itself, not from design tokens directly. This is what makes the colour variants a pure token swap — see Colour Variants before hand-editing any colour here.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         CARD PLACEHOLDERS
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="cards">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Card Placeholders</h2>
+      <p class="section-desc">Card content/design hasn't been finalised yet. What ships today is a plain, fixed-size box — everything else (count, content, click behaviour) is deliberately left open for the next iteration.</p>
+
+              <div class="code-block-wrap">
+                <div class="code-tabs">
+                  <div class="code-tab active" onclick="switchTab(this,'cards-html')">HTML</div>
+                  <div class="code-tab" onclick="switchTab(this,'cards-css')">CSS</div>
+                </div>
+                <div class="code-panel active" data-tab="cards-html">
+                  <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre class="code-body">        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-track"</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-spacer"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                <span class="t-cm">&lt;!-- … 6 more .ufs-carousel-card placeholders … --&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-card"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+              <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+                </div>
+                <div class="code-panel" data-tab="cards-css">
+                  <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre class="code-body">    <span class="t-pr">.ufs-carousel-spacer</span> { <span class="t-pr">flex</span>: <span class="t-vl">0 0 var(--space-24)</span>; }
+          .ufs-carousel-card {
+            width: 270px; height: 270px; flex-shrink: 0;
+            background: var(--carousel-card-bg); border-radius: var(--radius-lg);
+            margin-right: var(--space-8);
+          }
+          <span class="t-pr">.ufs-carousel-card:last-child</span> { <span class="t-pr">margin-right</span>: <span class="t-vl">0</span>; }</pre>
+                </div>
+              </div>
+
+      <div class="ds-card">
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Size</span><span class="token-var">270px × 270px</span><span class="token-note">fixed on both desktop and mobile</span></div>
+          <div class="token-row"><span class="token-prop">Background</span><span class="token-var">--carousel-card-bg</span><span class="token-note">defaults to --color-mushroom-100, varies per colour variant</span></div>
+          <div class="token-row"><span class="token-prop">Corner radius</span><span class="token-var">--radius-lg (16px)</span><span class="token-note"></span></div>
+          <div class="token-row"><span class="token-prop">Gap between cards (desktop)</span><span class="token-var">--space-8 (32px)</span><span class="token-note">via margin-right, not gap — see notice</span></div>
+          <div class="token-row"><span class="token-prop">Gap between cards (mobile)</span><span class="token-var">--space-6 (24px)</span><span class="token-note"></span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>The JS never hardcodes a card count — it reads <code>.ufs-carousel-track</code>'s actual <code>.ufs-carousel-card</code> children at init (<code>querySelectorAll</code>), builds one pagination dot per card found, and measures spacing from the rendered card positions. Add, remove, or resize cards and the pagination/arrow logic adapts automatically — no JS changes needed.</div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>Card-to-card spacing is <code>margin-right</code> on <code>.ufs-carousel-card</code> (with <code>:last-child</code> zeroed out), not CSS <code>gap</code> on the track. This is intentional — <code>gap</code> would also add space between the leading spacer and the first card, throwing off the "first card aligns with the title" resting position. Keep using margin-right if you ever add more cards or change the gap value.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         PAGINATION — DYNAMIC BULLETS
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="pagination">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Pagination — Dynamic Bullets</h2>
+      <p class="section-desc">Dots are entirely JS-generated at init — one <code>&lt;button class="ufs-carousel-dot"&gt;</code> per card, appended into the empty <code>.ufs-carousel-dots</code> container. Every property (width, height, colour, opacity) transitions, so re-rendering the states below animates the whole row rather than snapping between states. Click any dot in the live preview above (Overview) to see it — or use the arrows, which drive the same state.</p>
+
+      <div class="ds-card">
+        <div class="card-title">States</div>
+        <div class="card-desc">Applied per-dot as <code>Math.abs(dotIndex - activeIndex)</code> — a "distance from active" window, not a fixed count of visible pages.</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">distance 0 — .is-active</span><span class="token-var">30 × 6px pill, --color-brand-primary</span><span class="token-note">the current card</span></div>
+          <div class="token-row"><span class="token-prop">distance 1–2 — .is-near</span><span class="token-var">6 × 6px, --carousel-dot-inactive</span><span class="token-note">full-size neighbours</span></div>
+          <div class="token-row"><span class="token-prop">distance 3 — .is-far</span><span class="token-var">4 × 4px</span><span class="token-note">shrinking</span></div>
+          <div class="token-row"><span class="token-prop">distance 4 — .is-edge</span><span class="token-var">2 × 2px</span><span class="token-note">smallest visible dot</span></div>
+          <div class="token-row"><span class="token-prop">distance &gt; 4 — .is-hidden</span><span class="token-var">0 × 0px, opacity 0</span><span class="token-note">collapsed out, not display:none — still animatable</span></div>
+        </div>
+
+                <div class="code-block-wrap">
+                  <div class="code-tabs">
+                    <div class="code-tab active" onclick="switchTab(this,'pagination-html')">HTML</div>
+                    <div class="code-tab" onclick="switchTab(this,'pagination-css')">CSS</div>
+                  </div>
+                  <div class="code-panel active" data-tab="pagination-html">
+                    <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dots"</span><span class="t-tag">&gt;</span>
+          <span class="t-cm">&lt;!-- one dot button per card, generated by JS on init --&gt;</span>
+          <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dot is-active"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Go to item 1"</span> <span class="t-at">aria-current</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dot is-near"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Go to item 2"</span> <span class="t-at">aria-current</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dot is-near"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Go to item 3"</span> <span class="t-at">aria-current</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dot is-far"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Go to item 4"</span> <span class="t-at">aria-current</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dot is-edge"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Go to item 5"</span> <span class="t-at">aria-current</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dot is-hidden"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Go to item 6"</span> <span class="t-at">aria-current</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+          <span class="t-cm">&lt;!-- … remaining dots stay .is-hidden until they enter the window … --&gt;</span>
+        <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+                  </div>
+                  <div class="code-panel" data-tab="pagination-css">
+                    <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body">    /* Pagination — dynamic/"shrinking window" bullets, mirrors the Figma spec:
+               active = wide pill, then two normal dots, one smaller, one smallest;
+               everything beyond that window collapses away. All properties transition
+               so moving the active index animates the whole row, not just a swap. */
+            <span class="t-pr">.ufs-carousel-dots</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; }
+            .ufs-carousel-dot {
+              width: 6px; height: 6px; border-radius: var(--radius-full);
+              background: var(--carousel-dot-inactive); border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+              transition: width 0.25s ease, height 0.25s ease, background-color 0.25s ease, opacity 0.25s ease, margin 0.25s ease;
+            }
+            <span class="t-pr">.ufs-carousel-dot.is-active</span> { <span class="t-pr">width</span>: <span class="t-vl">30px</span>; <span class="t-pr">height</span>: <span class="t-vl">6px</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">50px</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-primary)</span>; }
+            <span class="t-pr">.ufs-carousel-dot.is-near</span> { <span class="t-pr">width</span>: <span class="t-vl">6px</span>; <span class="t-pr">height</span>: <span class="t-vl">6px</span>; }
+            <span class="t-pr">.ufs-carousel-dot.is-far</span> { <span class="t-pr">width</span>: <span class="t-vl">4px</span>; <span class="t-pr">height</span>: <span class="t-vl">4px</span>; }
+            <span class="t-pr">.ufs-carousel-dot.is-edge</span> { <span class="t-pr">width</span>: <span class="t-vl">2px</span>; <span class="t-pr">height</span>: <span class="t-vl">2px</span>; }
+            <span class="t-pr">.ufs-carousel-dot.is-hidden</span> { <span class="t-pr">width</span>: <span class="t-vl">0</span>; <span class="t-pr">height</span>: <span class="t-vl">0</span>; <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-left</span>: <span class="t-vl">-4px</span>; <span class="t-pr">margin-right</span>: <span class="t-vl">-4px</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; }</pre>
+                  </div>
+                </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Dot gap</span><span class="token-var">--space-2 (8px)</span><span class="token-note"></span></div>
+          <div class="token-row"><span class="token-prop">Transition</span><span class="token-var">width/height/background/opacity/margin 0.25s ease</span><span class="token-note"></span></div>
+          <div class="token-row"><span class="token-prop">Active colour</span><span class="token-var">--color-brand-primary</span><span class="token-note">every variant except Mushroom, which uses --color-orange-700 for AA contrast on the light beige bg</span></div>
+          <div class="token-row"><span class="token-prop">Inactive colour</span><span class="token-var">--carousel-dot-inactive</span><span class="token-note">defaults to --color-squid-300 (white + mushroom variants); squid uses mushroom-500, image uses salt</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>The window is capped at ±4 from the active dot (max 9 visible), regardless of total card count — with 10 cards there are always some hidden dots at rest; the window slides as you navigate. Dots are clickable and jump straight to that card (<code>goTo(index)</code>), same as an arrow click.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         ARROW CONTROLS
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="arrows">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Arrow Controls</h2>
+      <p class="section-desc">Two 40×40 buttons, one SVG chevron reused for both directions — the previous arrow just mirrors it with <code>transform: scaleX(-1)</code> rather than shipping a second icon. Each button gets a distinct, asymmetric corner radius rather than being a plain rounded square.</p>
+
+              <div class="code-block-wrap">
+                <div class="code-tabs">
+                  <div class="code-tab active" onclick="switchTab(this,'arrows-html')">HTML</div>
+                  <div class="code-tab" onclick="switchTab(this,'arrows-css')">CSS</div>
+                </div>
+                <div class="code-panel active" data-tab="arrows-html">
+                  <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre class="code-body">        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel__arrows"</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-arrow ufs-carousel-arrow--prev"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Previous items"</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 12 12"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"4 2 8 6 4 10"</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-arrow ufs-carousel-arrow--next"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Next items"</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 12 12"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"4 2 8 6 4 10"</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+              <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+                </div>
+                <div class="code-panel" data-tab="arrows-css">
+                  <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre class="code-body">    <span class="t-pr">.ufs-flex-carousel__arrows</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+          .ufs-carousel-arrow {
+            width: 40px; height: 40px; flex-shrink: 0;
+            border: 1px solid var(--carousel-arrow-border); border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs);
+            background: var(--carousel-arrow-bg); color: var(--carousel-arrow-color);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            transition: border-color 0.15s, background 0.15s, color 0.15s;
+          }
+          <span class="t-pr">.ufs-carousel-arrow--next</span> { <span class="t-pr">border-radius</span>: <span class="t-vl">var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs)</span>; }
+          <span class="t-pr">.ufs-carousel-arrow svg</span> { <span class="t-pr">width</span>: <span class="t-vl">14px</span>; <span class="t-pr">height</span>: <span class="t-vl">14px</span>; <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+          <span class="t-pr">.ufs-carousel-arrow--prev svg</span> { <span class="t-pr">transform</span>: <span class="t-vl">scaleX(-1)</span>; }
+          /* Same hover treatment as .btn-secondary — background fill only, no
+             border/icon colour shift — using the same per-variant hover token the
+             secondary CTA uses, so both controls react identically in every variant. */
+          <span class="t-pr">.ufs-carousel-arrow:hover:not(:disabled)</span> { <span class="t-pr">background</span>: <span class="t-va">var(--carousel-btn-hover-bg)</span>; }
+          <span class="t-pr">.ufs-carousel-arrow:active:not(:disabled)</span> { <span class="t-pr">background</span>: <span class="t-va">var(--carousel-arrow-active-bg)</span>; }
+          <span class="t-pr">.ufs-carousel-arrow:disabled</span> { <span class="t-pr">opacity</span>: <span class="t-vl">0.35</span>; <span class="t-pr">cursor</span>: <span class="t-vl">not-allowed</span>; }</pre>
+                </div>
+              </div>
+
+      <div class="ds-card">
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Size</span><span class="token-var">40 × 40px</span><span class="token-note"></span></div>
+          <div class="token-row"><span class="token-prop">Prev radius</span><span class="token-var">--radius-md --radius-xs --radius-xs --radius-xs</span><span class="token-note">top-left rounded</span></div>
+          <div class="token-row"><span class="token-prop">Next radius</span><span class="token-var">--radius-xs --radius-md --radius-xs --radius-xs</span><span class="token-note">top-right rounded</span></div>
+          <div class="token-row"><span class="token-prop">Border / icon colour</span><span class="token-var">--carousel-arrow-border / -color</span><span class="token-note">defaults to --color-squid-300 (white + mushroom variants)</span></div>
+          <div class="token-row"><span class="token-prop">Disabled state</span><span class="token-var">opacity: 0.35</span><span class="token-note">at the first/last card, no hover</span></div>
+        </div>
+
+        <div class="card-subtitle">Hover &amp; Active</div>
+        <div class="card-desc" style="margin-bottom:0">Deliberately matches <code>.btn-secondary</code>'s hover exactly — a background fill only, no border or icon colour change — using the very same per-variant hover token as the "Discover more items" CTA (<code>--carousel-btn-hover-bg</code>), so both controls always react identically in every colour variant. <code>:active</code> darkens the fill one step further via <code>--carousel-arrow-active-bg</code>.</div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Both buttons are disabled (not hidden) at the ends of the list — <code>prevBtn.disabled = activeIndex &lt;= 0</code>, <code>nextBtn.disabled = activeIndex &gt;= maxIndex</code> — so the layout never shifts as you reach either end. See Interaction &amp; Scroll for the full click/scroll logic.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         EDGE-TO-EDGE BLEED
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="bleed">
+      <div class="section-breadcrumb">Behaviour</div>
+      <h2 class="section-title">Edge-to-Edge Bleed</h2>
+      <p class="section-desc">The card track visually breaks out of the section's own padding on <strong>both</strong> sides — the first card still lines up with the title on the left, but as you scroll, cards travel all the way to the true screen edge (not just the section's padded content edge) before disappearing, on both directions. This took two non-obvious fixes to get right; both are documented here so they don't get "cleaned up" by accident later.</p>
+
+      <div class="ds-card">
+        <div class="card-subtitle">1. The bleed itself</div>
+        <div class="card-desc" style="margin-bottom:8px"><code>.ufs-flex-carousel__track-wrap</code> cancels the section's own left/right padding with negative margins equal to it, letting its box reach the true edges. <code>.ufs-carousel-track</code> then restores the padding <em>inside</em> itself — as <code>padding-right</code> on the trailing edge (browsers respect this fine on a scroll container) — but <strong>not</strong> as <code>padding-left</code>.</div>
+        <div class="card-subtitle">2. Why the leading edge needs a spacer, not padding-left</div>
+        <div class="card-desc" style="margin-bottom:0">Chromium doesn't honour a scrollable flex container's start-edge padding the way it does the end edge — it silently offsets the initial <code>scrollLeft</code> instead of reserving visual space, which makes the first card render flush with the true edge (not aligned with the title) at rest. The fix is a real flex-item spacer (<code>.ufs-carousel-spacer</code>) as the track's first child instead — spacers aren't subject to this quirk.</div>
+
+                <div class="code-block-wrap">
+                  <div class="code-tabs">
+                    <div class="code-tab active" onclick="switchTab(this,'bleed-html')">HTML</div>
+                    <div class="code-tab" onclick="switchTab(this,'bleed-css')">CSS</div>
+                  </div>
+                  <div class="code-panel active" data-tab="bleed-html">
+                    <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body">      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel__track-wrap"</span><span class="t-tag">&gt;</span>
+                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-track"</span><span class="t-tag">&gt;</span>
+                  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-spacer"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+                  <span class="t-cm">&lt;!-- … 10 .ufs-carousel-card placeholders … --&gt;</span>
+                <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+              <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+                  </div>
+                  <div class="code-panel" data-tab="bleed-css">
+                    <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body">    /* Bleed: the scrollable/clip area spans the true screen edge on BOTH
+               sides (so cards stay visible all the way to the edge while scrolling
+               out, instead of being clipped early at the section's own padding).
+               The trailing edge uses real padding on the track (browsers respect
+               end-edge padding in a scroll container), but the leading edge needs a
+               real flex-item spacer instead of padding-left — Chromium doesn't
+               honor start-edge padding on a scrollable flex container (it just
+               starts scrollLeft at that offset, hiding it) — so a spacer recreates
+               the "first card lines up with the title" resting alignment reliably. */
+            <span class="t-pr">.ufs-flex-carousel__track-wrap</span> { <span class="t-pr">align-self</span>: <span class="t-vl">stretch</span>; <span class="t-pr">margin-left</span>: <span class="t-vl">calc(-1 * var(--space-24))</span>; <span class="t-pr">margin-right</span>: <span class="t-vl">calc(-1 * var(--space-24))</span>; }
+            .ufs-carousel-track {
+              display: flex;
+              overflow-x: auto; scroll-behavior: smooth;
+              scrollbar-width: none; -ms-overflow-style: none;
+              padding-right: var(--space-24);
+            }
+            <span class="t-pr">.ufs-carousel-track::-webkit-scrollbar</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }</pre>
+                  </div>
+                </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Bleed margin (desktop)</span><span class="token-var">calc(-1 * --space-24)</span><span class="token-note">cancels the 96px section padding</span></div>
+          <div class="token-row"><span class="token-prop">Spacer width (desktop)</span><span class="token-var">--space-24 (96px)</span><span class="token-note">matches the section padding exactly</span></div>
+          <div class="token-row"><span class="token-prop">Bleed margin (mobile)</span><span class="token-var">calc(-1 * --space-4)</span><span class="token-note">16px</span></div>
+          <div class="token-row"><span class="token-prop">Spacer width (mobile)</span><span class="token-var">--space-4 (16px)</span><span class="token-note"></span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>Do not "simplify" the spacer back to <code>padding-left</code> on <code>.ufs-carousel-track</code> — it looks identical in a static screenshot but silently breaks the resting alignment (first card no longer lines up with the title) the moment scroll-snap or any layout recalculation touches the track. This was caught and fixed once already; see the JS comment above the spacer rule for the full explanation.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         INTERACTION & SCROLL
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="interaction">
+      <div class="section-breadcrumb">Behaviour</div>
+      <h2 class="section-title">Interaction &amp; Scroll</h2>
+      <p class="section-desc">One self-invoking script initialises every <code>.ufs-flex-carousel</code> found on the page independently (<code>document.querySelectorAll(...).forEach(initFlexCarousel)</code>) — drop in a second instance (e.g. a colour variant) and it just works, no extra wiring.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Scroll granularity</div>
+        <div class="card-desc">One card at a time. <code>stepSize()</code> measures the live distance between the first two rendered cards (not a hardcoded width + gap), so it stays correct even if card size or spacing changes. An arrow click or dot click calls <code>track.scrollTo({ left: index * stepSize(), behavior: 'smooth' })</code>.</div>
+        <div class="card-title" style="margin-top:20px">Bounds</div>
+        <div class="card-desc"><code>maxIndex()</code> derives the last valid stop from <code>track.scrollWidth - track.clientWidth</code> divided by the step — not from card count — so it also adapts if the viewport is wide enough to show most/all cards already (fewer, or zero, reachable stops).</div>
+        <div class="card-title" style="margin-top:20px">Swipe / native scroll</div>
+        <div class="card-desc" style="margin-bottom:0">The track is a plain <code>overflow-x: auto</code> element — touch swipe and trackpad scroll work natively, no custom drag JS. A <code>scroll</code> listener keeps the pagination in sync, throttled with <code>requestAnimationFrame</code> rather than a post-scroll debounce, so dots track the gesture live instead of updating only once it settles (important on mobile, where the dots are the only visible control since arrows are hidden there).</div>
+
+                <div class="code-block-wrap">
+                  <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body">    (<span class="t-kw">function</span>() {
+              <span class="t-kw">function</span> initFlexCarousel(root) {
+                <span class="t-kw">var</span> track = root.<span class="t-kw">querySelector</span>(<span class="t-str">'.ufs-carousel-track'</span>);
+                <span class="t-kw">var</span> dotsWrap = root.<span class="t-kw">querySelector</span>(<span class="t-str">'.ufs-carousel-dots'</span>);
+                <span class="t-kw">var</span> prevBtn = root.<span class="t-kw">querySelector</span>(<span class="t-str">'.ufs-carousel-arrow--prev'</span>);
+                <span class="t-kw">var</span> nextBtn = root.<span class="t-kw">querySelector</span>(<span class="t-str">'.ufs-carousel-arrow--next'</span>);
+                <span class="t-kw">if</span> (!track || !dotsWrap) <span class="t-kw">return</span>;
+                <span class="t-kw">var</span> cards = Array.prototype.slice.call(track.<span class="t-kw">querySelectorAll</span>(<span class="t-str">'.ufs-carousel-card'</span>));
+                <span class="t-kw">var</span> activeIndex = 0;
+                <span class="t-kw">var</span> scrollTicking = <span class="t-kw">false</span>;
+
+                <span class="t-kw">function</span> stepSize() {
+                  <span class="t-kw">if</span> (cards.length &lt; 2) <span class="t-kw">return</span> cards.length ? cards[0].getBoundingClientRect().width : 0;
+                  <span class="t-kw">return</span> cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
+                }
+                <span class="t-kw">function</span> maxIndex() {
+                  <span class="t-kw">var</span> step = stepSize();
+                  <span class="t-kw">if</span> (!step) <span class="t-kw">return</span> 0;
+                  <span class="t-cm">/* signed step is negative in RTL — divide by magnitude */</span>
+                  <span class="t-kw">return</span> Math.max(0, Math.round((track.scrollWidth - track.clientWidth) / Math.abs(step)));
+                }
+                <span class="t-kw">function</span> render() {
+                  <span class="t-kw">var</span> maxI = maxIndex();
+                  <span class="t-kw">var</span> dots = dotsWrap.<span class="t-kw">querySelectorAll</span>(<span class="t-str">'.ufs-carousel-dot'</span>);
+                  dots.<span class="t-kw">forEach</span>(<span class="t-kw">function</span>(dot, i) {
+                    dot.classList.remove(<span class="t-str">'is-active'</span>, <span class="t-str">'is-near'</span>, <span class="t-str">'is-far'</span>, <span class="t-str">'is-edge'</span>, <span class="t-str">'is-hidden'</span>);
+                    <span class="t-kw">if</span> (i &gt; maxI) { dot.classList.add(<span class="t-str">'is-hidden'</span>); <span class="t-kw">return</span>; }
+                    <span class="t-kw">var</span> dist = Math.abs(i - activeIndex);
+                    <span class="t-kw">if</span> (dist === 0) dot.classList.add(<span class="t-str">'is-active'</span>);
+                    <span class="t-kw">else</span> <span class="t-kw">if</span> (dist &lt;= 2) dot.classList.add(<span class="t-str">'is-near'</span>);
+                    <span class="t-kw">else</span> <span class="t-kw">if</span> (dist === 3) dot.classList.add(<span class="t-str">'is-far'</span>);
+                    <span class="t-kw">else</span> <span class="t-kw">if</span> (dist === 4) dot.classList.add(<span class="t-str">'is-edge'</span>);
+                    <span class="t-kw">else</span> dot.classList.add(<span class="t-str">'is-hidden'</span>);
+                    dot.setAttribute(<span class="t-str">'aria-current'</span>, dist === 0 ? <span class="t-str">'true'</span> : <span class="t-str">'false'</span>);
+                  });
+                  <span class="t-kw">if</span> (prevBtn) prevBtn.disabled = activeIndex &lt;= 0;
+                  <span class="t-kw">if</span> (nextBtn) nextBtn.disabled = activeIndex &gt;= maxI;
+                }
+                <span class="t-kw">function</span> goTo(index) {
+                  activeIndex = Math.max(0, Math.min(maxIndex(), index));
+                  track.scrollTo({ left: activeIndex * stepSize(), behavior: <span class="t-str">'smooth'</span> });
+                  render();
+                }
+
+                cards.<span class="t-kw">forEach</span>(<span class="t-kw">function</span>(_, i) {
+                  <span class="t-kw">var</span> dot = <span class="t-kw">document</span>.createElement(<span class="t-str">'button'</span>);
+                  dot.type = <span class="t-str">'button'</span>;
+                  dot.className = <span class="t-str">'ufs-carousel-dot'</span>;
+                  dot.setAttribute(<span class="t-str">'aria-label'</span>, <span class="t-str">'Go to item '</span> + (i + 1));
+                  dot.<span class="t-kw">addEventListener</span>(<span class="t-str">'click'</span>, <span class="t-kw">function</span>() { goTo(i); });
+                  dotsWrap.appendChild(dot);
+                });
+                <span class="t-kw">if</span> (prevBtn) prevBtn.<span class="t-kw">addEventListener</span>(<span class="t-str">'click'</span>, <span class="t-kw">function</span>() { goTo(activeIndex - 1); });
+                <span class="t-kw">if</span> (nextBtn) nextBtn.<span class="t-kw">addEventListener</span>(<span class="t-str">'click'</span>, <span class="t-kw">function</span>() { goTo(activeIndex + 1); });
+
+                <span class="t-cm">/* rAF-throttled so the pagination (and, on mobile, that's the only
+                   visible control since arrows are hidden there) tracks a touch
+                   swipe live as it happens, not just after the gesture/momentum
+                   settles — a post-scroll debounce reads as "not reflecting" the
+                   swipe on a real device. */</span>
+                track.<span class="t-kw">addEventListener</span>(<span class="t-str">'scroll'</span>, <span class="t-kw">function</span>() {
+                  <span class="t-kw">if</span> (scrollTicking) <span class="t-kw">return</span>;
+                  scrollTicking = <span class="t-kw">true</span>;
+                  requestAnimationFrame(<span class="t-kw">function</span>() {
+                    <span class="t-kw">var</span> step = stepSize();
+                    <span class="t-kw">if</span> (step) activeIndex = Math.max(0, Math.min(maxIndex(), Math.round(track.scrollLeft / step)));
+                    render();
+                    scrollTicking = <span class="t-kw">false</span>;
+                  });
+                }, { passive: <span class="t-kw">true</span> });
+
+                <span class="t-kw">window</span>.<span class="t-kw">addEventListener</span>(<span class="t-str">'resize'</span>, <span class="t-kw">function</span>() { render(); });
+                render();
+              }
+
+              <span class="t-kw">document</span>.<span class="t-kw">querySelectorAll</span>(<span class="t-str">'.ufs-flex-carousel'</span>).<span class="t-kw">forEach</span>(initFlexCarousel);
+            })();
+        </pre>
+                </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Scroll animation</span><span class="token-var">scroll-behavior: smooth</span><span class="token-note">on .ufs-carousel-track</span></div>
+          <div class="token-row"><span class="token-prop">Scroll-position sync</span><span class="token-var">requestAnimationFrame</span><span class="token-note">not setTimeout/debounce</span></div>
+          <div class="token-row"><span class="token-prop">Multi-instance</span><span class="token-var">document.querySelectorAll('.ufs-flex-carousel')</span><span class="token-note">each instance scoped independently</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Deliberately no drag-to-scroll JS for mouse/desktop — arrows and dots are the supported desktop interaction. Native touch/trackpad scrolling still works everywhere since the track is a real scroll container; this is a scope decision, not a technical limitation, and can be added later if needed.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         DESKTOP VS. MOBILE
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="responsive">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Desktop vs. Mobile</h2>
+      <p class="section-desc">Single breakpoint at <code>max-width: 768px</code> — no intermediate tablet step. Below it, four things change: type scale, CTA placement, spacing, and which controls are visible.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Forced mobile preview — live &amp; interactive (swipe or use the pagination dots)</div>
+        <div class="pv-mobile">
+              <section class="ufs-flex-carousel">
+                <div class="ufs-flex-carousel__head">
+                  <div class="ufs-flex-carousel__intro">
+                    <h2 class="ufs-flex-carousel__title text-h3">Carousel title</h2>
+                    <p class="ufs-flex-carousel__desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+                  </div>
+                  <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+                </div>
+
+                <div class="ufs-flex-carousel__track-wrap">
+                  <div class="ufs-carousel-track">
+                    <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                  </div>
+                </div>
+
+                <div class="ufs-flex-carousel__foot">
+                  <div class="ufs-carousel-dots"></div>
+                  <div class="ufs-flex-carousel__arrows">
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+              </section>
+        </div>
+
+        <div class="card-subtitle" style="margin-top:24px">What changes below 768px</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Section padding</span><span class="token-var">56px var(--space-4)</span><span class="token-note">was --space-20 --space-24 (80/96px)</span></div>
+          <div class="token-row"><span class="token-prop">Row gap</span><span class="token-var">--space-6 (24px)</span><span class="token-note">was --space-8 (32px)</span></div>
+          <div class="token-row"><span class="token-prop">Description size</span><span class="token-var">--text-body-sm-size (14px)</span><span class="token-note">was --text-body-size (16px)</span></div>
+          <div class="token-row"><span class="token-prop">Title size</span><span class="token-var">--text-h3-mob-size (24px)</span><span class="token-note">automatic — .text-h3 is globally responsive</span></div>
+          <div class="token-row"><span class="token-prop">Secondary CTA</span><span class="token-var">hidden in row 1 → shown full-width below row 3</span><span class="token-note">two button instances, one hidden each way — not repositioned via CSS order</span></div>
+          <div class="token-row"><span class="token-prop">Card gap</span><span class="token-var">--space-6 (24px)</span><span class="token-note">was --space-8 (32px)</span></div>
+          <div class="token-row"><span class="token-prop">Bleed margin / spacer</span><span class="token-var">--space-4 (16px)</span><span class="token-note">was --space-24 (96px)</span></div>
+          <div class="token-row"><span class="token-prop">Arrow controls</span><span class="token-var">display: none</span><span class="token-note">swipe/scroll is the only navigation method</span></div>
+          <div class="token-row"><span class="token-prop">Pagination</span><span class="token-var">centred, flex: 1</span><span class="token-note">was left-aligned next to the arrows</span></div>
+        </div>
+
+                <div class="code-block-wrap">
+                  <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body">    @media (max-width: 768px) {
+              .ufs-flex-carousel { padding: 56px var(--space-4); gap: var(--space-6); }
+              .ufs-flex-carousel__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+              .ufs-flex-carousel__cta { display: none; }
+              .ufs-flex-carousel__cta--mobile { display: block; width: 100%; }
+              .ufs-carousel-track { padding-right: var(--space-4); }
+              .ufs-carousel-spacer { flex-basis: var(--space-4); }
+              .ufs-carousel-card { margin-right: var(--space-6); }
+              .ufs-carousel-card:last-child { margin-right: 0; }
+              .ufs-flex-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); }
+              .ufs-flex-carousel__foot { justify-content: center; }
+              .ufs-carousel-dots { flex: 1; justify-content: center; }
+              .ufs-flex-carousel__arrows { display: none; }
+            }</pre>
+                </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>The mobile CTA is a <strong>second, separate button element</strong> (<code>.ufs-flex-carousel__cta--mobile</code>), not the same button repositioned with CSS <code>order</code>. It has to be a sibling of the head/track/foot rows to sit fully below them, while sharing the row-1 button's parent on desktop — reordering one button across two different flex contexts isn't possible with a single element. Keep both instances' text in sync if the CTA copy ever changes.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         COLOUR VARIANTS
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="variants">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Colour Variants</h2>
+      <p class="section-desc">4 looks, 1 codebase. Every colour, border and hover state in this component reads from a local custom property (<code>--carousel-*</code>) defined on <code>.ufs-flex-carousel</code> itself (see Anatomy). A variant is just a modifier class overriding a handful of those properties — the markup, JS, layout and animation are 100% identical across all 4.</p>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Adding a 5th colour look never requires touching the structural CSS or the JS — add a new <code>.ufs-flex-carousel--{name}</code> block that overrides only the tokens that need to change, following the pattern in the code sample below.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label">Default / Light — no modifier class</div>
+        <div class="pv-light" style="margin-bottom:24px;">
+              <section class="ufs-flex-carousel">
+                <div class="ufs-flex-carousel__head">
+                  <div class="ufs-flex-carousel__intro">
+                    <h2 class="ufs-flex-carousel__title text-h3">Carousel title</h2>
+                    <p class="ufs-flex-carousel__desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+                  </div>
+                  <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+                </div>
+
+                <div class="ufs-flex-carousel__track-wrap">
+                  <div class="ufs-carousel-track">
+                    <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                  </div>
+                </div>
+
+                <div class="ufs-flex-carousel__foot">
+                  <div class="ufs-carousel-dots"></div>
+                  <div class="ufs-flex-carousel__arrows">
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+              </section>
+        </div>
+
+        <div class="pv-label">.ufs-flex-carousel--squid</div>
+        <div class="pv-light" style="margin-bottom:24px;">
+              <section class="ufs-flex-carousel ufs-flex-carousel--squid">
+                <div class="ufs-flex-carousel__head">
+                  <div class="ufs-flex-carousel__intro">
+                    <h2 class="ufs-flex-carousel__title text-h3">Carousel title</h2>
+                    <p class="ufs-flex-carousel__desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+                  </div>
+                  <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+                </div>
+
+                <div class="ufs-flex-carousel__track-wrap">
+                  <div class="ufs-carousel-track">
+                    <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                  </div>
+                </div>
+
+                <div class="ufs-flex-carousel__foot">
+                  <div class="ufs-carousel-dots"></div>
+                  <div class="ufs-flex-carousel__arrows">
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+              </section>
+        </div>
+
+        <div class="pv-label">.ufs-flex-carousel--mushroom</div>
+        <div class="pv-light" style="margin-bottom:24px;">
+              <section class="ufs-flex-carousel ufs-flex-carousel--mushroom">
+                <div class="ufs-flex-carousel__head">
+                  <div class="ufs-flex-carousel__intro">
+                    <h2 class="ufs-flex-carousel__title text-h3">Carousel title</h2>
+                    <p class="ufs-flex-carousel__desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+                  </div>
+                  <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+                </div>
+
+                <div class="ufs-flex-carousel__track-wrap">
+                  <div class="ufs-carousel-track">
+                    <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                  </div>
+                </div>
+
+                <div class="ufs-flex-carousel__foot">
+                  <div class="ufs-carousel-dots"></div>
+                  <div class="ufs-flex-carousel__arrows">
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+              </section>
+        </div>
+
+        <div class="pv-label">.ufs-flex-carousel--image</div>
+        <div class="pv-light">
+              <section class="ufs-flex-carousel ufs-flex-carousel--image">
+                <div class="ufs-flex-carousel__head">
+                  <div class="ufs-flex-carousel__intro">
+                    <h2 class="ufs-flex-carousel__title text-h3">Carousel title</h2>
+                    <p class="ufs-flex-carousel__desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+                  </div>
+                  <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+                </div>
+
+                <div class="ufs-flex-carousel__track-wrap">
+                  <div class="ufs-carousel-track">
+                    <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                    <div class="ufs-carousel-card"></div>
+                  </div>
+                </div>
+
+                <div class="ufs-flex-carousel__foot">
+                  <div class="ufs-carousel-dots"></div>
+                  <div class="ufs-flex-carousel__arrows">
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                    <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+              </section>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Token comparison</div>
+        <div class="card-desc">"unset (inherits default)" means the variant doesn't declare that property at all — it falls through to the value set on the base <code>.ufs-flex-carousel</code> rule.</div>
+        <div class="variant-table-wrap">
+          <table class="variant-table">
+            <thead>
+              <tr><th>Token</th><th>Default</th><th>Squid</th><th>Mushroom</th><th>Image</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>section background</td><td>--color-salt</td><td>--color-brand-dark</td><td>--color-mushroom-100</td><td>photo + 60% --color-brand-dark overlay</td></tr>
+              <tr><td>--carousel-title-color</td><td>--color-brand-dark</td><td>--color-salt</td><td class="is-unset">unset (inherits default)</td><td>--color-salt</td></tr>
+              <tr><td>--carousel-desc-color</td><td>--color-mushroom-900</td><td>rgba(255,255,255,.75)</td><td class="is-unset">unset (inherits default)</td><td>rgba(255,255,255,.75)</td></tr>
+              <tr><td>--carousel-btn-border</td><td>--color-accessible-orange</td><td>--color-salt</td><td class="is-unset">unset (inherits default)</td><td>--color-salt</td></tr>
+              <tr><td>--carousel-btn-color</td><td>--color-accessible-orange</td><td>--color-salt</td><td class="is-unset">unset (inherits default)</td><td>--color-salt</td></tr>
+              <tr><td>--carousel-btn-hover-bg</td><td>--color-mushroom-100</td><td>rgba(255,255,255,.12)</td><td>--color-salt</td><td>rgba(255,255,255,.15)</td></tr>
+              <tr><td>--carousel-card-bg</td><td>--color-mushroom-100</td><td>color-mix(mushroom-500 30%)</td><td>--color-salt</td><td>rgba(255,255,255,.5)</td></tr>
+              <tr><td>--carousel-dot-inactive</td><td>--color-squid-300</td><td>--color-mushroom-500</td><td class="is-unset">unset (inherits default)</td><td>--color-salt</td></tr>
+              <tr><td>--carousel-arrow-border</td><td>--color-squid-300</td><td>--color-mushroom-500</td><td class="is-unset">unset (inherits default)</td><td>--color-salt</td></tr>
+              <tr><td>--carousel-arrow-color</td><td>--color-squid-300</td><td>--color-mushroom-500</td><td class="is-unset">unset (inherits default)</td><td>--color-salt</td></tr>
+              <tr><td>--carousel-arrow-bg</td><td>--color-salt</td><td>transparent</td><td>transparent</td><td>transparent</td></tr>
+              <tr><td>--carousel-arrow-active-bg</td><td>--color-mushroom-300</td><td>rgba(255,255,255,.2)</td><td class="is-unset">unset (inherits default)</td><td>rgba(255,255,255,.25)</td></tr>
+              <tr><td>card extra</td><td class="is-unset">—</td><td class="is-unset">—</td><td class="is-unset">—</td><td>backdrop-filter: blur(20px)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+                <div class="code-block-wrap">
+                  <div class="code-tabs">
+                    <div class="code-tab active" onclick="switchTab(this,'variants-html')">HTML</div>
+                    <div class="code-tab" onclick="switchTab(this,'variants-css')">CSS</div>
+                  </div>
+                  <div class="code-panel active" data-tab="variants-html">
+                    <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-flex-carousel ufs-flex-carousel--squid"</span><span class="t-tag">&gt;</span>
+          <span class="t-cm">&lt;!-- …identical markup to the default variant… --&gt;</span>
+        <span class="t-tag">&lt;/section</span><span class="t-tag">&gt;</span></pre>
+                  </div>
+                  <div class="code-panel" data-tab="variants-css">
+                    <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+        <pre class="code-body">    /* Colour variants — pure token swaps against the custom properties above.
+               "Image" additionally needs a background image + overlay, and blurs the
+               (still-transparent) card placeholders for the frosted-glass look. */
+            .ufs-flex-carousel--squid {
+              background: var(--color-brand-dark);
+              --carousel-title-color: var(--color-salt);
+              --carousel-desc-color: rgba(255,255,255,0.75);
+              --carousel-btn-border: var(--color-salt);
+              --carousel-btn-color: var(--color-salt);
+              --carousel-btn-hover-bg: rgba(255,255,255,0.12);
+              --carousel-card-bg: color-mix(in srgb, var(--color-mushroom-500) 30%, transparent);
+              --carousel-dot-inactive: var(--color-mushroom-500);
+              --carousel-arrow-border: var(--color-mushroom-500);
+              --carousel-arrow-color: var(--color-mushroom-500);
+              --carousel-arrow-bg: transparent;
+              --carousel-arrow-active-bg: rgba(255,255,255,0.2);
+            }
+            .ufs-flex-carousel--mushroom {
+              background: var(--color-mushroom-100);
+              --carousel-card-bg: var(--color-salt);
+              --carousel-btn-hover-bg: var(--color-salt);
+              --carousel-arrow-bg: transparent;
+            }
+            .ufs-flex-carousel--image {
+              background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/M_GPP_6074.jpg');
+              background-size: cover, cover; background-position: center, center; background-repeat: no-repeat, no-repeat;
+              --carousel-title-color: var(--color-salt);
+              --carousel-desc-color: rgba(255,255,255,0.75);
+              --carousel-btn-border: var(--color-salt);
+              --carousel-btn-color: var(--color-salt);
+              --carousel-btn-hover-bg: rgba(255,255,255,0.15);
+              --carousel-card-bg: rgba(255,255,255,0.5);
+              --carousel-dot-inactive: var(--color-salt);
+              --carousel-arrow-border: var(--color-salt);
+              --carousel-arrow-color: var(--color-salt);
+              --carousel-arrow-bg: transparent;
+              --carousel-arrow-active-bg: rgba(255,255,255,0.25);
+            }
+            <span class="t-pr">.ufs-flex-carousel--image .ufs-carousel-card</span> { <span class="t-pr">backdrop-filter</span>: <span class="t-vl">blur(20px)</span>; <span class="t-pr">-webkit-backdrop-filter</span>: <span class="t-vl">blur(20px)</span>; }</pre>
+                  </div>
+                </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>The image variant currently reuses the existing hero photo (<code>images/M_GPP_6074.jpg</code>) as a placeholder background — swap in the final asset via the same <code>background-image</code> declaration once it's ready. The overlay opacity/colour (60% <code>--color-brand-dark</code>) and the card blur (20px) are separate from the image itself and don't need to change.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════
+         I18N / RTL
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Because the carousel scrolls horizontally, it <strong>fully mirrors</strong> under <code>dir="rtl"</code> — the same principle applied across the nav and footer. Cards rest at the <strong>right</strong> and advance leftward, the arrow pair swaps sides and flips its chevrons, and pagination mirrors. No markup changes: set <code>dir="rtl"</code> on any ancestor (the page sets it on <code>&lt;html&gt;</code>) and both the CSS and the scroll JS adapt.</p>
+
+      <div class="pv-label">Forced <code>dir="rtl"</code> — live &amp; interactive (use the arrows)</div>
+      <div class="pv-light" style="margin-bottom:24px;">
+        <div class="ufs-flex-carousel" dir="rtl">
+          <div class="ufs-flex-carousel__head">
+            <div class="ufs-flex-carousel__intro">
+              <h2 class="ufs-flex-carousel__title text-h3">عنوان الكاروسيل</h2>
+              <p class="ufs-flex-carousel__desc">وصف الكاروسيل، ويمكن أن يكون اختياريًا عند الحاجة إلى إضافة بعض السياق.</p>
+            </div>
+            <button class="btn btn-secondary ufs-flex-carousel__cta">اكتشف المزيد</button>
+          </div>
+          <div class="ufs-flex-carousel__track-wrap">
+            <div class="ufs-carousel-track">
+              <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+              <div class="ufs-carousel-card"></div>
+              <div class="ufs-carousel-card"></div>
+              <div class="ufs-carousel-card"></div>
+              <div class="ufs-carousel-card"></div>
+              <div class="ufs-carousel-card"></div>
+              <div class="ufs-carousel-card"></div>
+              <div class="ufs-carousel-card"></div>
+              <div class="ufs-carousel-card"></div>
+              <div class="ufs-carousel-card"></div>
+              <div class="ufs-carousel-card"></div>
+            </div>
+          </div>
+          <div class="ufs-flex-carousel__foot">
+            <div class="ufs-carousel-dots"></div>
+            <div class="ufs-flex-carousel__arrows">
+              <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+              </button>
+              <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">اكتشف المزيد</button>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">What mirrors (and how)</div>
+        <div class="card-desc">Most of the layout re-orders on its own via flex/grid; only a few physical properties need an explicit flip.</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Head row</span><span class="token-var">automatic (flex)</span><span class="token-note">title/description align right, CTA moves to the left</span></div>
+          <div class="token-row"><span class="token-prop">Card order</span><span class="token-var">automatic (flex)</span><span class="token-note">first card rests at the right, advances leftward</span></div>
+          <div class="token-row"><span class="token-prop">Trailing bleed</span><span class="token-var">padding-right → padding-left</span><span class="token-note">explicit flip on .ufs-carousel-track</span></div>
+          <div class="token-row"><span class="token-prop">Inter-card gap</span><span class="token-var">margin-right → margin-left</span><span class="token-note">explicit flip on .ufs-carousel-card</span></div>
+          <div class="token-row"><span class="token-prop">Arrow group</span><span class="token-var">automatic (flex)</span><span class="token-note">Previous moves right, Next moves left</span></div>
+          <div class="token-row"><span class="token-prop">Arrow radius</span><span class="token-var">mirrored corners</span><span class="token-note">rounded corner stays on each arrow's outer edge</span></div>
+          <div class="token-row"><span class="token-prop">Arrow chevrons</span><span class="token-var">re-flipped via scaleX</span><span class="token-note">Next points left (advance), Previous points right (back)</span></div>
+          <div class="token-row"><span class="token-prop">Pagination dots</span><span class="token-var">automatic (flex)</span><span class="token-note">active dot rests right, window fills leftward</span></div>
+          <div class="token-row"><span class="token-prop">Leading spacer</span><span class="token-var">automatic (first child)</span><span class="token-note">sits on the right, keeps card-to-title alignment</span></div>
+        </div>
+      </div>
+
+              <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">[dir="rtl"] .ufs-carousel-track</span> { <span class="t-pr">padding-right</span>: <span class="t-vl">0</span>; <span class="t-pr">padding-left</span>: <span class="t-va">var(--space-24)</span>; }
+<span class="t-pr">[dir="rtl"] .ufs-carousel-card</span> { <span class="t-pr">margin-right</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-left</span>: <span class="t-va">var(--space-8)</span>; }
+<span class="t-pr">[dir="rtl"] .ufs-carousel-card:last-child</span> { <span class="t-pr">margin-left</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">[dir="rtl"] .ufs-carousel-arrow</span> { <span class="t-pr">border-radius</span>: <span class="t-vl">var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs)</span>; }
+<span class="t-pr">[dir="rtl"] .ufs-carousel-arrow--next</span> { <span class="t-pr">border-radius</span>: <span class="t-vl">var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs)</span>; }
+[dir="rtl"] .ufs-carousel-arrow--prev svg { transform: none; }   /* points right (back) */
+[dir="rtl"] .ufs-carousel-arrow--next svg { transform: scaleX(-1); }  /* points left (advance) */
+
+@media (max-width: 768px) {
+  <span class="t-pr">[dir="rtl"] .ufs-carousel-track</span> { <span class="t-pr">padding-right</span>: <span class="t-vl">0</span>; <span class="t-pr">padding-left</span>: <span class="t-va">var(--space-4)</span>; }
+  <span class="t-pr">[dir="rtl"] .ufs-carousel-card</span> { <span class="t-pr">margin-right</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-left</span>: <span class="t-va">var(--space-6)</span>; }
+  <span class="t-pr">[dir="rtl"] .ufs-carousel-card:last-child</span> { <span class="t-pr">margin-left</span>: <span class="t-vl">0</span>; }
+}</pre>
+        </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>The horizontal-scroll JS needs almost nothing: Chromium reports a <strong>negative</strong> <code>scrollLeft</code> in RTL, and <code>stepSize()</code> is already signed (negative when mirrored), so <code>goTo()</code> and the scroll-sync math cancel out in both directions. The only guard is <code>maxIndex()</code> dividing by <code>Math.abs(step)</code> — see Interaction &amp; Scroll. No <code>dir</code>-detection branch, no separate RTL code path.</div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Unlike the footer's email field (which stays <code>dir="ltr"</code>), nothing in the carousel needs to opt out of mirroring — the cards carry localised content and everything else is directional chrome. The title, description and CTA carry <code>data-i18n</code> hooks (<code>carousel-title</code>, <code>carousel-desc</code>, <code>carousel-cta</code>) so their copy switches with the active language — without them the text stays English and, in Arabic, renders as Latin glyphs in the Arabic font (i.e. the type looks unchanged). Card <strong>content</strong> should localise the same way; the placeholder cards here have none. The RTL preview above uses Arabic sample copy to make the mirrored alignment obvious.</div>
+      </div>
+    </section>
+
+
+  </div><!-- /content -->
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    /* Flex Carousel — live behind every preview on this page */
+    (function() {
+      function initFlexCarousel(root) {
+        var track = root.querySelector('.ufs-carousel-track');
+        var dotsWrap = root.querySelector('.ufs-carousel-dots');
+        var prevBtn = root.querySelector('.ufs-carousel-arrow--prev');
+        var nextBtn = root.querySelector('.ufs-carousel-arrow--next');
+        if (!track || !dotsWrap) return;
+        var cards = Array.prototype.slice.call(track.querySelectorAll('.ufs-carousel-card'));
+        var activeIndex = 0;
+        var scrollTicking = false;
+
+        function stepSize() {
+          if (cards.length < 2) return cards.length ? cards[0].getBoundingClientRect().width : 0;
+          return cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
+        }
+        function maxIndex() {
+          var step = stepSize();
+          if (!step) return 0;
+          /* stepSize() is signed (negative in RTL, where Chromium reports
+             negative scrollLeft); the reachable index count is direction-
+             agnostic, so divide by the magnitude. goTo()/scroll-sync keep the
+             signed step so their scrollLeft math cancels in both directions. */
+          return Math.max(0, Math.round((track.scrollWidth - track.clientWidth) / Math.abs(step)));
+        }
+        function render() {
+          var maxI = maxIndex();
+          var dots = dotsWrap.querySelectorAll('.ufs-carousel-dot');
+          dots.forEach(function(dot, i) {
+            dot.classList.remove('is-active', 'is-near', 'is-far', 'is-edge', 'is-hidden');
+            if (i > maxI) { dot.classList.add('is-hidden'); return; }
+            var dist = Math.abs(i - activeIndex);
+            if (dist === 0) dot.classList.add('is-active');
+            else if (dist <= 2) dot.classList.add('is-near');
+            else if (dist === 3) dot.classList.add('is-far');
+            else if (dist === 4) dot.classList.add('is-edge');
+            else dot.classList.add('is-hidden');
+            dot.setAttribute('aria-current', dist === 0 ? 'true' : 'false');
+          });
+          if (prevBtn) prevBtn.disabled = activeIndex <= 0;
+          if (nextBtn) nextBtn.disabled = activeIndex >= maxI;
+        }
+        function goTo(index) {
+          activeIndex = Math.max(0, Math.min(maxIndex(), index));
+          track.scrollTo({ left: activeIndex * stepSize(), behavior: 'smooth' });
+          render();
+        }
+
+        cards.forEach(function(_, i) {
+          var dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'ufs-carousel-dot';
+          dot.setAttribute('aria-label', 'Go to item ' + (i + 1));
+          dot.addEventListener('click', function() { goTo(i); });
+          dotsWrap.appendChild(dot);
+        });
+        if (prevBtn) prevBtn.addEventListener('click', function() { goTo(activeIndex - 1); });
+        if (nextBtn) nextBtn.addEventListener('click', function() { goTo(activeIndex + 1); });
+
+        /* rAF-throttled so the pagination (and, on mobile, that's the only
+           visible control since arrows are hidden there) tracks a touch
+           swipe live as it happens, not just after the gesture/momentum
+           settles — a post-scroll debounce reads as "not reflecting" the
+           swipe on a real device. */
+        track.addEventListener('scroll', function() {
+          if (scrollTicking) return;
+          scrollTicking = true;
+          requestAnimationFrame(function() {
+            var step = stepSize();
+            if (step) activeIndex = Math.max(0, Math.min(maxIndex(), Math.round(track.scrollLeft / step)));
+            render();
+            scrollTicking = false;
+          });
+        }, { passive: true });
+
+        window.addEventListener('resize', function() { render(); });
+        render();
+      }
+
+      document.querySelectorAll('.ufs-flex-carousel').forEach(initFlexCarousel);
+    })();
+  </script>
+
+  <a href="full-page-preview-v0.2.html" target="_blank" class="demo-fab">Watch live demo</a>
+
+</body>
+</html>
