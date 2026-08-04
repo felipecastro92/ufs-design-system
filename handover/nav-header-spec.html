@@ -171,7 +171,27 @@
     .pv-mobile .ufs-msearch-bar.search-active .ufs-msearch-bar-close, .pv-mobile .ufs-msearch-bar.search-active .ufs-msearch-bar-mic { display: flex !important; }
     .pv-sticky-cta .ufs-sticky-cta { display: block !important; position: relative !important; bottom: auto !important; transform: none !important; }
     .pv-mm-wrap { position: relative; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    /* The megamenu is position:absolute in production (overlays below the nav
+       without pushing page content down). Inside this preview it needs to sit
+       in normal flow instead so the wrapper's height grows to include the open
+       panel — otherwise the wrapper is only as tall as the nav bar and the
+       panel below it needs an internal scrollbar to be seen. flex-wrap lets it
+       drop to its own full-width row under the nav's logo/links/actions row. */
+    .pv-mm-wrap .ufs-nav { height: auto !important; flex-wrap: wrap !important; }
+    /* Flex items default to min-width:auto, which lets their content's
+       max-content size override a flex-basis — without min-width:0 here, the
+       grid inside (.mm-a/.mm-b/.mm-a2) grows to its own max-content width
+       instead of respecting the 100% allocation, forcing the wrapper to
+       scroll horizontally. */
+    .pv-mm-wrap .ufs-megamenu.is-open { position: relative !important; top: auto !important; left: auto !important; right: auto !important; flex: 0 0 100% !important; min-width: 0 !important; width: 100% !important; }
     .pv-search-wrap { position: relative; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; background: var(--color-salt); }
+    /* Same fix as .pv-mm-wrap above: .ufs-search-overlay is position:absolute
+       in production (drops below the nav without pushing content down), so
+       inside this preview it needs to sit in normal flow instead — otherwise
+       the wrapper is only as tall as the nav bar and the open overlay below
+       it needs an internal scrollbar to be seen. */
+    .pv-search-wrap .ufs-nav { height: auto !important; flex-wrap: wrap !important; }
+    .pv-search-wrap .ufs-search-overlay.is-open { position: relative !important; top: auto !important; left: auto !important; right: auto !important; flex: 0 0 100% !important; min-width: 0 !important; width: 100% !important; }
     .pv-panel  { border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; max-width: 420px; }
     .pv-panel .signin-panel { position: relative !important; top: auto !important; right: auto !important; left: auto !important; bottom: auto !important; width: 100% !important; height: auto !important; max-height: 640px; transform: none !important; box-shadow: none !important; }
     .pv-drawer { border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; max-width: 380px; }
@@ -183,7 +203,7 @@
        NAV / HEADER COMPONENT CSS — mirrored 1:1 from
        handover/full-page-preview-v0.2.html (source of truth)
     ═══════════════════════════════════════ */
-    :root { --util-h: 36px; --nav-h: 68px; --mnav-h: 56px; --search-exp-offset: var(--space-8); --ctrl-reserve: 0px; }
+    :root { --util-h: 36px; --nav-h: 68px; --mnav-h: 56px; --search-exp-offset: var(--space-8); --search-exp-offset-left: 128px; --ctrl-reserve: 0px; }
 
 /* MASTER-CSS-START */
 .ufs-util {
@@ -525,7 +545,7 @@
 
 .ufs-nav.search-active .ufs-nav-search {
   position: absolute;
-  left: calc(var(--search-exp-offset) + 48px);
+  left: var(--search-exp-offset-left);
   right: var(--search-exp-offset);
   top: 50%;
   transform: translateY(-50%);
@@ -563,7 +583,7 @@
 
 .ufs-search-overlay.is-open { opacity: 1; pointer-events: all; transform: translateY(0); }
 
-.ufs-search-overlay-inner { margin-left: calc(var(--search-exp-offset) + 48px); margin-right: var(--search-exp-offset); display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+.ufs-search-overlay-inner { margin-left: var(--search-exp-offset-left); margin-right: var(--search-exp-offset); display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 
 .ufs-overlay-section-label { font-size: var(--text-badge-size); font-weight: var(--text-btn-w); letter-spacing: var(--text-body-xs-ls); text-transform: uppercase; color: var(--color-mushroom-700); margin-bottom: var(--space-3); }
 
@@ -581,7 +601,10 @@
 
 .ufs-search-suggestion strong { font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
 
-.ufs-search-ask-ai { display: flex; align-items: center; gap: var(--space-2); width: 100%; padding: var(--space-2) var(--space-3); margin-top: var(--space-2); border: none; background: transparent; cursor: pointer; border-radius: var(--radius-xs); transition: background 0.12s; }
+/* Hidden for now (feature paused, not removed) — mirrors the same flag in
+   full-page-preview-v0.2.html. Markup, submitChefAI() and the i18n label
+   wiring are all left intact; flip back to display:flex to bring it back. */
+.ufs-search-ask-ai { display: none; align-items: center; gap: var(--space-2); width: 100%; padding: var(--space-2) var(--space-3); margin-top: var(--space-2); border: none; background: transparent; cursor: pointer; border-radius: var(--radius-xs); transition: background 0.12s; }
 
 .ufs-search-ask-ai:hover { background: var(--color-mushroom-100); }
 
@@ -650,6 +673,7 @@
 .signin-panel-logo { height: var(--space-6); }
 
 .signin-close { width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full); background: var(--color-mushroom-100); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+.signin-close svg { width: 12px; height: 12px; }
 
 .signin-close:hover { background: var(--color-mushroom-300); }
 
@@ -1659,7 +1683,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
                   <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
-                  <div class="ufs-nav__link" onclick="toggleMegamenu('promotions', this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
                 </div>
                 <div class="ufs-nav__actions">
@@ -1710,7 +1733,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
                   <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
-                  <div class="ufs-nav__link" onclick="toggleMegamenu('promotions', this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
                 </div>
                 <div class="ufs-nav__actions">
@@ -1761,7 +1783,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
                   <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
-                  <div class="ufs-nav__link" onclick="toggleMegamenu('promotions', this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
                 </div>
                 <div class="ufs-nav__actions">
@@ -1815,7 +1836,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
                   <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
-                  <div class="ufs-nav__link" onclick="toggleMegamenu('promotions', this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                   <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
                 </div>
                 <div class="ufs-nav__actions">
@@ -1871,7 +1891,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('products', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-products"</span><span class="t-tag">&gt;</span>Products<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('recipes', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-recipes"</span><span class="t-tag">&gt;</span>Recipes<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('training', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-training"</span><span class="t-tag">&gt;</span>Training &amp;amp; Inspiration<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('promotions', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-promotions"</span><span class="t-tag">&gt;</span>Promotions<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeAllMegamenus()"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-loyalty"</span><span class="t-tag">&gt;</span>Loyalty Program<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
               <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
               <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__actions"</span><span class="t-tag">&gt;</span>
@@ -2072,7 +2091,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
               <div class="ufs-nav__links">
                 <div class="ufs-nav__link is-open" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                 <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
-                <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                 <div class="ufs-nav__link" onclick="toggleMegamenu('promotions', this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                 <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
               </div>
@@ -2197,7 +2215,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
               <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__links"</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link is-open"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('products', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-products"</span><span class="t-tag">&gt;</span>Products<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('recipes', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-recipes"</span><span class="t-tag">&gt;</span>Recipes<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('training', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-training"</span><span class="t-tag">&gt;</span>Training &amp;amp; Inspiration<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('promotions', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-promotions"</span><span class="t-tag">&gt;</span>Promotions<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeAllMegamenus()"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-loyalty"</span><span class="t-tag">&gt;</span>Loyalty Program<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
               <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
@@ -2393,7 +2410,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
               <div class="ufs-nav__links">
                 <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                 <div class="ufs-nav__link is-open" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
-                <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                 <div class="ufs-nav__link" onclick="toggleMegamenu('promotions', this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                 <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
               </div>
@@ -2487,7 +2503,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
               <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__links"</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('products', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-products"</span><span class="t-tag">&gt;</span>Products<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link is-open"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('recipes', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-recipes"</span><span class="t-tag">&gt;</span>Recipes<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('training', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-training"</span><span class="t-tag">&gt;</span>Training &amp;amp; Inspiration<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('promotions', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-promotions"</span><span class="t-tag">&gt;</span>Promotions<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeAllMegamenus()"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-loyalty"</span><span class="t-tag">&gt;</span>Loyalty Program<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
               <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
@@ -2650,7 +2665,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
               <div class="ufs-nav__links">
                 <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                 <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
-                <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                 <div class="ufs-nav__link is-open" onclick="toggleMegamenu('promotions', this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
                 <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
               </div>
@@ -2729,7 +2743,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
               <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__links"</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('products', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-products"</span><span class="t-tag">&gt;</span>Products<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('recipes', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-recipes"</span><span class="t-tag">&gt;</span>Recipes<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('training', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-training"</span><span class="t-tag">&gt;</span>Training &amp;amp; Inspiration<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link is-open"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleMegamenu('promotions', this)"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-promotions"</span><span class="t-tag">&gt;</span>Promotions<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span> <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link-chev"</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__link"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeAllMegamenus()"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"nav-loyalty"</span><span class="t-tag">&gt;</span>Loyalty Program<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
               <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
@@ -3067,7 +3080,7 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         </div>
 
         <div class="card-title" style="margin-top:32px">Results state (query &ge; 3 characters)</div>
-        <div class="card-desc">Trending swaps for: up to 4 text suggestions, an "Ask Chef AI" prompt, and results grouped by category (Products / Recipes &amp; Inspiration / Training) — all injected client-side by <code>handleSearchInput()</code>. A "See all results" row is pinned to the bottom.</div>
+        <div class="card-desc">Trending swaps for: up to 4 text suggestions and results grouped by category (Products / Recipes &amp; Inspiration / Training) — all injected client-side by <code>handleSearchInput()</code>. A "See all results" row is pinned to the bottom. (An "Ask Chef AI" prompt also exists in the markup between the suggestions and the results — currently hidden via <code>display:none</code>, feature paused rather than removed.)</div>
         <div class="pv-search-wrap">
               <nav class="ufs-nav ufs-nav--light search-active" id="main-nav">
                 <div class="ufs-nav__logo">
@@ -3222,14 +3235,17 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
                   <div class="code-panel" data-tab="search-overlay-css">
                     <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
         <pre class="code-body">/* Nav in "search-active" state — expands the pill to replace the links row.
-           --search-exp-offset is measured in JS: the distance from the nav's
-           right edge to the collapsed search field's right edge (i.e. the
-           width of whatever sits after it — icons, Account CTA…). */
+           Both edges are measured independently in JS and set as separate
+           custom properties: --search-exp-offset-left is the gap after the
+           logo, --search-exp-offset is the gap before whatever sits after
+           the search field (icons, Account CTA…). Two variables, not one
+           reused with a hardcoded add-on — a fixed offset assumes a fixed
+           logo/button width, which breaks the moment either one resizes. */
         <span class="t-pr">.ufs-nav.search-active .ufs-nav__links</span> { <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; <span class="t-pr">flex</span>: <span class="t-vl">0 0 0</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; }
         <span class="t-pr">.ufs-nav.search-active .ufs-nav__actions</span> { <span class="t-pr">flex</span>: <span class="t-vl">0 0 auto</span>; <span class="t-pr">margin-left</span>: <span class="t-vl">auto</span>; }
         .ufs-nav.search-active .ufs-nav-search {
           position: absolute;
-          left: calc(var(--search-exp-offset) + 48px);
+          left: var(--search-exp-offset-left);
           right: var(--search-exp-offset);
           top: 50%;
           transform: translateY(-50%);
@@ -3259,7 +3275,7 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
           box-sizing: border-box;
         }
         <span class="t-pr">.ufs-search-overlay.is-open</span> { <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">all</span>; <span class="t-pr">transform</span>: <span class="t-vl">translateY(0)</span>; }
-        <span class="t-pr">.ufs-search-overlay-inner</span> { <span class="t-pr">margin-left</span>: <span class="t-vl">calc(var(--search-exp-offset) + 48px)</span>; <span class="t-pr">margin-right</span>: <span class="t-va">var(--search-exp-offset)</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">min-height</span>: <span class="t-vl">0</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+        <span class="t-pr">.ufs-search-overlay-inner</span> { <span class="t-pr">margin-left</span>: <span class="t-va">var(--search-exp-offset-left)</span>; <span class="t-pr">margin-right</span>: <span class="t-va">var(--search-exp-offset)</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">min-height</span>: <span class="t-vl">0</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
 
         <span class="t-cm">/* Trending state */</span>
         <span class="t-pr">.ufs-overlay-section-label</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-badge-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-body-xs-ls)</span>; <span class="t-pr">text-transform</span>: <span class="t-vl">uppercase</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-700)</span>; <span class="t-pr">margin-bottom</span>: <span class="t-va">var(--space-3)</span>; }
@@ -3272,7 +3288,9 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         <span class="t-pr">.ufs-search-suggestion:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }
         <span class="t-pr">.ufs-search-suggestion svg</span> { <span class="t-pr">width</span>: <span class="t-vl">14px</span>; <span class="t-pr">height</span>: <span class="t-vl">14px</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">opacity</span>: <span class="t-vl">0.35</span>; }
         <span class="t-pr">.ufs-search-suggestion strong</span> { <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
-        <span class="t-pr">.ufs-search-ask-ai</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">padding</span>: <span class="t-vl">var(--space-2) var(--space-3)</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">background</span>: <span class="t-vl">transparent</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-xs)</span>; <span class="t-pr">transition</span>: <span class="t-vl">background 0.12s</span>; }
+        <span class="t-cm">/* Hidden for now (feature paused, not removed). Markup, submitChefAI()
+           and the i18n label wiring are all left intact. */</span>
+        <span class="t-pr">.ufs-search-ask-ai</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">padding</span>: <span class="t-vl">var(--space-2) var(--space-3)</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">background</span>: <span class="t-vl">transparent</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-xs)</span>; <span class="t-pr">transition</span>: <span class="t-vl">background 0.12s</span>; }
         <span class="t-pr">.ufs-search-ask-ai:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }
         <span class="t-pr">.ufs-search-ask-ai-icon</span> { <span class="t-pr">width</span>: <span class="t-vl">16px</span>; <span class="t-pr">height</span>: <span class="t-vl">16px</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; }
         <span class="t-pr">.ufs-search-ask-ai-text</span> { <span class="t-pr">font-family</span>: <span class="t-va">var(--font-family)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">left</span>; <span class="t-pr">background</span>: <span class="t-vl">linear-gradient(90deg, var(--color-brand-primary) 0%, #D536B0 100%)</span>; <span class="t-pr">-webkit-background-clip</span>: <span class="t-vl">text</span>; <span class="t-pr">-webkit-text-fill-color</span>: <span class="t-vl">transparent</span>; <span class="t-pr">background-clip</span>: <span class="t-vl">text</span>; }
@@ -3302,14 +3320,15 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
           <div class="token-row"><span class="token-prop">Suggestions shown</span><span class="token-var">max 4</span><span class="token-note">filtered + truncated in JS</span></div>
           <div class="token-row"><span class="token-prop">Overlay max height</span><span class="token-var">calc(80dvh - --nav-h)</span><span class="token-note">results list scrolls internally</span></div>
           <div class="token-row"><span class="token-prop">Overlay elevation</span><span class="token-var">--shadow-lg</span><span class="token-note"></span></div>
-          <div class="token-row"><span class="token-prop">Expand offset</span><span class="token-var">--search-exp-offset</span><span class="token-note">JS-measured per load, not a static token</span></div>
+          <div class="token-row"><span class="token-prop">Expand offset (right)</span><span class="token-var">--search-exp-offset</span><span class="token-note">JS-measured per load, not a static token</span></div>
+          <div class="token-row"><span class="token-prop">Expand offset (left)</span><span class="token-var">--search-exp-offset-left</span><span class="token-note">JS-measured per load — clears the logo regardless of its width</span></div>
           <div class="token-row"><span class="token-prop">Ask-AI text treatment</span><span class="token-var">gradient text-fill</span><span class="token-note">brand-primary → #D536B0</span></div>
         </div>
       </div>
 
       <div class="notice notice--warn">
         <span class="notice-icon">⚠️</span>
-        <div><code>--search-exp-offset</code> is set inline on <code>.ufs-nav</code> by JS at runtime — measured as the gap between the nav's right edge and the collapsed search field's right edge (i.e. the width of the actions cluster after it) — it is not a fixed design token. This doc replicates that measurement on load so each preview's expanded field stops at the correct spot; a CMS re-implementation needs the same logic (or a safe fixed fallback per breakpoint) to avoid the field overlapping the logo or action icons.</div>
+        <div><code>--search-exp-offset</code> and <code>--search-exp-offset-left</code> are set inline on <code>.ufs-nav</code> by JS at runtime — measured independently as the gap to whatever sits after the search field (icons, Account CTA) and the gap to clear the logo, respectively. Neither is a fixed design token, and deliberately not a single reused value: a shared offset plus a hardcoded add-on for the other side only works as long as the logo and the actions cluster never resize — in practice one of them will, and the field will overlap it. A CMS re-implementation needs the same two-sided measurement (or a safe fixed fallback per breakpoint on each side) to avoid the field overlapping the logo or action icons.</div>
       </div>
     </section>
 
@@ -3480,6 +3499,7 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         <span class="t-pr">.signin-panel-hd</span> { <span class="t-pr">height</span>: <span class="t-va">var(--mnav-h)</span>; <span class="t-pr">padding</span>: <span class="t-vl">0 var(--space-4)</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">border-bottom</span>: <span class="t-vl">1px solid var(--color-mushroom-300)</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; }
         <span class="t-pr">.signin-panel-logo</span> { <span class="t-pr">height</span>: <span class="t-va">var(--space-6)</span>; }
         <span class="t-pr">.signin-close</span> { <span class="t-pr">width</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">transition</span>: <span class="t-vl">background 0.15s</span>; }
+        <span class="t-pr">.signin-close svg</span> { <span class="t-pr">width</span>: <span class="t-vl">12px</span>; <span class="t-pr">height</span>: <span class="t-vl">12px</span>; }
         <span class="t-pr">.signin-close:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-300)</span>; }
         <span class="t-pr">.signin-panel-body</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">overflow-y</span>: <span class="t-vl">auto</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-7)</span>; }
         <span class="t-pr">.signin-panel-title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h5-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h5-w)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h5-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">margin-bottom</span>: <span class="t-va">var(--space-3)</span>; }
@@ -4475,11 +4495,11 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
     ═══════════════════════════════════════ -->
     <section class="doc-section" id="minimal-header">
       <div class="section-breadcrumb">Journey Variants</div>
-      <h2 class="section-title">Minimal Header — Landing &amp; Registration</h2>
+      <h2 class="section-title">Minimal Header — Landing</h2>
       <p class="section-desc">Applied via a single body class (<code>body.ctx-landing</code> or <code>body.ctx-registration</code>): the utility bar, nav links, search, favourites/cart/profile and the standard Account CTA are all forced to <code>display:none !important</code>. In their place, a shared "leave-guard" cluster (<code>#nav-actions-minimal</code> / <code>#mnav-actions-minimal</code>) shows "Already registered? Sign In" — Landing and Registration were merged to reuse the exact same cluster. Registration additionally reveals a numbered step bar (<code>#reg-progress</code>); Landing does not.</p>
 
       <div class="ds-card">
-        <div class="pv-label">Desktop — nav reduced to logo + leave-guard, Registration step bar shown</div>
+        <div class="pv-label">Desktop — nav reduced to logo + leave-guard</div>
         <div class="pv-light">
               <nav class="ufs-nav ufs-nav--light" id="main-nav">
                 <div class="ufs-nav__logo">
@@ -4533,14 +4553,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
                   </div>
                 </div>
               </nav>
-              <div class="ufs-form-progress" id="reg-progress" style="display:flex">
-                <span class="ufs-form-progress__label">Step 2 of 3</span>
-                <div class="ufs-form-progress__track">
-                  <div class="ufs-form-progress__step is-done"></div>
-                  <div class="ufs-form-progress__step is-current"></div>
-                  <div class="ufs-form-progress__step"></div>
-                </div>
-              </div>
         </div>
 
         <div class="pv-label">Mobile — hamburger/search/fav/cart/profile hidden, same leave-guard</div>
@@ -4625,15 +4637,7 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
                   <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
                 <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
               <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-            <span class="t-tag">&lt;/nav</span><span class="t-tag">&gt;</span>
-            <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-form-progress"</span> <span class="t-at">id</span>=<span class="t-id">"reg-progress"</span> <span class="t-at">style</span>=<span class="t-str">"display:flex"</span><span class="t-tag">&gt;</span>
-              <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-form-progress__label"</span><span class="t-tag">&gt;</span>Step 2 of 3<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
-              <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-form-progress__track"</span><span class="t-tag">&gt;</span>
-                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-form-progress__step is-done"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-form-progress__step is-current"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-                <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-form-progress__step"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-              <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-            <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+            <span class="t-tag">&lt;/nav</span><span class="t-tag">&gt;</span></pre>
                   </div>
                   <div class="code-panel" data-tab="minimal-header-css">
                     <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
@@ -4744,8 +4748,6 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         <div class="card-subtitle">Key Tokens</div>
         <div class="token-list">
           <div class="token-row"><span class="token-prop">Context switch</span><span class="token-var">body.ctx-landing / body.ctx-registration</span><span class="token-note">shared minimal cluster</span></div>
-          <div class="token-row"><span class="token-prop">Step bar background</span><span class="token-var">--color-mushroom-100</span><span class="token-note">Registration only</span></div>
-          <div class="token-row"><span class="token-prop">Step done/current</span><span class="token-var">--color-brand-primary (100% / 45% opacity)</span><span class="token-note"></span></div>
         </div>
       </div>
     </section>
@@ -5807,29 +5809,34 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
       });
     }
 
-    /* Mirrors the prototype's activateNavSearch(): --search-exp-offset controls
-       where the expanded search field's right edge lands. Rather than measuring
-       against the nav's own box edge (which breaks once the nav's collapsed
-       content is wider than the preview card and starts scrolling — negative/
-       clamped offsets let the field cover whatever comes after it), this
-       measures directly against the first visible sibling after the search
-       field (Account CTA, or the fav/cart/profile icons), so the field always
-       stops with a small gap before it regardless of how wide the nav renders. */
+    /* Mirrors the prototype's activateNavSearch(), but measures BOTH edges
+       independently instead of reusing one offset + a hardcoded "+48px" for
+       the left side (that 48px assumed a small fixed logo width — with the
+       current ~89px logo it left the expanded field short, overlapping it).
+       Also: this reads positions directly in the CURRENT search-active state
+       rather than temporarily removing the class to measure a "collapsed"
+       layout first — removing it made the full links row + fixed-width search
+       pill exceed the preview card's width and overflow it, corrupting the
+       measurement. Since .search-active already takes the search field out of
+       flow (position:absolute) and collapses the links row to zero, the logo
+       and the actions-cluster sibling are already sitting at their true final
+       positions — no toggle needed. */
     function measureSearchExpandOffsets() {
       document.querySelectorAll('.ufs-nav.search-active').forEach(function(navEl) {
         var searchEl = navEl.querySelector('.ufs-nav-search');
         var actionsEl = navEl.querySelector('.ufs-nav__actions');
-        if (!searchEl || !actionsEl) return;
-        navEl.classList.remove('search-active');
+        var logoEl = navEl.querySelector('.ufs-nav__logo');
+        if (!searchEl || !actionsEl || !logoEl) return;
         var navRect = navEl.getBoundingClientRect();
+        var leftOffset = (logoEl.getBoundingClientRect().right - navRect.left) + 16;
         var after = [].slice.call(actionsEl.children).filter(function(el) {
           return el !== searchEl && getComputedStyle(el).display !== 'none';
         })[0];
-        var offset = after
+        var rightOffset = after
           ? navRect.right - (after.getBoundingClientRect().left - 16)
           : navRect.right - searchEl.getBoundingClientRect().right;
-        navEl.style.setProperty('--search-exp-offset', offset + 'px');
-        navEl.classList.add('search-active');
+        navEl.style.setProperty('--search-exp-offset-left', leftOffset + 'px');
+        navEl.style.setProperty('--search-exp-offset', rightOffset + 'px');
       });
     }
     if (document.fonts && document.fonts.ready) {
