@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Announcement Banner — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.25); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-700); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-700); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.45); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-id  { color: #d2a8ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+    .t-st  { color: #fde68a; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .token-note { color: var(--color-mushroom-700); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       VARIANT TABLE (localisation hooks reference)
+    ═══════════════════════════════════════ */
+    .variant-table-wrap { overflow-x: auto; margin-top: 10px; max-width: 1600px; }
+    .variant-table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 12px; }
+    .variant-table th, .variant-table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--color-mushroom-300); white-space: nowrap; }
+    .variant-table th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-mushroom-700); background: var(--color-mushroom-100); }
+    .variant-table td:first-child, .variant-table th:first-child { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .variant-table td { color: var(--color-mushroom-900); }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       INTRO GRID
+    ═══════════════════════════════════════ */
+    .intro-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-top: 28px; max-width: 860px; }
+    .intro-card { background: var(--color-salt); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-xs); border-top: 3px solid var(--color-brand-dark); }
+    .intro-card-icon { font-size: 20px; margin-bottom: 10px; }
+    .intro-card-title { font-size: 13px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 5px; }
+    .intro-card-text  { font-size: 12px; line-height: 18px; color: var(--color-smoke); }
+
+    /* ═══════════════════════════════════════
+       VARIANT GRID (side-by-side previews)
+    ═══════════════════════════════════════ */
+    .variant-grid { display: flex; flex-direction: column; gap: 20px; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; padding: 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: visible; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); padding: 24px; }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the banner's own @media (max-width: 768px) block scoped
+       to .pv-mobile with !important. Doc-only; not a production class. */
+    .pv-light .ufs-ann-banner, .pv-mobile .ufs-ann-banner { margin: 0 !important; }
+    .pv-mobile .ufs-ann-banner {
+      flex-direction: column !important; align-items: center !important; text-align: center !important; height: auto !important;
+      gap: var(--space-1) !important; padding: var(--space-4) !important;
+    }
+    .pv-mobile .ufs-ann-banner__content { display: contents !important; }
+    .pv-mobile .ufs-ann-banner__title, .pv-mobile .ufs-ann-banner__text { display: block !important; order: 1 !important; }
+    .pv-mobile .ufs-ann-banner__countdown { order: 2 !important; }
+    .pv-mobile .ufs-ann-banner__link {
+      display: inline-flex !important; align-items: center !important; justify-content: center !important; order: 3 !important;
+      height: var(--space-10) !important; padding: 0 var(--space-4) !important; margin-top: var(--space-1) !important;
+      background: var(--color-salt) !important; border: 1px solid var(--color-accessible-orange) !important; border-radius: var(--radius-sm) !important;
+      font-size: var(--text-btn-sm-size) !important; font-weight: var(--text-btn-sm-w) !important; text-decoration: none !important;
+    }
+    .pv-mobile .ufs-ann-banner__link:hover { background: var(--color-mushroom-100) !important; }
+    .pv-mobile .ufs-ann-banner__close { position: absolute !important; top: var(--space-2) !important; inset-inline-end: var(--space-2) !important; transform: none !important; width: var(--space-5) !important; height: var(--space-5) !important; }
+    .pv-mobile .ufs-ann-banner__close svg { width: 10px !important; height: 10px !important; }
+
+    /* ═══════════════════════════════════════
+       ANNOUNCEMENT BANNER COMPONENT CSS — mirrored 1:1 from
+       handover/full-page-preview-v0.2.html (source of truth)
+    ═══════════════════════════════════════ */
+    .ufs-ann-banner {
+      display: flex; align-items: center; justify-content: center; gap: var(--space-4);
+      height: var(--space-16);
+      margin: var(--space-6) var(--space-20);
+      padding-inline: var(--space-6) var(--space-12);
+      border-radius: var(--radius-md);
+      position: relative;
+      transition: opacity 0.2s ease, max-height 0.2s ease, margin 0.2s ease, padding 0.2s ease;
+    }
+    .ufs-ann-banner.is-closing { opacity: 0; pointer-events: none; }
+    .ufs-ann-banner--neutral { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-500); }
+    .ufs-ann-banner--warm { background: color-mix(in srgb, var(--color-orange-100) 30%, var(--color-salt)); border: 1px solid var(--color-orange-300); }
+    .ufs-ann-banner__countdown { display: flex; align-items: center; gap: var(--space-4); flex-shrink: 0; }
+    .ufs-ann-banner__unit { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 44px; }
+    .ufs-ann-banner__unit-value { font-size: var(--text-price-size); line-height: var(--text-price-lh); letter-spacing: var(--text-price-ls); font-weight: var(--text-price-w); color: var(--color-brand-dark); }
+    .ufs-ann-banner__unit-label { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-brand-dark); }
+    .ufs-ann-banner__content { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); }
+    .ufs-ann-banner__title { font-weight: var(--text-btn-w); }
+    .ufs-ann-banner__link {
+      display: inline; font-weight: var(--text-btn-w); color: var(--color-accessible-orange);
+      text-decoration: none; cursor: pointer;
+    }
+    .ufs-ann-banner__link:hover { text-decoration: underline; }
+    .ufs-ann-banner__close {
+      position: absolute; top: 50%; inset-inline-end: var(--space-6); transform: translateY(-50%);
+      width: var(--space-6); height: var(--space-6); border-radius: var(--radius-full);
+      border: none; cursor: pointer; background: transparent; color: var(--color-brand-dark);
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .ufs-ann-banner__close svg { width: 12px; height: 12px; }
+    .ufs-ann-banner__close:hover { background: color-mix(in srgb, var(--color-brand-dark) 8%, transparent); }
+    @media (max-width: 768px) {
+      .ufs-ann-banner {
+        flex-direction: column; align-items: center; text-align: center; height: auto;
+        gap: var(--space-1); margin: var(--space-6) var(--space-4); padding: var(--space-4);
+      }
+      /* Promotes title/text/link to direct flex children of .ufs-ann-banner
+         (display:contents removes .content's own box) so the countdown — a
+         sibling of .content, not nested inside it — can sit visually between
+         the text and the link/button via `order`, with no markup duplicated. */
+      .ufs-ann-banner__content { display: contents; }
+      .ufs-ann-banner__title, .ufs-ann-banner__text { display: block; order: 1; }
+      .ufs-ann-banner__countdown { order: 2; }
+      .ufs-ann-banner__link {
+        display: inline-flex; align-items: center; justify-content: center; order: 3;
+        height: var(--space-10); padding: 0 var(--space-4); margin-top: var(--space-1);
+        background: var(--color-salt); border: 1px solid var(--color-accessible-orange); border-radius: var(--radius-sm);
+        font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w);
+      }
+      .ufs-ann-banner__link:hover { text-decoration: none; background: var(--color-mushroom-100); }
+      .ufs-ann-banner__close {
+        position: absolute; top: var(--space-2); inset-inline-end: var(--space-2); transform: none;
+        width: var(--space-5); height: var(--space-5);
+      }
+      .ufs-ann-banner__close svg { width: 10px; height: 10px; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#variants" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Color Variants</a>
+      <a href="#content-states" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Content States</a>
+      <a href="#content-length" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Content Length</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#countdown" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Countdown</a>
+      <a href="#dismiss" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Dismiss</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Stacking</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source of truth: full-page-preview-v0.2.html<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Announcement Banner</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Announcement <span>Banner</span></h1>
+        <p class="doc-header-desc">Dismissable, inset content-flow card for site-wide or page-level messages — optional live countdown, optional link, and a desktop sentence that stacks into individual lines + a button on mobile.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">full-page-preview-v0.2.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A single <code>&lt;div class="ufs-ann-banner"&gt;</code> — an inset, rounded, bordered card placed in the page's content flow (e.g. directly below the header, above the breadcrumb). Composed of an optional countdown, a title/text/link "sentence," and a close button. Dismissing it is <strong>session-only</strong>: it reappears on the next page load.</p>
+
+      <div class="pv-light" style="margin-bottom:24px;">
+        <div class="ufs-ann-banner ufs-ann-banner--warm" data-countdown-end="2026-08-28T12:00:00">
+          <div class="ufs-ann-banner__countdown">
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="days">00</span><span class="ufs-ann-banner__unit-label">Days</span></div>
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="hours">00</span><span class="ufs-ann-banner__unit-label">Hours</span></div>
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="minutes">00</span><span class="ufs-ann-banner__unit-label">Minutes</span></div>
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="seconds">00</span><span class="ufs-ann-banner__unit-label">Seconds</span></div>
+          </div>
+          <p class="ufs-ann-banner__content">
+            <span class="ufs-ann-banner__title">30 Seconds. That’s All We Need. </span><span class="ufs-ann-banner__text">Update your details for offers made just for you. </span><a href="#" class="ufs-ann-banner__link">Let's Do It</a>
+          </p>
+          <button type="button" class="ufs-ann-banner__close" aria-label="Dismiss announcement">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="intro-grid">
+        <div class="intro-card">
+          <div class="intro-card-icon">⏱️</div>
+          <div class="intro-card-title">Countdown is optional</div>
+          <div class="intro-card-text">Ticks live toward a <code>data-countdown-end</code> timestamp when present; freezes at 00:00:00:00 rather than hiding or auto-dismissing.</div>
+        </div>
+        <div class="intro-card">
+          <div class="intro-card-icon">✍️</div>
+          <div class="intro-card-title">Desktop = one sentence</div>
+          <div class="intro-card-text">Title, text and link are three inline runs of the same paragraph — they simply flow together, wrapping naturally if the line is too long.</div>
+        </div>
+        <div class="intro-card">
+          <div class="intro-card-icon">📱</div>
+          <div class="intro-card-text" style="margin-top:-3px"><span class="intro-card-title" style="display:block;margin-bottom:5px">Mobile = stacked + button</span>Below 768px each piece becomes its own line, and the link restyles into a secondary button.</div>
+        </div>
+      </div>
+
+      <div class="notice notice--info" style="margin-top:28px;">
+        <span class="notice-icon">ℹ️</span>
+        <div>Every preview on this page renders the <strong>real component CSS and JS</strong> (mirrored 1:1 from the source of truth) — the countdown is genuinely ticking and the close button genuinely dismisses.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Four parts, three of them optional: an <strong>optional</strong> countdown row, a content paragraph (<code>.ufs-ann-banner__title</code> is optional, <code>.ufs-ann-banner__text</code> is the baseline, <code>.ufs-ann-banner__link</code> is optional), and a required close button.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Full reference markup</div>
+        <div class="card-desc">The richest combination — countdown + title + text + link — so every class is represented. Simpler banners just omit the pieces they don't need.</div>
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anatomy-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner ufs-ann-banner--warm"</span> <span class="t-at">data-countdown-end</span>=<span class="t-str">"2026-08-28T12:00:00"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__countdown"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit-value"</span> <span class="t-at">data-ann-unit</span>=<span class="t-str">"days"</span><span class="t-tag">&gt;</span>00<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit-label"</span><span class="t-tag">&gt;</span>Days<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit-value"</span> <span class="t-at">data-ann-unit</span>=<span class="t-str">"hours"</span><span class="t-tag">&gt;</span>00<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit-label"</span><span class="t-tag">&gt;</span>Hours<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit-value"</span> <span class="t-at">data-ann-unit</span>=<span class="t-str">"minutes"</span><span class="t-tag">&gt;</span>00<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit-label"</span><span class="t-tag">&gt;</span>Minutes<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit-value"</span> <span class="t-at">data-ann-unit</span>=<span class="t-str">"seconds"</span><span class="t-tag">&gt;</span>00<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__unit-label"</span><span class="t-tag">&gt;</span>Seconds<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+  <span class="t-cm">&lt;!-- .ufs-ann-banner__title is optional; omit it for text-only messages --&gt;</span>
+  <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__content"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__title"</span><span class="t-tag">&gt;</span>30 Seconds. That&amp;rsquo;s All We Need. <span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__text"</span><span class="t-tag">&gt;</span>Update your details for offers made just for you. <span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__link"</span><span class="t-tag">&gt;</span>Let's Do It<span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+
+  <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__close"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Dismiss announcement"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 12 12"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"2"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"10"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"2"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span>/<span class="t-tag">&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anatomy-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-ann-banner</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">height</span>: <span class="t-va">var(--space-16)</span>;
+  <span class="t-pr">margin</span>: <span class="t-va">var(--space-6) var(--space-20)</span>;
+  <span class="t-pr">padding-inline</span>: <span class="t-va">var(--space-6) var(--space-12)</span>;
+  <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>;
+  <span class="t-pr">position</span>: <span class="t-vl">relative</span>;
+  <span class="t-pr">transition</span>: <span class="t-vl">opacity 0.2s ease, max-height 0.2s ease, margin 0.2s ease, padding 0.2s ease</span>;
+}
+<span class="t-pr">.ufs-ann-banner.is-closing</span> { <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-ann-banner--neutral</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-500)</span>; }
+<span class="t-pr">.ufs-ann-banner--warm</span> { <span class="t-pr">background</span>: <span class="t-vl">color-mix(in srgb,</span> <span class="t-va">var(--color-orange-100)</span> <span class="t-vl">30%,</span> <span class="t-va">var(--color-salt)</span><span class="t-vl">)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-orange-300)</span>; }
+
+<span class="t-cm">/* Countdown */</span>
+<span class="t-pr">.ufs-ann-banner__countdown</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-ann-banner__unit</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">min-width</span>: <span class="t-vl">44px</span>; }
+<span class="t-pr">.ufs-ann-banner__unit-value</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-price-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-price-lh)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-price-ls)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-price-w)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-ann-banner__unit-label</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-xs-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+
+<span class="t-cm">/* Content — title/text/link flow as one sentence by default (desktop) */</span>
+<span class="t-pr">.ufs-ann-banner__content</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-ann-banner__title</span> { <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>; }
+<span class="t-pr">.ufs-ann-banner__link</span> { <span class="t-pr">display</span>: <span class="t-vl">inline</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; }
+<span class="t-pr">.ufs-ann-banner__link:hover</span> { <span class="t-pr">text-decoration</span>: <span class="t-vl">underline</span>; }
+
+<span class="t-cm">/* Close — absolutely positioned so it doesn't consume flex space; logical
+   inset-inline-end (not right) so it flips sides correctly under dir="rtl" */</span>
+<span class="t-pr">.ufs-ann-banner__close</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-vl">50%</span>; <span class="t-pr">inset-inline-end</span>: <span class="t-va">var(--space-6)</span>; <span class="t-pr">transform</span>: <span class="t-vl">translateY(-50%)</span>;
+  <span class="t-pr">width</span>: <span class="t-va">var(--space-6)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-6)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>;
+  <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">background</span>: <span class="t-vl">transparent</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">transition</span>: <span class="t-vl">background 0.15s</span>;
+}
+<span class="t-pr">.ufs-ann-banner__close:hover</span> { <span class="t-pr">background</span>: <span class="t-vl">color-mix(in srgb,</span> <span class="t-va">var(--color-brand-dark)</span> <span class="t-vl">8%, transparent)</span>; }
+
+<span class="t-cm">/* padding-inline-end above (--space-12, 48px) clears this absolute button */</span>
+<span class="t-cm">/* Mobile — see the Mobile Stacking section for the full breakpoint block */</span></pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Card inset</span><span class="token-var">--space-6 --space-20</span><span class="token-note">margin from the page edges, desktop; --space-6 --space-4 on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Row height, desktop</span><span class="token-var">--space-16 (64px)</span><span class="token-note">fixed; content is vertically centered, not padded, via align-items</span></div>
+          <div class="token-row"><span class="token-prop">Padding, mobile</span><span class="token-var">--space-4 (16px)</span><span class="token-note">all sides; height is auto to fit the stacked content</span></div>
+          <div class="token-row"><span class="token-prop">Gap, mobile</span><span class="token-var">--space-1 (4px)</span><span class="token-note">between title/text/countdown/link once stacked</span></div>
+          <div class="token-row"><span class="token-prop">Corner radius</span><span class="token-var">--radius-md (12px)</span><span class="token-note">same as the megamenu / lang dropdown</span></div>
+          <div class="token-row"><span class="token-prop">Countdown numerals</span><span class="token-var">.text-price tokens</span><span class="token-note">20px/600w, same scale as price displays elsewhere in the DS</span></div>
+          <div class="token-row"><span class="token-prop">Body text</span><span class="token-var">--text-body-sm-size (14px)</span><span class="token-note">title/text/link all share this size</span></div>
+          <div class="token-row"><span class="token-prop">Link / CTA colour</span><span class="token-var">--color-accessible-orange</span><span class="token-note">becomes a bordered secondary button on mobile, after the countdown</span></div>
+          <div class="token-row"><span class="token-prop">Close, desktop</span><span class="token-var">position: absolute</span><span class="token-note">inset-inline-end: --space-6, vertically centered — not a flex item</span></div>
+          <div class="token-row"><span class="token-prop">Close icon</span><span class="token-var">reused .signin-close X glyph</span><span class="token-note">12×12px desktop, 10×10px mobile (unchanged, top-right corner)</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ COLOR VARIANTS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="variants">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Color Variants</h2>
+      <p class="section-desc">Two free-choice style variants — <strong>Neutral</strong> and <strong>Warm</strong> — with no fixed meaning attached. Whoever places the banner picks whichever fits the surrounding content; the Figma reference itself mixes them freely (a shipping-delay notice and a 20%-off promo both use Warm).</p>
+
+      <div class="variant-grid">
+        <div>
+          <div class="pv-label">.ufs-ann-banner--neutral</div>
+          <div class="pv-light">
+            <div class="ufs-ann-banner ufs-ann-banner--neutral">
+              <p class="ufs-ann-banner__content">
+                <span class="ufs-ann-banner__text">We are experiencing delays in our shippings due to bad weather conditions. Please keep an eye on your inbox for order updates.</span>
+              </p>
+              <button type="button" class="ufs-ann-banner__close" aria-label="Dismiss announcement">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="pv-label">.ufs-ann-banner--warm</div>
+          <div class="pv-light">
+            <div class="ufs-ann-banner ufs-ann-banner--warm" data-countdown-end="2026-08-28T12:00:00">
+              <div class="ufs-ann-banner__countdown">
+                <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="days">00</span><span class="ufs-ann-banner__unit-label">Days</span></div>
+                <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="hours">00</span><span class="ufs-ann-banner__unit-label">Hours</span></div>
+                <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="minutes">00</span><span class="ufs-ann-banner__unit-label">Minutes</span></div>
+                <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="seconds">00</span><span class="ufs-ann-banner__unit-label">Seconds</span></div>
+              </div>
+              <p class="ufs-ann-banner__content">
+                <span class="ufs-ann-banner__text">Extra 20% off at checkout with code <strong>SPRING20</strong>. No minimum. </span><a href="#" class="ufs-ann-banner__link">Shop now</a>
+              </p>
+              <button type="button" class="ufs-ann-banner__close" aria-label="Dismiss announcement">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip" style="margin-top:20px;">
+        <span class="notice-icon">💡</span>
+        <div>Token mapping is exact, not nearest-match: Neutral = <code>--color-mushroom-100</code> / <code>--color-mushroom-500</code> border; Warm = <code>--color-orange-100</code> at 30% mixed with <code>--color-salt</code> / <code>--color-orange-300</code> border. Both colors were literal hex values in the Figma file that happened to match existing tokens exactly.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CONTENT STATES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="content-states">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Content States</h2>
+      <p class="section-desc">Countdown, title and link are each independently optional — a banner can be as simple as a single line of text with just a close button.</p>
+
+      <div class="pv-label">Text only — no countdown, no title, no link</div>
+      <div class="pv-light" style="margin-bottom:20px;">
+        <div class="ufs-ann-banner ufs-ann-banner--neutral">
+          <p class="ufs-ann-banner__content">
+            <span class="ufs-ann-banner__text">We are experiencing delays in our shippings due to bad weather conditions. Please keep an eye on your inbox for order updates.</span>
+          </p>
+          <button type="button" class="ufs-ann-banner__close" aria-label="Dismiss announcement">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="pv-label">Text + link, no countdown, no title</div>
+      <div class="pv-light">
+        <div class="ufs-ann-banner ufs-ann-banner--neutral">
+          <p class="ufs-ann-banner__content">
+            <span class="ufs-ann-banner__text">Unlock the Future of Dining Now: Discover the Latest Culinary Trends. </span><a href="#" class="ufs-ann-banner__link">Join our newsletter to get notified</a>
+          </p>
+          <button type="button" class="ufs-ann-banner__close" aria-label="Dismiss announcement">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CONTENT LENGTH ═══════════════════════════════════════ -->
+    <section class="doc-section" id="content-length">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Content Length</h2>
+      <p class="section-desc">The desktop row is a fixed <code>64px</code> tall single line — title, text and link all have to fit on it without wrapping to a second line or crowding the countdown/close button. The limit is tighter when a countdown is present, since it already claims a fixed block of horizontal space before the sentence even starts.</p>
+
+      <div class="token-list">
+        <div class="token-row"><span class="token-prop">With countdown</span><span class="token-var">130 characters</span><span class="token-note">title + text + link combined, spaces included</span></div>
+        <div class="token-row"><span class="token-prop">Without countdown</span><span class="token-var">170 characters</span><span class="token-note">title + text + link combined, spaces included</span></div>
+      </div>
+
+      <div class="notice notice--warn" style="margin-top:20px;">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>This is a content-authoring rule, not enforced in code.</strong> Nothing truncates or validates length automatically — check the combined character count (title + description + link, spaces included) against the applicable limit above before publishing a banner. Going over doesn't break anything outright, but risks the sentence wrapping to a second line on desktop (the row's fixed 64px height won't grow to fit it) or, on mobile, an unusually tall stacked card.</div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>All content examples on this page were checked against these limits: the countdown examples (Overview, Anatomy, Mobile Stacking) sit at 93 characters; the no-countdown examples (Content States, the Neutral variant) sit at 105–126 characters — comfortably under both caps.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ COUNTDOWN ═══════════════════════════════════════ -->
+    <section class="doc-section" id="countdown">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Countdown</h2>
+      <p class="section-desc">Set <code>data-countdown-end</code> (an ISO-8601 datetime) on the banner root and add a <code>.ufs-ann-banner__countdown</code> block with four <code>[data-ann-unit]</code> spans. On load, <code>initAnnCountdown()</code> ticks every second toward that timestamp and <strong>freezes at 00:00:00:00</strong> when it's reached — the banner and countdown row stay visible rather than disappearing, avoiding a surprising layout shift or content loss right as a promotion ends.</p>
+
+      <div class="ds-card">
+        <div class="card-title">JS — self-initializing on load</div>
+        <div class="card-desc">Runs once per <code>.ufs-ann-banner__countdown</code> found on the page, so multiple independent banners/countdowns can coexist.</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-kw">function</span> initAnnCountdown(countdownEl) {
+  <span class="t-kw">var</span> banner = countdownEl.closest(<span class="t-str">'.ufs-ann-banner'</span>);
+  <span class="t-kw">var</span> end = <span class="t-kw">new</span> Date(banner.getAttribute(<span class="t-str">'data-countdown-end'</span>)).getTime();
+  <span class="t-kw">var</span> dayEl = countdownEl.querySelector(<span class="t-str">'[data-ann-unit="days"]'</span>);
+  <span class="t-kw">var</span> hourEl = countdownEl.querySelector(<span class="t-str">'[data-ann-unit="hours"]'</span>);
+  <span class="t-kw">var</span> minEl = countdownEl.querySelector(<span class="t-str">'[data-ann-unit="minutes"]'</span>);
+  <span class="t-kw">var</span> secEl = countdownEl.querySelector(<span class="t-str">'[data-ann-unit="seconds"]'</span>);
+  <span class="t-kw">function</span> pad(n) { <span class="t-kw">return</span> n &lt; 10 ? <span class="t-str">'0'</span> + n : <span class="t-str">''</span> + n; }
+  <span class="t-kw">function</span> tick() {
+    <span class="t-kw">var</span> diff = end - Date.now();
+    <span class="t-kw">if</span> (diff &lt;= 0) {
+      dayEl.textContent = <span class="t-str">'00'</span>; hourEl.textContent = <span class="t-str">'00'</span>; minEl.textContent = <span class="t-str">'00'</span>; secEl.textContent = <span class="t-str">'00'</span>;
+      clearInterval(timer);
+      <span class="t-kw">return</span>;
+    }
+    <span class="t-kw">var</span> totalSeconds = Math.floor(diff / 1000);
+    dayEl.textContent  = pad(Math.floor(totalSeconds / 86400));
+    hourEl.textContent = pad(Math.floor(totalSeconds % 86400 / 3600));
+    minEl.textContent  = pad(Math.floor(totalSeconds % 3600 / 60));
+    secEl.textContent  = pad(totalSeconds % 60);
+  }
+  tick();
+  <span class="t-kw">var</span> timer = setInterval(tick, 1000);
+}
+document.querySelectorAll(<span class="t-str">'.ufs-ann-banner__countdown'</span>).forEach(initAnnCountdown);</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>Accessibility — do not make the countdown an <code>aria-live</code> region.</strong> A per-second announcement would be read aloud continuously by screen readers, which is disruptive and effectively unusable. The digits update visually only; screen-reader users still get the surrounding sentence and the link/button, which is the actionable part. This also sidesteps WCAG 2.2.2 (Pause, Stop, Hide) concerns that apply to auto-updating live regions — plain, non-live text isn't subject to that criterion.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DISMISS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="dismiss">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Dismiss</h2>
+      <p class="section-desc">Clicking <code>.ufs-ann-banner__close</code> fades the banner out and removes it from the DOM. This is <strong>session-only</strong> — there's no <code>localStorage</code> persistence, so the banner reappears on the next page load. That's a deliberate simplicity trade-off for this first version, not an oversight; per-banner persistent dismissal (e.g. "don't show again for 7 days") is a reasonable future extension if a specific banner needs it.</p>
+
+      <div class="ds-card">
+        <div class="card-title">JS — delegated click handler</div>
+        <div class="card-desc">One document-level listener handles every banner's close button, so no per-instance wiring is needed.</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body">document.addEventListener(<span class="t-str">'click'</span>, <span class="t-kw">function</span>(e) {
+  <span class="t-kw">var</span> closeBtn = e.target.closest(<span class="t-str">'.ufs-ann-banner__close'</span>);
+  <span class="t-kw">if</span> (!closeBtn) <span class="t-kw">return</span>;
+  <span class="t-kw">var</span> banner = closeBtn.closest(<span class="t-str">'.ufs-ann-banner'</span>);
+  banner.classList.add(<span class="t-str">'is-closing'</span>);
+  document.activeElement.blur();
+  banner.addEventListener(<span class="t-str">'transitionend'</span>, <span class="t-kw">function</span>() { banner.remove(); }, { once: <span class="t-kw">true</span> });
+});</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div><strong>Focus handling on dismiss:</strong> if a keyboard user activates the close button, that element is about to be removed from the DOM — leaving focus references dangling. <code>document.activeElement.blur()</code> returns focus to the document body before removal, rather than letting it silently vanish into an unfocused void.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Stacking</h2>
+      <p class="section-desc">Below <code>768px</code>, the banner switches to a centered column: title (if present), then text, then the <strong>countdown</strong>, then the link — restyled into a bordered secondary button — each as its own line. No content is duplicated to achieve this: <code>.ufs-ann-banner__content</code> switches to <code>display: contents</code>, promoting <code>.ufs-ann-banner__title</code>/<code>__text</code>/<code>__link</code> to be direct flex children alongside <code>.ufs-ann-banner__countdown</code> (previously a sibling, not nested inside <code>.content</code>) — an explicit <code>order</code> on each then places the countdown visually between the text and the button.</p>
+
+      <div class="pv-label">Mobile — forced <code>≤768px</code> layout, live &amp; interactive</div>
+      <div class="pv-mobile" style="margin:0 0 24px;">
+        <div class="ufs-ann-banner ufs-ann-banner--warm" data-countdown-end="2026-08-28T12:00:00">
+          <div class="ufs-ann-banner__countdown">
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="days">00</span><span class="ufs-ann-banner__unit-label">Days</span></div>
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="hours">00</span><span class="ufs-ann-banner__unit-label">Hours</span></div>
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="minutes">00</span><span class="ufs-ann-banner__unit-label">Minutes</span></div>
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="seconds">00</span><span class="ufs-ann-banner__unit-label">Seconds</span></div>
+          </div>
+          <p class="ufs-ann-banner__content">
+            <span class="ufs-ann-banner__title">30 Seconds. That’s All We Need. </span><span class="ufs-ann-banner__text">Update your details for offers made just for you. </span><a href="#" class="ufs-ann-banner__link">Let's Do It</a>
+          </p>
+          <button type="button" class="ufs-ann-banner__close" aria-label="Dismiss announcement">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>Standalone button label:</strong> on mobile the link becomes a genuinely independent, focusable <code>&lt;button&gt;</code>-styled element in the tab order — not inline text a screen-reader user encounters mid-sentence. Short labels like "Shop now" or "Let's Do It" can read as ambiguous out of context (WCAG 2.4.4, link/button purpose). If a given banner's CTA label isn't self-explanatory alone, give the link a fuller <code>aria-label</code> (e.g. <code>aria-label="Shop now — 20% off with SPRING20"</code>) rather than changing the visible label.</div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div><strong>Visual order vs. reading order:</strong> the countdown's position between text and button is achieved with CSS <code>order</code>, which only affects visual layout — it does not change DOM/reading order. A screen-reader user still encounters countdown → text → link in source order, not text → countdown → link. Both sequences are independently coherent (WCAG 1.3.2 is about avoiding a genuinely confusing sequence, not requiring visual/DOM parity), so this is treated as an acceptable trade-off rather than a defect — the same pattern commonly used for things like reordering nav items between mobile and desktop.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Every piece of copy is localised through <code>data-i18n</code> hooks resolved at runtime by the page's translation layer — the banner itself hardcodes nothing user-facing beyond the English fallback text, matching the header, hero, breadcrumb and footer. The component is also direction-agnostic by construction: it's plain flexbox with no directional icons other than the symmetric close X, and every offset that matters (<code>margin-inline-start</code>, <code>inset-inline-end</code>, <code>padding-inline</code>) is a <strong>logical</strong> property, so it all flips automatically under <code>dir="rtl"</code> with no separate override rule needed — unlike the breadcrumb and nav, which needed explicit <code>[dir="rtl"]</code> rules because they used physical <code>left</code>/<code>right</code> properties.</p>
+
+      <div class="pv-label">Forced <code>dir="rtl"</code>, Arabic — live &amp; interactive</div>
+      <div class="pv-light" style="margin-bottom:24px;">
+        <div class="ufs-ann-banner ufs-ann-banner--warm" data-countdown-end="2026-08-28T12:00:00" dir="rtl">
+          <div class="ufs-ann-banner__countdown">
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="days">00</span><span class="ufs-ann-banner__unit-label">أيام</span></div>
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="hours">00</span><span class="ufs-ann-banner__unit-label">ساعات</span></div>
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="minutes">00</span><span class="ufs-ann-banner__unit-label">دقائق</span></div>
+            <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="seconds">00</span><span class="ufs-ann-banner__unit-label">ثوانٍ</span></div>
+          </div>
+          <p class="ufs-ann-banner__content">
+            <span class="ufs-ann-banner__title">اكتشف مستقبل تناول الطعام الآن. </span><span class="ufs-ann-banner__text">تعرّف على أحدث اتجاهات الطهي. </span><a href="#" class="ufs-ann-banner__link">اشترك في نشرتنا الإخبارية لتصلك الإشعارات</a>
+          </p>
+          <button type="button" class="ufs-ann-banner__close" aria-label="إغلاق الإعلان">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">What flips (and how)</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Sentence flow</span><span class="token-var">automatic (flex row)</span><span class="token-note">title renders rightmost, link/button leftmost — no flex-direction: row-reverse needed</span></div>
+          <div class="token-row"><span class="token-prop">Countdown order</span><span class="token-var">automatic (flex row)</span><span class="token-note">Days reads rightmost, Seconds leftmost — mirrors the LTR left-to-right order</span></div>
+          <div class="token-row"><span class="token-prop">Close button, desktop</span><span class="token-var">inset-inline-end</span><span class="token-note">flips from the physical right to the physical left edge</span></div>
+          <div class="token-row"><span class="token-prop">Close button, mobile</span><span class="token-var">inset-inline-end</span><span class="token-note">same logical property, top-corner position unaffected</span></div>
+          <div class="token-row"><span class="token-prop">Row padding</span><span class="token-var">padding-inline</span><span class="token-note">the wider (close-button) side swaps from end-right to end-left</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Localisation hooks</div>
+        <div class="card-desc">Two attribute variants cover every piece of text in the banner.</div>
+        <div class="variant-table-wrap">
+          <table class="variant-table">
+            <thead>
+              <tr><th>Attribute</th><th>Applies to</th><th>Example key(s)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>data-i18n</td><td>Plain text content of the element</td><td>ann-title, ann-text, ann-link, ann-days, ann-hours, ann-minutes, ann-seconds</td></tr>
+              <tr><td>data-i18n-aria</td><td>The element's <code>aria-label</code> attribute</td><td>ann-close</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cm">&lt;!-- text nodes localise via data-i18n; the close button's aria-label via
+     data-i18n-aria — a small addition to the page's translation layer
+     alongside the existing data-i18n / data-i18n-ph / data-i18n-html --&gt;</span>
+<span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__title"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"ann-title"</span><span class="t-tag">&gt;</span>Unlock the Future of Dining Now. <span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__link"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"ann-link"</span><span class="t-tag">&gt;</span>Join our newsletter to get notified<span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ann-banner__close"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Dismiss announcement"</span> <span class="t-at">data-i18n-aria</span>=<span class="t-str">"ann-close"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span></pre>
+      </div>
+
+      <div class="notice notice--tip" style="margin-top:18px;">
+        <span class="notice-icon">💡</span>
+        <div>Verified live in <code>full-page-preview-v0.2.html</code> with the Language toggle set to AR: every string above translates, the sentence and countdown read right-to-left, and the close button correctly lands on the visual left edge — all from the same <code>applyTranslations()</code> pass and logical-property CSS already used elsewhere on the page. Provide a localised value for every key listed above; a missing key falls back to the English text shown in the markup.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="full-page-preview-v0.2.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    /* Announcement banner — live behind every preview on this page */
+    function initAnnCountdown(countdownEl) {
+      var banner = countdownEl.closest('.ufs-ann-banner');
+      var end = new Date(banner.getAttribute('data-countdown-end')).getTime();
+      var dayEl = countdownEl.querySelector('[data-ann-unit="days"]');
+      var hourEl = countdownEl.querySelector('[data-ann-unit="hours"]');
+      var minEl = countdownEl.querySelector('[data-ann-unit="minutes"]');
+      var secEl = countdownEl.querySelector('[data-ann-unit="seconds"]');
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+      function tick() {
+        var diff = end - Date.now();
+        if (diff <= 0) {
+          dayEl.textContent = '00'; hourEl.textContent = '00'; minEl.textContent = '00'; secEl.textContent = '00';
+          clearInterval(timer);
+          return;
+        }
+        var totalSeconds = Math.floor(diff / 1000);
+        dayEl.textContent  = pad(Math.floor(totalSeconds / 86400));
+        hourEl.textContent = pad(Math.floor(totalSeconds % 86400 / 3600));
+        minEl.textContent  = pad(Math.floor(totalSeconds % 3600 / 60));
+        secEl.textContent  = pad(totalSeconds % 60);
+      }
+      tick();
+      var timer = setInterval(tick, 1000);
+    }
+    document.querySelectorAll('.ufs-ann-banner__countdown').forEach(initAnnCountdown);
+
+    document.addEventListener('click', function(e) {
+      var closeBtn = e.target.closest('.ufs-ann-banner__close');
+      if (!closeBtn) return;
+      var banner = closeBtn.closest('.ufs-ann-banner');
+      banner.classList.add('is-closing');
+      document.activeElement.blur();
+      banner.addEventListener('transitionend', function() { banner.remove(); }, { once: true });
+    });
+  </script>
+</body>
+</html>

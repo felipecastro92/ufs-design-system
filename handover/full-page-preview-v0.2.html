@@ -1942,6 +1942,76 @@
     }
 
     /* ================================================================
+       ANNOUNCEMENT BANNER — dismissable, inset content-flow card. Desktop
+       concatenates title/text/link into one flowing sentence; mobile stacks
+       each as its own line and turns the link into a secondary button.
+       Countdown is optional and ticks live toward [data-countdown-end].
+    ================================================================ */
+    .ufs-ann-banner {
+      display: flex; align-items: center; justify-content: center; gap: var(--space-4);
+      height: var(--space-16);
+      margin: var(--space-6) var(--space-20);
+      padding-inline: var(--space-6) var(--space-12);
+      border-radius: var(--radius-md);
+      position: relative;
+      transition: opacity 0.2s ease, max-height 0.2s ease, margin 0.2s ease, padding 0.2s ease;
+    }
+    .ufs-ann-banner.is-closing { opacity: 0; pointer-events: none; }
+    .ufs-ann-banner--neutral { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-500); }
+    .ufs-ann-banner--warm { background: color-mix(in srgb, var(--color-orange-100) 30%, var(--color-salt)); border: 1px solid var(--color-orange-300); }
+
+    /* ── Countdown ── */
+    .ufs-ann-banner__countdown { display: flex; align-items: center; gap: var(--space-4); flex-shrink: 0; }
+    .ufs-ann-banner__unit { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 44px; }
+    .ufs-ann-banner__unit-value { font-size: var(--text-price-size); line-height: var(--text-price-lh); letter-spacing: var(--text-price-ls); font-weight: var(--text-price-w); color: var(--color-brand-dark); }
+    .ufs-ann-banner__unit-label { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-brand-dark); }
+
+    /* ── Content (title/text/link) — inline sentence on desktop ── */
+    .ufs-ann-banner__content { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); }
+    .ufs-ann-banner__title { font-weight: var(--text-btn-w); }
+    .ufs-ann-banner__link {
+      display: inline; font-weight: var(--text-btn-w); color: var(--color-accessible-orange);
+      text-decoration: none; cursor: pointer;
+    }
+    .ufs-ann-banner__link:hover { text-decoration: underline; }
+
+    /* ── Close ── */
+    .ufs-ann-banner__close {
+      position: absolute; top: 50%; inset-inline-end: var(--space-6); transform: translateY(-50%);
+      width: var(--space-6); height: var(--space-6); border-radius: var(--radius-full);
+      border: none; cursor: pointer; background: transparent; color: var(--color-brand-dark);
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .ufs-ann-banner__close svg { width: 12px; height: 12px; }
+    .ufs-ann-banner__close:hover { background: color-mix(in srgb, var(--color-brand-dark) 8%, transparent); }
+
+    @media (max-width: 768px) {
+      .ufs-ann-banner {
+        flex-direction: column; align-items: center; text-align: center; height: auto;
+        gap: var(--space-1); margin: var(--space-6) var(--space-4); padding: var(--space-4);
+      }
+      /* Promotes title/text/link to direct flex children of .ufs-ann-banner
+         (display:contents removes .content's own box) so the countdown — a
+         sibling of .content, not nested inside it — can sit visually between
+         the text and the link/button via `order`, with no markup duplicated. */
+      .ufs-ann-banner__content { display: contents; }
+      .ufs-ann-banner__title, .ufs-ann-banner__text { display: block; order: 1; }
+      .ufs-ann-banner__countdown { order: 2; }
+      .ufs-ann-banner__link {
+        display: inline-flex; align-items: center; justify-content: center; order: 3;
+        height: var(--space-10); padding: 0 var(--space-4); margin-top: var(--space-1);
+        background: var(--color-salt); border: 1px solid var(--color-accessible-orange); border-radius: var(--radius-sm);
+        font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w);
+      }
+      .ufs-ann-banner__link:hover { text-decoration: none; background: var(--color-mushroom-100); }
+      .ufs-ann-banner__close {
+        position: absolute; top: var(--space-2); inset-inline-end: var(--space-2); transform: none;
+        width: var(--space-5); height: var(--space-5);
+      }
+      .ufs-ann-banner__close svg { width: 10px; height: 10px; }
+    }
+
+    /* ================================================================
        JOURNEY-SPECIFIC HEADER CONTEXTS (Landing Page / Registration / Checkout)
        See handover/nav-header-spec.html #landing-header / #registration-header / #checkout-header
     ================================================================ */
@@ -2873,7 +2943,7 @@
          BREADCRUMB — demo instance. In production this row only renders on
          interior pages (category / PLP / PDP), never on the true homepage;
          shown here above the Hero purely to demo the Header → Breadcrumb →
-         Hero stacking order.
+         Announcement Banner → Hero stacking order.
     ================================================================ -->
     <nav class="ufs-breadcrumb" aria-label="Breadcrumb">
       <ol class="ufs-breadcrumb__list">
@@ -2899,6 +2969,28 @@
         <li class="ufs-breadcrumb__item is-current"><span class="ufs-breadcrumb__current" aria-current="page" data-i18n="mm-ketchup">Ketchup &amp; Tomato Sauces</span></li>
       </ol>
     </nav>
+
+    <!-- ================================================================
+         ANNOUNCEMENT BANNER — demo instance. Dismissable, session-only
+         (reappears on next page load). Countdown ticks live toward
+         data-countdown-end; desktop flows title/text/link as one sentence,
+         mobile stacks each as its own line and turns the link into a
+         secondary button (see handover/announcement-banner-spec.html).
+    ================================================================ -->
+    <div class="ufs-ann-banner ufs-ann-banner--warm" data-countdown-end="2026-08-28T12:00:00">
+      <div class="ufs-ann-banner__countdown">
+        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="days">00</span><span class="ufs-ann-banner__unit-label" data-i18n="ann-days">Days</span></div>
+        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="hours">00</span><span class="ufs-ann-banner__unit-label" data-i18n="ann-hours">Hours</span></div>
+        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="minutes">00</span><span class="ufs-ann-banner__unit-label" data-i18n="ann-minutes">Minutes</span></div>
+        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-ann-unit="seconds">00</span><span class="ufs-ann-banner__unit-label" data-i18n="ann-seconds">Seconds</span></div>
+      </div>
+      <p class="ufs-ann-banner__content">
+        <span class="ufs-ann-banner__title" data-i18n="ann-title">Unlock the Future of Dining Now. </span><span class="ufs-ann-banner__text" data-i18n="ann-text">Discover the Latest Culinary Trends. </span><a href="#" class="ufs-ann-banner__link" data-i18n="ann-link">Join our newsletter to get notified</a>
+      </p>
+      <button type="button" class="ufs-ann-banner__close" aria-label="Dismiss announcement" data-i18n-aria="ann-close">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
 
     <!-- Hero -->
     <section class="pg-hero btn-on-dark">
@@ -4144,7 +4236,9 @@
       'footer-col-legal':'Legal','footer-privacy':'Privacy Policy','footer-cookie':'Cookie Policy','footer-terms':'Terms and Conditions','footer-accessibility':'Accessibility',
       'footer-copyright':'© 2027 UFS. All rights reserved.',
       'carousel-title':'Carousel title','carousel-desc':'Carousel description this can be optional if it’s needed to add some context','carousel-cta':'Discover more items',
-      'bc-home':'Home'
+      'bc-home':'Home',
+      'ann-title':'Unlock the Future of Dining Now. ','ann-text':'Discover the Latest Culinary Trends. ','ann-link':'Join our newsletter to get notified','ann-close':'Dismiss announcement',
+      'ann-days':'Days','ann-hours':'Hours','ann-minutes':'Minutes','ann-seconds':'Seconds'
     };
 
     var T_AR = {
@@ -4217,7 +4311,9 @@
       'footer-col-legal':'القانونية','footer-privacy':'سياسة الخصوصية','footer-cookie':'سياسة ملفات تعريف الارتباط','footer-terms':'الشروط والأحكام','footer-accessibility':'إمكانية الوصول',
       'footer-copyright':'© 2027 UFS. جميع الحقوق محفوظة.',
       'carousel-title':'عنوان الكاروسيل','carousel-desc':'وصف الكاروسيل، ويمكن أن يكون اختياريًا عند الحاجة إلى إضافة بعض السياق.','carousel-cta':'اكتشف المزيد',
-      'bc-home':'الرئيسية'
+      'bc-home':'الرئيسية',
+      'ann-title':'اكتشف مستقبل تناول الطعام الآن. ','ann-text':'تعرّف على أحدث اتجاهات الطهي. ','ann-link':'اشترك في نشرتنا الإخبارية لتصلك الإشعارات','ann-close':'إغلاق الإعلان',
+      'ann-days':'أيام','ann-hours':'ساعات','ann-minutes':'دقائق','ann-seconds':'ثوانٍ'
     };
 
     var T_DE = {
@@ -4290,7 +4386,9 @@
       'footer-col-legal':'Rechtliches','footer-privacy':'Datenschutzrichtlinie','footer-cookie':'Cookie-Richtlinie','footer-terms':'Allgemeine Geschäftsbedingungen','footer-accessibility':'Barrierefreiheit',
       'footer-copyright':'© 2027 UFS. Alle Rechte vorbehalten.',
       'carousel-title':'Karussell-Titel','carousel-desc':'Karussell-Beschreibung – optional, falls zusätzlicher Kontext benötigt wird','carousel-cta':'Weitere Artikel entdecken',
-      'bc-home':'Startseite'
+      'bc-home':'Startseite',
+      'ann-title':'Entdecken Sie jetzt die Zukunft des Speisens. ','ann-text':'Entdecken Sie die neuesten kulinarischen Trends. ','ann-link':'Newsletter abonnieren und benachrichtigt werden','ann-close':'Ankündigung schließen',
+      'ann-days':'Tage','ann-hours':'Stunden','ann-minutes':'Minuten','ann-seconds':'Sekunden'
     };
 
     var MOCK_SUGGESTIONS_AR = [
@@ -5455,6 +5553,44 @@
     }
     document.addEventListener('click', function(e) {
       if (!e.target.closest('.ufs-breadcrumb__collapsed')) closeBreadcrumbDrop();
+    });
+
+    /* ================================================================
+       ANNOUNCEMENT BANNER — live countdown + session-only dismiss
+    ================================================================ */
+    function initAnnCountdown(countdownEl) {
+      var banner = countdownEl.closest('.ufs-ann-banner');
+      var end = new Date(banner.getAttribute('data-countdown-end')).getTime();
+      var dayEl = countdownEl.querySelector('[data-ann-unit="days"]');
+      var hourEl = countdownEl.querySelector('[data-ann-unit="hours"]');
+      var minEl = countdownEl.querySelector('[data-ann-unit="minutes"]');
+      var secEl = countdownEl.querySelector('[data-ann-unit="seconds"]');
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+      function tick() {
+        var diff = end - Date.now();
+        if (diff <= 0) {
+          dayEl.textContent = '00'; hourEl.textContent = '00'; minEl.textContent = '00'; secEl.textContent = '00';
+          clearInterval(timer);
+          return;
+        }
+        var totalSeconds = Math.floor(diff / 1000);
+        dayEl.textContent  = pad(Math.floor(totalSeconds / 86400));
+        hourEl.textContent = pad(Math.floor(totalSeconds % 86400 / 3600));
+        minEl.textContent  = pad(Math.floor(totalSeconds % 3600 / 60));
+        secEl.textContent  = pad(totalSeconds % 60);
+      }
+      tick();
+      var timer = setInterval(tick, 1000);
+    }
+    document.querySelectorAll('.ufs-ann-banner__countdown').forEach(initAnnCountdown);
+
+    document.addEventListener('click', function(e) {
+      var closeBtn = e.target.closest('.ufs-ann-banner__close');
+      if (!closeBtn) return;
+      var banner = closeBtn.closest('.ufs-ann-banner');
+      banner.classList.add('is-closing');
+      document.activeElement.blur();
+      banner.addEventListener('transitionend', function() { banner.remove(); }, { once: true });
     });
 
     /* ================================================================
