@@ -3174,9 +3174,6 @@
       <div class="ufs-fw-banner__sr-status" aria-live="polite" data-fw-status></div>
     </section>
 
-    <!-- TEMP DEBUG — swipe-freeze diagnosis, remove once resolved -->
-    <div id="fwb-debug" style="position:fixed; bottom:0; left:0; right:0; z-index:99999; max-height:35vh; overflow:auto; background:rgba(0,0,0,0.85); color:#0f0; font:10px/1.35 monospace; padding:8px; padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px)); white-space:pre-wrap; pointer-events:none;"></div>
-
   <script>
     /* Carousel — Full Width Banner. Each .ufs-fw-banner__slide bundles the
        40% panel + 60% image into one rigid unit so they move as a single
@@ -3313,86 +3310,54 @@
          resized desktop viewport that has no real touchscreen. */
       var dragStartX = 0, dragStartY = 0, dragCurrentX = 0, dragging = false, dragLocked = false;
 
-      /* TEMP DEBUG — remove once the iOS swipe-freeze bug is confirmed
-         fixed. Logs every touch event + drag-state transition to an
-         on-screen panel so it can be screenshotted from a real device
-         without needing Safari's remote inspector. */
-      var dbgEl = document.getElementById('fwb-debug');
-      var dbgLines = [];
-      function dbg(msg) {
-        dbgLines.push(msg);
-        if (dbgLines.length > 22) dbgLines.shift();
-        if (dbgEl) dbgEl.textContent = dbgLines.join('\n');
-      }
-
-      /* Document-level capture-phase listener — fires before ANY other
-         handler, on ANY element, regardless of whether it's inside
-         .track. Tells us definitively whether iOS is generating a
-         touchstart at all for the "stuck" gesture, and if so, what
-         element it's actually targeting (in case it's landing somewhere
-         unexpected rather than never firing). */
-      document.addEventListener('touchstart', function(e) {
-        var t = e.target;
-        var label = t.id ? '#' + t.id : (t.className && typeof t.className === 'string' ? '.' + t.className.split(' ').join('.') : t.tagName);
-        dbg('DOC touchstart target=' + label + ' x=' + e.touches[0].clientX.toFixed(0) + ' y=' + e.touches[0].clientY.toFixed(0));
-      }, { capture: true, passive: true });
-
       function startDrag(x, y, forceHorizontal) {
         if (!isMobile()) return;
         dragStartX = dragCurrentX = x;
         dragStartY = y;
         dragging = true;
         dragLocked = !!forceHorizontal;
-        dbg('start x=' + x.toFixed(0) + ' y=' + y.toFixed(0) + ' idx=' + activeIndex + ' w=' + track.offsetWidth);
         if (dragLocked) {
           track.style.transition = 'none';
           void track.offsetWidth;
         }
       }
       function moveDrag(x, y, evt) {
-        if (!dragging) { dbg('move ignored (dragging=false)'); return; }
+        if (!dragging) return;
         if (!dragLocked) {
           var dx = x - dragStartX, dy = y - dragStartY;
           if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return; /* not enough movement yet to know intent */
-          if (Math.abs(dx) <= Math.abs(dy)) { dbg('move -> vertical bailout dx=' + dx.toFixed(0) + ' dy=' + dy.toFixed(0)); dragging = false; return; }
+          if (Math.abs(dx) <= Math.abs(dy)) { dragging = false; return; } /* vertical — hand off to native scroll */
           dragLocked = true;
-          dbg('move -> LOCKED horizontal dx=' + dx.toFixed(0) + ' dy=' + dy.toFixed(0));
           track.style.transition = 'none';
           void track.offsetWidth;
         }
         if (evt && evt.cancelable) evt.preventDefault();
         dragCurrentX = x;
         var deltaPx = dragCurrentX - dragStartX;
-        var tx = -activeIndex * track.offsetWidth + deltaPx;
-        track.style.transform = 'translateX(' + tx + 'px)';
-        dbg('move tx=' + tx.toFixed(0) + ' delta=' + deltaPx.toFixed(0));
+        track.style.transform = 'translateX(' + (-activeIndex * track.offsetWidth + deltaPx) + 'px)';
       }
       function endDrag() {
         var wasLocked = dragging && dragLocked;
         dragging = false;
         dragLocked = false;
-        dbg('end wasLocked=' + wasLocked);
         if (!wasLocked) { dragStartX = dragCurrentX = 0; return; }
         var deltaPx = dragCurrentX - dragStartX;
         var threshold = track.offsetWidth * 0.15;
         track.style.transition = '';
         if (deltaPx <= -threshold) {
-          dbg('end -> next, delta=' + deltaPx.toFixed(0) + ' threshold=' + threshold.toFixed(0));
           goTo(activeIndex + 1, 'next');
         } else if (deltaPx >= threshold) {
-          dbg('end -> prev, delta=' + deltaPx.toFixed(0) + ' threshold=' + threshold.toFixed(0));
           goTo(activeIndex - 1, 'prev');
         } else {
-          dbg('end -> snapback, delta=' + deltaPx.toFixed(0) + ' threshold=' + threshold.toFixed(0));
           setMobileTrack(true);
         }
         dragStartX = dragCurrentX = 0;
       }
 
-      track.addEventListener('touchstart', function(e) { dbg('EVT touchstart touches=' + e.touches.length); startDrag(e.touches[0].clientX, e.touches[0].clientY, false); }, { passive: true });
+      track.addEventListener('touchstart', function(e) { startDrag(e.touches[0].clientX, e.touches[0].clientY, false); }, { passive: true });
       track.addEventListener('touchmove', function(e) { moveDrag(e.touches[0].clientX, e.touches[0].clientY, e); }, { passive: false });
-      track.addEventListener('touchend', function() { dbg('EVT touchend'); endDrag(); });
-      track.addEventListener('touchcancel', function() { dbg('EVT touchcancel'); endDrag(); });
+      track.addEventListener('touchend', endDrag);
+      track.addEventListener('touchcancel', endDrag);
 
       track.addEventListener('mousedown', function(e) {
         if (!isMobile()) return;
