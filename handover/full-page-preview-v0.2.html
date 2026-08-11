@@ -963,11 +963,17 @@
       .ufs-fw-banner { height: auto; }
       .ufs-fw-banner__track { height: auto; display: flex; transition: transform 0.35s ease; touch-action: pan-y; }
       .ufs-fw-banner__slide {
-        position: static; flex: 0 0 100%; width: 100%; min-width: 0;
+        /* relative (not static) so the badge below can anchor to the
+           whole slide (image + panel stacked) via position:absolute. */
+        position: relative; flex: 0 0 100%; width: 100%; min-width: 0;
         flex-direction: column;
         opacity: 1; visibility: visible; pointer-events: auto;
       }
       .ufs-fw-banner__image { order: 1; flex: none; width: 100%; height: 240px; }
+      .ufs-fw-banner__badge {
+        position: absolute; top: var(--space-6); inset-inline-start: var(--space-4); z-index: 2;
+        background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.5);
+      }
       .ufs-fw-banner__panel {
         /* Overrides the desktop flex:0 0 40% (a WIDTH basis) — inside the
            mobile column layout that same value would be read as a HEIGHT
@@ -983,7 +989,10 @@
       .ufs-fw-banner .ufs-carousel-arrow--prev,
       .ufs-fw-banner .ufs-carousel-arrow--next { display: none; }
       .ufs-fw-banner__title, .ufs-fw-banner__desc { max-width: none; }
-      .ufs-fw-banner__title { font-size: var(--text-h3-size); }
+      .ufs-fw-banner__title {
+        font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w);
+        letter-spacing: normal; /* h4 has no dedicated -ls token like h1–h3; reset the h2 class's -1px */
+      }
       .ufs-fw-banner__desc {
         display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
         overflow: hidden;
@@ -3272,31 +3281,31 @@
         if (e.key === 'ArrowRight') goTo(activeIndex + 1, 'next');
       });
 
-      /* Mobile swipe: drag the track 1:1 with the pointer, snap to the
-         nearest slide (or bounce back) past a distance threshold. Pointer
-         Events (not touch-only) so this also works with a mouse drag —
-         e.g. testing in a resized desktop viewport that has no real
-         touchscreen to fire touch events from. */
-      var dragStartX = 0, dragCurrentX = 0, dragging = false, dragPointerId = null;
+      /* Mobile swipe: drag the track 1:1 with the finger, snap to the
+         nearest slide (or bounce back) past a distance threshold. Plain
+         touch events, not Pointer Events + setPointerCapture — iOS Safari
+         has a known reliability issue where capturing a touch pointer can
+         silently break the NEXT gesture on the same element (first swipe
+         works, every swipe after is dead). Mouse drag is wired separately
+         below (mousemove/mouseup on window, no capture needed) purely so
+         this is also testable by dragging with a mouse in a resized
+         desktop viewport that has no real touchscreen. */
+      var dragStartX = 0, dragCurrentX = 0, dragging = false;
 
-      track.addEventListener('pointerdown', function(e) {
+      function startDrag(x) {
         if (!isMobile()) return;
-        dragPointerId = e.pointerId;
-        dragStartX = dragCurrentX = e.clientX;
+        dragStartX = dragCurrentX = x;
         dragging = true;
         track.style.transition = 'none';
-        track.setPointerCapture(e.pointerId);
-      });
-
-      track.addEventListener('pointermove', function(e) {
-        if (!dragging || e.pointerId !== dragPointerId) return;
-        dragCurrentX = e.clientX;
+      }
+      function moveDrag(x) {
+        if (!dragging) return;
+        dragCurrentX = x;
         var deltaPx = dragCurrentX - dragStartX;
         track.style.transform = 'translateX(calc(' + (-activeIndex * 100) + '% + ' + deltaPx + 'px))';
-      });
-
-      function endDrag(e) {
-        if (!dragging || e.pointerId !== dragPointerId) return;
+      }
+      function endDrag() {
+        if (!dragging) return;
         dragging = false;
         var deltaPx = dragCurrentX - dragStartX;
         var threshold = track.offsetWidth * 0.15;
@@ -3309,10 +3318,25 @@
           setMobileTrack(true);
         }
         dragStartX = dragCurrentX = 0;
-        dragPointerId = null;
       }
-      track.addEventListener('pointerup', endDrag);
-      track.addEventListener('pointercancel', endDrag);
+
+      track.addEventListener('touchstart', function(e) { startDrag(e.touches[0].clientX); }, { passive: true });
+      track.addEventListener('touchmove', function(e) { moveDrag(e.touches[0].clientX); }, { passive: true });
+      track.addEventListener('touchend', endDrag);
+      track.addEventListener('touchcancel', endDrag);
+
+      track.addEventListener('mousedown', function(e) {
+        if (!isMobile()) return;
+        startDrag(e.clientX);
+        function onMouseMove(e2) { moveDrag(e2.clientX); }
+        function onMouseUp() {
+          endDrag();
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        }
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
 
       window.addEventListener('resize', function() {
         if (isMobile()) setMobileTrack(false);
