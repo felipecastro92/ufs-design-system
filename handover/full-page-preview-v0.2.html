@@ -617,19 +617,14 @@
     .btn-on-dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
     .btn-on-dark .btn-ghost { color: var(--color-salt); }
     .btn-on-dark .btn-ghost:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+    /* Still used by .jc-landing-hero's CTA row below, even though the
+       page hero that originally introduced it has been replaced. */
+    .pg-hero-actions { display: flex; gap: var(--space-4); flex-wrap: wrap; }
 
     /* ================================================================
        PAGE CONTENT
     ================================================================ */
 
-    /* ── Hero ────────────────────────────────────────────── */
-    .pg-hero {
-      min-height: 480px;
-      display: flex; align-items: center;
-      background: url('images/M_GPP_6074.jpg') center/cover no-repeat;
-      padding: var(--space-20) var(--space-20) var(--space-25);
-      position: relative; overflow: hidden;
-    }
     /* Mobile sticky search bar */
     .ufs-msearch-bar { display: none; }
     @media (max-width: 768px) {
@@ -678,30 +673,7 @@
       .ufs-msearch-bar-input::placeholder { color: var(--color-mushroom-900); }
       .ufs-msearch-bar-input:focus { border-color: var(--color-brand-primary); }
       .ufs-msearch-bar-icon { position: absolute; left: var(--space-3); width: var(--space-5); height: var(--space-5); pointer-events: none; opacity: 0.75; }
-
-      .pg-hero {
-        min-height: 540px;
-        padding: var(--space-20) var(--space-4) var(--space-8);
-        align-items: flex-end;
-      }
     }
-    .pg-hero::before {
-      content: ''; position: absolute; inset: 0;
-      background: rgba(34, 29, 55, 0.3);
-      pointer-events: none;
-      z-index: 0;
-    }
-    .pg-hero::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(to right, rgba(10,7,22,0.7) 0%, rgba(10,7,22,0.2) 60%, transparent 100%);
-      pointer-events: none;
-      z-index: 0;
-    }
-    .pg-hero-content { position: relative; z-index: 1; max-width: 560px; }
-    .pg-hero-eyebrow { color: var(--color-brand-primary); margin-bottom: var(--space-4); }
-    .pg-hero-title { color: var(--color-salt); margin-bottom: var(--space-5); }
-    .pg-hero-sub { color: var(--color-salt); margin-bottom: var(--space-9); max-width: 440px; }
-    .pg-hero-actions { display: flex; gap: var(--space-4); flex-wrap: wrap; }
 
     /* ── Flex Carousel ───────────────────────────────────── */
     /* Local component tokens — the 3 colour variants below only override
@@ -876,6 +848,156 @@
       [dir="rtl"] .ufs-carousel-card { margin-right: 0; margin-left: var(--space-6); }
       [dir="rtl"] .ufs-carousel-card:last-child { margin-left: 0; }
     }
+
+    /* ================================================================
+       CAROUSEL — FULL WIDTH BANNER. A slide-swapping promo carousel (not
+       a scrolling card row like .ufs-flex-carousel above) — 40% dark
+       text panel + 60% image, crossfading between slides. Reuses the
+       flex-carousel's .ufs-carousel-arrow/.ufs-carousel-dot components
+       verbatim: they read colour from --carousel-* custom properties,
+       so this is a pure token-swap reuse, no new arrow/dot CSS needed.
+       Manual navigation only (no autoplay) — same convention as the
+       flex-carousel, and sidesteps WCAG 2.2.2 (Pause/Stop/Hide) entirely
+       since nothing moves on its own.
+    ================================================================ */
+    .ufs-fw-banner {
+      position: relative; overflow: hidden;
+      height: 600px;
+    }
+    .ufs-fw-banner .ufs-carousel-arrow { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+
+    /* ── Track — each .slide is a single rigid 40%/60% unit that moves as
+       one piece, so panel and image never read as two separately-clipped
+       lanes. Arrows/dots live outside the track as persistent overlay
+       chrome so they don't move with the slide underneath them. ── */
+    /* No overflow:hidden here — the root .ufs-fw-banner already clips
+       (see above), and pairing overflow:hidden with transform on the SAME
+       element is what caused revealed slides to fail to paint (confirmed
+       by testing: setting this to visible fixed it instantly). Keeping
+       the clip and the transform on different elements avoids the bug. */
+    .ufs-fw-banner__track { position: relative; width: 100%; height: 100%; }
+    .ufs-fw-banner__slide {
+      position: absolute; inset: 0; display: flex;
+      opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.4s ease;
+    }
+    .ufs-fw-banner__slide.is-active { opacity: 1; visibility: visible; pointer-events: auto; z-index: 2; }
+
+    /* ── Panel (dark, 40%) ── */
+    .ufs-fw-banner__panel {
+      flex: 0 0 40%; min-width: 0;
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: var(--space-4);
+      background: var(--color-brand-dark);
+      /* Logical padding so the 120px arrow clearance follows the prev
+         arrow (itself positioned via inset-inline-start) to whichever
+         physical side is the "start" side — right in RTL, left in LTR —
+         instead of staying pinned to the physical left. */
+      padding-block: var(--space-16);
+      padding-inline-end: var(--space-16);
+      padding-inline-start: 120px;
+    }
+    .ufs-fw-banner__badge {
+      display: inline-flex; align-items: center; height: 24px; padding: 0 var(--space-3);
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-full);
+      color: var(--color-salt); font-size: 11px; font-weight: var(--text-body-w); letter-spacing: 0.88px; text-transform: uppercase;
+    }
+    .ufs-fw-banner__title { color: var(--color-salt); margin: 0; max-width: 26ch; }
+    .ufs-fw-banner__desc { color: var(--color-salt); margin: 0; }
+
+    /* ── Image (60%) ── */
+    .ufs-fw-banner__image { flex: 1 1 60%; min-width: 0; background-size: cover; background-position: center; }
+
+    /* Persistent overlay arrows — siblings of the track, not part of any
+       slide, so they stay fixed on screen while slides pass beneath them. */
+    .ufs-fw-banner .ufs-carousel-arrow--prev {
+      position: absolute; top: 50%; inset-inline-start: var(--space-8); transform: translateY(-50%); z-index: 3;
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-border: rgba(255,255,255,0.4);
+      --carousel-arrow-color: var(--color-salt);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.15);
+      --carousel-arrow-active-bg: rgba(255,255,255,0.25);
+    }
+    .ufs-fw-banner .ufs-carousel-arrow--next {
+      position: absolute; top: 50%; inset-inline-end: var(--space-8); transform: translateY(-50%); z-index: 3;
+      --carousel-arrow-bg: rgba(0,0,0,0.3);
+      --carousel-arrow-border: var(--color-salt);
+      --carousel-arrow-color: var(--color-salt);
+      --carousel-btn-hover-bg: rgba(0,0,0,0.45);
+      --carousel-arrow-active-bg: rgba(0,0,0,0.55);
+    }
+
+    /* Desktop only: directional slide-in. The whole slide (panel + image
+       together) enters from the side that matches Next/Prev and the
+       outgoing slide exits the opposite way, as a single rigid block. */
+    @media (min-width: 769px) {
+      .ufs-fw-banner__slide {
+        transition: transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+      }
+      .ufs-fw-banner__slide.is-enter-right { transform: translateX(100%); opacity: 1; visibility: visible; z-index: 2; }
+      .ufs-fw-banner__slide.is-enter-left  { transform: translateX(-100%); opacity: 1; visibility: visible; z-index: 2; }
+      .ufs-fw-banner__slide.is-exit-left   { transform: translateX(-100%); opacity: 1; visibility: visible; z-index: 1; }
+      .ufs-fw-banner__slide.is-exit-right  { transform: translateX(100%); opacity: 1; visibility: visible; z-index: 1; }
+      .ufs-fw-banner__slide.is-notransition { transition: none !important; }
+      .ufs-fw-banner__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ufs-fw-banner__slide, .ufs-fw-banner__track { transition: none; }
+    }
+    .ufs-fw-banner__scrim {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 120px; z-index: 1; pointer-events: none;
+      background: linear-gradient(to top, rgba(0,0,0,0.35), transparent);
+    }
+    /* Dots are a direct child of .ufs-fw-banner (not nested in the track),
+       so 50% centers against the whole component. */
+    .ufs-fw-banner .ufs-carousel-dots {
+      position: absolute; left: 50%; bottom: var(--space-6); transform: translateX(-50%); z-index: 4;
+      --carousel-dot-inactive: var(--color-salt);
+    }
+    .ufs-fw-banner__sr-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+    /* Mobile: no arrows (swipe replaces them). Slides sit side by side in a
+       flex row inside the track — a classic swipeable filmstrip — and the
+       track itself translates on drag/goTo, rather than each slide
+       animating independently like on desktop. Panel/image stack
+       vertically within each slide via order. */
+    @media (max-width: 768px) {
+      .ufs-fw-banner { height: auto; }
+      .ufs-fw-banner__track { height: auto; display: flex; transition: transform 0.35s ease; touch-action: pan-y; }
+      .ufs-fw-banner__slide {
+        position: static; flex: 0 0 100%; width: 100%; min-width: 0;
+        flex-direction: column;
+        opacity: 1; visibility: visible; pointer-events: auto;
+      }
+      .ufs-fw-banner__image { order: 1; flex: none; width: 100%; height: 240px; }
+      .ufs-fw-banner__panel {
+        /* Overrides the desktop flex:0 0 40% (a WIDTH basis) — inside the
+           mobile column layout that same value would be read as a HEIGHT
+           basis instead, producing inconsistent panel heights per slide.
+           flex:1 lets the panel fill whatever space is left under the
+           240px image, so every slide (stretched to the tallest slide's
+           height by the track's default align-items:stretch) shows its
+           panel content centered within a matching height, not clipped
+           or short. */
+        order: 2; flex: 1 1 auto; padding: var(--space-8) var(--space-4); padding-bottom: var(--space-16); gap: var(--space-2);
+      }
+      .ufs-fw-banner__panel .btn { margin-top: var(--space-2); }
+      .ufs-fw-banner .ufs-carousel-arrow--prev,
+      .ufs-fw-banner .ufs-carousel-arrow--next { display: none; }
+      .ufs-fw-banner__title, .ufs-fw-banner__desc { max-width: none; }
+      .ufs-fw-banner__title { font-size: var(--text-h3-size); }
+      .ufs-fw-banner__desc {
+        display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+        overflow: hidden;
+      }
+      .ufs-fw-banner .ufs-carousel-dots { bottom: var(--space-6); }
+      .ufs-fw-banner__scrim { display: none; }
+    }
+
+    /* RTL — arrow shapes/flip and floating positions mirror like the
+       flex-carousel above; layout itself (flex row) reverses automatically. */
+    [dir="rtl"] .ufs-fw-banner .ufs-carousel-arrow { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-fw-banner .ufs-carousel-arrow--next { border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-fw-banner .ufs-carousel-arrow--prev svg { transform: none; }
+    [dir="rtl"] .ufs-fw-banner .ufs-carousel-arrow--next svg { transform: scaleX(-1); }
 
     /* ── Products section ────────────────────────────────── */
     .pg-products {
@@ -1357,11 +1479,6 @@
 
     /* Chef's Hand font not available in Arabic — reset to inherited text style */
     [dir="rtl"] [class*="text-ch-"] { font-family: inherit; font-size: inherit; line-height: inherit; font-weight: inherit; }
-
-    /* Hero gradient — dark edge on the right (leading side in RTL) */
-    [dir="rtl"] .pg-hero::after {
-      background: linear-gradient(to left, rgba(10,7,22,0.7) 0%, rgba(10,7,22,0.2) 60%, transparent 100%);
-    }
 
     /* Card positioned badges — flip sides */
     [dir="rtl"] .pg-card-brand { left: auto; right: 10px; }
@@ -2992,18 +3109,219 @@
       </button>
     </div>
 
-    <!-- Hero -->
-    <section class="pg-hero btn-on-dark">
-      <div class="pg-hero-content">
-        <div class="pg-hero-eyebrow text-overline" data-i18n="hero-eyebrow">Professional Culinary Solutions</div>
-        <h1 class="pg-hero-title text-display" data-i18n-html="hero-title">Elevate every dish<br>with UFS</h1>
-        <p class="pg-hero-sub text-body" data-i18n="hero-sub">Premium sauces, culinary bases and seasonings trusted by chefs and foodservice operators worldwide.</p>
-        <div class="pg-hero-actions">
-          <button class="btn btn-primary" data-i18n="hero-btn-products">Explore Products</button>
-          <button class="btn btn-secondary" data-i18n="hero-btn-watch">Watch the trailer</button>
+    <!-- ================================================================
+         CAROUSEL — FULL WIDTH BANNER — demo instance, 3 slides. Manual
+         navigation only (arrows/dots/keyboard), no autoplay. Reuses the
+         Flex Carousel's arrow/dot components via the --carousel-* token
+         scheme (see CSS comment above the .ufs-fw-banner rules).
+    ================================================================ -->
+    <section class="ufs-fw-banner" aria-roledescription="carousel" aria-label="Featured promotions" data-i18n-aria="fwb-aria-label">
+      <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" data-fw-prev aria-label="Previous slide" data-i18n-aria="fwb-prev">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+      </button>
+      <div class="ufs-fw-banner__track">
+        <div class="ufs-fw-banner__slide is-active" data-fw-slide="0">
+          <div class="ufs-fw-banner__panel">
+            <span class="ufs-fw-banner__badge" data-i18n="fwb-badge-0">New Arrival</span>
+            <h3 class="ufs-fw-banner__title text-h2" data-i18n="fwb-title-0">Descubra a experiência digital do Menus do Futuro Vol. 4.</h3>
+            <p class="ufs-fw-banner__desc text-body-sm" data-i18n="fwb-desc-0">Receba gratuitamente dicas e insights personalizados para os desafios do seu negócio — desde otimização de cardápio até controle de custos — com base na nossa pesquisa de tendências culinárias para 2026.</p>
+            <a href="#" class="btn btn-primary" data-i18n="fwb-cta-0">Explorar Agora</a>
+          </div>
+          <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
+        </div>
+        <div class="ufs-fw-banner__slide" data-fw-slide="1" aria-hidden="true">
+          <div class="ufs-fw-banner__panel">
+            <span class="ufs-fw-banner__badge" data-i18n="fwb-badge-1">Promotion</span>
+            <h3 class="ufs-fw-banner__title text-h2" data-i18n="fwb-title-1">Made with 99% potatoes</h3>
+            <p class="ufs-fw-banner__desc text-body-sm" data-i18n="fwb-desc-1">Throughout the year, UFS speaks to hundreds of chefs across Australia and New Zealand — insight into how customer preferences evolve.</p>
+            <a href="#" class="btn btn-primary" data-i18n="fwb-cta-1">Explore Products</a>
+          </div>
+          <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+        </div>
+        <div class="ufs-fw-banner__slide" data-fw-slide="2" aria-hidden="true">
+          <div class="ufs-fw-banner__panel">
+            <span class="ufs-fw-banner__badge" data-i18n="fwb-badge-2">Free Training</span>
+            <h3 class="ufs-fw-banner__title text-h2" data-i18n="fwb-title-2">Master Umami, on us</h3>
+            <p class="ufs-fw-banner__desc text-body-sm" data-i18n="fwb-desc-2">A free online module built for working chefs — practical techniques you can use on shift tonight.</p>
+            <a href="#" class="btn btn-primary" data-i18n="fwb-cta-2">Start Learning</a>
+          </div>
+          <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide3.jpg')" role="img" aria-label=""></div>
         </div>
       </div>
+      <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="Next slide" data-i18n-aria="fwb-next">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+      </button>
+      <div class="ufs-fw-banner__scrim"></div>
+      <div class="ufs-carousel-dots"></div>
+      <div class="ufs-fw-banner__sr-status" aria-live="polite" data-fw-status></div>
     </section>
+
+  <script>
+    /* Carousel — Full Width Banner. Each .ufs-fw-banner__slide bundles the
+       40% panel + 60% image into one rigid unit so they move as a single
+       block, not two independently-clipped lanes. Desktop: directional
+       slide-in (incoming slide enters from the side that matches Next/Prev,
+       outgoing exits the opposite way). Mobile: no arrows — slides sit
+       side by side in the track as a swipeable filmstrip; drag/swipe (or
+       goTo, e.g. from a dot) translates the track directly. Manual only:
+       no autoplay, no WCAG 2.2.2 pause control needed. Cycles (wraps at
+       both ends), unlike the Flex Carousel which stops at bounds, since a
+       slideshow-style promo banner conventionally loops. */
+    (function() {
+      var root = document.querySelector('.ufs-fw-banner');
+      if (!root) return;
+      var track = root.querySelector('.ufs-fw-banner__track');
+      var slides = Array.prototype.slice.call(root.querySelectorAll('.ufs-fw-banner__slide'));
+      var dotsWrap = root.querySelector('.ufs-carousel-dots');
+      var prevBtn = root.querySelector('[data-fw-prev]');
+      var nextBtn = root.querySelector('[data-fw-next]');
+      var statusEl = root.querySelector('[data-fw-status]');
+      var activeIndex = 0;
+      var animating = false;
+      var slideTimer = null;
+
+      slides.forEach(function(_, i) {
+        var dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'ufs-carousel-dot';
+        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+        dot.addEventListener('click', function() { goTo(i); });
+        dotsWrap.appendChild(dot);
+      });
+      var dots = dotsWrap.querySelectorAll('.ufs-carousel-dot');
+
+      function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
+
+      function renderDotsAndStatus() {
+        dots.forEach(function(dot, i) {
+          dot.classList.remove('is-active', 'is-near', 'is-far', 'is-edge', 'is-hidden');
+          var dist = Math.abs(i - activeIndex);
+          if (dist === 0) dot.classList.add('is-active');
+          else if (dist <= 2) dot.classList.add('is-near');
+          else if (dist === 3) dot.classList.add('is-far');
+          else if (dist === 4) dot.classList.add('is-edge');
+          else dot.classList.add('is-hidden');
+          dot.setAttribute('aria-current', dist === 0 ? 'true' : 'false');
+        });
+        if (statusEl) {
+          var title = slides[activeIndex].querySelector('.ufs-fw-banner__title');
+          statusEl.textContent = 'Slide ' + (activeIndex + 1) + ' of ' + slides.length + (title ? ': ' + title.textContent : '');
+        }
+      }
+
+      function setMobileTrack(withTransition) {
+        track.style.transition = withTransition ? '' : 'none';
+        /* Force a reflow between toggling the transition and changing
+           transform — otherwise both writes can land in the same style
+           recalc and the browser skips animating to the new value,
+           leaving the track stuck mid-drag with two slides half-visible. */
+        void track.offsetWidth;
+        track.style.transform = 'translateX(' + (-activeIndex * 100) + '%)';
+      }
+
+      function goTo(index, direction) {
+        var newIndex = (index + slides.length) % slides.length;
+        if (newIndex === activeIndex || animating) return;
+        var oldIndex = activeIndex;
+        activeIndex = newIndex;
+        slides[oldIndex].setAttribute('aria-hidden', 'true');
+        slides[newIndex].setAttribute('aria-hidden', 'false');
+        renderDotsAndStatus();
+
+        if (isMobile()) {
+          slides[oldIndex].classList.remove('is-active');
+          slides[newIndex].classList.add('is-active');
+          setMobileTrack(true);
+          return;
+        }
+
+        if (!direction) {
+          var n = slides.length;
+          var forwardDist = (newIndex - oldIndex + n) % n;
+          var backwardDist = (n - forwardDist) % n;
+          direction = forwardDist <= backwardDist ? 'next' : 'prev';
+        }
+
+        var enterClass = direction === 'next' ? 'is-enter-right' : 'is-enter-left';
+        var exitClass  = direction === 'next' ? 'is-exit-left'   : 'is-exit-right';
+        animating = true;
+
+        var oldEl = slides[oldIndex], newEl = slides[newIndex];
+        oldEl.classList.remove('is-active');
+        newEl.classList.add('is-notransition', enterClass);
+        void newEl.offsetWidth; /* force reflow so the entry position applies before we animate away from it */
+        newEl.classList.remove('is-notransition');
+
+        requestAnimationFrame(function() {
+          newEl.classList.remove(enterClass);
+          newEl.classList.add('is-active');
+          oldEl.classList.add(exitClass);
+        });
+
+        clearTimeout(slideTimer);
+        slideTimer = setTimeout(function() {
+          slides.forEach(function(el) { el.classList.remove('is-enter-right', 'is-enter-left', 'is-exit-left', 'is-exit-right'); });
+          animating = false;
+        }, 550);
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', function() { goTo(activeIndex - 1, 'prev'); });
+      if (nextBtn) nextBtn.addEventListener('click', function() { goTo(activeIndex + 1, 'next'); });
+      root.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') goTo(activeIndex - 1, 'prev');
+        if (e.key === 'ArrowRight') goTo(activeIndex + 1, 'next');
+      });
+
+      /* Mobile swipe: drag the track 1:1 with the pointer, snap to the
+         nearest slide (or bounce back) past a distance threshold. Pointer
+         Events (not touch-only) so this also works with a mouse drag —
+         e.g. testing in a resized desktop viewport that has no real
+         touchscreen to fire touch events from. */
+      var dragStartX = 0, dragCurrentX = 0, dragging = false, dragPointerId = null;
+
+      track.addEventListener('pointerdown', function(e) {
+        if (!isMobile()) return;
+        dragPointerId = e.pointerId;
+        dragStartX = dragCurrentX = e.clientX;
+        dragging = true;
+        track.style.transition = 'none';
+        track.setPointerCapture(e.pointerId);
+      });
+
+      track.addEventListener('pointermove', function(e) {
+        if (!dragging || e.pointerId !== dragPointerId) return;
+        dragCurrentX = e.clientX;
+        var deltaPx = dragCurrentX - dragStartX;
+        track.style.transform = 'translateX(calc(' + (-activeIndex * 100) + '% + ' + deltaPx + 'px))';
+      });
+
+      function endDrag(e) {
+        if (!dragging || e.pointerId !== dragPointerId) return;
+        dragging = false;
+        var deltaPx = dragCurrentX - dragStartX;
+        var threshold = track.offsetWidth * 0.15;
+        track.style.transition = '';
+        if (deltaPx <= -threshold) {
+          goTo(activeIndex + 1, 'next');
+        } else if (deltaPx >= threshold) {
+          goTo(activeIndex - 1, 'prev');
+        } else {
+          setMobileTrack(true);
+        }
+        dragStartX = dragCurrentX = 0;
+        dragPointerId = null;
+      }
+      track.addEventListener('pointerup', endDrag);
+      track.addEventListener('pointercancel', endDrag);
+
+      window.addEventListener('resize', function() {
+        if (isMobile()) setMobileTrack(false);
+      });
+
+      if (isMobile()) setMobileTrack(false);
+      renderDotsAndStatus();
+    })();
+  </script>
 
     <!-- Flex Carousel -->
     <section class="ufs-flex-carousel">
@@ -4190,9 +4508,6 @@
       'mm-promotions-col1':'Current Offers','mm-promo-seasonal':'Seasonal Deals','mm-promo-bundle':'Bundle Discounts','mm-promo-clearance':'Clearance Items','mm-promo-samples':'Free Samples',
       'mm-promotions-col2':'Loyalty & Rewards','mm-promo-points':'Points Program','mm-promo-referral':'Referral Bonus','mm-promo-perks':'Member Perks','mm-promo-events':'Exclusive Events',
       'dr-view-more':'View more','dr-more':'More',
-      'hero-eyebrow':'Professional Culinary Solutions','hero-title':'Elevate every dish<br>with UFS',
-      'hero-sub':'Premium sauces, culinary bases and seasonings trusted by chefs and foodservice operators worldwide.',
-      'hero-btn-products':'Explore Products','hero-btn-watch':'Watch the trailer',
       'prod-eyebrow':'Our Portfolio','prod-title':'Featured Products',
       'prod-sub':'From classic stock bases to innovative sauces — everything you need in a professional kitchen.',
       'card1-title':'Knorr Classic Demi-Glace','card1-desc':'Concentrated veal-based sauce — rich, glossy finish in minutes.','card1-tag':'Sauce Base',
@@ -4238,7 +4553,11 @@
       'carousel-title':'Carousel title','carousel-desc':'Carousel description this can be optional if it’s needed to add some context','carousel-cta':'Discover more items',
       'bc-home':'Home',
       'ann-title':'Unlock the Future of Dining Now. ','ann-text':'Discover the Latest Culinary Trends. ','ann-link':'Join our newsletter to get notified','ann-close':'Dismiss announcement',
-      'ann-days':'Days','ann-hours':'Hours','ann-minutes':'Minutes','ann-seconds':'Seconds'
+      'ann-days':'Days','ann-hours':'Hours','ann-minutes':'Minutes','ann-seconds':'Seconds',
+      'fwb-aria-label':'Featured promotions','fwb-prev':'Previous slide','fwb-next':'Next slide',
+      'fwb-badge-0':'New Arrival','fwb-title-0':'Descubra a experiência digital do Menus do Futuro Vol. 4.','fwb-desc-0':'Receba gratuitamente dicas e insights personalizados para os desafios do seu negócio — desde otimização de cardápio até controle de custos — com base na nossa pesquisa de tendências culinárias para 2026.','fwb-cta-0':'Explorar Agora',
+      'fwb-badge-1':'Promotion','fwb-title-1':'Made with 99% potatoes','fwb-desc-1':'Throughout the year, UFS speaks to hundreds of chefs across Australia and New Zealand — insight into how customer preferences evolve.','fwb-cta-1':'Explore Products',
+      'fwb-badge-2':'Free Training','fwb-title-2':'Master Umami, on us','fwb-desc-2':'A free online module built for working chefs — practical techniques you can use on shift tonight.','fwb-cta-2':'Start Learning'
     };
 
     var T_AR = {
@@ -4265,9 +4584,6 @@
       'mm-promotions-col1':'العروض الحالية','mm-promo-seasonal':'عروض موسمية','mm-promo-bundle':'خصومات الحزم','mm-promo-clearance':'تصفية المخزون','mm-promo-samples':'عينات مجانية',
       'mm-promotions-col2':'الولاء والمكافآت','mm-promo-points':'برنامج النقاط','mm-promo-referral':'مكافأة الإحالة','mm-promo-perks':'مزايا الأعضاء','mm-promo-events':'فعاليات حصرية',
       'dr-view-more':'عرض المزيد','dr-more':'المزيد',
-      'hero-eyebrow':'حلول الطهي الاحترافية','hero-title':'ارتقِ بكل طبق<br>مع UFS',
-      'hero-sub':'صلصات فاخرة وأسس طهوية وتوابل موثوقة من قِبَل الطهاة والمشغلين في قطاع الخدمات الغذائية حول العالم.',
-      'hero-btn-products':'استكشف المنتجات','hero-btn-watch':'شاهد الإعلان التشويقي',
       'prod-eyebrow':'محفظتنا','prod-title':'المنتجات المميزة',
       'prod-sub':'من أسس المرق الكلاسيكية إلى الصلصات المبتكرة — كل ما تحتاجه في مطبخ احترافي.',
       'card1-title':'ديمي جلاس الكلاسيكي من نوبر','card1-desc':'صلصة مركزة على أساس العجل — لمسة نهائية غنية ولامعة في دقائق.','card1-tag':'أساس الصلصة',
@@ -4313,7 +4629,11 @@
       'carousel-title':'عنوان الكاروسيل','carousel-desc':'وصف الكاروسيل، ويمكن أن يكون اختياريًا عند الحاجة إلى إضافة بعض السياق.','carousel-cta':'اكتشف المزيد',
       'bc-home':'الرئيسية',
       'ann-title':'اكتشف مستقبل تناول الطعام الآن. ','ann-text':'تعرّف على أحدث اتجاهات الطهي. ','ann-link':'اشترك في نشرتنا الإخبارية لتصلك الإشعارات','ann-close':'إغلاق الإعلان',
-      'ann-days':'أيام','ann-hours':'ساعات','ann-minutes':'دقائق','ann-seconds':'ثوانٍ'
+      'ann-days':'أيام','ann-hours':'ساعات','ann-minutes':'دقائق','ann-seconds':'ثوانٍ',
+      'fwb-aria-label':'العروض الترويجية المميزة','fwb-prev':'الشريحة السابقة','fwb-next':'الشريحة التالية',
+      'fwb-badge-0':'وصول جديد','fwb-title-0':'اكتشف التجربة الرقمية لقوائم المستقبل - الإصدار 4','fwb-desc-0':'احصل مجانًا على نصائح ورؤى مخصصة لتحديات عملك — من تحسين القائمة إلى ضبط التكاليف — استنادًا إلى بحثنا حول اتجاهات الطهي لعام 2026.','fwb-cta-0':'استكشف الآن',
+      'fwb-badge-1':'عرض ترويجي','fwb-title-1':'مصنوع من ٩٩٪ بطاطا','fwb-desc-1':'على مدار العام، تتواصل UFS مع مئات الطهاة في أستراليا ونيوزيلندا — لفهم كيف تتطور تفضيلات العملاء.','fwb-cta-1':'استكشف المنتجات',
+      'fwb-badge-2':'تدريب مجاني','fwb-title-2':'أتقن نكهة الأومامي، على حسابنا','fwb-desc-2':'وحدة تدريبية مجانية عبر الإنترنت مصممة للطهاة العاملين — تقنيات عملية يمكنك استخدامها في نوبتك الليلة.','fwb-cta-2':'ابدأ التعلم'
     };
 
     var T_DE = {
@@ -4340,9 +4660,6 @@
       'mm-promotions-col1':'Aktuelle Angebote','mm-promo-seasonal':'Saisonale Angebote','mm-promo-bundle':'Bundle-Rabatte','mm-promo-clearance':'Ausverkauf','mm-promo-samples':'Gratisproben',
       'mm-promotions-col2':'Treue & Prämien','mm-promo-points':'Punkteprogramm','mm-promo-referral':'Empfehlungsbonus','mm-promo-perks':'Mitgliedervorteile','mm-promo-events':'Exklusive Events',
       'dr-view-more':'Mehr anzeigen','dr-more':'Mehr',
-      'hero-eyebrow':'Professionelle kulinarische Lösungen','hero-title':'Jedes Gericht verfeinern<br>mit UFS',
-      'hero-sub':'Premium-Saucen, kulinarische Basen und Gewürze – weltweit vertraut bei Köchen und Gastronomiebetreibern.',
-      'hero-btn-products':'Produkte entdecken','hero-btn-watch':'Trailer ansehen',
       'prod-eyebrow':'Unser Portfolio','prod-title':'Ausgewählte Produkte',
       'prod-sub':'Von klassischen Fondsbasen bis hin zu innovativen Saucen – alles, was Sie in einer professionellen Küche brauchen.',
       'card1-title':'Knorr Classic Demi-Glace','card1-desc':'Konzentrierte Kalbsfleischsauce – reichhaltige, glänzende Note in Minuten.','card1-tag':'Saucenbasis',
@@ -4388,7 +4705,11 @@
       'carousel-title':'Karussell-Titel','carousel-desc':'Karussell-Beschreibung – optional, falls zusätzlicher Kontext benötigt wird','carousel-cta':'Weitere Artikel entdecken',
       'bc-home':'Startseite',
       'ann-title':'Entdecken Sie jetzt die Zukunft des Speisens. ','ann-text':'Entdecken Sie die neuesten kulinarischen Trends. ','ann-link':'Newsletter abonnieren und benachrichtigt werden','ann-close':'Ankündigung schließen',
-      'ann-days':'Tage','ann-hours':'Stunden','ann-minutes':'Minuten','ann-seconds':'Sekunden'
+      'ann-days':'Tage','ann-hours':'Stunden','ann-minutes':'Minuten','ann-seconds':'Sekunden',
+      'fwb-aria-label':'Aktuelle Angebote','fwb-prev':'Vorherige Folie','fwb-next':'Nächste Folie',
+      'fwb-badge-0':'Neuheit','fwb-title-0':'Entdecken Sie das digitale Erlebnis von Menus do Futuro Vol. 4.','fwb-desc-0':'Erhalten Sie kostenlos personalisierte Tipps und Einblicke für die Herausforderungen Ihres Unternehmens — von der Menüoptimierung bis zur Kostenkontrolle — basierend auf unserer Studie zu kulinarischen Trends für 2026.','fwb-cta-0':'Jetzt entdecken',
+      'fwb-badge-1':'Aktion','fwb-title-1':'Zu 99 % aus Kartoffeln','fwb-desc-1':'Das ganze Jahr über spricht UFS mit Hunderten von Köchen in Australien und Neuseeland — Einblicke, wie sich Kundenpräferenzen entwickeln.','fwb-cta-1':'Produkte entdecken',
+      'fwb-badge-2':'Kostenlose Schulung','fwb-title-2':'Meistern Sie Umami – auf uns','fwb-desc-2':'Ein kostenloses Online-Modul für Köche im Berufsalltag — praxisnahe Techniken, die Sie noch heute Abend anwenden können.','fwb-cta-2':'Jetzt lernen'
     };
 
     var MOCK_SUGGESTIONS_AR = [
