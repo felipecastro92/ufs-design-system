@@ -939,6 +939,9 @@
       .ufs-fw-banner__slide.is-notransition { transition: none !important; }
       .ufs-fw-banner__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); }
       .ufs-fw-banner .ufs-carousel-arrow { width: var(--space-12); height: var(--space-12); }
+      /* No prev arrow to clear on a single-slide instance, so the panel
+         doesn't need the full 120px reserved for it. */
+      .ufs-fw-banner.is-single-slide .ufs-fw-banner__panel { padding-inline-start: var(--space-24); }
     }
     @media (prefers-reduced-motion: reduce) {
       .ufs-fw-banner__slide, .ufs-fw-banner__track { transition: none; }
@@ -3198,14 +3201,25 @@
       var animating = false;
       var slideTimer = null;
 
-      slides.forEach(function(_, i) {
-        var dot = document.createElement('button');
-        dot.type = 'button';
-        dot.className = 'ufs-carousel-dot';
-        dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
-        dot.addEventListener('click', function() { goTo(i); });
-        dotsWrap.appendChild(dot);
-      });
+      /* Single-slide instances have nothing to navigate to — arrows and
+         pagination would just be dead controls, so skip creating them
+         entirely rather than rendering a lone, permanently-active dot
+         and a pair of do-nothing arrow buttons. */
+      var singleSlide = slides.length <= 1;
+      if (singleSlide) {
+        root.classList.add('is-single-slide');
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+      } else {
+        slides.forEach(function(_, i) {
+          var dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'ufs-carousel-dot';
+          dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+          dot.addEventListener('click', function() { goTo(i); });
+          dotsWrap.appendChild(dot);
+        });
+      }
       var dots = dotsWrap.querySelectorAll('.ufs-carousel-dot');
 
       function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }

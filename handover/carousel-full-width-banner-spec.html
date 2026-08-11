@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carousel — Full Width Banner — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.25); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-700); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-700); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.45); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-id  { color: #d2a8ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+    .t-st  { color: #fde68a; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 200px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .token-note { color: var(--color-mushroom-700); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       COMPARISON TABLE
+    ═══════════════════════════════════════ */
+    .variant-table-wrap { overflow-x: auto; margin-top: 10px; max-width: 1600px; }
+    .variant-table { border-collapse: collapse; width: 100%; min-width: 780px; font-size: 12px; }
+    .variant-table th, .variant-table td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--color-mushroom-300); white-space: nowrap; }
+    .variant-table th { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--color-mushroom-700); background: var(--color-mushroom-100); }
+    .variant-table td:first-child, .variant-table th:first-child { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .variant-table td:not(:first-child) { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .variant-table td.is-unset { color: var(--color-mushroom-500); font-style: italic; }
+    .variant-table td.wrap-ok { white-space: normal; font-family: var(--font-family); color: var(--color-mushroom-900); }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       INTRO GRID
+    ═══════════════════════════════════════ */
+    .intro-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-top: 28px; max-width: 860px; }
+    .intro-card { background: var(--color-salt); border-radius: var(--radius-md); padding: 20px; box-shadow: var(--shadow-xs); border-top: 3px solid var(--color-brand-dark); }
+    .intro-card-icon { font-size: 20px; margin-bottom: 10px; }
+    .intro-card-title { font-size: 13px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 5px; }
+    .intro-card-text  { font-size: 12px; line-height: 18px; color: var(--color-smoke); }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow: hidden; }
+    /* True viewport-edge-to-edge breakout — .content has its own padding
+       and max-width, so a plain 100%-wide child only ever fills the
+       padded column, not the real screen. This carousel is a full-bleed
+       component in production, so its desktop previews need to actually
+       render at that width — a narrower preview wraps text differently
+       than production, which reads as a CSS discrepancy even when the
+       rules are byte-for-byte identical. No border-radius/shadow here
+       (unlike .ds-card/.pv-light) since an edge-to-edge section flush
+       with the screen shouldn't look like a floating card. */
+    .pv-full-bleed { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); overflow: hidden; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the component's own @media (max-width: 768px) block scoped
+       to .pv-mobile with !important. Doc-only; not a production class. */
+    .pv-mobile .ufs-fw-banner { height: auto !important; }
+    .pv-mobile .ufs-fw-banner__track { height: auto !important; display: flex !important; transition: transform 0.35s ease !important; touch-action: pan-y !important; }
+    .pv-mobile .ufs-fw-banner__slide { position: relative !important; flex: 0 0 100% !important; width: 100% !important; min-width: 0 !important; flex-direction: column !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
+    .pv-mobile .ufs-fw-banner__image { order: 1 !important; flex: none !important; width: 100% !important; height: 240px !important; }
+    .pv-mobile .ufs-fw-banner__badge { position: absolute !important; top: var(--space-6) !important; inset-inline-start: var(--space-4) !important; z-index: 2; background: rgba(0,0,0,0.7) !important; border: 1px solid rgba(255,255,255,0.5) !important; }
+    .pv-mobile .ufs-fw-banner__panel { order: 2 !important; flex: 1 1 auto !important; padding: var(--space-8) var(--space-4) !important; padding-bottom: var(--space-16) !important; gap: var(--space-2) !important; }
+    .pv-mobile .ufs-fw-banner__panel .btn { margin-top: var(--space-2) !important; }
+    .pv-mobile .ufs-fw-banner .ufs-carousel-arrow--prev, .pv-mobile .ufs-fw-banner .ufs-carousel-arrow--next { display: none !important; }
+    .pv-mobile .ufs-fw-banner__title, .pv-mobile .ufs-fw-banner__desc { max-width: none !important; }
+    .pv-mobile .ufs-fw-banner__title { font-size: var(--text-h4-size) !important; line-height: var(--text-h4-lh) !important; font-weight: var(--text-h4-w) !important; letter-spacing: normal !important; }
+    .pv-mobile .ufs-fw-banner__desc { display: -webkit-box !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 3 !important; overflow: hidden !important; }
+    .pv-mobile .ufs-fw-banner .ufs-carousel-dots { bottom: var(--space-6) !important; }
+    .pv-mobile .ufs-fw-banner__scrim { display: none !important; }
+
+    /* DS buttons — the CTA reuses .btn/.btn-primary, so the previews below
+       need the base button system available, not just the component's CSS. */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+
+    /* ═══════════════════════════════════════
+       CAROUSEL — FULL WIDTH BANNER COMPONENT CSS — mirrored 1:1 from
+       handover/full-page-preview-v0.2.html (source of truth)
+    ═══════════════════════════════════════ */
+    .ufs-fw-banner {
+      position: relative; overflow: hidden;
+      height: 600px;
+    }
+    .ufs-fw-banner .ufs-carousel-arrow { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+
+    .ufs-fw-banner__track { position: relative; width: 100%; height: 100%; }
+    .ufs-fw-banner__slide {
+      position: absolute; inset: 0; display: flex;
+      opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.4s ease;
+    }
+    .ufs-fw-banner__slide.is-active { opacity: 1; visibility: visible; pointer-events: auto; z-index: 2; }
+
+    .ufs-fw-banner__panel {
+      flex: 0 0 40%; min-width: 0;
+      display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: var(--space-4);
+      background: var(--color-brand-dark);
+      padding-block: var(--space-16);
+      padding-inline-end: var(--space-16);
+      padding-inline-start: 120px;
+    }
+    .ufs-fw-banner__badge {
+      display: inline-flex; align-items: center; height: 24px; padding: 0 var(--space-3);
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: var(--radius-full);
+      color: var(--color-salt); font-size: 11px; font-weight: var(--text-body-w); letter-spacing: 0.88px; text-transform: uppercase;
+    }
+    .ufs-fw-banner__title { color: var(--color-salt); margin: 0; max-width: 26ch; }
+    .ufs-fw-banner__desc { color: var(--color-salt); margin: 0; }
+
+    .ufs-fw-banner__image { flex: 1 1 60%; min-width: 0; background-size: cover; background-position: center; }
+
+    .ufs-fw-banner .ufs-carousel-arrow--prev {
+      position: absolute; top: 50%; inset-inline-start: var(--space-8); transform: translateY(-50%); z-index: 3;
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-border: rgba(255,255,255,0.4);
+      --carousel-arrow-color: var(--color-salt);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.15);
+      --carousel-arrow-active-bg: rgba(255,255,255,0.25);
+    }
+    .ufs-fw-banner .ufs-carousel-arrow--next {
+      position: absolute; top: 50%; inset-inline-end: var(--space-8); transform: translateY(-50%); z-index: 3;
+      --carousel-arrow-bg: rgba(0,0,0,0.3);
+      --carousel-arrow-border: var(--color-salt);
+      --carousel-arrow-color: var(--color-salt);
+      --carousel-btn-hover-bg: rgba(0,0,0,0.45);
+      --carousel-arrow-active-bg: rgba(0,0,0,0.55);
+    }
+
+    @media (min-width: 769px) {
+      .ufs-fw-banner__slide {
+        transition: transform 0.5s cubic-bezier(0.4,0,0.2,1), opacity 0.3s ease;
+      }
+      .ufs-fw-banner__slide.is-enter-right { transform: translateX(100%); opacity: 1; visibility: visible; z-index: 2; }
+      .ufs-fw-banner__slide.is-enter-left  { transform: translateX(-100%); opacity: 1; visibility: visible; z-index: 2; }
+      .ufs-fw-banner__slide.is-exit-left   { transform: translateX(-100%); opacity: 1; visibility: visible; z-index: 1; }
+      .ufs-fw-banner__slide.is-exit-right  { transform: translateX(100%); opacity: 1; visibility: visible; z-index: 1; }
+      .ufs-fw-banner__slide.is-notransition { transition: none !important; }
+      .ufs-fw-banner__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); }
+      .ufs-fw-banner .ufs-carousel-arrow { width: var(--space-12); height: var(--space-12); }
+      .ufs-fw-banner.is-single-slide .ufs-fw-banner__panel { padding-inline-start: var(--space-24); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .ufs-fw-banner__slide, .ufs-fw-banner__track { transition: none; }
+    }
+    .ufs-fw-banner__scrim {
+      position: absolute; left: 0; right: 0; bottom: 0; height: 120px; z-index: 1; pointer-events: none;
+      background: linear-gradient(to top, rgba(0,0,0,0.35), transparent);
+    }
+    .ufs-fw-banner .ufs-carousel-dots {
+      position: absolute; left: 50%; bottom: var(--space-6); transform: translateX(-50%); z-index: 4;
+      --carousel-dot-inactive: var(--color-salt);
+    }
+    .ufs-fw-banner__sr-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+    @media (max-width: 768px) {
+      .ufs-fw-banner { height: auto; }
+      .ufs-fw-banner__track { height: auto; display: flex; transition: transform 0.35s ease; touch-action: pan-y; }
+      .ufs-fw-banner__slide {
+        position: relative; flex: 0 0 100%; width: 100%; min-width: 0;
+        flex-direction: column;
+        opacity: 1; visibility: visible; pointer-events: auto;
+      }
+      .ufs-fw-banner__image { order: 1; flex: none; width: 100%; height: 240px; }
+      .ufs-fw-banner__badge {
+        position: absolute; top: var(--space-6); inset-inline-start: var(--space-4); z-index: 2;
+        background: rgba(0,0,0,0.7); border: 1px solid rgba(255,255,255,0.5);
+      }
+      .ufs-fw-banner__panel {
+        order: 2; flex: 1 1 auto; padding: var(--space-8) var(--space-4); padding-bottom: var(--space-16); gap: var(--space-2);
+      }
+      .ufs-fw-banner__panel .btn { margin-top: var(--space-2); }
+      .ufs-fw-banner .ufs-carousel-arrow--prev,
+      .ufs-fw-banner .ufs-carousel-arrow--next { display: none; }
+      .ufs-fw-banner__title, .ufs-fw-banner__desc { max-width: none; }
+      .ufs-fw-banner__title {
+        font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w);
+        letter-spacing: normal;
+      }
+      .ufs-fw-banner__desc {
+        display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3;
+        overflow: hidden;
+      }
+      .ufs-fw-banner .ufs-carousel-dots { bottom: var(--space-6); }
+      .ufs-fw-banner__scrim { display: none; }
+    }
+
+    [dir="rtl"] .ufs-fw-banner .ufs-carousel-arrow { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-fw-banner .ufs-carousel-arrow--next { border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-fw-banner .ufs-carousel-arrow--prev svg { transform: none; }
+    [dir="rtl"] .ufs-fw-banner .ufs-carousel-arrow--next svg { transform: scaleX(-1); }
+
+    /* ═══════════════════════════════════════
+       Shared arrow/dot components — reused verbatim from Flex Carousel,
+       required here since arrows/dots read colour from --carousel-*
+       custom properties this component sets, but the base shape/size
+       rules live in the shared component, not duplicated per-carousel.
+    ═══════════════════════════════════════ */
+    .ufs-carousel-arrow {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border: 1px solid var(--carousel-arrow-border); border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs);
+      background: var(--carousel-arrow-bg); color: var(--carousel-arrow-color);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s, width 0.15s, height 0.15s;
+    }
+    .ufs-carousel-arrow--next { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+    .ufs-carousel-arrow svg { width: 14px; height: 14px; display: block; }
+    .ufs-carousel-arrow--prev svg { transform: scaleX(-1); }
+    .ufs-carousel-arrow:hover:not(:disabled) { background: var(--carousel-btn-hover-bg); }
+    .ufs-carousel-arrow:active:not(:disabled) { background: var(--carousel-arrow-active-bg); }
+    .ufs-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+    .ufs-carousel-dots { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-carousel-dot {
+      width: 6px; height: 6px; border-radius: var(--radius-full);
+      background: var(--carousel-dot-inactive); border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+      transition: width 0.25s ease, height 0.25s ease, background-color 0.25s ease, opacity 0.25s ease, margin 0.25s ease;
+    }
+    .ufs-carousel-dot.is-active { width: 30px; height: 6px; border-radius: 50px; background: var(--color-brand-primary); }
+    .ufs-carousel-dot.is-near   { width: 6px; height: 6px; }
+    .ufs-carousel-dot.is-far    { width: 4px; height: 4px; }
+    .ufs-carousel-dot.is-edge   { width: 2px; height: 2px; }
+    .ufs-carousel-dot.is-hidden { width: 0; height: 0; opacity: 0; margin-left: -4px; margin-right: -4px; pointer-events: none; }
+
+    /* ═══════════════════════════════════════
+       DOC-ONLY diagram styling for the transition/swipe explainer graphics
+    ═══════════════════════════════════════ */
+    .mech-row { display: flex; align-items: center; gap: 10px; margin: 4px 0; font-family: var(--font-family-mono); font-size: 11px; }
+    .mech-chip { padding: 4px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); color: var(--color-mushroom-900); white-space: nowrap; }
+    .mech-chip.is-panel { background: var(--color-brand-dark); color: var(--color-salt); }
+    .mech-chip.is-active { background: var(--color-brand-primary); color: var(--color-salt); font-weight: 700; }
+    .mech-arrow { color: var(--color-mushroom-500); font-size: 14px; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#content-length" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Content Length</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behaviour</div>
+      <a href="#transition-desktop" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Slide Transition — Desktop</a>
+      <a href="#swipe-mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Swipe — Mobile</a>
+      <a href="#uniform-height" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Uniform Slide Height</a>
+      <a href="#badge-mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Badge — Mobile Positioning</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#responsive" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop vs. Mobile</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Reused Components</div>
+      <a href="#arrows" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Arrows &amp; Pagination</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#single-slide" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Single Slide</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source of truth: full-page-preview-v0.2.html<br/>Markup, CSS &amp; JS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Carousel — Full Width Banner</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Carousel — <span>Full Width Banner</span></h1>
+        <p class="doc-header-desc">A full-bleed promo carousel — 40% dark text panel + 60% image, moving as one rigid slide. Desktop directional transition, mobile swipeable filmstrip, full RTL/i18n support — documented for implementation.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">full-page-preview-v0.2.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════
+         OVERVIEW
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A single <code>&lt;section class="ufs-fw-banner"&gt;</code> serving as the page's hero: a full-bleed carousel where each slide bundles its 40% dark text panel and 60% image into <strong>one rigid unit</strong> — panel and image always move together as a single block, never as two independently-clipped lanes. Every preview on this page is the real, working component — not a screenshot — so the arrows, dots, swipe and transitions below are fully interactive.</p>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Manual navigation only (arrows, dots, keyboard, swipe) — no autoplay. Sidesteps WCAG 2.2.2 (Pause, Stop, Hide) entirely, since nothing moves on its own. Slides cycle (wrap at both ends), unlike the Flex Carousel above it on the page, which stops at its bounds — a loop reads better for a slideshow-style promo banner than a bounded track does.</div>
+      </div>
+
+      <div class="intro-grid">
+        <div class="intro-card">
+          <div class="intro-card-icon">🧱</div>
+          <div class="intro-card-title">One rigid slide, not two lanes</div>
+          <div class="intro-card-text">Panel + image are one <code>.ufs-fw-banner__slide</code> unit. Arrows and dots live outside the sliding track as persistent overlay chrome, so they never move.</div>
+        </div>
+        <div class="intro-card">
+          <div class="intro-card-icon">👆</div>
+          <div class="intro-card-title">Real swipe on mobile</div>
+          <div class="intro-card-text">Below 768px, arrows disappear and slides sit in a touch-draggable filmstrip — direction-locked so it doesn't fight the page's own vertical scroll.</div>
+        </div>
+        <div class="intro-card">
+          <div class="intro-card-icon">🌍</div>
+          <div class="intro-card-title">Fully localised</div>
+          <div class="intro-card-text">Every string — badge, title, description, CTA, arrow labels — resolves through <code>data-i18n</code>. Logical CSS properties mirror the whole layout automatically under <code>dir="rtl"</code>.</div>
+        </div>
+      </div>
+
+      <div class="pv-full-bleed">
+        <section class="ufs-fw-banner" aria-roledescription="carousel" aria-label="Featured promotions" id="spec-fwb-desktop">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" data-fw-prev aria-label="Previous slide">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__track">
+            <div class="ufs-fw-banner__slide is-active" data-fw-slide="0">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">New Arrival</span>
+                <h3 class="ufs-fw-banner__title text-h2">Descubra a experiência digital do Menus do Futuro Vol. 4.</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">Receba gratuitamente dicas e insights personalizados para os desafios do seu negócio — desde otimização de cardápio até controle de custos — com base na nossa pesquisa de tendências culinárias para 2026.</p>
+                <a href="#" class="btn btn-primary">Explorar Agora</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
+            </div>
+            <div class="ufs-fw-banner__slide" data-fw-slide="1" aria-hidden="true">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">Promotion</span>
+                <h3 class="ufs-fw-banner__title text-h2">Made with 99% potatoes</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">Throughout the year, UFS speaks to hundreds of chefs across Australia and New Zealand — insight into how customer preferences evolve.</p>
+                <a href="#" class="btn btn-primary">Explore Products</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+            </div>
+            <div class="ufs-fw-banner__slide" data-fw-slide="2" aria-hidden="true">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">Free Training</span>
+                <h3 class="ufs-fw-banner__title text-h2">Master Umami, on us</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">A free online module built for working chefs — practical techniques you can use on shift tonight.</p>
+                <a href="#" class="btn btn-primary">Start Learning</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide3.jpg')" role="img" aria-label=""></div>
+            </div>
+          </div>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="Next slide">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__scrim"></div>
+          <div class="ufs-carousel-dots"></div>
+          <div class="ufs-fw-banner__sr-status" aria-live="polite" data-fw-status></div>
+        </section>
+      </div>
+
+      <div class="pv-label" style="margin-top:32px">Same component, forced mobile width — swipe it</div>
+      <div class="pv-mobile">
+        <section class="ufs-fw-banner" aria-roledescription="carousel" aria-label="Featured promotions" id="spec-fwb-mobile">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" data-fw-prev aria-label="Previous slide">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__track">
+            <div class="ufs-fw-banner__slide is-active" data-fw-slide="0">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">New Arrival</span>
+                <h3 class="ufs-fw-banner__title text-h2">Descubra a experiência digital do Menus do Futuro Vol. 4.</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">Receba gratuitamente dicas e insights personalizados para os desafios do seu negócio — desde otimização de cardápio até controle de custos — com base na nossa pesquisa de tendências culinárias para 2026.</p>
+                <a href="#" class="btn btn-primary">Explorar Agora</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
+            </div>
+            <div class="ufs-fw-banner__slide" data-fw-slide="1" aria-hidden="true">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">Promotion</span>
+                <h3 class="ufs-fw-banner__title text-h2">Made with 99% potatoes</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">Throughout the year, UFS speaks to hundreds of chefs across Australia and New Zealand — insight into how customer preferences evolve.</p>
+                <a href="#" class="btn btn-primary">Explore Products</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+            </div>
+            <div class="ufs-fw-banner__slide" data-fw-slide="2" aria-hidden="true">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">Free Training</span>
+                <h3 class="ufs-fw-banner__title text-h2">Master Umami, on us</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">A free online module built for working chefs — practical techniques you can use on shift tonight.</p>
+                <a href="#" class="btn btn-primary">Start Learning</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide3.jpg')" role="img" aria-label=""></div>
+            </div>
+          </div>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="Next slide">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__scrim"></div>
+          <div class="ufs-carousel-dots"></div>
+          <div class="ufs-fw-banner__sr-status" aria-live="polite" data-fw-status></div>
+        </section>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         ANATOMY
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">One <code>.ufs-fw-banner</code> root containing a <code>.ufs-fw-banner__track</code> (the sliding/draggable layer) with N <code>.ufs-fw-banner__slide</code> children, each holding a <code>.ufs-fw-banner__panel</code> (badge, title, description, CTA) and a <code>.ufs-fw-banner__image</code>. Arrows, the scrim, dots and the screen-reader status line sit <strong>outside</strong> the track, as direct children of the root — persistent chrome that never moves.</p>
+
+      <div class="ds-card">
+        <div class="card-subtitle">Root — <code>.ufs-fw-banner</code></div>
+        <div class="card-desc" style="margin-bottom:12px">Clips everything (<code>overflow: hidden</code>) and establishes the positioning context for the overlay arrows/dots. Fixed <code>600px</code> tall on desktop; <code>height: auto</code> on mobile, where each slide's own content determines height.</div>
+
+        <div class="card-subtitle">Track — <code>.ufs-fw-banner__track</code></div>
+        <div class="card-desc" style="margin-bottom:12px">Deliberately has <strong>no <code>overflow: hidden</code> of its own</strong> — see the notice below. On mobile this becomes the element that physically translates during swipe/snap.</div>
+
+        <div class="notice notice--warn" style="margin-bottom:20px;">
+          <span class="notice-icon">⚠️</span>
+          <div><strong>Don't add <code>overflow: hidden</code> back onto the track.</strong> It was there originally and caused a real, confirmed bug: pairing <code>overflow: hidden</code> with an animated <code>transform</code> on the <em>same</em> element made revealed slides fail to paint on mobile — the DOM/computed styles were correct, but the browser never rendered the content, even though layout was right. The root <code>.ufs-fw-banner</code> already clips everything, so the track doesn't need its own clip boundary. Keep the "clip" and "transform" responsibilities on different elements.</div>
+        </div>
+
+        <div class="card-subtitle">Slide — <code>.ufs-fw-banner__slide</code></div>
+        <div class="card-desc" style="margin-bottom:12px">Bundles panel + image into one unit. <code>position: absolute; inset: 0</code> on desktop (each slide independently transforms for enter/exit); <code>position: relative</code>, a plain flex-row item at <code>flex: 0 0 100%</code> on mobile (the whole track translates instead — see Slide Transition and Swipe below for why the mechanism differs per breakpoint).</div>
+
+        <div class="pv-light" style="margin-bottom:24px; padding: 24px;">
+          <div style="display:flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+            <div class="mech-chip">.ufs-fw-banner</div>
+            <span class="mech-arrow">→</span>
+            <div class="mech-chip">.ufs-fw-banner__track</div>
+            <span class="mech-arrow">→</span>
+            <div class="mech-chip is-active">.ufs-fw-banner__slide × N</div>
+          </div>
+          <div style="margin-left: 40px; margin-top: 10px; display:flex; gap: 10px; flex-wrap: wrap;">
+            <div class="mech-chip is-panel">.ufs-fw-banner__panel (40%)</div>
+            <span class="mech-arrow">+</span>
+            <div class="mech-chip">.ufs-fw-banner__image (60%)</div>
+            <span style="font-size:11px; color:var(--color-mushroom-700); align-self:center;">— one rigid unit</span>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Panel — <code>.ufs-fw-banner__panel</code></div>
+        <div class="card-desc" style="margin-bottom:12px">Dark (<code>--color-brand-dark</code>), 40% width on desktop via <code>flex: 0 0 40%</code>. Left/start padding is <code>120px</code> to clear the persistent prev arrow floating over it. On mobile the same <code>flex: 0 0 40%</code> would be read as a <em>height</em> basis instead (the slide switches to <code>flex-direction: column</code>) — overridden to <code>flex: 1 1 auto</code> there. Contains, in order: badge, title (<code>text-h2</code>), description (<code>text-body-sm</code>), CTA (<code>.btn.btn-primary</code>).</div>
+
+        <div class="card-subtitle">Image — <code>.ufs-fw-banner__image</code></div>
+        <div class="card-desc">A plain <code>background-image</code> div (not <code>&lt;img&gt;</code>), 60% width on desktop, fixed <code>240px</code> tall on mobile (stacked above the panel via <code>order: 1</code>).</div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anatomy-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner"</span> <span class="t-at">aria-roledescription</span>=<span class="t-str">"carousel"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Featured promotions"</span> <span class="t-at">data-i18n-aria</span>=<span class="t-str">"fwb-aria-label"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-arrow ufs-carousel-arrow--prev"</span> <span class="t-at">data-fw-prev</span> <span class="t-at">aria-label</span>=<span class="t-str">"Previous slide"</span> <span class="t-at">data-i18n-aria</span>=<span class="t-str">"fwb-prev"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__track"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__slide is-active"</span> <span class="t-at">data-fw-slide</span>=<span class="t-str">"0"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__panel"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__badge"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"fwb-badge-0"</span><span class="t-tag">&gt;</span>New Arrival<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;h3</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__title text-h2"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"fwb-title-0"</span><span class="t-tag">&gt;</span>Descubra a experiência digital…<span class="t-tag">&lt;/h3</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__desc text-body-sm"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"fwb-desc-0"</span><span class="t-tag">&gt;</span>Receba gratuitamente…<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"fwb-cta-0"</span><span class="t-tag">&gt;</span>Explorar Agora<span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__image"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('images/carousel/slide1.jpg')"</span> <span class="t-at">role</span>=<span class="t-str">"img"</span> <span class="t-at">aria-label</span>=<span class="t-str">""</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- …2 more .ufs-fw-banner__slide siblings, aria-hidden="true" --&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+  <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-arrow ufs-carousel-arrow--next"</span> <span class="t-at">data-fw-next</span> <span class="t-at">aria-label</span>=<span class="t-str">"Next slide"</span> <span class="t-at">data-i18n-aria</span>=<span class="t-str">"fwb-next"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__scrim"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dots"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- JS-populated, one .ufs-carousel-dot per slide --&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__sr-status"</span> <span class="t-at">aria-live</span>=<span class="t-str">"polite"</span> <span class="t-at">data-fw-status</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/section</span><span class="t-tag">&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anatomy-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cls">.ufs-fw-banner</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">height</span>: <span class="t-vl">600px</span>; }
+<span class="t-cls">.ufs-fw-banner__track</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">100%</span>; } <span class="t-cm">/* no overflow:hidden — see warning above */</span>
+
+<span class="t-cls">.ufs-fw-banner__slide</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>;
+  <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; <span class="t-pr">visibility</span>: <span class="t-vl">hidden</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; <span class="t-pr">transition</span>: <span class="t-vl">opacity 0.4s ease</span>;
+}
+<span class="t-cls">.ufs-fw-banner__slide.is-active</span> { <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; <span class="t-pr">visibility</span>: <span class="t-vl">visible</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">auto</span>; <span class="t-pr">z-index</span>: <span class="t-vl">2</span>; }
+
+<span class="t-cls">.ufs-fw-banner__panel</span> {
+  <span class="t-pr">flex</span>: <span class="t-vl">0 0 40%</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">flex-start</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>;
+  <span class="t-pr">padding-block</span>: <span class="t-va">var(--space-16)</span>;
+  <span class="t-pr">padding-inline-end</span>: <span class="t-va">var(--space-16)</span>;
+  <span class="t-pr">padding-inline-start</span>: <span class="t-vl">120px</span>; <span class="t-cm">/* clears the prev arrow */</span>
+}
+<span class="t-cls">.ufs-fw-banner__image</span> { <span class="t-pr">flex</span>: <span class="t-vl">1 1 60%</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; <span class="t-pr">background-size</span>: <span class="t-vl">cover</span>; <span class="t-pr">background-position</span>: <span class="t-vl">center</span>; }</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         CONTENT LENGTH
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="content-length">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Content Length</h2>
+      <p class="section-desc">All 3 example slides on this page were checked against the limits below. The description is the only field with a real, code-enforced cap — mobile clamps it to 3 lines with an ellipsis (<code>-webkit-line-clamp: 3</code>). Everything else here is content-authoring guidance, not enforced in code.</p>
+
+      <div class="token-list">
+        <div class="token-row"><span class="token-prop">Badge</span><span class="token-var">≤ 20 characters</span><span class="token-note">single-line pill, doesn't wrap gracefully</span></div>
+        <div class="token-row"><span class="token-prop">Title</span><span class="token-var">≤ 60 characters</span><span class="token-note">wraps freely at 26ch/line on desktop — keeps it to ~3 lines</span></div>
+        <div class="token-row"><span class="token-prop">Description</span><span class="token-var">≤ 150 characters</span><span class="token-note">fits the mobile 3-line clamp without truncating</span></div>
+        <div class="token-row"><span class="token-prop">CTA label</span><span class="token-var">≤ 25 characters</span><span class="token-note">short, action-led — avoid wrapping inside the button</span></div>
+      </div>
+
+      <div class="notice notice--warn" style="margin-top:20px;">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>Description is the one field that actually truncates.</strong> Go over ~150 characters and mobile will visibly cut it off with an ellipsis after line 3 — desktop has no clamp, so the same copy reads in full there, meaning a slide can look complete on desktop and truncated on mobile. Write to the mobile limit, not the desktop one. Title, badge and CTA don't truncate; going long there risks wrapping (title), an awkward pill shape (badge), or an oversized/wrapped button (CTA) rather than lost content — but all three still affect how tall the slide reads once <a href="#uniform-height">every slide is stretched to match the tallest one</a>.</div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>The 3 example slides sit at 129, 137 and 100 characters of description — all comfortably under the 150-character mobile limit, confirmed not to truncate. Slide 1's title (59 characters, "Descubra a experiência digital do Menus do Futuro Vol. 4.") is the longest example and wraps to 3 lines on both breakpoints without issue.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         SLIDE TRANSITION — DESKTOP
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="transition-desktop">
+      <div class="section-breadcrumb">Behaviour</div>
+      <h2 class="section-title">Slide Transition — Desktop</h2>
+      <p class="section-desc">Each <code>.ufs-fw-banner__slide</code> is <code>position: absolute; inset: 0</code>, independently transformed for enter/exit — the incoming slide enters from the side that matches the navigation direction (Next → from the right, Prev → from the left, or the shorter path for a dot jump), while the outgoing slide exits the opposite way. Because panel + image live inside the <em>same</em> slide element, they always move as one indivisible block — never as two separately-clipped 40%/60% lanes.</p>
+
+      <div class="ds-card">
+        <div class="card-title">The enter/exit class dance</div>
+        <div class="card-desc">Four transform states, toggled by <code>goTo()</code> in JS; CSS just defines what each one looks like.</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">.is-enter-right</span><span class="token-var">translateX(100%)</span><span class="token-note">incoming slide, Next pressed</span></div>
+          <div class="token-row"><span class="token-prop">.is-enter-left</span><span class="token-var">translateX(-100%)</span><span class="token-note">incoming slide, Prev pressed</span></div>
+          <div class="token-row"><span class="token-prop">.is-exit-left</span><span class="token-var">translateX(-100%)</span><span class="token-note">outgoing slide, Next pressed</span></div>
+          <div class="token-row"><span class="token-prop">.is-exit-right</span><span class="token-var">translateX(100%)</span><span class="token-note">outgoing slide, Prev pressed</span></div>
+        </div>
+
+        <div class="card-subtitle">Sequence per navigation</div>
+        <div class="card-desc" style="margin-bottom:0;">1) Outgoing slide loses <code>.is-active</code>. 2) Incoming slide gets <code>.is-notransition</code> + its enter class (jumps instantly off-screen, no animation) — a forced reflow (<code>void newEl.offsetWidth</code>) locks that starting position in before the next step. 3) <code>.is-notransition</code> is removed. 4) On the next animation frame, the enter class comes off and <code>.is-active</code> goes on the incoming slide, while the exit class goes on the outgoing one — both now animate toward/away from center over <code>0.5s</code>. 5) After <code>550ms</code>, all enter/exit classes are cleared and <code>animating</code> unlocks.</div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>The forced reflow in step 2 matters: without it, the browser can coalesce "jump off-screen" and "remove the no-transition guard" into a single style recalculation and skip the jump entirely, so the slide would visibly animate in from its <em>old</em> position instead of snapping off-screen first. The same "toggle a property, force a reflow, then change the animated property" pattern shows up again in the mobile track code below — it's the fix for a whole category of "browser skips animating to the new value" bugs, not a one-off hack.</div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">JS — goTo(), desktop branch</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-kw">var</span> enterClass = direction === <span class="t-str">'next'</span> ? <span class="t-str">'is-enter-right'</span> : <span class="t-str">'is-enter-left'</span>;
+<span class="t-kw">var</span> exitClass  = direction === <span class="t-str">'next'</span> ? <span class="t-str">'is-exit-left'</span>   : <span class="t-str">'is-exit-right'</span>;
+animating = <span class="t-kw">true</span>;
+
+<span class="t-kw">var</span> oldEl = slides[oldIndex], newEl = slides[newIndex];
+oldEl.classList.remove(<span class="t-str">'is-active'</span>);
+newEl.classList.add(<span class="t-str">'is-notransition'</span>, enterClass);
+<span class="t-kw">void</span> newEl.offsetWidth; <span class="t-cm">/* force reflow so the entry position applies before we animate away from it */</span>
+newEl.classList.remove(<span class="t-str">'is-notransition'</span>);
+
+requestAnimationFrame(<span class="t-kw">function</span>() {
+  newEl.classList.remove(enterClass);
+  newEl.classList.add(<span class="t-str">'is-active'</span>);
+  oldEl.classList.add(exitClass);
+});
+
+clearTimeout(slideTimer);
+slideTimer = setTimeout(<span class="t-kw">function</span>() {
+  slides.forEach(<span class="t-kw">function</span>(el) { el.classList.remove(<span class="t-str">'is-enter-right'</span>, <span class="t-str">'is-enter-left'</span>, <span class="t-str">'is-exit-left'</span>, <span class="t-str">'is-exit-right'</span>); });
+  animating = <span class="t-kw">false</span>;
+}, 550);</pre>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         SWIPE — MOBILE
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="swipe-mobile">
+      <div class="section-breadcrumb">Behaviour</div>
+      <h2 class="section-title">Swipe — Mobile</h2>
+      <p class="section-desc">Below 768px, arrows are hidden and the mechanism changes entirely: instead of each slide independently transforming, all slides sit side by side in the track as a classic swipeable filmstrip, and the <em>track itself</em> translates — dragged 1:1 with the finger, then snapped to the nearest slide (or bounced back) past a 15%-of-width distance threshold.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Direction locking</div>
+        <div class="card-desc">Swipe handling doesn't assume every touch on the track is a horizontal swipe — that would fight the page's own vertical scroll. The first ~6px of movement decides intent:</div>
+        <div class="mech-row"><div class="mech-chip">touchstart</div><span class="mech-arrow">→</span><div class="mech-chip">movement &lt; 6px?</div><span class="mech-arrow">→</span><div class="mech-chip">wait, do nothing yet</div></div>
+        <div class="mech-row"><div class="mech-chip">movement ≥ 6px</div><span class="mech-arrow">→</span><div class="mech-chip">|dx| ≤ |dy|?</div><span class="mech-arrow">→</span><div class="mech-chip is-panel">vertical — hand off to native scroll</div></div>
+        <div class="mech-row"><div class="mech-chip">movement ≥ 6px</div><span class="mech-arrow">→</span><div class="mech-chip">|dx| &gt; |dy|?</div><span class="mech-arrow">→</span><div class="mech-chip is-active">locked horizontal — drag the track, preventDefault()</div></div>
+
+        <div class="card-subtitle">Why preventDefault() only after locking</div>
+        <div class="card-desc" style="margin-bottom:0;">Calling <code>preventDefault()</code> only once a gesture is confirmed horizontal — not on every <code>touchmove</code> from the start — lets iOS's own scroll recognizer fully hand off the touch instead of both systems fighting over the same gesture mid-drag. <code>touchmove</code> is registered <code>{ passive: false }</code> specifically so <code>preventDefault()</code> is allowed to run at all (Safari ignores it on a passive listener).</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Threshold &amp; snap</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Snap threshold</span><span class="token-var">15% of track width</span><span class="token-note">drag past this → advances to next/prev slide</span></div>
+          <div class="token-row"><span class="token-prop">Under threshold</span><span class="token-var">setMobileTrack(true)</span><span class="token-note">bounces back to the current slide, animated</span></div>
+          <div class="token-row"><span class="token-prop">Transform math</span><span class="token-var">pure px, not calc(%+px)</span><span class="token-note">-activeIndex * offsetWidth + delta — one unit throughout</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>Touch events, not Pointer Events + <code>setPointerCapture</code>.</strong> An earlier version used unified Pointer Events with <code>setPointerCapture()</code> for reliable dragging outside the element's bounds — this has a confirmed iOS Safari bug where capturing a touch pointer silently breaks the <em>next</em> gesture on the same element (first swipe works, everything after is dead). Plain <code>touchstart</code>/<code>touchmove</code>/<code>touchend</code>/<code>touchcancel</code> is the reliable, battle-tested approach. Mouse drag (for testing in a resized desktop viewport with no real touchscreen) is wired separately via <code>mousedown</code> + <code>window</code>-level <code>mousemove</code>/<code>mouseup</code>, which needs no capture at all.</div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>Don't add <code>will-change: transform</code> to the track.</strong> It was tried as a fix for an unrelated paint bug and made things worse: on-device testing on iOS Safari showed it causes <code>touchstart</code> to stop being delivered to the track entirely, right after the first swipe's transition finishes — a confirmed, reproducible input bug, not a rendering one. Removing it fixed swiping completely.</div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">JS — drag handlers</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-kw">function</span> moveDrag(x, y, evt) {
+  <span class="t-kw">if</span> (!dragging) <span class="t-kw">return</span>;
+  <span class="t-kw">if</span> (!dragLocked) {
+    <span class="t-kw">var</span> dx = x - dragStartX, dy = y - dragStartY;
+    <span class="t-kw">if</span> (Math.abs(dx) &lt; 6 &amp;&amp; Math.abs(dy) &lt; 6) <span class="t-kw">return</span>; <span class="t-cm">/* not enough movement yet to know intent */</span>
+    <span class="t-kw">if</span> (Math.abs(dx) &lt;= Math.abs(dy)) { dragging = <span class="t-kw">false</span>; <span class="t-kw">return</span>; } <span class="t-cm">/* vertical — hand off to native scroll */</span>
+    dragLocked = <span class="t-kw">true</span>;
+    track.style.transition = <span class="t-str">'none'</span>;
+    <span class="t-kw">void</span> track.offsetWidth;
+  }
+  <span class="t-kw">if</span> (evt &amp;&amp; evt.cancelable) evt.preventDefault();
+  dragCurrentX = x;
+  <span class="t-kw">var</span> deltaPx = dragCurrentX - dragStartX;
+  track.style.transform = <span class="t-str">'translateX(' + (-activeIndex * track.offsetWidth + deltaPx) + 'px)'</span>;
+}
+
+track.addEventListener(<span class="t-str">'touchstart'</span>, <span class="t-kw">function</span>(e) { startDrag(e.touches[0].clientX, e.touches[0].clientY, <span class="t-kw">false</span>); }, { passive: <span class="t-kw">true</span> });
+track.addEventListener(<span class="t-str">'touchmove'</span>, <span class="t-kw">function</span>(e) { moveDrag(e.touches[0].clientX, e.touches[0].clientY, e); }, { passive: <span class="t-kw">false</span> });
+track.addEventListener(<span class="t-str">'touchend'</span>, endDrag);
+track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         UNIFORM SLIDE HEIGHT
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="uniform-height">
+      <div class="section-breadcrumb">Behaviour</div>
+      <h2 class="section-title">Uniform Slide Height</h2>
+      <p class="section-desc">On mobile, all 3 slides report the <strong>same total height</strong> — the track's default <code>align-items: stretch</code> stretches every <code>.ufs-fw-banner__slide</code> to match the tallest one's natural content height, so a short slide's panel doesn't look truncated or cramped at the bottom when you swipe to it, and swiping between slides doesn't jump the whole banner's height around.</p>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>The panel needs <code>flex: 1 1 auto</code> on mobile, not the desktop <code>flex: 0 0 40%</code>.</strong> That value is a <em>width</em> basis, meant for the desktop side-by-side layout. Once the mobile media query switches the slide to <code>flex-direction: column</code>, the same property is read as a <em>height</em> basis instead — producing inconsistent, unpredictable panel heights per slide. <code>flex: 1 1 auto</code> lets the panel simply fill whatever space is left under the fixed 240px image, which is what actually makes the stretch-to-tallest-slide behavior work correctly.</div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cm">/* align-items:stretch is the flex default — not set explicitly, but this
+   is what makes every .slide match the tallest one's natural height */</span>
+<span class="t-cls">.ufs-fw-banner__track</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; … }
+
+<span class="t-cls">.ufs-fw-banner__image</span> { <span class="t-pr">order</span>: <span class="t-vl">1</span>; <span class="t-pr">flex</span>: <span class="t-vl">none</span>; <span class="t-pr">height</span>: <span class="t-vl">240px</span>; } <span class="t-cm">/* fixed */</span>
+<span class="t-cls">.ufs-fw-banner__panel</span> { <span class="t-pr">order</span>: <span class="t-vl">2</span>; <span class="t-pr">flex</span>: <span class="t-vl">1 1 auto</span>; … } <span class="t-cm">/* fills the rest */</span></pre>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         BADGE — MOBILE POSITIONING
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="badge-mobile">
+      <div class="section-breadcrumb">Behaviour</div>
+      <h2 class="section-title">Badge — Mobile Positioning</h2>
+      <p class="section-desc">On mobile only, the badge lifts out of the panel's normal flow and floats over the top-left of the image instead — <code>position: absolute; top: var(--space-6)</code> — with a darker, more opaque treatment (<code>rgba(0,0,0,0.7)</code> background, <code>rgba(255,255,255,0.5)</code> border) than its desktop appearance, since it now sits on top of a photograph rather than the flat dark panel.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Anchoring — why the slide needs <code>position: relative</code></div>
+        <div class="card-desc">The badge is a child of <code>.panel</code>, but positioning it relative to just the panel would confine it to the panel's own box (below the image on mobile). It needs to anchor to the <em>whole slide</em> — image + panel together — so <code>.ufs-fw-banner__slide</code> gets <code>position: relative</code> on mobile specifically for this (it's <code>position: absolute</code> on desktop already, for the enter/exit transitions, and doesn't need the override there).</div>
+        <div class="variant-table-wrap">
+          <table class="variant-table">
+            <thead><tr><th>Property</th><th>Desktop</th><th>Mobile</th></tr></thead>
+            <tbody>
+              <tr><td>Badge position</td><td class="wrap-ok">static, first item in panel flow</td><td class="wrap-ok">absolute, floats over the image</td></tr>
+              <tr><td>Background</td><td>rgba(255,255,255,0.1)</td><td>rgba(0,0,0,0.7)</td></tr>
+              <tr><td>Border</td><td>rgba(255,255,255,0.2)</td><td>rgba(255,255,255,0.5)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         DESKTOP VS MOBILE
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="responsive">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Desktop vs. Mobile</h2>
+      <p class="section-desc">Beyond the transition mechanism (see Slide Transition and Swipe above), several other properties change at the <code>768px</code> breakpoint.</p>
+
+      <div class="variant-table-wrap">
+        <table class="variant-table">
+          <thead><tr><th>Property</th><th>Desktop (≥769px)</th><th>Mobile (≤768px)</th></tr></thead>
+          <tbody>
+            <tr><td>Layout</td><td class="wrap-ok">panel + image side by side (40%/60%)</td><td class="wrap-ok">image (240px) stacked above panel</td></tr>
+            <tr><td>Root height</td><td>600px fixed</td><td>auto (content-driven)</td></tr>
+            <tr><td>Navigation</td><td class="wrap-ok">arrows + dots + keyboard</td><td class="wrap-ok">swipe + dots (arrows hidden)</td></tr>
+            <tr><td>Arrow size</td><td>48px (--space-12)</td><td class="is-unset">n/a — hidden</td></tr>
+            <tr><td>Title type</td><td class="wrap-ok">text-h2, max-width 26ch</td><td class="wrap-ok">h4 tokens, no max-width</td></tr>
+            <tr><td>Description</td><td class="wrap-ok">text-body, no truncation</td><td class="wrap-ok">text-body-sm, 3-line clamp</td></tr>
+            <tr><td>Badge</td><td class="wrap-ok">inline, first item in panel</td><td class="wrap-ok">absolute, floats over image</td></tr>
+            <tr><td>Scrim (bottom gradient)</td><td>visible, behind dots</td><td class="is-unset">display: none</td></tr>
+            <tr><td>Dots position</td><td>bottom: 24px (--space-6)</td><td>bottom: 24px (--space-6)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         ARROWS & PAGINATION
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="arrows">
+      <div class="section-breadcrumb">Reused Components</div>
+      <h2 class="section-title">Arrows &amp; Pagination</h2>
+      <p class="section-desc">Both controls are reused <strong>verbatim</strong> from the <a href="flex-carousel-spec.html">Flex Carousel</a> — same <code>.ufs-carousel-arrow</code>/<code>.ufs-carousel-dot</code> markup and JS, no new component CSS written. They read colour from <code>--carousel-*</code> custom properties, so adapting them here is a pure token swap.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Token swap — desktop arrows</div>
+        <div class="card-desc">Prev sits inside the dark panel (transparent background, subtle white border); Next floats over the image (semi-opaque black, so it stays legible over any photo). Both get a <code>backdrop-filter: blur(4px)</code> and, on desktop only, size up to <code>48px</code> (<code>--space-12</code>) from the shared component's default <code>40px</code>.</div>
+        <div class="variant-table-wrap">
+          <table class="variant-table">
+            <thead><tr><th>Token</th><th>Prev (over panel)</th><th>Next (over image)</th></tr></thead>
+            <tbody>
+              <tr><td>--carousel-arrow-bg</td><td>transparent</td><td>rgba(0,0,0,0.3)</td></tr>
+              <tr><td>--carousel-arrow-border</td><td>rgba(255,255,255,0.4)</td><td>var(--color-salt)</td></tr>
+              <tr><td>--carousel-arrow-color</td><td>var(--color-salt)</td><td>var(--color-salt)</td></tr>
+              <tr><td>--carousel-btn-hover-bg</td><td>rgba(255,255,255,0.15)</td><td>rgba(0,0,0,0.45)</td></tr>
+              <tr><td>--carousel-arrow-active-bg</td><td>rgba(255,255,255,0.25)</td><td>rgba(0,0,0,0.55)</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Unlike the Flex Carousel's dots (a "dynamic bullets" window that shrinks distant dots), this component uses the exact same dot component and distance logic unmodified — no new pagination behaviour was needed. Inactive dots use <code>--color-salt</code> (solid white) rather than a semi-transparent white, for stronger contrast against both the dark panel and the image.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════ SINGLE SLIDE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="single-slide">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Single Slide</h2>
+      <p class="section-desc">When a <code>.ufs-fw-banner</code> instance contains exactly one <code>.ufs-fw-banner__slide</code>, arrows and pagination dots are <strong>not rendered</strong> — there's nowhere to navigate to, so showing controls that do nothing would be misleading rather than just unnecessary. This is derived automatically from the actual slide count in the DOM at init time; no extra class or flag needs to be added by hand.</p>
+
+      <div class="pv-label">Live demo — 1 slide, no arrows or dots</div>
+      <div class="pv-full-bleed">
+        <section class="ufs-fw-banner" aria-roledescription="carousel" aria-label="Featured promotions" id="spec-fwb-single">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" data-fw-prev aria-label="Previous slide">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__track">
+            <div class="ufs-fw-banner__slide is-active" data-fw-slide="0">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">Promotion</span>
+                <h3 class="ufs-fw-banner__title text-h2">Made with 99% potatoes</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">Throughout the year, UFS speaks to hundreds of chefs across Australia and New Zealand — insight into how customer preferences evolve.</p>
+                <a href="#" class="btn btn-primary">Explore Products</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+            </div>
+          </div>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="Next slide">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__scrim"></div>
+          <div class="ufs-carousel-dots"></div>
+          <div class="ufs-fw-banner__sr-status" aria-live="polite" data-fw-status></div>
+        </section>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">JS — init, single-slide check</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cm">/* Single-slide instances have nothing to navigate to — arrows and
+   pagination would just be dead controls, so skip creating them
+   entirely rather than rendering a lone, permanently-active dot
+   and a pair of do-nothing arrow buttons. */</span>
+<span class="t-kw">var</span> singleSlide = slides.length &lt;= 1;
+<span class="t-kw">if</span> (singleSlide) {
+  <span class="t-kw">if</span> (prevBtn) prevBtn.style.display = <span class="t-str">'none'</span>;
+  <span class="t-kw">if</span> (nextBtn) nextBtn.style.display = <span class="t-str">'none'</span>;
+} <span class="t-kw">else</span> {
+  slides.forEach(<span class="t-kw">function</span>(_, i) {
+    <span class="t-cm">/* …creates one .ufs-carousel-dot per slide, as before */</span>
+  });
+}</pre>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>The dots wrapper is left in the DOM either way — with zero children it naturally collapses to 0×0 (<code>.ufs-carousel-dots</code> has no padding or min-size), so no extra hiding rule was needed there. Only the arrow buttons needed an explicit <code>display: none</code>, since as real buttons they'd otherwise keep their own footprint and remain focusable/clickable even with nothing to do.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Every piece of copy — badge, title, description, CTA, the section's own <code>aria-label</code>, and both arrow labels — resolves through <code>data-i18n</code>/<code>data-i18n-aria</code>, matching the announcement banner, breadcrumb, header and footer. The layout mirrors automatically under <code>dir="rtl"</code>: the 40%/60% panel/image split is a plain flex row (reverses on its own), and the one physical measurement that matters — the panel's <code>120px</code> arrow clearance — uses <code>padding-inline-start</code> rather than <code>padding-left</code>, so it follows the prev arrow (itself positioned via <code>inset-inline-start</code>) to whichever side is logically "start" in the current direction.</p>
+
+      <div class="pv-label">Forced <code>dir="rtl"</code>, Arabic — live &amp; interactive</div>
+      <div class="pv-full-bleed" style="margin-bottom:24px;">
+       <div dir="rtl">
+        <section class="ufs-fw-banner" aria-roledescription="carousel" aria-label="العروض الترويجية المميزة" id="spec-fwb-rtl">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" data-fw-prev aria-label="الشريحة السابقة">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__track">
+            <div class="ufs-fw-banner__slide is-active" data-fw-slide="0">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">وصول جديد</span>
+                <h3 class="ufs-fw-banner__title text-h2">اكتشف التجربة الرقمية لقوائم المستقبل - الإصدار 4</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">احصل مجانًا على نصائح ورؤى مخصصة لتحديات عملك — من تحسين القائمة إلى ضبط التكاليف — استنادًا إلى بحثنا حول اتجاهات الطهي لعام 2026.</p>
+                <a href="#" class="btn btn-primary">استكشف الآن</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
+            </div>
+            <div class="ufs-fw-banner__slide" data-fw-slide="1" aria-hidden="true">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">عرض ترويجي</span>
+                <h3 class="ufs-fw-banner__title text-h2">مصنوع من ٩٩٪ بطاطا</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">على مدار العام، تتواصل UFS مع مئات الطهاة في أستراليا ونيوزيلندا — لفهم كيف تتطور تفضيلات العملاء.</p>
+                <a href="#" class="btn btn-primary">استكشف المنتجات</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+            </div>
+            <div class="ufs-fw-banner__slide" data-fw-slide="2" aria-hidden="true">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">تدريب مجاني</span>
+                <h3 class="ufs-fw-banner__title text-h2">أتقن نكهة الأومامي، على حسابنا</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">وحدة تدريبية مجانية عبر الإنترنت مصممة للطهاة العاملين — تقنيات عملية يمكنك استخدامها في نوبتك الليلة.</p>
+                <a href="#" class="btn btn-primary">ابدأ التعلم</a>
+              </div>
+              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide3.jpg')" role="img" aria-label=""></div>
+            </div>
+          </div>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="الشريحة التالية">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__scrim"></div>
+          <div class="ufs-carousel-dots"></div>
+          <div class="ufs-fw-banner__sr-status" aria-live="polite" data-fw-status></div>
+        </section>
+       </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">What flips (and how)</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Panel / image order</span><span class="token-var">automatic (flex row)</span><span class="token-note">image renders on the left, panel on the right — no flex-direction: row-reverse needed</span></div>
+          <div class="token-row"><span class="token-prop">Prev / Next arrows</span><span class="token-var">inset-inline-start / -end</span><span class="token-note">prev lands on the visual right (inside panel), next on the visual left (over image)</span></div>
+          <div class="token-row"><span class="token-prop">Panel arrow clearance</span><span class="token-var">padding-inline-start</span><span class="token-note">the 120px gap follows the prev arrow to the right edge</span></div>
+          <div class="token-row"><span class="token-prop">Arrow chevron icons</span><span class="token-var">[dir="rtl"] overrides</span><span class="token-note">prev's mirror-flip is undone, next gets scaleX(-1) — both point the correct visual direction</span></div>
+          <div class="token-row"><span class="token-prop">Arrow corner radius</span><span class="token-var">[dir="rtl"] overrides</span><span class="token-note">rounded corner swaps from the outer-top to match the mirrored shape</span></div>
+          <div class="token-row"><span class="token-prop">Text alignment</span><span class="token-var">automatic (dir attribute)</span><span class="token-note">badge/title/description right-align without any CSS override</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Localisation hooks</div>
+        <div class="card-desc">One attribute variant per field, all resolved by the page's existing <code>applyTranslations()</code>.</div>
+        <div class="variant-table-wrap">
+          <table class="variant-table">
+            <thead>
+              <tr><th>Attribute</th><th>Applies to</th><th>Example key(s)</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>data-i18n</td><td>Plain text content of the element</td><td>fwb-badge-0/1/2, fwb-title-0/1/2, fwb-desc-0/1/2, fwb-cta-0/1/2</td></tr>
+              <tr><td>data-i18n-aria</td><td>The element's <code>aria-label</code> attribute</td><td>fwb-aria-label, fwb-prev, fwb-next</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Featured promotions"</span> <span class="t-at">data-i18n-aria</span>=<span class="t-str">"fwb-aria-label"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">aria-label</span>=<span class="t-str">"Previous slide"</span> <span class="t-at">data-i18n-aria</span>=<span class="t-str">"fwb-prev"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__badge"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"fwb-badge-0"</span><span class="t-tag">&gt;</span>New Arrival<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;h3</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__title text-h2"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"fwb-title-0"</span><span class="t-tag">&gt;</span>Descubra a experiência digital…<span class="t-tag">&lt;/h3</span><span class="t-tag">&gt;</span></pre>
+      </div>
+
+      <div class="notice notice--tip" style="margin-top:18px;">
+        <span class="notice-icon">💡</span>
+        <div>Verified live in <code>full-page-preview-v0.2.html</code> with the Language toggle set to AR: all 3 slides translate (badge, title, description, CTA), the section and both arrows' <code>aria-label</code>s translate, the layout mirrors correctly, and the Arabic text renders in <code>IBM Plex Arabic</code> via the page's global <code>[dir="rtl"]</code> font rule. Provide a localised value for every key listed above; a missing key falls back to the English text shown in the markup.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="full-page-preview-v0.2.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    /* Carousel — Full Width Banner. One instance of this script runs per
+       .ufs-fw-banner found on the page (there are 3 in this doc: desktop
+       preview, mobile-forced preview, RTL preview), each fully independent. */
+    function initFwBanner(root) {
+      var track = root.querySelector('.ufs-fw-banner__track');
+      var slides = Array.prototype.slice.call(root.querySelectorAll('.ufs-fw-banner__slide'));
+      var dotsWrap = root.querySelector('.ufs-carousel-dots');
+      var prevBtn = root.querySelector('[data-fw-prev]');
+      var nextBtn = root.querySelector('[data-fw-next]');
+      var statusEl = root.querySelector('[data-fw-status]');
+      var activeIndex = 0;
+      var animating = false;
+      var slideTimer = null;
+
+      /* Single-slide instances have nothing to navigate to — skip
+         creating arrows/dots entirely rather than a lone, permanently-
+         active dot and do-nothing arrow buttons. */
+      var singleSlide = slides.length <= 1;
+      if (singleSlide) {
+        root.classList.add('is-single-slide');
+        if (prevBtn) prevBtn.style.display = 'none';
+        if (nextBtn) nextBtn.style.display = 'none';
+      } else {
+        slides.forEach(function(_, i) {
+          var dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'ufs-carousel-dot';
+          dot.setAttribute('aria-label', 'Go to slide ' + (i + 1));
+          dot.addEventListener('click', function() { goTo(i); });
+          dotsWrap.appendChild(dot);
+        });
+      }
+      var dots = dotsWrap.querySelectorAll('.ufs-carousel-dot');
+
+      function isMobile() { return root.closest('.pv-mobile') ? true : window.matchMedia('(max-width: 768px)').matches; }
+
+      function renderDotsAndStatus() {
+        dots.forEach(function(dot, i) {
+          dot.classList.remove('is-active', 'is-near', 'is-far', 'is-edge', 'is-hidden');
+          var dist = Math.abs(i - activeIndex);
+          if (dist === 0) dot.classList.add('is-active');
+          else if (dist <= 2) dot.classList.add('is-near');
+          else if (dist === 3) dot.classList.add('is-far');
+          else if (dist === 4) dot.classList.add('is-edge');
+          else dot.classList.add('is-hidden');
+          dot.setAttribute('aria-current', dist === 0 ? 'true' : 'false');
+        });
+        if (statusEl) {
+          var title = slides[activeIndex].querySelector('.ufs-fw-banner__title');
+          statusEl.textContent = 'Slide ' + (activeIndex + 1) + ' of ' + slides.length + (title ? ': ' + title.textContent : '');
+        }
+      }
+
+      function setMobileTrack(withTransition) {
+        track.style.transition = withTransition ? '' : 'none';
+        void track.offsetWidth;
+        track.style.transform = 'translateX(' + (-activeIndex * track.offsetWidth) + 'px)';
+      }
+
+      function goTo(index, direction) {
+        var newIndex = (index + slides.length) % slides.length;
+        if (newIndex === activeIndex || animating) return;
+        var oldIndex = activeIndex;
+        activeIndex = newIndex;
+        slides[oldIndex].setAttribute('aria-hidden', 'true');
+        slides[newIndex].setAttribute('aria-hidden', 'false');
+        renderDotsAndStatus();
+
+        if (isMobile()) {
+          slides[oldIndex].classList.remove('is-active');
+          slides[newIndex].classList.add('is-active');
+          setMobileTrack(true);
+          return;
+        }
+
+        if (!direction) {
+          var n = slides.length;
+          var forwardDist = (newIndex - oldIndex + n) % n;
+          var backwardDist = (n - forwardDist) % n;
+          direction = forwardDist <= backwardDist ? 'next' : 'prev';
+        }
+
+        var enterClass = direction === 'next' ? 'is-enter-right' : 'is-enter-left';
+        var exitClass  = direction === 'next' ? 'is-exit-left'   : 'is-exit-right';
+        animating = true;
+
+        var oldEl = slides[oldIndex], newEl = slides[newIndex];
+        oldEl.classList.remove('is-active');
+        newEl.classList.add('is-notransition', enterClass);
+        void newEl.offsetWidth;
+        newEl.classList.remove('is-notransition');
+
+        requestAnimationFrame(function() {
+          newEl.classList.remove(enterClass);
+          newEl.classList.add('is-active');
+          oldEl.classList.add(exitClass);
+        });
+
+        clearTimeout(slideTimer);
+        slideTimer = setTimeout(function() {
+          slides.forEach(function(el) { el.classList.remove('is-enter-right', 'is-enter-left', 'is-exit-left', 'is-exit-right'); });
+          animating = false;
+        }, 550);
+      }
+
+      if (prevBtn) prevBtn.addEventListener('click', function() { goTo(activeIndex - 1, 'prev'); });
+      if (nextBtn) nextBtn.addEventListener('click', function() { goTo(activeIndex + 1, 'next'); });
+      root.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') goTo(activeIndex - 1, 'prev');
+        if (e.key === 'ArrowRight') goTo(activeIndex + 1, 'next');
+      });
+
+      var dragStartX = 0, dragStartY = 0, dragCurrentX = 0, dragging = false, dragLocked = false;
+
+      function startDrag(x, y, forceHorizontal) {
+        if (!isMobile()) return;
+        dragStartX = dragCurrentX = x;
+        dragStartY = y;
+        dragging = true;
+        dragLocked = !!forceHorizontal;
+        if (dragLocked) {
+          track.style.transition = 'none';
+          void track.offsetWidth;
+        }
+      }
+      function moveDrag(x, y, evt) {
+        if (!dragging) return;
+        if (!dragLocked) {
+          var dx = x - dragStartX, dy = y - dragStartY;
+          if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+          if (Math.abs(dx) <= Math.abs(dy)) { dragging = false; return; }
+          dragLocked = true;
+          track.style.transition = 'none';
+          void track.offsetWidth;
+        }
+        if (evt && evt.cancelable) evt.preventDefault();
+        dragCurrentX = x;
+        var deltaPx = dragCurrentX - dragStartX;
+        track.style.transform = 'translateX(' + (-activeIndex * track.offsetWidth + deltaPx) + 'px)';
+      }
+      function endDrag() {
+        var wasLocked = dragging && dragLocked;
+        dragging = false;
+        dragLocked = false;
+        if (!wasLocked) { dragStartX = dragCurrentX = 0; return; }
+        var deltaPx = dragCurrentX - dragStartX;
+        var threshold = track.offsetWidth * 0.15;
+        track.style.transition = '';
+        if (deltaPx <= -threshold) {
+          goTo(activeIndex + 1, 'next');
+        } else if (deltaPx >= threshold) {
+          goTo(activeIndex - 1, 'prev');
+        } else {
+          setMobileTrack(true);
+        }
+        dragStartX = dragCurrentX = 0;
+      }
+
+      track.addEventListener('touchstart', function(e) { startDrag(e.touches[0].clientX, e.touches[0].clientY, false); }, { passive: true });
+      track.addEventListener('touchmove', function(e) { moveDrag(e.touches[0].clientX, e.touches[0].clientY, e); }, { passive: false });
+      track.addEventListener('touchend', endDrag);
+      track.addEventListener('touchcancel', endDrag);
+
+      track.addEventListener('mousedown', function(e) {
+        if (!isMobile()) return;
+        startDrag(e.clientX, e.clientY, true);
+        function onMouseMove(e2) { moveDrag(e2.clientX, e2.clientY); }
+        function onMouseUp() {
+          endDrag();
+          window.removeEventListener('mousemove', onMouseMove);
+          window.removeEventListener('mouseup', onMouseUp);
+        }
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+      });
+
+      window.addEventListener('resize', function() {
+        if (isMobile()) setMobileTrack(false);
+      });
+
+      if (isMobile()) setMobileTrack(false);
+      renderDotsAndStatus();
+    }
+    document.querySelectorAll('.ufs-fw-banner').forEach(initFwBanner);
+  </script>
+</body>
+</html>
