@@ -961,7 +961,14 @@
        vertically within each slide via order. */
     @media (max-width: 768px) {
       .ufs-fw-banner { height: auto; }
-      .ufs-fw-banner__track { height: auto; display: flex; transition: transform 0.35s ease; touch-action: pan-y; }
+      .ufs-fw-banner__track {
+        height: auto; display: flex; transition: transform 0.35s ease; touch-action: pan-y;
+        /* Keeps the track on a stable compositing layer across repeated
+           drag updates, rather than promoting/demoting it each time —
+           avoids a class of bug where an update lands but never repaints
+           because the layer state changed underneath it. */
+        will-change: transform;
+      }
       .ufs-fw-banner__slide {
         /* relative (not static) so the badge below can anchor to the
            whole slide (image + panel stacked) via position:absolute. */
@@ -3225,7 +3232,11 @@
            recalc and the browser skips animating to the new value,
            leaving the track stuck mid-drag with two slides half-visible. */
         void track.offsetWidth;
-        track.style.transform = 'translateX(' + (-activeIndex * 100) + '%)';
+        /* Pure px, not calc(-N% + Mpx) — one unit throughout avoids any
+           browser quirk around resolving a percentage transform that's
+           layered on top of a still-live compositing state from the
+           previous update. */
+        track.style.transform = 'translateX(' + (-activeIndex * track.offsetWidth) + 'px)';
       }
 
       function goTo(index, direction) {
@@ -3285,28 +3296,49 @@
          nearest slide (or bounce back) past a distance threshold. Plain
          touch events, not Pointer Events + setPointerCapture — iOS Safari
          has a known reliability issue where capturing a touch pointer can
-         silently break the NEXT gesture on the same element (first swipe
-         works, every swipe after is dead). Mouse drag is wired separately
-         below (mousemove/mouseup on window, no capture needed) purely so
-         this is also testable by dragging with a mouse in a resized
-         desktop viewport that has no real touchscreen. */
-      var dragStartX = 0, dragCurrentX = 0, dragging = false;
+         silently break the NEXT gesture on the same element. Direction is
+         locked on the first few pixels of movement (horizontal vs the
+         page's own vertical scroll) rather than assumed up front, and
+         once locked horizontal we preventDefault so iOS's own scroll/
+         gesture recognizer fully hands off the touch to us instead of
+         fighting over it mid-drag — that tug-of-war is what can make a
+         swipe look "stuck" after the first one. Mouse drag is wired
+         separately (mousemove/mouseup on window, no capture needed)
+         purely so this is also testable by dragging with a mouse in a
+         resized desktop viewport that has no real touchscreen. */
+      var dragStartX = 0, dragStartY = 0, dragCurrentX = 0, dragging = false, dragLocked = false;
 
-      function startDrag(x) {
+      function startDrag(x, y, forceHorizontal) {
         if (!isMobile()) return;
         dragStartX = dragCurrentX = x;
+        dragStartY = y;
         dragging = true;
-        track.style.transition = 'none';
+        dragLocked = !!forceHorizontal;
+        if (dragLocked) {
+          track.style.transition = 'none';
+          void track.offsetWidth;
+        }
       }
-      function moveDrag(x) {
+      function moveDrag(x, y, evt) {
         if (!dragging) return;
+        if (!dragLocked) {
+          var dx = x - dragStartX, dy = y - dragStartY;
+          if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return; /* not enough movement yet to know intent */
+          if (Math.abs(dx) <= Math.abs(dy)) { dragging = false; return; } /* vertical — hand off to native scroll */
+          dragLocked = true;
+          track.style.transition = 'none';
+          void track.offsetWidth;
+        }
+        if (evt && evt.cancelable) evt.preventDefault();
         dragCurrentX = x;
         var deltaPx = dragCurrentX - dragStartX;
-        track.style.transform = 'translateX(calc(' + (-activeIndex * 100) + '% + ' + deltaPx + 'px))';
+        track.style.transform = 'translateX(' + (-activeIndex * track.offsetWidth + deltaPx) + 'px)';
       }
       function endDrag() {
-        if (!dragging) return;
+        var wasLocked = dragging && dragLocked;
         dragging = false;
+        dragLocked = false;
+        if (!wasLocked) { dragStartX = dragCurrentX = 0; return; }
         var deltaPx = dragCurrentX - dragStartX;
         var threshold = track.offsetWidth * 0.15;
         track.style.transition = '';
@@ -3320,15 +3352,15 @@
         dragStartX = dragCurrentX = 0;
       }
 
-      track.addEventListener('touchstart', function(e) { startDrag(e.touches[0].clientX); }, { passive: true });
-      track.addEventListener('touchmove', function(e) { moveDrag(e.touches[0].clientX); }, { passive: true });
+      track.addEventListener('touchstart', function(e) { startDrag(e.touches[0].clientX, e.touches[0].clientY, false); }, { passive: true });
+      track.addEventListener('touchmove', function(e) { moveDrag(e.touches[0].clientX, e.touches[0].clientY, e); }, { passive: false });
       track.addEventListener('touchend', endDrag);
       track.addEventListener('touchcancel', endDrag);
 
       track.addEventListener('mousedown', function(e) {
         if (!isMobile()) return;
-        startDrag(e.clientX);
-        function onMouseMove(e2) { moveDrag(e2.clientX); }
+        startDrag(e.clientX, e.clientY, true);
+        function onMouseMove(e2) { moveDrag(e2.clientX, e2.clientY); }
         function onMouseUp() {
           endDrag();
           window.removeEventListener('mousemove', onMouseMove);
