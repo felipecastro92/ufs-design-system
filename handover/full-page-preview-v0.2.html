@@ -3324,6 +3324,17 @@
          resized desktop viewport that has no real touchscreen. */
       var dragStartX = 0, dragStartY = 0, dragCurrentX = 0, dragging = false, dragLocked = false;
 
+      /* Confirmed on-device (iOS Safari, 2026-08-11): without a capture-phase
+         touchstart listener registered on document, iOS stops delivering
+         touchstart to .track after the first swipe's transition finishes —
+         the same freeze the will-change removal above was originally (and
+         wrongly) credited with fixing. This no-op listener was found while
+         debug-logging the same bug and turned out to be load-bearing, not
+         diagnostic: removing it (thinking it was leftover debug code)
+         reintroduced the freeze. Do not remove without re-testing on a real
+         iOS device across multiple swipes. */
+      document.addEventListener('touchstart', function() {}, { capture: true, passive: true });
+
       function startDrag(x, y, forceHorizontal) {
         if (!isMobile()) return;
         dragStartX = dragCurrentX = x;

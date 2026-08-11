@@ -783,12 +783,20 @@ slideTimer = setTimeout(<span class="t-kw">function</span>() {
 
       <div class="notice notice--warn">
         <span class="notice-icon">⚠️</span>
-        <div><strong>Don't add <code>will-change: transform</code> to the track.</strong> It was tried as a fix for an unrelated paint bug and made things worse: on-device testing on iOS Safari showed it causes <code>touchstart</code> to stop being delivered to the track entirely, right after the first swipe's transition finishes — a confirmed, reproducible input bug, not a rendering one. Removing it fixed swiping completely.</div>
+        <div><strong>Don't add <code>will-change: transform</code> to the track.</strong> It was tried as a fix for an unrelated paint bug and made things worse: on-device testing on iOS Safari showed it causes <code>touchstart</code> to stop being delivered to the track entirely, right after the first swipe's transition finishes — a confirmed, reproducible input bug, not a rendering one. Removing it alone looked like it fixed swiping, but didn't — see below.</div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>The empty <code>document</code>-level <code>touchstart</code> listener is required, not leftover debug code.</strong> It was added while diagnosing the freeze above and looked like pure instrumentation, so an earlier pass deleted it as cleanup — which brought the freeze straight back, confirmed on-device. Without a capture-phase <code>touchstart</code> listener registered on <code>document</code>, iOS Safari stops delivering <code>touchstart</code> to <code>.track</code> after the first swipe's transition finishes, even with <code>will-change</code> removed. Keep the no-op listener; don't mistake it for dead code.</div>
       </div>
 
       <div class="code-block-wrap">
         <div class="code-header"><span class="code-lang">JS — drag handlers</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-<pre class="code-body"><span class="t-kw">function</span> moveDrag(x, y, evt) {
+<pre class="code-body"><span class="t-cm">/* Load-bearing — see notice above. Not diagnostic logging. */</span>
+document.addEventListener(<span class="t-str">'touchstart'</span>, <span class="t-kw">function</span>() {}, { capture: <span class="t-kw">true</span>, passive: <span class="t-kw">true</span> });
+
+<span class="t-kw">function</span> moveDrag(x, y, evt) {
   <span class="t-kw">if</span> (!dragging) <span class="t-kw">return</span>;
   <span class="t-kw">if</span> (!dragLocked) {
     <span class="t-kw">var</span> dx = x - dragStartX, dy = y - dragStartY;
@@ -1234,6 +1242,17 @@ track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
       });
 
       var dragStartX = 0, dragStartY = 0, dragCurrentX = 0, dragging = false, dragLocked = false;
+
+      /* Confirmed on-device (iOS Safari, 2026-08-11): without a capture-phase
+         touchstart listener registered on document, iOS stops delivering
+         touchstart to .track after the first swipe's transition finishes —
+         the same freeze the will-change removal above was originally (and
+         wrongly) credited with fixing. This no-op listener was found while
+         debug-logging the same bug and turned out to be load-bearing, not
+         diagnostic: removing it (thinking it was leftover debug code)
+         reintroduced the freeze. Do not remove without re-testing on a real
+         iOS device across multiple swipes. */
+      document.addEventListener('touchstart', function() {}, { capture: true, passive: true });
 
       function startDrag(x, y, forceHorizontal) {
         if (!isMobile()) return;
