@@ -681,6 +681,233 @@
     }
 
     /* ==========================================================================
+       TILES — shared base (.ufs-tile) reused across 5 content types
+       (product, recipe, training, article, reward); topic-tile is a
+       structurally distinct full-bleed hero variant, see .ufs-tile--topic.
+    ========================================================================== */
+    /* No overflow:hidden here — an element's own box-shadow gets clipped to
+       its overflow region, so combining overflow:hidden with the hover
+       shadow below would cut the shadow off (most visible at the bottom
+       edge). __image rounds its own top corners instead, so nothing needs
+       clipping at this level. */
+    .ufs-tile {
+      position: relative; /* containing block for __badge, absolutely positioned against the tile, not just the image */
+      background: var(--color-salt);
+      border: 1px solid var(--color-mushroom-300);
+      border-radius: var(--radius-md);
+      display: flex; flex-direction: column; gap: var(--space-4);
+      min-width: 320px;
+      padding-bottom: var(--space-4);
+      text-decoration: none; color: inherit;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .ufs-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+    .ufs-tile__image {
+      position: relative; width: 100%; height: 240px; flex-shrink: 0;
+      background-color: var(--color-mushroom-100);
+      border-radius: var(--radius-md) var(--radius-md) 0 0; overflow: hidden;
+    }
+    /* The actual photo lives on this inner layer, not .ufs-tile__image
+       itself — background-size can't transition smoothly between the
+       "cover" keyword and a percentage (different animatable value types,
+       so it snaps instead of easing), and scaling .ufs-tile__image itself
+       via transform would need overflow:hidden one level up on .ufs-tile
+       to clip it, reopening the box-shadow-clipping bug documented above.
+       transform:scale on this dedicated layer, clipped by .ufs-tile__image's
+       own overflow:hidden, sidesteps both problems. */
+    .ufs-tile__image-media {
+      /* width/height:100% instead of position:absolute+inset:0 — this layer
+         must NOT depend on .ufs-tile__image being a positioned ancestor,
+         since the catalog-grid context needs to freely toggle
+         .ufs-tile__image's own position (static vs relative) to control
+         where .ufs-tile__fav anchors, without breaking this layer's size. */
+      display: block; width: 100%; height: 100%;
+      background-size: cover; background-position: center; background-repeat: no-repeat;
+      transition: transform 0.35s ease;
+    }
+    .ufs-tile:hover .ufs-tile__image-media { transform: scale(1.06); }
+    /* Chrome, icon and splash/pop animation match .ctile-fav in the root
+       index.html playground exactly — this is a deliberate cross-doc
+       consistency pairing, not independent styling. State is still tracked
+       via .is-active/aria-pressed (not the source's data-saved attribute)
+       so it stays consistent with this doc's toggleTileFav() convention and
+       keeps the stopPropagation guard tiles need since the whole tile is
+       clickable. */
+    .ufs-tile__fav {
+      position: absolute; top: var(--space-3); right: var(--space-3); z-index: 2;
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.8); backdrop-filter: blur(3px);
+      box-shadow: var(--shadow-xs), 1px 1px 0px rgba(255,255,255,0.5) inset, -1px -1px 0px rgba(255,255,255,0.5) inset;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      overflow: visible;
+    }
+    .ufs-tile__fav svg { width: 20px; height: 18px; }
+    .ufs-tile__fav svg path { fill: none; stroke: var(--color-brand-dark); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
+    /* Toggled via JS (toggleTileFav) — filled + brand-primary once active */
+    .ufs-tile__fav.is-active svg path { fill: var(--color-brand-primary); stroke: var(--color-brand-primary); stroke-width: 1; }
+    @keyframes ufs-tile-fav-pop { 0% { transform: scale(1); } 35% { transform: scale(1.5); } 65% { transform: scale(0.9); } 100% { transform: scale(1); } }
+    @keyframes ufs-tile-fav-splash { 0% { transform: rotate(var(--angle)) translateY(-8px) scaleY(1); opacity: 1; } 100% { transform: rotate(var(--angle)) translateY(-26px) scaleY(0.5); opacity: 0; } }
+    .ufs-tile__fav svg.fav-pop { animation: ufs-tile-fav-pop 0.32s ease forwards; }
+    .ufs-tile__fav-splash { position: absolute; width: 3px; height: 11px; border-radius: 3px; top: 50%; left: 50%; margin: -5.5px 0 0 -1.5px; pointer-events: none; animation: ufs-tile-fav-splash 0.42s cubic-bezier(0.2, 0, 0.5, 1) forwards; background: var(--color-brand-primary); }
+
+    .ufs-tile__badge {
+      position: absolute; top: var(--space-4); left: var(--space-4); z-index: 2;
+      background: var(--color-aubergine); border: 1px solid var(--color-brand-primary);
+      border-radius: var(--radius-full); height: var(--space-6);
+      display: inline-flex; align-items: center; padding: 0 var(--space-3);
+      color: var(--color-salt); font-size: var(--text-badge-size); font-weight: var(--text-badge-w);
+      letter-spacing: var(--text-badge-ls); line-height: var(--text-badge-lh); text-transform: uppercase;
+    }
+
+    /* No-op at desktop/carousel size — body/cta/link-row stay direct flex
+       children of .ufs-tile exactly as before. Only in the catalog-grid
+       inline layout does this become a real flex column (see below), so the
+       whole content group can be vertically centered against the image as
+       one block instead of each piece centering within its own grid row. */
+    .ufs-tile__content { display: contents; }
+    .ufs-tile__body { display: flex; flex-direction: column; gap: var(--space-1); padding: 0 var(--space-4); }
+    .ufs-tile__eyebrow { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); line-height: var(--text-overline-lh); text-transform: uppercase; color: var(--color-mushroom-900); }
+    .ufs-tile__title { font-size: var(--text-h6-size); font-weight: var(--text-h6-w); line-height: var(--text-h6-lh); color: var(--color-brand-dark); margin: 0; }
+
+    /* Star rating — brand-primary, not gold: gold is reserved for
+       loyalty/points contexts only (see Loyalty Card notes above). */
+    .ufs-tile__rating { display: flex; align-items: center; gap: var(--space-1); margin-top: var(--space-1); }
+    .ufs-tile__stars { display: flex; align-items: center; }
+    .ufs-tile__rating svg { width: 14px; height: 14px; fill: var(--color-brand-primary); }
+    .ufs-tile__rating span { font-size: var(--text-body-xs-size); color: var(--color-brand-dark); }
+
+    .ufs-tile__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin-top: var(--space-1); }
+    .ufs-tile__meta-item { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-badge-size); font-weight: var(--text-badge-w); letter-spacing: var(--text-badge-ls); color: var(--color-mushroom-900); text-transform: uppercase; }
+    .ufs-tile__meta-item svg { width: 14px; height: 14px; }
+    .ufs-tile__meta-sep { color: var(--color-mushroom-500); font-size: var(--text-badge-size); }
+
+    .ufs-tile__cta { padding: 0 var(--space-4); margin-top: var(--space-1); }
+    .ufs-tile__cta .btn { width: 100%; }
+    .ufs-tile__link-row { display: flex; justify-content: center; padding-top: var(--space-2); padding-bottom: var(--space-2); }
+    .ufs-tile__link { font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); background: none; border: none; cursor: pointer; text-decoration: underline; }
+
+    /* Points pill — reward-tile only; gold IS correct here (loyalty context).
+       Sits after the title now (per Figma node 1399:5325), so the space-3
+       gap to the title above lives here as margin-top rather than on the
+       shared .ufs-tile__body gap (which stays space-1 for every other
+       tile's eyebrow/title/rating/meta stack). */
+    .ufs-tile__points {
+      display: inline-flex; align-items: center; gap: var(--space-1);
+      background: color-mix(in srgb, var(--color-gold) 10%, transparent);
+      border: 1px solid var(--color-gold); border-radius: var(--radius-full);
+      padding: var(--space-2);
+      margin-top: var(--space-3);
+      width: max-content;
+    }
+    .ufs-tile__points svg { width: 14px; height: 14px; fill: var(--color-gold); }
+    .ufs-tile__points span { font-size: var(--text-body-size); font-weight: var(--text-body-w); color: var(--color-brand-dark); line-height: 0; }
+
+    /* Topic tile — full-bleed background image + bottom gradient, content
+       pinned to the bottom. Deliberately doesn't share the white-card
+       base: it's a hero/CTA tile, not a content-summary card. */
+    .ufs-tile--topic {
+      position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+      border: none; padding: 0; gap: 0; min-height: 400px;
+      border-radius: var(--radius-lg);
+    }
+    /* Same split as .ufs-tile__image-media above: the photo lives on its own
+       layer (.ufs-tile__topic-photo) clipped by a dedicated frame
+       (.ufs-tile__topic-media, overflow:hidden) rather than on
+       .ufs-tile--topic itself, so the hover zoom can use a smoothly
+       animatable transform:scale without needing overflow:hidden on the
+       element that also carries the hover box-shadow. */
+    .ufs-tile__topic-media { position: absolute; inset: 0; overflow: hidden; border-radius: var(--radius-lg); z-index: 0; }
+    .ufs-tile__topic-photo { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 0.35s ease; }
+    .ufs-tile--topic:hover .ufs-tile__topic-photo { transform: scale(1.06); }
+    .ufs-tile--topic::before {
+      content: ''; position: absolute; inset: 0; border-radius: var(--radius-lg); z-index: 1;
+      background: linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-dark) 0%, transparent) 13.5%, var(--color-brand-dark) 64%);
+    }
+    .ufs-tile--topic:hover { box-shadow: var(--shadow-lg); }
+    .ufs-tile__topic-body { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; padding: var(--space-8) var(--space-5) var(--space-6); }
+    .ufs-tile__topic-title { font-size: var(--text-h4-size); font-weight: var(--text-h3-w); line-height: var(--text-h3-lh); color: var(--color-salt); margin: 0; }
+    .ufs-tile__topic-desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-salt); margin: 0; }
+    .ufs-tile__topic-link { display: inline-flex; align-items: end; gap: var(--space-1); font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: 600; color: var(--color-brand-primary); background: none; border: none; cursor: pointer; }
+    .ufs-tile__topic-link svg { width: 16px; height: 16px; }
+
+    @media (max-width: 480px) {
+      .ufs-tile__image { height: 200px; }
+    }
+
+    /* ==========================================================================
+       TILES — catalog-grid responsive behavior (≤768px)
+       This is the SAME .ufs-tile component, not a separate variant. In the
+       flex-carousel it always renders as the regular card, at every
+       viewport. Inside a catalog grid specifically, below 768px, it reflows
+       into a compact horizontal row — no new markup, just this media query
+       repositioning the existing image/body/cta into a CSS grid. Above
+       768px in a grid, .ufs-tile renders exactly as the carousel version
+       does, except its width is flexible (fills the grid column) rather
+       than fixed.
+       .ufs-tile--catalog-preview below duplicates these rules unconditionally,
+       purely so the doc can demonstrate the ≤768px row at a fixed preview
+       width without needing the real viewport to be that narrow — mirrors
+       this file's existing --mobile demo-class pattern used for type scale.
+       It is NOT a real class to ship; the shipped selector is
+       .ufs-catalog-grid .ufs-tile inside the media query below. */
+    @media (max-width: 768px) {
+      .ufs-catalog-grid .ufs-tile { display: grid; grid-template-columns: 140px 1fr; grid-template-areas: "image content"; align-items: center; column-gap: var(--space-3); min-width: 0; width: 100%; border: none; border-bottom: 1px solid var(--color-mushroom-300); border-radius: 0; padding: var(--space-4); }
+      /* No hover treatment at all in a list row — no lift/shadow, no image zoom. */
+      .ufs-catalog-grid .ufs-tile:hover { box-shadow: none; transform: none; }
+      .ufs-catalog-grid .ufs-tile:hover .ufs-tile__image-media { transform: none; }
+      .ufs-catalog-grid .ufs-tile__image { grid-area: image; width: 140px; height: 140px; border-radius: var(--radius-md); position: static; }
+      .ufs-catalog-grid .ufs-tile__fav { width: var(--space-8); height: var(--space-8); top: var(--space-2); right: var(--space-2); }
+      .ufs-catalog-grid .ufs-tile__fav svg { width: 16px; height: 14px; }
+      .ufs-catalog-grid .ufs-tile__badge { top: var(--space-2); left: var(--space-2); height: auto; padding: 2px var(--space-2); font-size: var(--text-badge-size); }
+      /* Real flex column now — this is the single grid item centered
+         against the image; body/cta/link-row inside it just stack normally. */
+      .ufs-catalog-grid .ufs-tile__content { display: flex; flex-direction: column; grid-area: content; }
+      .ufs-catalog-grid .ufs-tile__body { padding: 0; gap: var(--space-1); }
+      .ufs-catalog-grid .ufs-tile__eyebrow { font-size: var(--text-badge-size); }
+      .ufs-catalog-grid .ufs-tile__title { font-size: var(--text-body-sm-size); font-weight: 600; line-height: var(--text-body-sm-lh); }
+      .ufs-catalog-grid .ufs-tile__rating svg { width: 12px; height: 12px; }
+      .ufs-catalog-grid .ufs-tile__rating span { font-size: var(--text-badge-size); }
+      .ufs-catalog-grid .ufs-tile__meta-item, .ufs-catalog-grid .ufs-tile__meta-sep { font-size: var(--text-fine-print-size); }
+      .ufs-catalog-grid .ufs-tile__cta { padding: 0; margin-top: var(--space-1); }
+      .ufs-catalog-grid .ufs-tile__link-row { padding-top: var(--space-1); padding-bottom: 0; justify-content: flex-start; }
+      .ufs-catalog-grid .ufs-tile__link { font-size: var(--text-body-xs-size); }
+      /* margin-top corrected to cancel .ufs-tile__body's own space-1 gap
+         (title→points), landing on the space-3 total Figma shows — not the
+         space-1+space-3=16px it'd be if both applied uncorrected. */
+      .ufs-catalog-grid .ufs-tile__points { padding: var(--space-1) var(--space-2); margin-top: calc(var(--space-3) - var(--space-1)); }
+      .ufs-catalog-grid .ufs-tile__points svg { width: 12px; height: 12px; }
+      .ufs-catalog-grid .ufs-tile__points span { font-size: var(--text-badge-size); }
+    }
+    /* Documentation-preview-only duplicate of the block above — see comment */
+    .ufs-tile--catalog-preview { display: grid; grid-template-columns: 140px 1fr; grid-template-areas: "image content"; align-items: center; column-gap: var(--space-3); min-width: 0; width: 100%; border: none; border-bottom: 1px solid var(--color-mushroom-300); border-radius: 0; padding: var(--space-4); }
+    .ufs-tile--catalog-preview:hover { box-shadow: none; transform: none; }
+    .ufs-tile--catalog-preview:hover .ufs-tile__image-media { transform: none; }
+    .ufs-tile--catalog-preview .ufs-tile__image { grid-area: image; width: 140px; height: 140px; border-radius: var(--radius-md); position: static; }
+    .ufs-tile--catalog-preview .ufs-tile__fav { width: var(--space-8); height: var(--space-8); top: var(--space-2); right: var(--space-2); }
+    .ufs-tile--catalog-preview .ufs-tile__fav svg { width: 16px; height: 14px; }
+    .ufs-tile--catalog-preview .ufs-tile__badge { top: var(--space-2); left: var(--space-2); height: auto; padding: 2px var(--space-2); font-size: var(--text-badge-size); }
+    .ufs-tile--catalog-preview .ufs-tile__content { display: flex; flex-direction: column; grid-area: content; gap: var(--space-3); }
+    .ufs-tile--catalog-preview .ufs-tile__body { padding: 0; gap: var(--space-1); }
+    .ufs-tile--catalog-preview .ufs-tile__eyebrow { font-size: var(--text-badge-size); }
+    .ufs-tile--catalog-preview .ufs-tile__title { font-size: var(--text-body-sm-size); font-weight: 600; line-height: var(--text-body-sm-lh); }
+    .ufs-tile--catalog-preview .ufs-tile__rating svg { width: 12px; height: 12px; }
+    .ufs-tile--catalog-preview .ufs-tile__rating span { font-size: var(--text-badge-size); }
+    .ufs-tile--catalog-preview .ufs-tile__meta-item, .ufs-tile--catalog-preview .ufs-tile__meta-sep { font-size: var(--text-fine-print-size); }
+    .ufs-tile--catalog-preview .ufs-tile__cta { padding: 0; margin-top: 0; }
+    .ufs-tile--catalog-preview .ufs-tile__link-row { padding-top: 0; padding-bottom: 0; justify-content: flex-start; }
+    .ufs-tile--catalog-preview .ufs-tile__link { font-size: var(--text-body-xs-size); }
+    .ufs-tile--catalog-preview .ufs-tile__points { padding: var(--space-1) var(--space-2); margin-top: 0; }
+    .ufs-tile--catalog-preview .ufs-tile__points svg { width: 12px; height: 12px; }
+    .ufs-tile--catalog-preview .ufs-tile__points span { font-size: var(--text-badge-size); }
+    /* Product tile only — per Figma, its inline image is 120x120, not the
+       140x140 the other 4 tiles use. Scoped modifier, not a shared change. */
+    .ufs-tile--catalog-preview-sm-img { grid-template-columns: 120px 1fr; }
+    .ufs-tile--catalog-preview-sm-img .ufs-tile__image { width: 120px; height: 120px; }
+
+    /* ==========================================================================
        SPACING SCALE
     ========================================================================== */
     .spacing-table { display: flex; flex-direction: column; }
@@ -1196,6 +1423,9 @@
             </a>
             <a href="#accordion" class="sidebar-link" data-s="accordion">
               <span class="nav-dot"></span> Accordion
+            </a>
+            <a href="#tiles" class="sidebar-link" data-s="tiles">
+              <span class="nav-dot"></span> Tiles
             </a>
           </div>
         </div>
@@ -4353,6 +4583,560 @@
 
       </section>
 
+      <!-- ===================================================================
+           TILES
+      ==================================================================== -->
+      <section class="doc-section" id="tiles">
+        <div class="section-breadcrumb">Components</div>
+        <h2 class="section-title">Tiles</h2>
+        <p class="section-desc">A family of content-summary cards sharing one base &mdash; image (with an optional badge and favourite toggle), then a body of eyebrow / title / rating / meta, then an optional CTA. Six content types compose the same shared <code>.ufs-tile</code> classes differently, so the differences between them are purely which optional pieces are present, not different CSS. <strong>Topic Tile</strong> is the one exception: a full-bleed hero/CTA card rather than a content summary, so it doesn't share the base.</p>
+        <div class="section-rule"></div>
+
+        <!-- Anatomy -->
+        <div class="ds-card">
+          <div class="card-title">Anatomy &mdash; shared base</div>
+          <p class="card-desc">Every tile below (except Topic) is built from these classes. A type either includes or omits <code>__eyebrow</code>, <code>__rating</code>, <code>__meta</code> and <code>__cta</code> &mdash; nothing here is type-specific CSS, so none of the 6 cards further down need their own stylesheet beyond this.</p>
+          <p class="card-desc" style="margin-top:8px;"><strong>One component, context-dependent width and layout &mdash; not separate variants:</strong> in the flex-carousel, <code>.ufs-tile</code> always renders as the card below, at a fixed width, at every viewport. In a catalog grid it's the same card at a flexible width from 769px up; below 768px, wrapping the grid in <code>.ufs-catalog-grid</code> reflows the same markup into a compact row (image left, content right) &mdash; no new HTML, no separate component to choose. Each of the 5 content-summary tiles below shows this reflowed state labeled &ldquo;Catalog grid &mdash; &le;768px&rdquo;.</p>
+          <div class="av-specimens">
+            <div class="av-specimen">
+              <div class="form-specimen-label">.ufs-tile &mdash; every optional piece shown</div>
+              <div class="ufs-tile" style="width:320px;">
+                <div class="ufs-tile__image">
+                  <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                  <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                    <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  </button>
+                </div>
+                <span class="ufs-tile__badge">New</span>
+                <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <div class="ufs-tile__eyebrow">Sauces</div>
+                  <h3 class="ufs-tile__title">Knorr Professional Garde D&oacute;r Hollandaise sauce &ndash; 600ml</h3>
+                  <div class="ufs-tile__rating">
+                  <span class="ufs-tile__stars">
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  </span>
+                    <span>(332)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">No MSG</span>
+                  </div>
+                </div>
+                <div class="ufs-tile__cta"><button class="btn btn-primary">Buy it now</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="usage-section" style="margin-top:20px;">
+            <div class="code-block-wrap" style="display:block"><pre class="code-block"><span class="t-pr">.ufs-tile</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid var(--color-mushroom-300)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">padding-bottom</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">transition</span>: <span class="t-vl">box-shadow 0.2s, transform 0.2s</span>; }
+<span class="t-pr">.ufs-tile:hover</span> { <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-md)</span>; <span class="t-pr">transform</span>: <span class="t-vl">translateY(-2px)</span>; }
+<span class="t-cm">/* No overflow:hidden on .ufs-tile &mdash; it would clip the hover box-shadow. __image rounds its own top corners instead. */</span>
+<span class="t-pr">.ufs-tile__image</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">240px</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">var(--radius-md) var(--radius-md) 0 0</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-cm">/* Photo lives on this inner layer so transform:scale can animate smoothly (background-size can't tween from the "cover" keyword) without needing overflow:hidden on .ufs-tile itself */</span>
+<span class="t-pr">.ufs-tile__image-media</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">100%</span>; <span class="t-pr">background-size</span>: <span class="t-vl">cover</span>; <span class="t-pr">background-position</span>: <span class="t-vl">center</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform 0.35s ease</span>; }
+<span class="t-pr">.ufs-tile:hover .ufs-tile__image-media</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.06)</span>; }
+<span class="t-cm">/* Chrome + icon + splash match .ctile-fav in the root index.html playground exactly */</span>
+<span class="t-pr">.ufs-tile__fav</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">right</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">width</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">background</span>: <span class="t-vl">rgba(255,255,255,0.8)</span>; <span class="t-pr">backdrop-filter</span>: <span class="t-vl">blur(3px)</span>; <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-xs)</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; }
+<span class="t-cm">/* .is-active (toggled via JS) fills the heart with brand-primary */</span>
+<span class="t-pr">.ufs-tile__fav.is-active svg path</span> { <span class="t-pr">fill</span>: <span class="t-va">var(--color-brand-primary)</span>; <span class="t-pr">stroke</span>: <span class="t-va">var(--color-brand-primary)</span>; }
+<span class="t-cm">/* Pop + 6-line splash fire only when favouriting (false&rarr;true), not on removal */</span>
+<span class="t-pr">@keyframes ufs-tile-fav-pop</span> { ... }
+<span class="t-pr">@keyframes ufs-tile-fav-splash</span> { ... }
+
+<span class="t-pr">.ufs-tile__badge</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">left</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-aubergine)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid var(--color-brand-primary)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-6)</span>; <span class="t-pr">padding</span>: <span class="t-vl">0 var(--space-3)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-badge-size)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-badge-ls)</span>; <span class="t-pr">text-transform</span>: <span class="t-vl">uppercase</span>; }
+
+<span class="t-pr">.ufs-tile__body</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">padding</span>: <span class="t-vl">0 var(--space-4)</span>; }
+<span class="t-pr">.ufs-tile__eyebrow</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-overline-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-overline-w)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-overline-ls)</span>; <span class="t-pr">text-transform</span>: <span class="t-vl">uppercase</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-tile__title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h6-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h6-w)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h6-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+
+<span class="t-cm">/* Rating uses brand-primary, not gold &mdash; gold is reserved for loyalty/points */</span>
+<span class="t-pr">.ufs-tile__stars</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; } <span class="t-cm">/* no gap &mdash; stars sit flush */</span>
+<span class="t-pr">.ufs-tile__rating svg</span> { <span class="t-pr">width</span>: <span class="t-vl">14px</span>; <span class="t-pr">height</span>: <span class="t-vl">14px</span>; <span class="t-pr">fill</span>: <span class="t-va">var(--color-brand-primary)</span>; }
+<span class="t-pr">.ufs-tile__meta-item</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-badge-size)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-badge-ls)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; <span class="t-pr">text-transform</span>: <span class="t-vl">uppercase</span>; }
+
+<span class="t-pr">.ufs-tile__cta</span> { <span class="t-pr">padding</span>: <span class="t-vl">0 var(--space-4)</span>; }
+<span class="t-pr">.ufs-tile__cta .btn</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; } <span class="t-cm">/* reuses .btn/.btn-primary as-is */</span></pre></div>
+          </div>
+        </div>
+
+        <!-- Interaction -->
+        <div class="ds-card">
+          <div class="card-title">Interaction</div>
+          <p class="card-desc">Hovering the tile lifts it with a shadow + <code>translateY(-2px)</code> &mdash; the same treatment already used for product cards elsewhere in this DS, applied consistently across all 6 types (Topic gets a larger shadow only, no lift, since it's already a large full-bleed block). The favourite button toggles independently of the tile's own click-through (<code>event.stopPropagation()</code>), so tapping the heart never also triggers navigation. Try both on any live specimen on this page.</p>
+        </div>
+
+        <!-- 1. Product Tile -->
+        <div class="ds-card">
+          <div class="card-title">1. Product Tile</div>
+          <p class="card-desc">Eyebrow (category), rating, dietary/attribute tags, and a primary CTA &mdash; the most complete composition of the base. Uses the shared <code>.ufs-tile</code> classes documented in Anatomy above; no additional CSS.</p>
+          <div class="av-specimens">
+            <div class="av-specimen">
+              <div class="form-specimen-label">BIN-product-tile</div>
+              <div class="ufs-tile" style="width:288px;">
+                <div class="ufs-tile__image">
+                  <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                  <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                    <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  </button>
+                </div>
+                <span class="ufs-tile__badge">New</span>
+                <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <div class="ufs-tile__eyebrow">Sauces</div>
+                  <h3 class="ufs-tile__title">Knorr Professional Garde D&oacute;r Hollandaise sauce &ndash; 600ml</h3>
+                  <div class="ufs-tile__rating">
+                  <span class="ufs-tile__stars">
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  </span>
+                    <span>(332)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">No MSG</span>
+                  </div>
+                </div>
+                <div class="ufs-tile__cta"><button class="btn btn-primary">Buy it now</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="card-desc" style="margin-top:16px;"><strong>Width:</strong> fixed in the flex-carousel (the example above is <code>width:288px</code>); flexible &mdash; fills the grid column &mdash; in the catalog grid at &ge;769px. Same <code>.ufs-tile</code>, same CSS either way, just a different width source.</p>
+          <div class="av-specimens" style="margin-top:12px;">
+            <div class="av-specimen">
+              <div class="form-specimen-label">Catalog grid &mdash; &le;768px (same .ufs-tile, reflowed by <code>.ufs-catalog-grid</code>)</div>
+              <div style="width:390px; border:1px solid var(--color-mushroom-300); border-radius:var(--radius-md); overflow:hidden;">
+                <div class="ufs-tile ufs-tile--catalog-preview ufs-tile--catalog-preview-sm-img">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">New</span>
+                  <div class="ufs-tile__content">
+                  <div class="ufs-tile__body">
+                    <div class="ufs-tile__eyebrow">Sauces</div>
+                    <h3 class="ufs-tile__title">Knorr Professional Garde D&oacute;r Hollandaise sauce &ndash; 600ml</h3>
+                    <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                      <span>(332)</span>
+                    </div>
+                    <div class="ufs-tile__meta">
+                      <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                      <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
+                      <span class="ufs-tile__meta-item">No MSG</span>
+                    </div>
+                  </div>
+                  <div class="ufs-tile__cta"><button class="btn btn-primary btn-sm">Buy it now</button></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="usage-section" style="margin-top:20px;">
+            <div class="code-block-wrap" style="display:block"><pre class="code-block"><span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile"</span><span class="t-kw">&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__image"</span><span class="t-kw">&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__image-media"</span> <span class="t-pr">style</span>=<span class="t-st">"background-image:url('product.jpg')"</span><span class="t-kw">&gt;&lt;/div&gt;</span>
+    <span class="t-kw">&lt;button</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__fav"</span> <span class="t-pr">aria-label</span>=<span class="t-st">"Add to favourites"</span> <span class="t-pr">aria-pressed</span>=<span class="t-st">"false"</span> <span class="t-pr">onclick</span>=<span class="t-st">"toggleTileFav(this, event)"</span><span class="t-kw">&gt;</span>&hellip;<span class="t-kw">&lt;/button&gt;</span>
+  <span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__badge"</span><span class="t-kw">&gt;</span>New<span class="t-kw">&lt;/span&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__body"</span><span class="t-kw">&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__eyebrow"</span><span class="t-kw">&gt;</span>Sauces<span class="t-kw">&lt;/div&gt;</span>
+    <span class="t-kw">&lt;h3</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__title"</span><span class="t-kw">&gt;</span>Knorr Professional Garde D&oacute;r Hollandaise sauce &ndash; 600ml<span class="t-kw">&lt;/h3&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__rating"</span><span class="t-kw">&gt;</span> &hellip;5&times; star svg&hellip; <span class="t-kw">&lt;span&gt;</span>(332)<span class="t-kw">&lt;/span&gt;</span> <span class="t-kw">&lt;/div&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta"</span><span class="t-kw">&gt;</span>
+      <span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta-item"</span><span class="t-kw">&gt;</span>Vegetarian<span class="t-kw">&lt;/span&gt;</span><span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta-sep"</span><span class="t-kw">&gt;</span>&middot;<span class="t-kw">&lt;/span&gt;</span>
+      <span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta-item"</span><span class="t-kw">&gt;</span>Gluten Free<span class="t-kw">&lt;/span&gt;</span><span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta-sep"</span><span class="t-kw">&gt;</span>&middot;<span class="t-kw">&lt;/span&gt;</span>
+      <span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta-item"</span><span class="t-kw">&gt;</span>No MSG<span class="t-kw">&lt;/span&gt;</span>
+    <span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__cta"</span><span class="t-kw">&gt;</span><span class="t-kw">&lt;button</span> <span class="t-pr">class</span>=<span class="t-st">"btn btn-primary"</span><span class="t-kw">&gt;</span>Buy it now<span class="t-kw">&lt;/button&gt;</span><span class="t-kw">&lt;/div&gt;</span>
+<span class="t-kw">&lt;/div&gt;</span></pre></div>
+          </div>
+        </div>
+
+        <!-- 2. Recipe Tile -->
+        <div class="ds-card">
+          <div class="card-title">2. Recipe Tile</div>
+          <p class="card-desc">No eyebrow, no CTA &mdash; the whole tile is the click target (browsing to the recipe). Rating and tags stay. Uses the shared <code>.ufs-tile</code> classes documented in Anatomy above; no additional CSS.</p>
+          <div class="av-specimens">
+            <div class="av-specimen">
+              <div class="form-specimen-label">recipe-tile</div>
+              <div class="ufs-tile" style="width:288px;">
+                <div class="ufs-tile__image">
+                  <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                  <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                    <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  </button>
+                </div>
+                <span class="ufs-tile__badge">Popular</span>
+                <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <h3 class="ufs-tile__title">Herb-Roasted Chicken with Pan Sauce</h3>
+                  <div class="ufs-tile__rating">
+                  <span class="ufs-tile__stars">
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  </span>
+                    <span>(332)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Chicken</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Gluten Free</span>
+                  </div>
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="card-desc" style="margin-top:16px;"><strong>Width:</strong> fixed in the flex-carousel (the example above is <code>width:288px</code>); flexible &mdash; fills the grid column &mdash; in the catalog grid at &ge;769px. Same <code>.ufs-tile</code>, same CSS either way, just a different width source.</p>
+          <div class="av-specimens" style="margin-top:12px;">
+            <div class="av-specimen">
+              <div class="form-specimen-label">Catalog grid &mdash; &le;768px (same .ufs-tile, reflowed by <code>.ufs-catalog-grid</code>)</div>
+              <div style="width:390px; border:1px solid var(--color-mushroom-300); border-radius:var(--radius-md); overflow:hidden;">
+                <div class="ufs-tile ufs-tile--catalog-preview">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">Popular</span>
+                  <div class="ufs-tile__content">
+                  <div class="ufs-tile__body">
+                    <h3 class="ufs-tile__title">Herb-Roasted Chicken with Pan Sauce</h3>
+                    <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                      <span>(332)</span>
+                    </div>
+                    <div class="ufs-tile__meta">
+                      <span class="ufs-tile__meta-item">Chicken</span><span class="ufs-tile__meta-sep">&middot;</span>
+                      <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+                      <span class="ufs-tile__meta-item">Gluten Free</span>
+                    </div>
+                  </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="usage-section" style="margin-top:20px;">
+            <div class="code-block-wrap" style="display:block"><pre class="code-block"><span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile"</span><span class="t-kw">&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__image"</span><span class="t-kw">&gt;</span>&hellip;<span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__image-media"</span> <span class="t-pr">style</span>=<span class="t-st">"background-image:url('recipe.jpg')"</span><span class="t-kw">&gt;&lt;/div&gt;</span> + fav button&hellip;<span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__badge"</span><span class="t-kw">&gt;</span>Popular<span class="t-kw">&lt;/span&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__body"</span><span class="t-kw">&gt;</span>
+    <span class="t-cm">&lt;!-- no __eyebrow --&gt;</span>
+    <span class="t-kw">&lt;h3</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__title"</span><span class="t-kw">&gt;</span>Herb-Roasted Chicken with Pan Sauce<span class="t-kw">&lt;/h3&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__rating"</span><span class="t-kw">&gt;</span>&hellip;<span class="t-kw">&lt;/div&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta"</span><span class="t-kw">&gt;</span>Chicken &middot; Main &middot; Gluten Free<span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-cm">&lt;!-- no __cta --&gt;</span>
+<span class="t-kw">&lt;/div&gt;</span></pre></div>
+          </div>
+        </div>
+
+        <!-- 3. Training Tile -->
+        <div class="ds-card">
+          <div class="card-title">3. Training Tile</div>
+          <p class="card-desc">Eyebrow present, rating present, meta swaps to video count + difficulty (with icons), no CTA. Uses the shared <code>.ufs-tile</code> classes documented in Anatomy above; no additional CSS.</p>
+          <div class="av-specimens">
+            <div class="av-specimen">
+              <div class="form-specimen-label">training-tile</div>
+              <div class="ufs-tile" style="width:288px;">
+                <div class="ufs-tile__image">
+                  <div class="ufs-tile__image-media" style="background-image:url('images/tiles/training.jpg')"></div>
+                  <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                    <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  </button>
+                </div>
+                <span class="ufs-tile__badge">Certified</span>
+                <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <div class="ufs-tile__eyebrow">Culinary Techniques</div>
+                  <h3 class="ufs-tile__title">Middle Eastern Cuisine with Chef Rabeh</h3>
+                  <div class="ufs-tile__rating">
+                  <span class="ufs-tile__stars">
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  </span>
+                    <span>(332)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 5.3v5.4l4.5-2.7z" fill="currentColor"/></svg>3 videos</span>
+                    <span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="5" rx="0.5"/><rect x="6.5" y="6" width="3" height="8" rx="0.5"/><rect x="12" y="2" width="3" height="12" rx="0.5"/></svg>Intermediate</span>
+                  </div>
+                </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="card-desc" style="margin-top:16px;"><strong>Width:</strong> fixed in the flex-carousel (the example above is <code>width:288px</code>); flexible &mdash; fills the grid column &mdash; in the catalog grid at &ge;769px. Same <code>.ufs-tile</code>, same CSS either way, just a different width source.</p>
+          <div class="av-specimens" style="margin-top:12px;">
+            <div class="av-specimen">
+              <div class="form-specimen-label">Catalog grid &mdash; &le;768px (same .ufs-tile, reflowed by <code>.ufs-catalog-grid</code>)</div>
+              <div style="width:390px; border:1px solid var(--color-mushroom-300); border-radius:var(--radius-md); overflow:hidden;">
+                <div class="ufs-tile ufs-tile--catalog-preview">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/training.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">Certified</span>
+                  <div class="ufs-tile__content">
+                  <div class="ufs-tile__body">
+                    <div class="ufs-tile__eyebrow">Culinary Techniques</div>
+                    <h3 class="ufs-tile__title">Middle Eastern Cuisine with Chef Rabeh</h3>
+                    <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                      <span>(332)</span>
+                    </div>
+                    <div class="ufs-tile__meta">
+                      <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 5.3v5.4l4.5-2.7z" fill="currentColor"/></svg>3 videos</span>
+                      <span class="ufs-tile__meta-sep">&middot;</span>
+                      <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="5" rx="0.5"/><rect x="6.5" y="6" width="3" height="8" rx="0.5"/><rect x="12" y="2" width="3" height="12" rx="0.5"/></svg>Intermediate</span>
+                    </div>
+                  </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="usage-section" style="margin-top:20px;">
+            <div class="code-block-wrap" style="display:block"><pre class="code-block"><span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile"</span><span class="t-kw">&gt;</span>
+  &hellip;<span class="t-pr">image</span> + <span class="t-pr">fav</span> + <span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__badge"</span><span class="t-kw">&gt;</span>Certified<span class="t-kw">&lt;/span&gt;</span>&hellip;
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__body"</span><span class="t-kw">&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__eyebrow"</span><span class="t-kw">&gt;</span>Culinary Techniques<span class="t-kw">&lt;/div&gt;</span>
+    <span class="t-kw">&lt;h3</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__title"</span><span class="t-kw">&gt;</span>Middle Eastern Cuisine with Chef Rabeh<span class="t-kw">&lt;/h3&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__rating"</span><span class="t-kw">&gt;</span>&hellip;<span class="t-kw">&lt;/div&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta"</span><span class="t-kw">&gt;</span>
+      <span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta-item"</span><span class="t-kw">&gt;</span>&lt;svg&gt;play icon&lt;/svg&gt; 3 videos<span class="t-kw">&lt;/span&gt;</span>
+      <span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta-item"</span><span class="t-kw">&gt;</span>&lt;svg&gt;bars icon&lt;/svg&gt; Intermediate<span class="t-kw">&lt;/span&gt;</span>
+    <span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;/div&gt;</span>
+<span class="t-kw">&lt;/div&gt;</span></pre></div>
+          </div>
+        </div>
+
+        <!-- 4. Article Tile -->
+        <div class="ds-card">
+          <div class="card-title">4. Article Tile</div>
+          <p class="card-desc">Eyebrow present, no rating, meta reduced to a single read-time item, no CTA. Uses the shared <code>.ufs-tile</code> classes documented in Anatomy above; no additional CSS.</p>
+          <div class="av-specimens">
+            <div class="av-specimen">
+              <div class="form-specimen-label">article-tile</div>
+              <div class="ufs-tile" style="width:288px;">
+                <div class="ufs-tile__image">
+                  <div class="ufs-tile__image-media" style="background-image:url('images/tiles/article.jpg')"></div>
+                  <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                    <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                  </button>
+                </div>
+                <span class="ufs-tile__badge">Trending</span>
+                <div class="ufs-tile__content">
+                  <div class="ufs-tile__body">
+                    <div class="ufs-tile__eyebrow">Trend Watch</div>
+                    <h3 class="ufs-tile__title">How to update your menus: new trends and designs</h3>
+                    <div class="ufs-tile__meta">
+                      <span class="ufs-tile__meta-item">5 minutes read</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="card-desc" style="margin-top:16px;"><strong>Width:</strong> fixed in the flex-carousel (the example above is <code>width:288px</code>); flexible &mdash; fills the grid column &mdash; in the catalog grid at &ge;769px. Same <code>.ufs-tile</code>, same CSS either way, just a different width source.</p>
+          <div class="av-specimens" style="margin-top:12px;">
+            <div class="av-specimen">
+              <div class="form-specimen-label">Catalog grid &mdash; &le;768px (same .ufs-tile, reflowed by <code>.ufs-catalog-grid</code>)</div>
+              <div style="width:390px; border:1px solid var(--color-mushroom-300); border-radius:var(--radius-md); overflow:hidden;">
+                <div class="ufs-tile ufs-tile--catalog-preview">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/article.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">Trending</span>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Trend Watch</div>
+                      <h3 class="ufs-tile__title">How to update your menus: new trends and designs</h3>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">5 minutes read</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="usage-section" style="margin-top:20px;">
+            <div class="code-block-wrap" style="display:block"><pre class="code-block"><span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile"</span><span class="t-kw">&gt;</span>
+  &hellip;<span class="t-pr">image</span> + <span class="t-pr">fav</span> + <span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__badge"</span><span class="t-kw">&gt;</span>Trending<span class="t-kw">&lt;/span&gt;</span>&hellip;
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__body"</span><span class="t-kw">&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__eyebrow"</span><span class="t-kw">&gt;</span>Trend Watch<span class="t-kw">&lt;/div&gt;</span>
+    <span class="t-kw">&lt;h3</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__title"</span><span class="t-kw">&gt;</span>How to update your menus: new trends and designs<span class="t-kw">&lt;/h3&gt;</span>
+    <span class="t-cm">&lt;!-- no __rating --&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta"</span><span class="t-kw">&gt;</span><span class="t-kw">&lt;span</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__meta-item"</span><span class="t-kw">&gt;</span>5 minutes read<span class="t-kw">&lt;/span&gt;</span><span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;/div&gt;</span>
+<span class="t-kw">&lt;/div&gt;</span></pre></div>
+          </div>
+        </div>
+
+        <!-- 5. Topic Tile -->
+        <div class="ds-card">
+          <div class="card-title">5. Topic Tile</div>
+          <p class="card-desc">Structurally distinct from the other 5 &mdash; no white card, no border, no favourite/badge/rating. A full-bleed background image with a bottom-anchored dark gradient (<code>--color-brand-dark</code>, transparent&rarr;solid) carrying title, description and a text link with an arrow. Functions as a hero/category CTA, not a content summary, so it gets its own CSS rather than reusing <code>.ufs-tile</code>.</p>
+          <div class="av-specimens">
+            <div class="av-specimen">
+              <div class="form-specimen-label">topic-tile</div>
+              <div class="ufs-tile ufs-tile--topic" style="width:320px;">
+                <div class="ufs-tile__topic-media">
+                  <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
+                </div>
+                <div class="ufs-tile__topic-body">
+                  <h3 class="ufs-tile__topic-title">Ingredients Knowledge</h3>
+                  <p class="ufs-tile__topic-desc">Learn to select, store, and understand ingredients for quality results.</p>
+                  <button class="ufs-tile__topic-link">Check All the Courses
+                    <svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="usage-section" style="margin-top:20px;">
+            <div class="code-panel-tabs">
+              <button class="code-panel-tab active" onclick="showPanel('tile-topic-html',this)">HTML</button>
+              <button class="code-panel-tab" onclick="showPanel('tile-topic-css',this)">CSS</button>
+            </div>
+            <div class="code-block-wrap" id="tile-topic-html" style="display:block"><pre class="code-block"><span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile ufs-tile--topic"</span><span class="t-kw">&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__topic-media"</span><span class="t-kw">&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__topic-photo"</span> <span class="t-pr">style</span>=<span class="t-st">"background-image:url('topic.jpg')"</span><span class="t-kw">&gt;&lt;/div&gt;</span>
+  <span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__topic-body"</span><span class="t-kw">&gt;</span>
+    <span class="t-kw">&lt;h3</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__topic-title"</span><span class="t-kw">&gt;</span>Ingredients Knowledge<span class="t-kw">&lt;/h3&gt;</span>
+    <span class="t-kw">&lt;p</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__topic-desc"</span><span class="t-kw">&gt;</span>Learn to select, store, and understand ingredients for quality results.<span class="t-kw">&lt;/p&gt;</span>
+    <span class="t-kw">&lt;button</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__topic-link"</span><span class="t-kw">&gt;</span>Check All the Courses &lt;svg&gt;arrow&lt;/svg&gt;<span class="t-kw">&lt;/button&gt;</span>
+  <span class="t-kw">&lt;/div&gt;</span>
+<span class="t-kw">&lt;/div&gt;</span></pre></div>
+            <div class="code-block-wrap" id="tile-topic-css"><pre class="code-block"><span class="t-pr">.ufs-tile--topic</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">flex-end</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span>; <span class="t-pr">gap</span>: <span class="t-vl">0</span>; <span class="t-pr">min-height</span>: <span class="t-vl">400px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; }
+<span class="t-cm">/* Photo on its own clipped layer, same reasoning as .ufs-tile__image-media &mdash; lets the hover zoom use transform:scale without needing overflow:hidden on .ufs-tile--topic itself */</span>
+<span class="t-pr">.ufs-tile__topic-media</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">z-index</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-tile__topic-photo</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background-size</span>: <span class="t-vl">cover</span>; <span class="t-pr">background-position</span>: <span class="t-vl">center</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform 0.35s ease</span>; }
+<span class="t-pr">.ufs-tile--topic:hover .ufs-tile__topic-photo</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.06)</span>; }
+<span class="t-pr">.ufs-tile--topic::before</span> { <span class="t-pr">content</span>: <span class="t-str">''</span>; <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1</span>; <span class="t-pr">background</span>: <span class="t-vl">linear-gradient(to bottom, transparent 13.5%, var(--color-brand-dark) 64%)</span>; }
+<span class="t-pr">.ufs-tile--topic:hover</span> { <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-lg)</span>; } <span class="t-cm">/* no lift &mdash; already a large block */</span>
+<span class="t-pr">.ufs-tile__topic-body</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">z-index</span>: <span class="t-vl">2</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; <span class="t-pr">padding</span>: <span class="t-vl">var(--space-8) var(--space-5) var(--space-6)</span>; }
+<span class="t-pr">.ufs-tile__topic-title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h4-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h3-w)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-tile__topic-desc</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-tile__topic-link</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-primary)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; }</pre></div>
+          </div>
+        </div>
+
+        <!-- 6. Reward Tile -->
+        <div class="ds-card">
+          <div class="card-title">6. Reward Tile</div>
+          <p class="card-desc">No eyebrow, no rating, no meta, no favourite/badge. A points pill (gold &mdash; loyalty context, so gold is correct here per the Loyalty Card notes above) sits below the title, and the CTA is followed by a secondary text link. Uses the shared <code>.ufs-tile</code> classes documented in Anatomy above, plus <code>.ufs-tile__points</code> and <code>.ufs-tile__link</code>.</p>
+          <div class="av-specimens">
+            <div class="av-specimen">
+              <div class="form-specimen-label">reward-tile</div>
+              <div class="ufs-tile" style="width:288px;">
+                <div class="ufs-tile__image" style="background-color:var(--color-salt);">
+                  <div class="ufs-tile__image-media" style="background-image:url('images/tiles/reward.jpg'); background-size:contain;"></div>
+                </div>
+                <div class="ufs-tile__content">
+                  <div class="ufs-tile__body">
+                    <h3 class="ufs-tile__title">Stainless Steel Perforated Basting Spoon</h3>
+                    <div class="ufs-tile__points">
+                      <svg viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 3a9 9 0 100 18 9 9 0 000-18zm0 2.4a6.6 6.6 0 100 13.2 6.6 6.6 0 000-13.2z"/><circle cx="12" cy="12" r="4"/></svg>
+                      <span>4.320</span>
+                    </div>
+                  </div>
+                  <div class="ufs-tile__cta"><button class="btn btn-primary">Add reward</button></div>
+                  <div class="ufs-tile__link-row"><button class="ufs-tile__link">Set as loyalty goal</button></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="card-desc" style="margin-top:16px;"><strong>Width:</strong> fixed in the flex-carousel (the example above is <code>width:288px</code>); flexible &mdash; fills the grid column &mdash; in the catalog grid at &ge;769px. Same <code>.ufs-tile</code>, same CSS either way, just a different width source.</p>
+          <div class="av-specimens" style="margin-top:12px;">
+            <div class="av-specimen">
+              <div class="form-specimen-label">Catalog grid &mdash; &le;768px (same .ufs-tile, reflowed by <code>.ufs-catalog-grid</code>)</div>
+              <div style="width:390px; border:1px solid var(--color-mushroom-300); border-radius:var(--radius-md); overflow:hidden;">
+                <div class="ufs-tile ufs-tile--catalog-preview">
+                  <div class="ufs-tile__image" style="background-color:var(--color-salt);">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/reward.jpg'); background-size:contain;"></div>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Stainless Steel Perforated Basting Spoon</h3>
+                      <div class="ufs-tile__points">
+                        <svg viewBox="0 0 24 24"><path fill-rule="evenodd" clip-rule="evenodd" d="M12 3a9 9 0 100 18 9 9 0 000-18zm0 2.4a6.6 6.6 0 100 13.2 6.6 6.6 0 000-13.2z"/><circle cx="12" cy="12" r="4"/></svg>
+                        <span>4.320</span>
+                      </div>
+                    </div>
+                    <div class="ufs-tile__cta"><button class="btn btn-primary btn-sm">Add reward</button></div>
+                    <div class="ufs-tile__link-row"><button class="ufs-tile__link">Set as loyalty goal</button></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="usage-section" style="margin-top:20px;">
+            <div class="code-block-wrap" style="display:block"><pre class="code-block"><span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile"</span><span class="t-kw">&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__image"</span> <span class="t-pr">style</span>=<span class="t-st">"background-color:var(--color-salt)"</span><span class="t-kw">&gt;&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__image-media"</span> <span class="t-pr">style</span>=<span class="t-st">"background-image:url('reward.jpg');background-size:contain"</span><span class="t-kw">&gt;&lt;/div&gt;&lt;/div&gt;</span>
+  <span class="t-cm">&lt;!-- no fav button on reward-tile --&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__body"</span><span class="t-kw">&gt;</span>
+    <span class="t-kw">&lt;h3</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__title"</span><span class="t-kw">&gt;</span>Stainless Steel Perforated Basting Spoon<span class="t-kw">&lt;/h3&gt;</span>
+    <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__points"</span><span class="t-kw">&gt;</span>&lt;svg&gt;coin&lt;/svg&gt; <span class="t-kw">&lt;span&gt;</span>4.320<span class="t-kw">&lt;/span&gt;</span><span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__cta"</span><span class="t-kw">&gt;</span><span class="t-kw">&lt;button</span> <span class="t-pr">class</span>=<span class="t-st">"btn btn-primary"</span><span class="t-kw">&gt;</span>Add reward<span class="t-kw">&lt;/button&gt;</span><span class="t-kw">&lt;/div&gt;</span>
+  <span class="t-kw">&lt;div</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__link-row"</span><span class="t-kw">&gt;</span><span class="t-kw">&lt;button</span> <span class="t-pr">class</span>=<span class="t-st">"ufs-tile__link"</span><span class="t-kw">&gt;</span>Set as loyalty goal<span class="t-kw">&lt;/button&gt;</span><span class="t-kw">&lt;/div&gt;</span>
+<span class="t-kw">&lt;/div&gt;</span></pre></div>
+          </div>
+        </div>
+
+      </section>
+
 
     </main><!-- /content -->
   </div><!-- /doc-wrapper -->
@@ -4384,6 +5168,27 @@
       clickedBtn.classList.add('active');
       const target = document.getElementById(panelId);
       if (target) target.style.display = 'block';
+    }
+
+    function toggleTileFav(btn, event) {
+      if (event) event.stopPropagation(); // don't trigger the tile's own click-through
+      const active = btn.classList.toggle('is-active');
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      btn.setAttribute('aria-label', active ? 'Remove from favourites' : 'Add to favourites');
+      if (active) {
+        // Splash + pop only on favouriting, not on removal — matches .ctile-fav.
+        [10, 72, 138, 194, 258, 322].forEach(function(angle, i) {
+          var line = document.createElement('span');
+          line.className = 'ufs-tile__fav-splash';
+          line.style.setProperty('--angle', angle + 'deg');
+          line.style.animationDelay = (i * 18) + 'ms';
+          btn.appendChild(line);
+          line.addEventListener('animationend', function() { line.remove(); }, { once: true });
+        });
+        var svg = btn.querySelector('svg');
+        svg.classList.add('fav-pop');
+        svg.addEventListener('animationend', function() { svg.classList.remove('fav-pop'); }, { once: true });
+      }
     }
 
     function switchTab(clickedTab, tabName) {
