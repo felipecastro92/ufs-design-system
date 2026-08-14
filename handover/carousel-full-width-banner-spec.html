@@ -175,7 +175,7 @@
        rules are byte-for-byte identical. No border-radius/shadow here
        (unlike .ds-card/.pv-light) since an edge-to-edge section flush
        with the screen shouldn't look like a floating card. */
-    .pv-full-bleed { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); overflow: hidden; }
+    .pv-full-bleed { width: 100vw; margin-left: calc(50% - 50vw); margin-right: calc(50% - 50vw); margin-top: var(--space-10); overflow: hidden; }
     .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
     /* Media queries can't be scoped to a container's width, only the real
        viewport — so to preview the mobile layout at any window size, this
@@ -185,7 +185,7 @@
     .pv-mobile .ufs-fw-banner__track { height: auto !important; display: flex !important; transition: transform 0.35s ease !important; touch-action: pan-y !important; }
     .pv-mobile .ufs-fw-banner__slide { position: relative !important; flex: 0 0 100% !important; width: 100% !important; min-width: 0 !important; flex-direction: column !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
     .pv-mobile .ufs-fw-banner__image { order: 1 !important; flex: none !important; width: 100% !important; height: 240px !important; }
-    .pv-mobile .ufs-fw-banner__badge { position: absolute !important; top: var(--space-6) !important; inset-inline-start: var(--space-4) !important; z-index: 2; background: rgba(0,0,0,0.7) !important; border: 1px solid rgba(255,255,255,0.5) !important; }
+    .pv-mobile .ufs-fw-banner__badge { position: absolute !important; top: var(--space-6) !important; inset-inline-start: var(--space-4) !important; z-index: 2; background: rgba(0,0,0,0.7) !important; border: 1px solid rgba(255,255,255,0.5) !important; color: var(--color-salt) !important; }
     .pv-mobile .ufs-fw-banner__panel { order: 2 !important; flex: 1 1 auto !important; padding: var(--space-8) var(--space-4) !important; padding-bottom: var(--space-16) !important; gap: var(--space-2) !important; }
     .pv-mobile .ufs-fw-banner__panel .btn { margin-top: var(--space-2) !important; }
     .pv-mobile .ufs-fw-banner .ufs-carousel-arrow--prev, .pv-mobile .ufs-fw-banner .ufs-carousel-arrow--next { display: none !important; }
@@ -193,6 +193,9 @@
     .pv-mobile .ufs-fw-banner__title { font-size: var(--text-h4-size) !important; line-height: var(--text-h4-lh) !important; font-weight: var(--text-h4-w) !important; letter-spacing: normal !important; }
     .pv-mobile .ufs-fw-banner__desc { display: -webkit-box !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 3 !important; overflow: hidden !important; }
     .pv-mobile .ufs-fw-banner .ufs-carousel-dots { bottom: var(--space-6) !important; }
+    .pv-mobile .ufs-fw-banner:has(.ufs-fw-banner__slide--mushroom.is-active) .ufs-carousel-dots {
+      --carousel-dot-inactive: var(--color-squid-300) !important;
+    }
     .pv-mobile .ufs-fw-banner__scrim { display: none !important; }
 
     /* DS buttons — the CTA reuses .btn/.btn-primary, so the previews below
@@ -246,6 +249,36 @@
     }
     .ufs-fw-banner__title { color: var(--color-salt); margin: 0; max-width: 26ch; }
     .ufs-fw-banner__desc { color: var(--color-salt); margin: 0; }
+
+    /* --- Background-color variants (per slide via a modifier on
+       .ufs-fw-banner__slide) — an unmarked slide keeps the default look
+       above (--color-brand-dark / Squid Ink). --- */
+    .ufs-fw-banner__slide--aubergine .ufs-fw-banner__panel { background: var(--color-aubergine); }
+
+    .ufs-fw-banner__slide--mushroom .ufs-fw-banner__panel { background: var(--color-mushroom-100); }
+    .ufs-fw-banner__slide--mushroom .ufs-fw-banner__title,
+    .ufs-fw-banner__slide--mushroom .ufs-fw-banner__desc { color: var(--color-brand-dark); }
+    @media (min-width: 769px) {
+      /* Below 769px the badge detaches from the panel and always floats as
+         a dark glass pill over the photo (see .ufs-fw-banner__badge inside
+         the max-width:768px block) — that stays true regardless of variant,
+         so this override only applies where the badge still sits on the
+         panel itself. */
+      .ufs-fw-banner__slide--mushroom .ufs-fw-banner__badge {
+        background: rgba(196,196,196,0.1); border-color: rgba(61,61,61,0.2); color: var(--color-brand-dark);
+      }
+    }
+
+    /* The prev-arrow is persistent chrome living outside the slide track
+       (sibling of it, not a descendant of any one slide), so it can't pick
+       up slide-level color through a normal descendant selector — :has()
+       keys its colors off whichever slide is currently active instead. */
+    .ufs-fw-banner:has(.ufs-fw-banner__slide--mushroom.is-active) .ufs-carousel-arrow--prev {
+      --carousel-arrow-border: rgba(34,29,55,0.4);
+      --carousel-arrow-color: var(--color-brand-dark);
+      --carousel-btn-hover-bg: rgba(34,29,55,0.15);
+      --carousel-arrow-active-bg: rgba(34,29,55,0.25);
+    }
 
     .ufs-fw-banner__image { flex: 1 1 60%; min-width: 0; background-size: cover; background-position: center; }
 
@@ -321,6 +354,16 @@
         overflow: hidden;
       }
       .ufs-fw-banner .ufs-carousel-dots { bottom: var(--space-6); }
+      /* Below 769px the panel stacks under the image and fills the rest of
+         the banner's height, so the dots (pinned to the banner's own
+         bottom edge) land on the panel instead of the photo — unlike
+         desktop, where they stay centered over the image regardless of
+         variant. Same :has() reasoning as the prev-arrow above: dots are
+         chrome outside the slide track, so they key off whichever slide is
+         active rather than a descendant selector. */
+      .ufs-fw-banner:has(.ufs-fw-banner__slide--mushroom.is-active) .ufs-carousel-dots {
+        --carousel-dot-inactive: var(--color-squid-300);
+      }
       .ufs-fw-banner__scrim { display: none; }
     }
 
@@ -493,7 +536,7 @@
               </div>
               <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
             </div>
-            <div class="ufs-fw-banner__slide" data-fw-slide="1" aria-hidden="true">
+            <div class="ufs-fw-banner__slide ufs-fw-banner__slide--aubergine" data-fw-slide="1" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
                 <span class="ufs-fw-banner__badge">Promotion</span>
                 <h3 class="ufs-fw-banner__title text-h2">Made with 99% potatoes</h3>
@@ -502,7 +545,7 @@
               </div>
               <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
             </div>
-            <div class="ufs-fw-banner__slide" data-fw-slide="2" aria-hidden="true">
+            <div class="ufs-fw-banner__slide ufs-fw-banner__slide--mushroom" data-fw-slide="2" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
                 <span class="ufs-fw-banner__badge">Free Training</span>
                 <h3 class="ufs-fw-banner__title text-h2">Master Umami, on us</h3>
@@ -537,7 +580,7 @@
               </div>
               <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
             </div>
-            <div class="ufs-fw-banner__slide" data-fw-slide="1" aria-hidden="true">
+            <div class="ufs-fw-banner__slide ufs-fw-banner__slide--aubergine" data-fw-slide="1" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
                 <span class="ufs-fw-banner__badge">Promotion</span>
                 <h3 class="ufs-fw-banner__title text-h2">Made with 99% potatoes</h3>
@@ -546,7 +589,7 @@
               </div>
               <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
             </div>
-            <div class="ufs-fw-banner__slide" data-fw-slide="2" aria-hidden="true">
+            <div class="ufs-fw-banner__slide ufs-fw-banner__slide--mushroom" data-fw-slide="2" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
                 <span class="ufs-fw-banner__badge">Free Training</span>
                 <h3 class="ufs-fw-banner__title text-h2">Master Umami, on us</h3>
@@ -1008,7 +1051,7 @@ track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
               </div>
               <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
             </div>
-            <div class="ufs-fw-banner__slide" data-fw-slide="1" aria-hidden="true">
+            <div class="ufs-fw-banner__slide ufs-fw-banner__slide--aubergine" data-fw-slide="1" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
                 <span class="ufs-fw-banner__badge">عرض ترويجي</span>
                 <h3 class="ufs-fw-banner__title text-h2">مصنوع من ٩٩٪ بطاطا</h3>
@@ -1017,7 +1060,7 @@ track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
               </div>
               <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
             </div>
-            <div class="ufs-fw-banner__slide" data-fw-slide="2" aria-hidden="true">
+            <div class="ufs-fw-banner__slide ufs-fw-banner__slide--mushroom" data-fw-slide="2" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
                 <span class="ufs-fw-banner__badge">تدريب مجاني</span>
                 <h3 class="ufs-fw-banner__title text-h2">أتقن نكهة الأومامي، على حسابنا</h3>
