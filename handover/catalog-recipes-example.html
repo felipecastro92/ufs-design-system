@@ -170,7 +170,8 @@
     }
     .ufs-nav--light .ufs-nav__link { color: var(--color-brand-dark); }
     .ufs-nav--light .ufs-nav__link:hover,
-    .ufs-nav--light .ufs-nav__link.is-open { color: var(--color-orange-700); border-bottom-color: var(--color-orange-500); }
+    .ufs-nav--light .ufs-nav__link.is-open,
+    .ufs-nav--light .ufs-nav__link.is-active { color: var(--color-orange-700); border-bottom-color: var(--color-orange-500); }
     .ufs-nav__link-chev { width: var(--space-5); height: var(--space-5); margin-top: var(--space-1); opacity: 1; flex-shrink: 0; display: block; transform: rotate(90deg); transition: transform 0.2s, opacity 0.15s; }
     .ufs-nav__link.is-open .ufs-nav__link-chev { transform: rotate(-90deg); }
     .ufs-nav--light .ufs-nav__link-chev { filter: none; }
@@ -732,10 +733,10 @@
     }
     .ufs-carousel-card:last-child { margin-right: 0; }
 
-    /* TEST — first flex-carousel only: swaps the empty 270x270 placeholder
-       slot for the real Recipe Tile (.ufs-tile) from the Tiles component doc
-       (handover/index.html). Scoped so the other 3 carousel variants below
-       keep the original square placeholder sizing untouched. */
+    /* Recipe-tile flex-carousel: swaps the empty 270x270 placeholder slot
+       for the real Recipe Tile (.ufs-tile) from the Tiles component doc
+       (handover/index.html). Scoped via this modifier so other flex-carousel
+       instances keep the original square placeholder sizing untouched. */
     /* Fixed width (not auto) — .ufs-tile only sets min-width:320px, so an
        auto-width flex item would size to its longest title's max-content
        width, making cards inconsistent widths and breaking the carousel's
@@ -750,7 +751,29 @@
        .ufs-tile's 1-class rule and stripping it back out (found this the
        hard way on the squid carousel, where the card's dark section
        background showed straight through the "transparent" body). */
-    .ufs-flex-carousel--recipe-test .ufs-carousel-card { width: 320px; height: auto; }
+    .ufs-flex-carousel--recipe .ufs-carousel-card { width: 320px; height: auto; }
+    /* Section background per this instance's request — cards stay white
+       (.ufs-tile's own background, see note above) so they read as cards
+       sitting on the mushroom surface rather than blending into it. */
+    .ufs-flex-carousel--recipe { background: var(--color-mushroom-100); }
+    /* Secondary button on mushroom shade: fills white by default, loses the
+       fill on hover (same global rule as .btn-surface-grey/.ufs-filters-bar
+       elsewhere). Also fixes a real bug: .ufs-flex-carousel__cta's own hover
+       rule fills with --carousel-btn-hover-bg, which defaults to
+       --color-mushroom-100 — on this instance that's the same as the
+       section background, so hovering was invisible until this overrides it
+       back to transparent. Higher specificity (2 classes) wins over that
+       1-class rule regardless of source order. */
+    .ufs-flex-carousel--recipe .btn-secondary { background: var(--color-salt); }
+    .ufs-flex-carousel--recipe .btn-secondary:hover:not(:disabled) { background: transparent; }
+    @media (min-width: 769px) {
+      /* Desktop only — mobile keeps its normal wrap at the smaller
+         .ufs-flex-carousel__desc font-size set in the max-width:768px
+         block below. */
+      .ufs-flex-carousel--recipe .ufs-flex-carousel__desc {
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+    }
     /* No overflow:hidden on .ufs-tile — it would clip the hover box-shadow
        below. __image rounds its own top corners instead. */
     .ufs-tile {
@@ -985,6 +1008,46 @@
     .ufs-carousel-arrow:active:not(:disabled) { background: var(--carousel-arrow-active-bg); }
     .ufs-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
 
+    /* No-scroll / "compact" state — activates automatically (via JS in
+       initFlexCarousel below) whenever the tiles fit the track without
+       needing to scroll. This is a function of measured overflow
+       (track.scrollWidth vs clientWidth), not a fixed tile count, since
+       whether N tiles overflow depends on the viewport too — the same
+       tile set can scroll at 1280px and not need to at 1920px. Desktop
+       only; mobile keeps its swipeable layout regardless (its own dot
+       logic already collapses to a single, non-interactive dot when
+       there's nothing to page through). */
+    @media (min-width: 769px) {
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__head {
+        flex-direction: column; align-items: center; text-align: center;
+      }
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__intro { max-width: 720px; }
+      /* Scoped to inside .head specifically — the mobile CTA below also
+         carries the plain .ufs-flex-carousel__cta class (for its color/
+         border styling), so an unscoped selector here would hide it too. */
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__head .ufs-flex-carousel__cta {
+        display: none;
+      }
+      /* Reuses the mobile CTA element rather than adding a third button —
+         auto-width and centered here, unlike its width:100% mobile
+         treatment (a different, non-overlapping media query range). */
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__cta--mobile {
+        display: inline-flex; width: auto; align-self: center;
+      }
+      /* The bleed (negative margins + leading spacer) exists only to let
+         the track scroll flush to the true screen edge — meaningless once
+         nothing scrolls, and the spacer's own width would throw off true
+         centering if left in place. */
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__track-wrap {
+        margin-left: 0; margin-right: 0;
+      }
+      .ufs-flex-carousel.is-compact .ufs-carousel-track {
+        justify-content: center; padding: 0; overflow: visible;
+      }
+      .ufs-flex-carousel.is-compact .ufs-carousel-spacer { display: none; }
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__foot { display: none; }
+    }
+
     /* Colour variants — pure token swaps against the custom properties above.
        "Image" additionally needs a background image + overlay, and blurs the
        (still-transparent) card placeholders for the frosted-glass look. */
@@ -1003,7 +1066,7 @@
       --carousel-arrow-active-bg: rgba(255,255,255,0.2);
     }
     /* TEST — second flex-carousel: 10 Product Tiles (.ufs-tile) in place of
-       the empty placeholder cards, same principles as the recipe-test
+       the empty placeholder cards, same principles as the --recipe
        carousel above (fixed width for stepSize() math, no border-radius or
        background override — .ufs-tile's own rules already win those by
        source order at equal specificity, and a 2-class override here would
@@ -1175,7 +1238,20 @@
     }
 
     /* ── Image (60%) ── */
-    .ufs-fw-banner__image { flex: 1 1 60%; min-width: 0; background-size: cover; background-position: center; }
+    /* Split into a fixed-size clipping box (.ufs-fw-banner__image) and an
+       inner layer that actually paints the photo (.ufs-fw-banner__image-media)
+       — the desktop zoom-in effect below scales the inner layer via
+       transform, which composites on the GPU and stays smooth, but a
+       transform escapes its own box and is only ever clipped by an
+       ancestor's overflow:hidden, not by overflow:hidden on itself. Without
+       this split the zoomed image would bleed into the panel next to it. */
+    .ufs-fw-banner__image { flex: 1 1 60%; min-width: 0; position: relative; overflow: hidden; }
+    .ufs-fw-banner__image-media { position: absolute; inset: 0; background-size: cover; background-position: center; }
+
+    @keyframes ufs-fw-banner-zoom {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
 
     /* Persistent overlay arrows — siblings of the track, not part of any
        slide, so they stay fixed on screen while slides pass beneath them. */
@@ -1213,9 +1289,18 @@
       /* No prev arrow to clear on a single-slide instance, so the panel
          doesn't need the full 120px reserved for it. */
       .ufs-fw-banner.is-single-slide .ufs-fw-banner__panel { padding-inline-start: var(--space-24); }
+      /* Desktop-only Ken Burns zoom: restarts every time a slide becomes
+         active (re-adding .is-active retriggers the CSS animation), and
+         holds at the zoomed-in scale once it finishes (animation-fill-mode:
+         forwards) rather than resetting or looping. */
+      .ufs-fw-banner__slide.is-active .ufs-fw-banner__image-media {
+        animation: ufs-fw-banner-zoom 8s ease-out forwards;
+        will-change: transform;
+      }
     }
     @media (prefers-reduced-motion: reduce) {
       .ufs-fw-banner__slide, .ufs-fw-banner__track { transition: none; }
+      .ufs-fw-banner__image-media { animation: none; }
     }
     .ufs-fw-banner__scrim {
       position: absolute; left: 0; right: 0; bottom: 0; height: 120px; z-index: 1; pointer-events: none;
@@ -2253,7 +2338,7 @@
       filter: brightness(0) invert(1);
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
       .ufs-footer__band {
         padding: var(--space-10) var(--space-4);
       }
@@ -2940,7 +3025,7 @@
       </div>
       <div class="ufs-nav__links">
         <div class="ufs-nav__link" onclick="toggleMegamenu('products', this)"><span data-i18n="nav-products">Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
-        <div class="ufs-nav__link" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+        <div class="ufs-nav__link is-active" onclick="toggleMegamenu('recipes', this)"><span data-i18n="nav-recipes">Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
         <div class="ufs-nav__link" onclick="toggleMegamenu('training', this)"><span data-i18n="nav-training">Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
         <div class="ufs-nav__link" onclick="toggleMegamenu('promotions', this)"><span data-i18n="nav-promotions">Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
         <div class="ufs-nav__link" onclick="closeAllMegamenus()" data-i18n="nav-loyalty">Loyalty Program</div>
@@ -3670,11 +3755,459 @@
         </div>
         </div>
       </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <span class="ufs-tile__badge">New</span>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Blackened Cajun Shrimp Tacos</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(167)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Fish &amp; Seafood</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Gluten Free</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Slow-Braised Pork Ragu with Pappardelle</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(243)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Pork</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Contains Gluten</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <span class="ufs-tile__badge">Popular</span>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Charred Broccolini with Almond Romesco</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(98)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Vegetable</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Side</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Vegan</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Honey-Glazed Duck Breast with Cherry Jus</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(71)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Poultry</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Gluten Free</span>
+          </div>
+        </div>
+        </div>
+      </div>
     </div>
 
     <div class="pg-catalog-loadmore">
-      <button type="button" class="btn btn-primary">Load more</button>
+      <button type="button" class="btn btn-primary">Load More Recipes</button>
     </div>
+
+    <!-- ================================================================
+         FUTURE MENUS 4 RECIPES — flex-carousel, recipe tiles, mushroom bg
+         (handover/flex-carousel-spec.html for the component's own docs;
+         .ufs-flex-carousel--recipe scoping documented above at its CSS)
+    ================================================================ -->
+    <section class="ufs-flex-carousel ufs-flex-carousel--recipe">
+      <div class="ufs-flex-carousel__head">
+        <div class="ufs-flex-carousel__intro">
+          <h2 class="ufs-flex-carousel__title text-h3">Future Menus 4 Recipes</h2>
+          <p class="ufs-flex-carousel__desc">Ten dishes from our Future Menus Vol. 4 trend report, ready to test on your menu.</p>
+        </div>
+        <button class="btn btn-secondary ufs-flex-carousel__cta">Discover Future Menus 4</button>
+      </div>
+
+      <div class="ufs-flex-carousel__track-wrap">
+        <div class="ufs-carousel-track">
+          <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <span class="ufs-tile__badge">New</span>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Charred Miso Butter Cauliflower Steaks</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(128)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Vegetable</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Vegan</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <span class="ufs-tile__badge">Popular</span>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Smoked Paprika Fried Chicken Sando</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(301)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Chicken</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Sandwich</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Contains Gluten</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Yuzu-Glazed Black Cod</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(76)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Fish &amp; Seafood</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Gluten Free</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <span class="ufs-tile__badge">Trending</span>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Fermented Chili Honey Wings</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(215)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Chicken</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Starter</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Contains Dairy</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Charcoal Sourdough Flatbread with Whipped Ricotta</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(94)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Bread</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Starter</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Vegetarian</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Korean-Style Braised Short Rib</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(188)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Beef</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Gluten Free</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Roasted Beet &amp; Burrata Salad</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(63)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Vegetable</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Salad</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Vegetarian</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <span class="ufs-tile__badge">New</span>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Miso Caramel Basque Cheesecake</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(142)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Dessert</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Dairy</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Vegetarian</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Smoky Jackfruit Birria Tacos</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(109)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Vegetable</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Vegan</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <div class="ufs-tile__content">
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Brown Butter Scallops with Corn Purée</h3>
+              <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+                <span>(57)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Fish &amp; Seafood</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Gluten Free</span>
+              </div>
+            </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="ufs-flex-carousel__foot">
+        <div class="ufs-carousel-dots"></div>
+        <div class="ufs-flex-carousel__arrows">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover Future Menus 4</button>
+    </section>
 
   </main>
 
@@ -6630,6 +7163,82 @@
     buildFiltersUI();
     syncFiltersBarStuck();
     window.addEventListener('resize', syncFiltersBarStuck, { passive: true });
+
+    /* Flex carousel — ported verbatim from handover/flex-carousel-spec.html
+       (initFlexCarousel), which this file's CSS already mirrored but never
+       had a live instance to drive until the Future Menus 4 carousel below. */
+    function initFlexCarousel(root) {
+      var track = root.querySelector('.ufs-carousel-track');
+      var dotsWrap = root.querySelector('.ufs-carousel-dots');
+      var prevBtn = root.querySelector('.ufs-carousel-arrow--prev');
+      var nextBtn = root.querySelector('.ufs-carousel-arrow--next');
+      if (!track || !dotsWrap) return;
+      var cards = Array.prototype.slice.call(track.querySelectorAll('.ufs-carousel-card'));
+      var activeIndex = 0;
+      var scrollTicking = false;
+
+      function stepSize() {
+        if (cards.length < 2) return cards.length ? cards[0].getBoundingClientRect().width : 0;
+        return cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
+      }
+      function maxIndex() {
+        var step = stepSize();
+        if (!step) return 0;
+        return Math.max(0, Math.round((track.scrollWidth - track.clientWidth) / Math.abs(step)));
+      }
+      function render() {
+        var maxI = maxIndex();
+        /* maxI === 0 means there's nowhere to scroll to — the tiles fit
+           the track already. Toggles the compact/centered desktop layout;
+           inert below 769px since that CSS lives in a min-width query. */
+        root.classList.toggle('is-compact', maxI === 0);
+        var dots = dotsWrap.querySelectorAll('.ufs-carousel-dot');
+        dots.forEach(function(dot, i) {
+          dot.classList.remove('is-active', 'is-near', 'is-far', 'is-edge', 'is-hidden');
+          if (i > maxI) { dot.classList.add('is-hidden'); return; }
+          var dist = Math.abs(i - activeIndex);
+          if (dist === 0) dot.classList.add('is-active');
+          else if (dist <= 2) dot.classList.add('is-near');
+          else if (dist === 3) dot.classList.add('is-far');
+          else if (dist === 4) dot.classList.add('is-edge');
+          else dot.classList.add('is-hidden');
+          dot.setAttribute('aria-current', dist === 0 ? 'true' : 'false');
+        });
+        if (prevBtn) prevBtn.disabled = activeIndex <= 0;
+        if (nextBtn) nextBtn.disabled = activeIndex >= maxI;
+      }
+      function goTo(index) {
+        activeIndex = Math.max(0, Math.min(maxIndex(), index));
+        track.scrollTo({ left: activeIndex * stepSize(), behavior: 'smooth' });
+        render();
+      }
+
+      cards.forEach(function(_, i) {
+        var dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = 'ufs-carousel-dot';
+        dot.setAttribute('aria-label', 'Go to item ' + (i + 1));
+        dot.addEventListener('click', function() { goTo(i); });
+        dotsWrap.appendChild(dot);
+      });
+      if (prevBtn) prevBtn.addEventListener('click', function() { goTo(activeIndex - 1); });
+      if (nextBtn) nextBtn.addEventListener('click', function() { goTo(activeIndex + 1); });
+
+      track.addEventListener('scroll', function() {
+        if (scrollTicking) return;
+        scrollTicking = true;
+        requestAnimationFrame(function() {
+          var step = stepSize();
+          if (step) activeIndex = Math.max(0, Math.min(maxIndex(), Math.round(track.scrollLeft / step)));
+          render();
+          scrollTicking = false;
+        });
+      }, { passive: true });
+
+      window.addEventListener('resize', function() { render(); });
+      render();
+    }
+    document.querySelectorAll('.ufs-flex-carousel').forEach(initFlexCarousel);
   </script>
 
   <!-- Mobile AI chat overlay -->
@@ -6686,13 +7295,13 @@
     <span class="ufs-bottom-nav__ai-label">ChefAI</span>
   </button>
   <nav class="ufs-bottom-nav" id="bottom-nav" aria-label="Main navigation">
-    <button class="ufs-bottom-nav__item is-active" onclick="bottomNavActivate(this)" aria-label="Home">
+    <button class="ufs-bottom-nav__item" onclick="bottomNavActivate(this)" aria-label="Home">
       <svg class="ufs-bottom-nav__icon" viewBox="0 0 45 45" fill="none" aria-hidden="true">
         <path fill-rule="evenodd" clip-rule="evenodd" d="M35.6281 15.9671L25.7007 7.26398C23.8164 5.57867 20.9666 5.57867 19.0823 7.26398L9.15489 15.9671C8.09173 16.9179 7.48897 18.2801 7.50015 19.7064V34.1674C7.50015 36.9088 9.72265 39.1311 12.464 39.1311H32.319C35.0603 39.1311 37.2827 36.9088 37.2827 34.1674V19.6899C37.2893 18.2693 36.6869 16.9141 35.6281 15.9671ZM19.0823 35.822V27.5491C19.0823 26.6353 19.8231 25.8945 20.7369 25.8945H24.046C24.9598 25.8945 25.7006 26.6353 25.7006 27.5491V35.822H19.0823ZM32.3189 35.822H29.0097V27.5491C29.0097 24.8077 26.7874 22.5854 24.046 22.5854H20.7369C17.9955 22.5854 15.7731 24.8077 15.7731 27.5491V35.822H12.464C11.5502 35.822 10.8094 35.0812 10.8094 34.1674V19.6899C10.81 19.2146 11.0149 18.7626 11.372 18.4489L21.2994 9.76241C21.924 9.21368 22.8588 9.21368 23.4835 9.76241L33.4109 18.4489C33.768 18.7626 33.9729 19.2146 33.9735 19.6899V34.1674C33.9735 35.0812 33.2327 35.822 32.3189 35.822Z" fill="currentColor"/>
       </svg>
       <span class="ufs-bottom-nav__label">Home</span>
     </button>
-    <button class="ufs-bottom-nav__item" onclick="bottomNavActivate(this)" aria-label="Recipes">
+    <button class="ufs-bottom-nav__item is-active" onclick="bottomNavActivate(this)" aria-label="Recipes">
       <svg class="ufs-bottom-nav__icon" viewBox="0 0 45 45" fill="none" aria-hidden="true">
         <path fill-rule="evenodd" clip-rule="evenodd" d="M19.5 6.3V16.128L18 17.334V6.3C18 5.30589 17.3284 4.5 16.5 4.5C15.6716 4.5 15 5.30589 15 6.3V17.334L13.5 16.128V6.3C13.5 5.30589 12.8284 4.5 12 4.5C11.1716 4.5 10.5 5.30589 10.5 6.3V17.1C10.5026 17.7021 10.7559 18.2628 11.175 18.594L15 21.672V38.7C15 39.6941 15.6716 40.5 16.5 40.5C17.3284 40.5 18 39.6941 18 38.7V21.672L21.825 18.594C22.2441 18.2628 22.4974 17.7021 22.5 17.1V6.3C22.5 5.30589 21.8284 4.5 21 4.5C20.1716 4.5 19.5 5.30589 19.5 6.3ZM33 4.5C28.8579 4.5 25.5 8.52944 25.5 13.5V24.3C25.5 25.2941 26.1716 26.1 27 26.1H31.5V38.7C31.5 39.6941 32.1716 40.5 33 40.5C33.8284 40.5 34.5 39.6941 34.5 38.7V6.3C34.5 5.30589 33.8284 4.5 33 4.5V4.5ZM28.5 22.5V13.5C28.499 11.2106 29.7012 9.16918 31.5 8.40602V22.5H28.5Z" fill="currentColor"/>
       </svg>

@@ -751,6 +751,21 @@
        hard way on the squid carousel, where the card's dark section
        background showed straight through the "transparent" body). */
     .ufs-flex-carousel--recipe-test .ufs-carousel-card { width: 320px; height: auto; }
+    /* Article Tile in a carousel: no dedicated .ufs-tile--article CSS class
+       exists (per the Tiles doc — it's the shared .ufs-tile base, just a
+       different combination of optional sub-elements: eyebrow present, no
+       rating, meta reduced to one item, no CTA). Its documented carousel
+       width is 288px, narrower than .ufs-tile's own min-width:320px floor —
+       min-width:0 here removes that floor so the explicit width actually
+       takes effect (min-width always wins over a smaller width otherwise,
+       regardless of cascade/specificity). Reusable independent of color —
+       combine with any --variant class, e.g. --mushroom below — but each
+       colour variant may carry its own .ufs-carousel-card width override
+       for ITS tile type (--mushroom's is 320px, for its topic tiles), which
+       ties in specificity with a plain 2-class selector here and can win by
+       source order. The extra .ufs-flex-carousel qualifier makes this a
+       3-class selector so it always wins regardless of pairing or order. */
+    .ufs-flex-carousel.ufs-flex-carousel--article .ufs-carousel-card { width: 288px; min-width: 0; height: auto; }
     /* No overflow:hidden on .ufs-tile — it would clip the hover box-shadow
        below. __image rounds its own top corners instead. */
     .ufs-tile {
@@ -985,6 +1000,46 @@
     .ufs-carousel-arrow:active:not(:disabled) { background: var(--carousel-arrow-active-bg); }
     .ufs-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
 
+    /* No-scroll / "compact" state — activates automatically (via JS in
+       initFlexCarousel below) whenever the tiles fit the track without
+       needing to scroll. This is a function of measured overflow
+       (track.scrollWidth vs clientWidth), not a fixed tile count, since
+       whether N tiles overflow depends on the viewport too — the same
+       tile set can scroll at 1280px and not need to at 1920px. Desktop
+       only; mobile keeps its swipeable layout regardless (its own dot
+       logic already collapses to a single, non-interactive dot when
+       there's nothing to page through). */
+    @media (min-width: 769px) {
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__head {
+        flex-direction: column; align-items: center; text-align: center;
+      }
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__intro { max-width: 720px; }
+      /* Scoped to inside .head specifically — the mobile CTA below also
+         carries the plain .ufs-flex-carousel__cta class (for its color/
+         border styling), so an unscoped selector here would hide it too. */
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__head .ufs-flex-carousel__cta {
+        display: none;
+      }
+      /* Reuses the mobile CTA element rather than adding a third button —
+         auto-width and centered here, unlike its width:100% mobile
+         treatment (a different, non-overlapping media query range). */
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__cta--mobile {
+        display: inline-flex; width: auto; align-self: center;
+      }
+      /* The bleed (negative margins + leading spacer) exists only to let
+         the track scroll flush to the true screen edge — meaningless once
+         nothing scrolls, and the spacer's own width would throw off true
+         centering if left in place. */
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__track-wrap {
+        margin-left: 0; margin-right: 0;
+      }
+      .ufs-flex-carousel.is-compact .ufs-carousel-track {
+        justify-content: center; padding: 0; overflow: visible;
+      }
+      .ufs-flex-carousel.is-compact .ufs-carousel-spacer { display: none; }
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__foot { display: none; }
+    }
+
     /* Colour variants — pure token swaps against the custom properties above.
        "Image" additionally needs a background image + overlay, and blurs the
        (still-transparent) card placeholders for the frosted-glass look. */
@@ -1175,7 +1230,20 @@
     }
 
     /* ── Image (60%) ── */
-    .ufs-fw-banner__image { flex: 1 1 60%; min-width: 0; background-size: cover; background-position: center; }
+    /* Split into a fixed-size clipping box (.ufs-fw-banner__image) and an
+       inner layer that actually paints the photo (.ufs-fw-banner__image-media)
+       — the desktop zoom-in effect below scales the inner layer via
+       transform, which composites on the GPU and stays smooth, but a
+       transform escapes its own box and is only ever clipped by an
+       ancestor's overflow:hidden, not by overflow:hidden on itself. Without
+       this split the zoomed image would bleed into the panel next to it. */
+    .ufs-fw-banner__image { flex: 1 1 60%; min-width: 0; position: relative; overflow: hidden; }
+    .ufs-fw-banner__image-media { position: absolute; inset: 0; background-size: cover; background-position: center; }
+
+    @keyframes ufs-fw-banner-zoom {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
 
     /* Persistent overlay arrows — siblings of the track, not part of any
        slide, so they stay fixed on screen while slides pass beneath them. */
@@ -1213,9 +1281,18 @@
       /* No prev arrow to clear on a single-slide instance, so the panel
          doesn't need the full 120px reserved for it. */
       .ufs-fw-banner.is-single-slide .ufs-fw-banner__panel { padding-inline-start: var(--space-24); }
+      /* Desktop-only Ken Burns zoom: restarts every time a slide becomes
+         active (re-adding .is-active retriggers the CSS animation), and
+         holds at the zoomed-in scale once it finishes (animation-fill-mode:
+         forwards) rather than resetting or looping. */
+      .ufs-fw-banner__slide.is-active .ufs-fw-banner__image-media {
+        animation: ufs-fw-banner-zoom 8s ease-out forwards;
+        will-change: transform;
+      }
     }
     @media (prefers-reduced-motion: reduce) {
       .ufs-fw-banner__slide, .ufs-fw-banner__track { transition: none; }
+      .ufs-fw-banner__image-media { animation: none; }
     }
     .ufs-fw-banner__scrim {
       position: absolute; left: 0; right: 0; bottom: 0; height: 120px; z-index: 1; pointer-events: none;
@@ -2253,7 +2330,7 @@
       filter: brightness(0) invert(1);
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
       .ufs-footer__band {
         padding: var(--space-10) var(--space-4);
       }
@@ -3431,7 +3508,7 @@
             <p class="ufs-fw-banner__desc text-body-sm" data-i18n="fwb-desc-0">Receba gratuitamente dicas e insights personalizados para os desafios do seu negócio — desde otimização de cardápio até controle de custos — com base na nossa pesquisa de tendências culinárias para 2026.</p>
             <a href="#" class="btn btn-primary" data-i18n="fwb-cta-0">Explorar Agora</a>
           </div>
-          <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
+          <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide1.jpg')"></div></div>
         </div>
         <div class="ufs-fw-banner__slide ufs-fw-banner__slide--aubergine" data-fw-slide="1" aria-hidden="true">
           <div class="ufs-fw-banner__panel">
@@ -3440,7 +3517,7 @@
             <p class="ufs-fw-banner__desc text-body-sm" data-i18n="fwb-desc-1">Throughout the year, UFS speaks to hundreds of chefs across Australia and New Zealand — insight into how customer preferences evolve.</p>
             <a href="#" class="btn btn-primary" data-i18n="fwb-cta-1">Explore Products</a>
           </div>
-          <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+          <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide2.jpg')"></div></div>
         </div>
         <div class="ufs-fw-banner__slide ufs-fw-banner__slide--mushroom" data-fw-slide="2" aria-hidden="true">
           <div class="ufs-fw-banner__panel">
@@ -3449,7 +3526,7 @@
             <p class="ufs-fw-banner__desc text-body-sm" data-i18n="fwb-desc-2">A free online module built for working chefs — practical techniques you can use on shift tonight.</p>
             <a href="#" class="btn btn-primary" data-i18n="fwb-cta-2">Start Learning</a>
           </div>
-          <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide3.jpg')" role="img" aria-label=""></div>
+          <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide3.jpg')"></div></div>
         </div>
       </div>
       <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="Next slide" data-i18n-aria="fwb-next">
@@ -4476,6 +4553,95 @@
           </button>
         </div>
       </div>
+    </section>
+
+    <!-- Flex Carousel — No-scroll state example: 3 Article Tiles, mushroom
+         background. Deliberately only 3 cards (288px each) so this fits
+         without scrolling at any normal desktop width, triggering .is-compact
+         automatically — see handover/flex-carousel-spec.html#no-scroll. -->
+    <section class="ufs-flex-carousel ufs-flex-carousel--mushroom ufs-flex-carousel--article">
+      <div class="ufs-flex-carousel__head">
+        <div class="ufs-flex-carousel__intro">
+          <h2 class="ufs-flex-carousel__title text-h3" data-i18n="carousel-title">Carousel title</h2>
+          <p class="ufs-flex-carousel__desc" data-i18n="carousel-desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+        </div>
+        <button class="btn btn-secondary ufs-flex-carousel__cta" data-i18n="carousel-cta">Discover more items</button>
+      </div>
+
+      <div class="ufs-flex-carousel__track-wrap">
+        <div class="ufs-carousel-track">
+          <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/article.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <span class="ufs-tile__badge">Trending</span>
+            <div class="ufs-tile__content">
+              <div class="ufs-tile__body">
+                <div class="ufs-tile__eyebrow">Trend Watch</div>
+                <h3 class="ufs-tile__title">How to update your menus: new trends and designs</h3>
+                <div class="ufs-tile__meta">
+                  <span class="ufs-tile__meta-item">5 minutes read</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/article.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <span class="ufs-tile__badge">New</span>
+            <div class="ufs-tile__content">
+              <div class="ufs-tile__body">
+                <div class="ufs-tile__eyebrow">Chef Stories</div>
+                <h3 class="ufs-tile__title">Behind the pass: a day in the life of a head chef</h3>
+                <div class="ufs-tile__meta">
+                  <span class="ufs-tile__meta-item">7 minutes read</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/article.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <div class="ufs-tile__content">
+              <div class="ufs-tile__body">
+                <div class="ufs-tile__eyebrow">Sustainability</div>
+                <h3 class="ufs-tile__title">Cutting food waste without cutting corners</h3>
+                <div class="ufs-tile__meta">
+                  <span class="ufs-tile__meta-item">4 minutes read</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="ufs-flex-carousel__foot">
+        <div class="ufs-carousel-dots"></div>
+        <div class="ufs-flex-carousel__arrows">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+        </div>
+      </div>
 
       <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile" data-i18n="carousel-cta">Discover more items</button>
     </section>
@@ -4511,6 +4677,10 @@
         }
         function render() {
           var maxI = maxIndex();
+          /* maxI === 0 means there's nowhere to scroll to — the tiles fit
+             the track already. Toggles the compact/centered desktop layout;
+             inert below 769px since that CSS lives in a min-width query. */
+          root.classList.toggle('is-compact', maxI === 0);
           var dots = dotsWrap.querySelectorAll('.ufs-carousel-dot');
           dots.forEach(function(dot, i) {
             dot.classList.remove('is-active', 'is-near', 'is-far', 'is-edge', 'is-hidden');

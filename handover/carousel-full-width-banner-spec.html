@@ -185,6 +185,7 @@
     .pv-mobile .ufs-fw-banner__track { height: auto !important; display: flex !important; transition: transform 0.35s ease !important; touch-action: pan-y !important; }
     .pv-mobile .ufs-fw-banner__slide { position: relative !important; flex: 0 0 100% !important; width: 100% !important; min-width: 0 !important; flex-direction: column !important; opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; }
     .pv-mobile .ufs-fw-banner__image { order: 1 !important; flex: none !important; width: 100% !important; height: 240px !important; }
+    .pv-mobile .ufs-fw-banner__image-media { animation: none !important; }
     .pv-mobile .ufs-fw-banner__badge { position: absolute !important; top: var(--space-6) !important; inset-inline-start: var(--space-4) !important; z-index: 2; background: rgba(0,0,0,0.7) !important; border: 1px solid rgba(255,255,255,0.5) !important; color: var(--color-salt) !important; }
     .pv-mobile .ufs-fw-banner__panel { order: 2 !important; flex: 1 1 auto !important; padding: var(--space-8) var(--space-4) !important; padding-bottom: var(--space-16) !important; gap: var(--space-2) !important; }
     .pv-mobile .ufs-fw-banner__panel .btn { margin-top: var(--space-2) !important; }
@@ -280,7 +281,20 @@
       --carousel-arrow-active-bg: rgba(34,29,55,0.25);
     }
 
-    .ufs-fw-banner__image { flex: 1 1 60%; min-width: 0; background-size: cover; background-position: center; }
+    /* Split into a fixed-size clipping box (.ufs-fw-banner__image) and an
+       inner layer that actually paints the photo (.ufs-fw-banner__image-media)
+       — the desktop zoom-in effect below scales the inner layer via
+       transform, which composites on the GPU and stays smooth, but a
+       transform escapes its own box and is only ever clipped by an
+       ancestor's overflow:hidden, not by overflow:hidden on itself. Without
+       this split the zoomed image would bleed into the panel next to it. */
+    .ufs-fw-banner__image { flex: 1 1 60%; min-width: 0; position: relative; overflow: hidden; }
+    .ufs-fw-banner__image-media { position: absolute; inset: 0; background-size: cover; background-position: center; }
+
+    @keyframes ufs-fw-banner-zoom {
+      from { transform: scale(1); }
+      to { transform: scale(1.08); }
+    }
 
     .ufs-fw-banner .ufs-carousel-arrow--prev {
       position: absolute; top: 50%; inset-inline-start: var(--space-8); transform: translateY(-50%); z-index: 3;
@@ -311,9 +325,18 @@
       .ufs-fw-banner__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); }
       .ufs-fw-banner .ufs-carousel-arrow { width: var(--space-12); height: var(--space-12); }
       .ufs-fw-banner.is-single-slide .ufs-fw-banner__panel { padding-inline-start: var(--space-24); }
+      /* Desktop-only Ken Burns zoom: restarts every time a slide becomes
+         active (re-adding .is-active retriggers the CSS animation), and
+         holds at the zoomed-in scale once it finishes (animation-fill-mode:
+         forwards) rather than resetting or looping. */
+      .ufs-fw-banner__slide.is-active .ufs-fw-banner__image-media {
+        animation: ufs-fw-banner-zoom 8s ease-out forwards;
+        will-change: transform;
+      }
     }
     @media (prefers-reduced-motion: reduce) {
       .ufs-fw-banner__slide, .ufs-fw-banner__track { transition: none; }
+      .ufs-fw-banner__image-media { animation: none; }
     }
     .ufs-fw-banner__scrim {
       position: absolute; left: 0; right: 0; bottom: 0; height: 120px; z-index: 1; pointer-events: none;
@@ -442,11 +465,13 @@
       <a href="#swipe-mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Swipe — Mobile</a>
       <a href="#uniform-height" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Uniform Slide Height</a>
       <a href="#badge-mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Badge — Mobile Positioning</a>
+      <a href="#image-zoom" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Image Zoom — Desktop</a>
       <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
       <a href="#responsive" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop vs. Mobile</a>
       <div class="sidebar-group-label" style="margin-top:8px">Reused Components</div>
       <a href="#arrows" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Arrows &amp; Pagination</a>
       <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#color-variants" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Background Color</a>
       <a href="#single-slide" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Single Slide</a>
       <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
       <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
@@ -534,7 +559,7 @@
                 <p class="ufs-fw-banner__desc text-body-sm">Receba gratuitamente dicas e insights personalizados para os desafios do seu negócio — desde otimização de cardápio até controle de custos — com base na nossa pesquisa de tendências culinárias para 2026.</p>
                 <a href="#" class="btn btn-primary">Explorar Agora</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide1.jpg')"></div></div>
             </div>
             <div class="ufs-fw-banner__slide ufs-fw-banner__slide--aubergine" data-fw-slide="1" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
@@ -543,7 +568,7 @@
                 <p class="ufs-fw-banner__desc text-body-sm">Throughout the year, UFS speaks to hundreds of chefs across Australia and New Zealand — insight into how customer preferences evolve.</p>
                 <a href="#" class="btn btn-primary">Explore Products</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide2.jpg')"></div></div>
             </div>
             <div class="ufs-fw-banner__slide ufs-fw-banner__slide--mushroom" data-fw-slide="2" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
@@ -552,7 +577,7 @@
                 <p class="ufs-fw-banner__desc text-body-sm">A free online module built for working chefs — practical techniques you can use on shift tonight.</p>
                 <a href="#" class="btn btn-primary">Start Learning</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide3.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide3.jpg')"></div></div>
             </div>
           </div>
           <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="Next slide">
@@ -578,7 +603,7 @@
                 <p class="ufs-fw-banner__desc text-body-sm">Receba gratuitamente dicas e insights personalizados para os desafios do seu negócio — desde otimização de cardápio até controle de custos — com base na nossa pesquisa de tendências culinárias para 2026.</p>
                 <a href="#" class="btn btn-primary">Explorar Agora</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide1.jpg')"></div></div>
             </div>
             <div class="ufs-fw-banner__slide ufs-fw-banner__slide--aubergine" data-fw-slide="1" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
@@ -587,7 +612,7 @@
                 <p class="ufs-fw-banner__desc text-body-sm">Throughout the year, UFS speaks to hundreds of chefs across Australia and New Zealand — insight into how customer preferences evolve.</p>
                 <a href="#" class="btn btn-primary">Explore Products</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide2.jpg')"></div></div>
             </div>
             <div class="ufs-fw-banner__slide ufs-fw-banner__slide--mushroom" data-fw-slide="2" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
@@ -596,7 +621,7 @@
                 <p class="ufs-fw-banner__desc text-body-sm">A free online module built for working chefs — practical techniques you can use on shift tonight.</p>
                 <a href="#" class="btn btn-primary">Start Learning</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide3.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide3.jpg')"></div></div>
             </div>
           </div>
           <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="Next slide">
@@ -653,7 +678,7 @@
         <div class="card-desc" style="margin-bottom:12px">Dark (<code>--color-brand-dark</code>), 40% width on desktop via <code>flex: 0 0 40%</code>. Left/start padding is <code>120px</code> to clear the persistent prev arrow floating over it. On mobile the same <code>flex: 0 0 40%</code> would be read as a <em>height</em> basis instead (the slide switches to <code>flex-direction: column</code>) — overridden to <code>flex: 1 1 auto</code> there. Contains, in order: badge, title (<code>text-h2</code>), description (<code>text-body-sm</code>), CTA (<code>.btn.btn-primary</code>).</div>
 
         <div class="card-subtitle">Image — <code>.ufs-fw-banner__image</code></div>
-        <div class="card-desc">A plain <code>background-image</code> div (not <code>&lt;img&gt;</code>), 60% width on desktop, fixed <code>240px</code> tall on mobile (stacked above the panel via <code>order: 1</code>).</div>
+        <div class="card-desc">A clipping box, 60% width on desktop, fixed <code>240px</code> tall on mobile (stacked above the panel via <code>order: 1</code>). The actual <code>background-image</code> div (not <code>&lt;img&gt;</code>) is a nested <code>.ufs-fw-banner__image-media</code> that fills it via <code>position: absolute; inset: 0</code> — kept separate from the clipping box so the desktop-only Ken Burns zoom (<code>transform: scale(1 → 1.08)</code> over 8s while the slide is <code>.is-active</code>) can't bleed into the panel next to it. A transform escapes its own box and is only ever clipped by an ancestor's <code>overflow: hidden</code>, never by overflow:hidden on itself.</div>
 
         <div class="code-block-wrap">
           <div class="code-tabs">
@@ -673,7 +698,9 @@
         <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__desc text-body-sm"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"fwb-desc-0"</span><span class="t-tag">&gt;</span>Receba gratuitamente…<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
         <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span> <span class="t-at">data-i18n</span>=<span class="t-str">"fwb-cta-0"</span><span class="t-tag">&gt;</span>Explorar Agora<span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span>
       <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
-      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__image"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('images/carousel/slide1.jpg')"</span> <span class="t-at">role</span>=<span class="t-str">"img"</span> <span class="t-at">aria-label</span>=<span class="t-str">""</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__image"</span> <span class="t-at">role</span>=<span class="t-str">"img"</span> <span class="t-at">aria-label</span>=<span class="t-str">""</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__image-media"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('images/carousel/slide1.jpg')"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
     <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
     <span class="t-cm">&lt;!-- …2 more .ufs-fw-banner__slide siblings, aria-hidden="true" --&gt;</span>
   <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
@@ -703,7 +730,14 @@
   <span class="t-pr">padding-inline-end</span>: <span class="t-va">var(--space-16)</span>;
   <span class="t-pr">padding-inline-start</span>: <span class="t-vl">120px</span>; <span class="t-cm">/* clears the prev arrow */</span>
 }
-<span class="t-cls">.ufs-fw-banner__image</span> { <span class="t-pr">flex</span>: <span class="t-vl">1 1 60%</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; <span class="t-pr">background-size</span>: <span class="t-vl">cover</span>; <span class="t-pr">background-position</span>: <span class="t-vl">center</span>; }</pre>
+<span class="t-cls">.ufs-fw-banner__image</span> { <span class="t-pr">flex</span>: <span class="t-vl">1 1 60%</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-cls">.ufs-fw-banner__image-media</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background-size</span>: <span class="t-vl">cover</span>; <span class="t-pr">background-position</span>: <span class="t-vl">center</span>; }
+
+<span class="t-cm">/* Desktop only — restarts each time .is-active is (re)applied */</span>
+<span class="t-pr">@keyframes</span> <span class="t-va">ufs-fw-banner-zoom</span> { <span class="t-vl">from</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1)</span>; } <span class="t-vl">to</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.08)</span>; } }
+<span class="t-cls">.ufs-fw-banner__slide.is-active .ufs-fw-banner__image-media</span> {
+  <span class="t-pr">animation</span>: <span class="t-vl">ufs-fw-banner-zoom 8s ease-out forwards</span>;
+}</pre>
           </div>
         </div>
       </div>
@@ -914,6 +948,43 @@ track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
 
 
     <!-- ═══════════════════════════════════════
+         IMAGE ZOOM — DESKTOP
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="image-zoom">
+      <div class="section-breadcrumb">Behaviour</div>
+      <h2 class="section-title">Image Zoom — Desktop</h2>
+      <p class="section-desc">On desktop only, each slide's photo slowly scales from <code>1.0</code> to <code>1.08</code> over 8 seconds (Ken Burns-style) once the slide becomes active — see any slide in the <a href="#overview">Full Component Preview</a> above. The animation restarts every time a slide (re)becomes active, and holds at the zoomed-in scale once it finishes rather than resetting or looping.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Why the image needs an inner wrapper</div>
+        <div class="card-desc"><code>.ufs-fw-banner__image</code> is a fixed-size clipping box (<code>position: relative; overflow: hidden</code>); the photo itself lives on a nested <code>.ufs-fw-banner__image-media</code> that gets scaled via <code>transform</code>. A CSS transform escapes its own box and is only ever clipped by an <strong>ancestor's</strong> <code>overflow: hidden</code> — never by overflow:hidden on the transformed element itself — so scaling <code>.ufs-fw-banner__image</code> directly would bleed the zoomed photo into the panel next to it.</div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cls">.ufs-fw-banner__image</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; } <span class="t-cm">/* clips */</span>
+<span class="t-cls">.ufs-fw-banner__image-media</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; } <span class="t-cm">/* paints + scales */</span>
+
+<span class="t-pr">@keyframes</span> <span class="t-va">ufs-fw-banner-zoom</span> { <span class="t-vl">from</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1)</span>; } <span class="t-vl">to</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.08)</span>; } }
+
+@media (min-width: 769px) {
+  <span class="t-cls">.ufs-fw-banner__slide.is-active .ufs-fw-banner__image-media</span> {
+    <span class="t-pr">animation</span>: <span class="t-vl">ufs-fw-banner-zoom 8s ease-out forwards</span>;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  <span class="t-cls">.ufs-fw-banner__image-media</span> { <span class="t-pr">animation</span>: <span class="t-vl">none</span>; }
+}</pre>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Re-adding <code>.is-active</code> to a slide that had it removed naturally restarts the CSS animation from <code>0%</code> — no JS timing hooks needed, the browser treats it as a fresh animation. <code>animation-fill-mode: forwards</code> is what makes it hold at <code>scale(1.08)</code> once the 8s finishes instead of snapping back to <code>1.0</code>.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
          DESKTOP VS MOBILE
     ═══════════════════════════════════════ -->
     <section class="doc-section" id="responsive">
@@ -972,6 +1043,90 @@ track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
     </section>
 
 
+    <!-- ═══════════════════════════════════════
+         BACKGROUND COLOR VARIANTS
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="color-variants">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Background Color</h2>
+      <p class="section-desc">The panel's background is a modifier on <code>.ufs-fw-banner__slide</code> itself, applied per-slide — a single carousel can freely mix colors across its own slides. A slide with no modifier class keeps the default dark look (<code>--color-brand-dark</code>, Squid Ink). Two named variants are available today: <code>--aubergine</code> and <code>--mushroom</code>.</p>
+
+      <div class="pv-label">Live demo — cycle through to see each variant, including the prev-arrow and mobile dots following along</div>
+      <div class="pv-full-bleed">
+        <section class="ufs-fw-banner" aria-roledescription="carousel" aria-label="Featured promotions" id="spec-fwb-variants">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" data-fw-prev aria-label="Previous slide">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__track">
+            <div class="ufs-fw-banner__slide is-active" data-fw-slide="0">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">New Arrival</span>
+                <h3 class="ufs-fw-banner__title text-h2">Default — Squid Ink</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">No modifier class. --color-brand-dark panel, white text and badge, white/40% prev-arrow border.</p>
+                <a href="#" class="btn btn-primary">Explore Products</a>
+              </div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide1.jpg')"></div></div>
+            </div>
+            <div class="ufs-fw-banner__slide ufs-fw-banner__slide--aubergine" data-fw-slide="1" aria-hidden="true">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">Promotion</span>
+                <h3 class="ufs-fw-banner__title text-h2">.ufs-fw-banner__slide--aubergine</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">--color-aubergine panel. Text, badge and prev-arrow stay white — same treatment as the default, only the panel color changes.</p>
+                <a href="#" class="btn btn-primary">Explore Products</a>
+              </div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide2.jpg')"></div></div>
+            </div>
+            <div class="ufs-fw-banner__slide ufs-fw-banner__slide--mushroom" data-fw-slide="2" aria-hidden="true">
+              <div class="ufs-fw-banner__panel">
+                <span class="ufs-fw-banner__badge">Free Training</span>
+                <h3 class="ufs-fw-banner__title text-h2">.ufs-fw-banner__slide--mushroom</h3>
+                <p class="ufs-fw-banner__desc text-body-sm">--color-mushroom-100 panel. Title, description, badge and the prev-arrow all switch to dark text/borders for contrast on the light background.</p>
+                <a href="#" class="btn btn-primary">Explore Products</a>
+              </div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide3.jpg')"></div></div>
+            </div>
+          </div>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="Next slide">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <div class="ufs-fw-banner__scrim"></div>
+          <div class="ufs-carousel-dots"></div>
+          <div class="ufs-fw-banner__sr-status" aria-live="polite" data-fw-status></div>
+        </section>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">What each variant changes</div>
+        <div class="card-desc" style="margin-bottom:12px">Everything else — layout, spacing, the primary CTA button, the next-arrow and dots on desktop (both sit over the photo, never the panel) — is identical across every variant.</div>
+        <div class="variant-table-wrap">
+          <table class="variant-table">
+            <thead><tr><th>Property</th><th>Default</th><th>--aubergine</th><th>--mushroom</th></tr></thead>
+            <tbody>
+              <tr><td>Panel background</td><td>--color-brand-dark</td><td>--color-aubergine</td><td>--color-mushroom-100</td></tr>
+              <tr><td>Title / description</td><td>white</td><td>white</td><td>--color-brand-dark</td></tr>
+              <tr><td>Badge (desktop)</td><td class="wrap-ok">white/10% bg, white text</td><td class="wrap-ok">same as default</td><td class="wrap-ok">grey/10% bg, dark border &amp; text</td></tr>
+              <tr><td>Badge (mobile)</td><td class="wrap-ok" colspan="3">unchanged in every variant — always the dark glass pill floating over the photo, see <a href="#badge-mobile">Badge — Mobile Positioning</a></td></tr>
+              <tr><td>Prev-arrow</td><td class="wrap-ok">white/40% border</td><td class="wrap-ok">same as default</td><td class="wrap-ok">dark (Squid Ink) border/icon</td></tr>
+              <tr><td>Inactive dots (mobile)</td><td>white</td><td>white</td><td>--color-squid-300</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>The prev-arrow and the mobile pagination dots are persistent chrome that live <strong>outside</strong> the slide track (see <a href="#anatomy">Anatomy</a>) — they can't inherit color from a slide through a normal descendant selector. Both instead use <code>.ufs-fw-banner:has(.ufs-fw-banner__slide--mushroom.is-active) …</code>, so they follow whichever slide is currently active without any JS.</div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML — applying a variant</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-fw-banner__slide ufs-fw-banner__slide--mushroom"</span> <span class="t-at">data-fw-slide</span>=<span class="t-str">"1"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+  …
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+      </div>
+    </section>
+
+
     <!-- ═══════════════════════════════════════ SINGLE SLIDE ═══════════════════════════════════════ -->
     <section class="doc-section" id="single-slide">
       <div class="section-breadcrumb">Variants</div>
@@ -992,7 +1147,7 @@ track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
                 <p class="ufs-fw-banner__desc text-body-sm">Throughout the year, UFS speaks to hundreds of chefs across Australia and New Zealand — insight into how customer preferences evolve.</p>
                 <a href="#" class="btn btn-primary">Explore Products</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide2.jpg')"></div></div>
             </div>
           </div>
           <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="Next slide">
@@ -1049,7 +1204,7 @@ track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
                 <p class="ufs-fw-banner__desc text-body-sm">احصل مجانًا على نصائح ورؤى مخصصة لتحديات عملك — من تحسين القائمة إلى ضبط التكاليف — استنادًا إلى بحثنا حول اتجاهات الطهي لعام 2026.</p>
                 <a href="#" class="btn btn-primary">استكشف الآن</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide1.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide1.jpg')"></div></div>
             </div>
             <div class="ufs-fw-banner__slide ufs-fw-banner__slide--aubergine" data-fw-slide="1" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
@@ -1058,7 +1213,7 @@ track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
                 <p class="ufs-fw-banner__desc text-body-sm">على مدار العام، تتواصل UFS مع مئات الطهاة في أستراليا ونيوزيلندا — لفهم كيف تتطور تفضيلات العملاء.</p>
                 <a href="#" class="btn btn-primary">استكشف المنتجات</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide2.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide2.jpg')"></div></div>
             </div>
             <div class="ufs-fw-banner__slide ufs-fw-banner__slide--mushroom" data-fw-slide="2" aria-hidden="true">
               <div class="ufs-fw-banner__panel">
@@ -1067,7 +1222,7 @@ track.addEventListener(<span class="t-str">'touchcancel'</span>, endDrag);</pre>
                 <p class="ufs-fw-banner__desc text-body-sm">وحدة تدريبية مجانية عبر الإنترنت مصممة للطهاة العاملين — تقنيات عملية يمكنك استخدامها في نوبتك الليلة.</p>
                 <a href="#" class="btn btn-primary">ابدأ التعلم</a>
               </div>
-              <div class="ufs-fw-banner__image" style="background-image:url('images/carousel/slide3.jpg')" role="img" aria-label=""></div>
+              <div class="ufs-fw-banner__image" role="img" aria-label=""><div class="ufs-fw-banner__image-media" style="background-image:url('images/carousel/slide3.jpg')"></div></div>
             </div>
           </div>
           <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" data-fw-next aria-label="الشريحة التالية">

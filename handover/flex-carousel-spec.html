@@ -306,6 +306,46 @@
     .ufs-carousel-arrow:active:not(:disabled) { background: var(--carousel-arrow-active-bg); }
     .ufs-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
 
+    /* No-scroll / "compact" state — activates automatically (via JS in
+       initFlexCarousel below) whenever the tiles fit the track without
+       needing to scroll. This is a function of measured overflow
+       (track.scrollWidth vs clientWidth), not a fixed tile count, since
+       whether N tiles overflow depends on the viewport too — the same
+       tile set can scroll at 1280px and not need to at 1920px. Desktop
+       only; mobile keeps its swipeable layout regardless (its own dot
+       logic already collapses to a single, non-interactive dot when
+       there's nothing to page through). */
+    @media (min-width: 769px) {
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__head {
+        flex-direction: column; align-items: center; text-align: center;
+      }
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__intro { max-width: 720px; }
+      /* Scoped to inside .head specifically — the mobile CTA below also
+         carries the plain .ufs-flex-carousel__cta class (for its color/
+         border styling), so an unscoped selector here would hide it too. */
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__head .ufs-flex-carousel__cta {
+        display: none;
+      }
+      /* Reuses the mobile CTA element rather than adding a third button —
+         auto-width and centered here, unlike its width:100% mobile
+         treatment (a different, non-overlapping media query range). */
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__cta--mobile {
+        display: inline-flex; width: auto; align-self: center;
+      }
+      /* The bleed (negative margins + leading spacer) exists only to let
+         the track scroll flush to the true screen edge — meaningless once
+         nothing scrolls, and the spacer's own width would throw off true
+         centering if left in place. */
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__track-wrap {
+        margin-left: 0; margin-right: 0;
+      }
+      .ufs-flex-carousel.is-compact .ufs-carousel-track {
+        justify-content: center; padding: 0; overflow: visible;
+      }
+      .ufs-flex-carousel.is-compact .ufs-carousel-spacer { display: none; }
+      .ufs-flex-carousel.is-compact .ufs-flex-carousel__foot { display: none; }
+    }
+
     /* Colour variants — pure token swaps against the custom properties above.
        "Image" additionally needs a background image + overlay, and blurs the
        (still-transparent) card placeholders for the frosted-glass look. */
@@ -420,6 +460,7 @@
       <div class="sidebar-group-label" style="margin-top:8px">Behaviour</div>
       <a href="#bleed" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Edge-to-Edge Bleed</a>
       <a href="#interaction" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Interaction &amp; Scroll</a>
+      <a href="#no-scroll" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> No-Scroll State</a>
       <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
       <a href="#responsive" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop vs. Mobile</a>
       <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
@@ -1013,7 +1054,7 @@
         <div class="card-title">Scroll granularity</div>
         <div class="card-desc">One card at a time. <code>stepSize()</code> measures the live distance between the first two rendered cards (not a hardcoded width + gap), so it stays correct even if card size or spacing changes. An arrow click or dot click calls <code>track.scrollTo({ left: index * stepSize(), behavior: 'smooth' })</code>.</div>
         <div class="card-title" style="margin-top:20px">Bounds</div>
-        <div class="card-desc"><code>maxIndex()</code> derives the last valid stop from <code>track.scrollWidth - track.clientWidth</code> divided by the step — not from card count — so it also adapts if the viewport is wide enough to show most/all cards already (fewer, or zero, reachable stops).</div>
+        <div class="card-desc"><code>maxIndex()</code> derives the last valid stop from <code>track.scrollWidth - track.clientWidth</code> divided by the step — not from card count — so it also adapts if the viewport is wide enough to show most/all cards already (fewer, or zero, reachable stops). A result of <code>0</code> — nothing to scroll to — triggers a whole layout change on desktop; see <a href="#no-scroll">No-Scroll State</a>.</div>
         <div class="card-title" style="margin-top:20px">Swipe / native scroll</div>
         <div class="card-desc" style="margin-bottom:0">The track is a plain <code>overflow-x: auto</code> element — touch swipe and trackpad scroll work natively, no custom drag JS. A <code>scroll</code> listener keeps the pagination in sync, throttled with <code>requestAnimationFrame</code> rather than a post-scroll debounce, so dots track the gesture live instead of updating only once it settles (important on mobile, where the dots are the only visible control since arrows are hidden there).</div>
 
@@ -1042,6 +1083,8 @@
                 }
                 <span class="t-kw">function</span> render() {
                   <span class="t-kw">var</span> maxI = maxIndex();
+                  <span class="t-cm">/* maxI === 0 → nothing to scroll to. See "No-Scroll State" below. */</span>
+                  root.classList.toggle(<span class="t-str">'is-compact'</span>, maxI === 0);
                   <span class="t-kw">var</span> dots = dotsWrap.<span class="t-kw">querySelectorAll</span>(<span class="t-str">'.ufs-carousel-dot'</span>);
                   dots.<span class="t-kw">forEach</span>(<span class="t-kw">function</span>(dot, i) {
                     dot.classList.remove(<span class="t-str">'is-active'</span>, <span class="t-str">'is-near'</span>, <span class="t-str">'is-far'</span>, <span class="t-str">'is-edge'</span>, <span class="t-str">'is-hidden'</span>);
@@ -1110,6 +1153,100 @@
       <div class="notice notice--info">
         <span class="notice-icon">ℹ️</span>
         <div>Deliberately no drag-to-scroll JS for mouse/desktop — arrows and dots are the supported desktop interaction. Native touch/trackpad scrolling still works everywhere since the track is a real scroll container; this is a scope decision, not a technical limitation, and can be added later if needed.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
+         NO-SCROLL STATE
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="no-scroll">
+      <div class="section-breadcrumb">Behaviour</div>
+      <h2 class="section-title">No-Scroll State</h2>
+      <p class="section-desc">Automatic on desktop, driven purely by measured overflow — whenever <code>maxIndex()</code> resolves to <code>0</code> (the cards already fit the track, nothing to scroll to), <code>render()</code> adds <code>.is-compact</code> to the root. No modifier class to remember, no tile-count threshold to configure: the same 3-card carousel can be scrollable in a narrow column and non-scrollable in a wide one, and it adapts on resize like everything else the component already measures.</p>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Mobile is untouched by this — it keeps its swipeable layout regardless of overflow. It doesn't need an equivalent: with nothing to page through, the existing dot logic already collapses to a single, non-interactive dot on its own.</div>
+      </div>
+
+      <div class="pv-label">Live demo — only 3 cards, so this fits without scrolling at any normal desktop width</div>
+      <div class="ds-card" style="max-width:none;padding:0;overflow:hidden;">
+            <section class="ufs-flex-carousel">
+              <div class="ufs-flex-carousel__head">
+                <div class="ufs-flex-carousel__intro">
+                  <h2 class="ufs-flex-carousel__title text-h3">Carousel title</h2>
+                  <p class="ufs-flex-carousel__desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+                </div>
+                <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+              </div>
+
+              <div class="ufs-flex-carousel__track-wrap">
+                <div class="ufs-carousel-track">
+                  <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                  <div class="ufs-carousel-card"></div>
+                </div>
+              </div>
+
+              <div class="ufs-flex-carousel__foot">
+                <div class="ufs-carousel-dots"></div>
+                <div class="ufs-flex-carousel__arrows">
+                  <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                  </button>
+                  <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                    <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+            </section>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">What changes in <code>.is-compact</code> (desktop only, ≥769px)</div>
+        <div class="variant-table-wrap">
+          <table class="variant-table">
+            <thead><tr><th>Element</th><th>Normal</th><th>.is-compact</th></tr></thead>
+            <tbody>
+              <tr><td>Pagination + arrows</td><td class="wrap-ok">visible</td><td class="wrap-ok">display: none — nothing to page through</td></tr>
+              <tr><td>Title + description</td><td class="wrap-ok">left-aligned, shares the head row with the CTA</td><td class="wrap-ok">centered, own row, capped at 720px so it doesn't stretch edge-to-edge</td></tr>
+              <tr><td>CTA</td><td class="wrap-ok">top-right of the head row</td><td class="wrap-ok">moves below the track, auto-width, centered — reuses .ufs-flex-carousel__cta--mobile rather than a third button</td></tr>
+              <tr><td>Track bleed</td><td class="wrap-ok">negative margins + leading spacer, scrolls flush to the true edge</td><td class="wrap-ok">bleed removed, spacer hidden — cards sit centered inside the component's own padding like a normal row</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body">@media (min-width: 769px) {
+  <span class="t-cls">.ufs-flex-carousel.is-compact .ufs-flex-carousel__head</span> {
+    <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>;
+  }
+  <span class="t-cls">.ufs-flex-carousel.is-compact .ufs-flex-carousel__intro</span> { <span class="t-pr">max-width</span>: <span class="t-vl">720px</span>; }
+  <span class="t-cm">/* scoped inside .head — the mobile CTA below also carries the plain
+     .cta class (for its color/border rules), an unscoped selector here
+     would hide it too */</span>
+  <span class="t-cls">.ufs-flex-carousel.is-compact .ufs-flex-carousel__head .ufs-flex-carousel__cta</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+  <span class="t-cls">.ufs-flex-carousel.is-compact .ufs-flex-carousel__cta--mobile</span> {
+    <span class="t-pr">display</span>: <span class="t-vl">inline-flex</span>; <span class="t-pr">width</span>: <span class="t-vl">auto</span>; <span class="t-pr">align-self</span>: <span class="t-vl">center</span>;
+  }
+  <span class="t-cls">.ufs-flex-carousel.is-compact .ufs-flex-carousel__track-wrap</span> { <span class="t-pr">margin-left</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-right</span>: <span class="t-vl">0</span>; }
+  <span class="t-cls">.ufs-flex-carousel.is-compact .ufs-carousel-track</span> {
+    <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span>; <span class="t-pr">overflow</span>: <span class="t-vl">visible</span>;
+  }
+  <span class="t-cls">.ufs-flex-carousel.is-compact .ufs-carousel-spacer</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+  <span class="t-cls">.ufs-flex-carousel.is-compact .ufs-flex-carousel__foot</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+}</pre>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>Overflow can only be measured after layout, so there's an inherent brief-flash risk on first paint (the scrollable layout rendering for a frame before JS confirms it isn't needed) — same class of risk as any JS-driven layout decision. Not eliminated here, just narrow: <code>render()</code> runs synchronously at the end of <code>initFlexCarousel</code>, before the browser's first paint in the common case.</div>
       </div>
     </section>
 
@@ -1646,6 +1783,10 @@
         }
         function render() {
           var maxI = maxIndex();
+          /* maxI === 0 means there's nowhere to scroll to — the tiles fit
+             the track already. Toggles the compact/centered desktop layout;
+             inert below 769px since that CSS lives in a min-width query. */
+          root.classList.toggle('is-compact', maxI === 0);
           var dots = dotsWrap.querySelectorAll('.ufs-carousel-dot');
           dots.forEach(function(dot, i) {
             dot.classList.remove('is-active', 'is-near', 'is-far', 'is-edge', 'is-hidden');
