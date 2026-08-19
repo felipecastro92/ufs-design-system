@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Promo Banner — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.25); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-700); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-700); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.45); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-id  { color: #d2a8ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+    .t-st  { color: #fde68a; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .token-note { color: var(--color-mushroom-700); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: visible; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the Promo Banner's own base (mobile-first) declarations
+       scoped to .pv-mobile with !important, and suppresses its
+       @media (min-width:1024px) desktop rules. Doc-only; not shipped. */
+    .pv-mobile .ufs-promo-banner__image {
+      position: relative !important; inset: auto !important; left: auto !important;
+      aspect-ratio: 390 / 295 !important; width: 100% !important;
+      border-radius: var(--radius-md) var(--radius-xxl) 0 0 !important;
+    }
+    .pv-mobile .ufs-promo-banner { display: block !important; border-radius: var(--radius-md) !important; }
+    .pv-mobile .ufs-promo-banner__panel {
+      flex: none !important; align-items: center !important; text-align: center !important;
+      min-height: 0 !important; gap: var(--space-4) !important;
+      padding: var(--space-8) var(--space-6) var(--space-6) !important;
+      border-radius: 0 !important;
+    }
+    .pv-mobile .ufs-promo-banner__body { align-items: center !important; }
+    .pv-mobile .ufs-promo-banner__logo { height: 22px !important; }
+    .pv-mobile .ufs-promo-banner__title { font-size: var(--text-h3-mob-size) !important; line-height: var(--text-h3-lh) !important; }
+    .pv-mobile .ufs-promo-banner__desc { font-size: var(--text-body-sm-size) !important; }
+    .pv-mobile .ufs-promo-banner__countdown { justify-content: center !important; gap: var(--space-1) !important; }
+    .pv-mobile .ufs-promo-banner__countdown-value { font-size: var(--text-price-xl-mob-size) !important; }
+    .pv-mobile .ufs-promo-banner__ctas { flex-direction: column !important; width: 100% !important; }
+    .pv-mobile .ufs-promo-banner__ctas .btn { width: 100% !important; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html.
+       Promo Banner's CTAs depend on this; not itself part of the spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+
+    /* ═══════════════════════════════════════
+       PROMO BANNER COMPONENT CSS — mirrored 1:1 from
+       handover/full-page-preview-v0.2.html (source of truth)
+    ═══════════════════════════════════════ */
+    .ufs-promo-banner {
+      position: relative;
+      background: var(--color-mushroom-100);
+      border-radius: var(--radius-md);
+    }
+    .ufs-promo-banner__image {
+      position: relative;
+      aspect-ratio: 390 / 295;
+      background-size: cover; background-position: center;
+      border-radius: var(--radius-md) var(--radius-xxl) 0 0;
+    }
+    .ufs-promo-banner__panel {
+      display: flex; flex-direction: column; justify-content: center;
+      align-items: center; text-align: center;
+      gap: var(--space-4);
+      padding: var(--space-8) var(--space-6) var(--space-6);
+    }
+    .ufs-promo-banner__logo { height: 22px; width: auto; }
+    .ufs-promo-banner__body { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); width: 100%; }
+    .ufs-promo-banner__title { color: var(--color-brand-dark); margin: 0; font-size: var(--text-h3-mob-size); line-height: var(--text-h3-lh); }
+    .ufs-promo-banner__desc { color: var(--color-brand-dark); margin: 0; font-size: var(--text-body-sm-size); }
+    .ufs-promo-banner__countdown { display: flex; align-items: center; justify-content: center; gap: var(--space-1); width: 100%; }
+    .ufs-promo-banner__countdown-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ufs-promo-banner__countdown-value { color: var(--color-brand-dark); margin: 0; width: 60px; font-size: var(--text-price-xl-mob-size); }
+    .ufs-promo-banner__countdown-label { color: var(--color-brand-dark); margin: 0; }
+    .ufs-promo-banner__ctas { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+    .ufs-promo-banner__ctas .btn { width: 100%; }
+    .ufs-promo-banner__disclaimer { color: color-mix(in srgb, var(--color-brand-dark) 80%, transparent); margin: 0; }
+    .ufs-promo-banner .btn-secondary { background: var(--color-salt); }
+    .ufs-promo-banner .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: transparent; }
+
+    .ufs-promo-banner--dark { background: var(--color-brand-dark); }
+    .ufs-promo-banner--dark .ufs-promo-banner__title,
+    .ufs-promo-banner--dark .ufs-promo-banner__desc,
+    .ufs-promo-banner--dark .ufs-promo-banner__countdown-value,
+    .ufs-promo-banner--dark .ufs-promo-banner__countdown-label { color: var(--color-salt); }
+    .ufs-promo-banner--dark .ufs-promo-banner__disclaimer { color: color-mix(in srgb, var(--color-salt) 80%, transparent); }
+    .ufs-promo-banner--dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+    .ufs-promo-banner--dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+
+    @media (min-width: 1024px) {
+      .ufs-promo-banner {
+        display: flex;
+        border-radius: var(--radius-xl);
+      }
+      .ufs-promo-banner__panel {
+        flex: 0 0 52%; min-width: 0;
+        align-items: flex-start; text-align: left;
+        min-height: 480px;
+        gap: var(--space-6);
+        padding: var(--space-16) var(--space-16) var(--space-14) var(--space-14);
+        border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+      }
+      .ufs-promo-banner__body { align-items: flex-start; gap: var(--space-4); }
+      .ufs-promo-banner__image {
+        position: absolute; inset: -12px 0 -12px auto; left: 49%;
+        aspect-ratio: auto; width: auto;
+        border-radius: var(--radius-xl) var(--radius-xxxl) var(--radius-xl) var(--radius-xl);
+        z-index: 1;
+      }
+      .ufs-promo-banner__logo { height: 24px; }
+      .ufs-promo-banner__title { font-size: var(--text-h3-size); line-height: var(--text-h3-lh); }
+      .ufs-promo-banner__desc { font-size: var(--text-body-size); }
+      .ufs-promo-banner__countdown { justify-content: flex-start; gap: var(--space-10); }
+      .ufs-promo-banner__countdown-value { text-align: center; font-size: var(--text-price-xl-size); }
+      .ufs-promo-banner__ctas { flex-direction: row; width: auto; }
+      .ufs-promo-banner__ctas .btn { width: auto; }
+      /* RTL — flex order and align-items:flex-start already auto-mirror
+         under dir="rtl"; only the literal-physical values need a flip. */
+      [dir="rtl"] .ufs-promo-banner__panel {
+        text-align: right;
+        border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+      }
+      [dir="rtl"] .ufs-promo-banner__image {
+        left: 0; right: 49%;
+        border-radius: var(--radius-xxxl) var(--radius-xl) var(--radius-xl) var(--radius-xl);
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#layout" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop &amp; Mobile Layout</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#background" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Background</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source of truth: full-page-preview-v0.2.html<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Promo Banner</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Promo <span>Banner</span></h1>
+        <p class="doc-header-desc">Campaign/promotion entry point — full-bleed image + content panel, with an optional countdown, logo and secondary CTA. Stacks on mobile, splits into a "nested pill" layout on desktop. Structure, background variants and responsive rules, documented for implementation.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">full-page-preview-v0.2.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A single <code>&lt;div class="ufs-promo-banner"&gt;</code> — a full-bleed image (never stretched, always cover) paired with a content panel: an optional logo, a title, an optional description, an optional countdown, a primary CTA, an optional secondary CTA, and an optional disclaimer. Mobile stacks the image over the panel; desktop splits them side by side with the image overlapping the panel's edge (see Desktop &amp; Mobile Layout below).</p>
+
+      <div class="pv-light" style="margin-bottom:24px; padding:24px;">
+        <div class="ufs-promo-banner">
+          <div class="ufs-promo-banner__image" style="background-image:url('images/academy/promo-banner-courses.jpg')" role="img" aria-label=""></div>
+          <div class="ufs-promo-banner__panel">
+            <img class="ufs-promo-banner__logo" src="images/academy/ufs-academy-logo.svg" alt="UFS Academy" />
+            <div class="ufs-promo-banner__body">
+              <h2 class="ufs-promo-banner__title text-h2">UFS Academy: Mental Health in Kitchens</h2>
+              <p class="ufs-promo-banner__desc text-body">This series will show you how to take care of yourself and your team to make the kitchen a better working environment for everyone.</p>
+              <div class="ufs-promo-banner__countdown" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
+                <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-promo-banner__countdown-value text-price-xl">18</p>
+                  <p class="ufs-promo-banner__countdown-label text-body-sm">Days</p>
+                </div>
+                <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-promo-banner__countdown-value text-price-xl">23</p>
+                  <p class="ufs-promo-banner__countdown-label text-body-sm">Hours</p>
+                </div>
+                <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-promo-banner__countdown-value text-price-xl">58</p>
+                  <p class="ufs-promo-banner__countdown-label text-body-sm">Minutes</p>
+                </div>
+                <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-promo-banner__countdown-value text-price-xl">16</p>
+                  <p class="ufs-promo-banner__countdown-label text-body-sm">Seconds</p>
+                </div>
+              </div>
+            </div>
+            <div class="ufs-promo-banner__ctas">
+              <button type="button" class="btn btn-primary">Discover All Courses</button>
+              <button type="button" class="btn btn-secondary">How Academy Works?</button>
+            </div>
+            <p class="ufs-promo-banner__disclaimer text-body-xs">*Disclaimer text for specific use cases</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Only the title and primary CTA are required. Logo, description, countdown, secondary CTA and disclaimer are all optional — omit any of them per instance with no CSS changes needed. See the dark variant in Background below for an instance that drops logo, countdown and secondary CTA.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Two top-level children of <code>.ufs-promo-banner</code>: <code>__image</code> (a plain background-image div, cover/center, never stretched) and <code>__panel</code> (everything else). Inside the panel: <code>__logo</code>, a <code>__body</code> wrapping <code>__title</code> / <code>__desc</code> / <code>__countdown</code>, then <code>__ctas</code> and <code>__disclaimer</code> as the panel's other direct children.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Full reference markup</div>
+        <div class="card-desc">Every optional piece included — the baseline every instance is a subset of.</div>
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anatomy-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__image"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('…')"</span> <span class="t-at">role</span>=<span class="t-str">"img"</span> <span class="t-at">aria-label</span>=<span class="t-str">""</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__panel"</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- optional --&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__logo"</span> <span class="t-at">src</span>=<span class="t-str">"…"</span> <span class="t-at">alt</span>=<span class="t-str">"…"</span> <span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__body"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__title text-h2"</span><span class="t-tag">&gt;</span>Title<span class="t-tag">&lt;/h2&gt;</span>
+      <span class="t-cm">&lt;!-- optional --&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__desc text-body"</span><span class="t-tag">&gt;</span>Description<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-cm">&lt;!-- optional --&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__countdown"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Offer ends in…"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__countdown-item"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__countdown-value text-price-xl"</span><span class="t-tag">&gt;</span>18<span class="t-tag">&lt;/p&gt;</span>
+          <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__countdown-label text-body-sm"</span><span class="t-tag">&gt;</span>Days<span class="t-tag">&lt;/p&gt;</span>
+        <span class="t-tag">&lt;/div&gt;</span>
+        <span class="t-cm">&lt;!-- …Hours / Minutes / Seconds, same shape --&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__ctas"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span><span class="t-tag">&gt;</span>Primary CTA<span class="t-tag">&lt;/button&gt;</span>
+      <span class="t-cm">&lt;!-- optional --&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary"</span><span class="t-tag">&gt;</span>Secondary CTA<span class="t-tag">&lt;/button&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-cm">&lt;!-- optional --&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__disclaimer text-body-xs"</span><span class="t-tag">&gt;</span>*Disclaimer text<span class="t-tag">&lt;/p&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anatomy-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-promo-banner</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>; }
+<span class="t-pr">.ufs-promo-banner__image</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">390 / 295</span>;
+  <span class="t-pr">background-size</span>: <span class="t-vl">cover</span>; <span class="t-pr">background-position</span>: <span class="t-vl">center</span>;
+  <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md) var(--radius-xxl)</span> <span class="t-vl">0 0</span>;
+}
+<span class="t-pr">.ufs-promo-banner__panel</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>;
+  <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>;
+  <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-8) var(--space-6) var(--space-6)</span>;
+}
+<span class="t-pr">.ufs-promo-banner__logo</span> { <span class="t-pr">height</span>: <span class="t-vl">22px</span>; <span class="t-pr">width</span>: <span class="t-vl">auto</span>; }
+<span class="t-pr">.ufs-promo-banner__body</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-promo-banner__title</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h3-mob-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h3-lh)</span>; }
+<span class="t-pr">.ufs-promo-banner__desc</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; }
+<span class="t-pr">.ufs-promo-banner__countdown</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-promo-banner__countdown-item</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-promo-banner__countdown-value</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">60px</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-price-xl-mob-size)</span>; }
+<span class="t-pr">.ufs-promo-banner__countdown-label</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-promo-banner__ctas</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-promo-banner__ctas .btn</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-promo-banner__disclaimer</span> { <span class="t-pr">color</span>: <span class="t-vl">color-mix(in srgb, var(--color-brand-dark) 80%, transparent)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+<span class="t-cm">/* Transparent .btn-secondary would be invisible on this component's own
+   mushroom-100 background — same white-fill pattern used by the filters
+   bar and recipes carousel. */</span>
+<span class="t-pr">.ufs-promo-banner .btn-secondary</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-promo-banner .btn-secondary:hover:not(:disabled):not(.btn-loading)</span> { <span class="t-pr">background</span>: <span class="t-vl">transparent</span>; }</pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Card background</span><span class="token-var">--color-mushroom-100</span><span class="token-note">→ --color-brand-dark on the dark variant</span></div>
+          <div class="token-row"><span class="token-prop">Card radius</span><span class="token-var">--radius-md</span><span class="token-note">→ --radius-xl at the 1024px desktop breakpoint</span></div>
+          <div class="token-row"><span class="token-prop">Image aspect / radius</span><span class="token-var">390 / 295, --radius-xxl</span><span class="token-note">mobile only — desktop image is absolutely positioned, see Layout</span></div>
+          <div class="token-row"><span class="token-prop">Panel padding</span><span class="token-var">--space-8 --space-6 --space-6</span><span class="token-note">mobile; --space-16/--space-14 desktop, see Layout</span></div>
+          <div class="token-row"><span class="token-prop">Title size</span><span class="token-var">--text-h3-mob-size / --text-h3-size</span><span class="token-note">24px mobile / 30px desktop — h3 scale at both breakpoints, not h2</span></div>
+          <div class="token-row"><span class="token-prop">Description size</span><span class="token-var">--text-body-sm-size / --text-body-size</span><span class="token-note">14px mobile / 16px desktop</span></div>
+          <div class="token-row"><span class="token-prop">Countdown value size</span><span class="token-var">--text-price-xl-mob-size / -xl-size</span><span class="token-note">28px mobile / 36px desktop</span></div>
+          <div class="token-row"><span class="token-prop">Logo height</span><span class="token-var">22px / 24px</span><span class="token-note">mobile / desktop</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>The title uses the <strong>h3</strong> type scale (<code>--text-h3-size</code>/<code>-mob-size</code>/<code>-lh</code>) at every breakpoint, not h2, despite the <code>text-h2</code> class still present in markup — that class now only supplies letter-spacing and font-weight (identical between h2 and h3), since <code>__title</code>'s own font-size and line-height declarations override the utility class's values at both breakpoints. Don't remove the <code>text-h2</code> class; it's still supplying those other properties.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DESKTOP & MOBILE LAYOUT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="layout">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Desktop &amp; Mobile Layout</h2>
+      <p class="section-desc">Mobile stacks the image above the panel in normal flow. At the <code>1024px</code> breakpoint, the card becomes a flex row: the panel takes a fixed 52% and the image is pulled out of flow to fill the remainder — <strong>not a flush 48/52 split</strong>. The image is absolutely positioned 12px past the panel's top and bottom edges and extends slightly past its right edge, so the image's own large top-right radius sits on top of the panel and reveals the mushroom background underneath it — a deliberate "nested pill" seam.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Why the image is <code>position: absolute</code> at desktop</div>
+        <div class="card-desc">A layout detail worth flagging for anyone extending this component.</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Panel</span><span class="token-var">flex: 0 0 52%</span><span class="token-note">the only in-flow child — its rendered height drives the card's height</span></div>
+          <div class="token-row"><span class="token-prop">Image</span><span class="token-var">position: absolute; inset: -12px 0 -12px auto; left: 49%</span><span class="token-note">tracks the panel's height rather than the other way around; 24px taller than the panel (12px overlap top + bottom)</span></div>
+          <div class="token-row"><span class="token-prop">Image radius</span><span class="token-var">--radius-xl --radius-xxxl --radius-xl --radius-xl</span><span class="token-note">large radius only on the top-right corner — the "nested pill" accent</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Because the image is out of flow at desktop, the panel's own <code>min-height: 480px</code> is what actually guarantees the card doesn't collapse if the image fails to load or the content is short — don't remove it when customizing panel content.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ BACKGROUND ═══════════════════════════════════════ -->
+    <section class="doc-section" id="background">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Background</h2>
+      <p class="section-desc">One colour modifier, <code>--dark</code>, swaps the card to a squid-ink (<code>--color-brand-dark</code>) background and flips the title/description/countdown text to salt for contrast; the eyebrow-equivalent logo is unaffected by CSS since it's an image, not styled text. The secondary button also switches from its light-surface white-fill treatment to a transparent/salt-outline style.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Default — mushroom-100 background (no modifier)</div>
+        <div class="pv-light" style="margin-bottom:20px; padding:24px;">
+          <div class="ufs-promo-banner">
+            <div class="ufs-promo-banner__image" style="background-image:url('images/academy/promo-banner-courses.jpg')" role="img" aria-label=""></div>
+            <div class="ufs-promo-banner__panel">
+              <img class="ufs-promo-banner__logo" src="images/academy/ufs-academy-logo.svg" alt="UFS Academy" />
+              <div class="ufs-promo-banner__body">
+                <h2 class="ufs-promo-banner__title text-h2">UFS Academy: Mental Health in Kitchens</h2>
+                <p class="ufs-promo-banner__desc text-body">This series will show you how to take care of yourself and your team to make the kitchen a better working environment for everyone.</p>
+                <div class="ufs-promo-banner__countdown" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">18</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">Days</p>
+                  </div>
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">23</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">Hours</p>
+                  </div>
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">58</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">Minutes</p>
+                  </div>
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">16</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">Seconds</p>
+                  </div>
+                </div>
+              </div>
+              <div class="ufs-promo-banner__ctas">
+                <button type="button" class="btn btn-primary">Discover All Courses</button>
+                <button type="button" class="btn btn-secondary">How Academy Works?</button>
+              </div>
+              <p class="ufs-promo-banner__disclaimer text-body-xs">*Disclaimer text for specific use cases</p>
+            </div>
+          </div>
+        </div>
+        <div class="pv-label"><code>--dark</code> modifier</div>
+        <div class="pv-light" style="padding:24px;">
+          <div class="ufs-promo-banner ufs-promo-banner--dark">
+            <div class="ufs-promo-banner__image" style="background-image:url('images/academy/K_GPP_5120.jpg')" role="img" aria-label=""></div>
+            <div class="ufs-promo-banner__panel">
+              <div class="ufs-promo-banner__body">
+                <h2 class="ufs-promo-banner__title text-h2">UFS Academy: Mental Health in Kitchens</h2>
+                <p class="ufs-promo-banner__desc text-body">This series will show you how to take care of yourself and your team to make the kitchen a better working environment for everyone.</p>
+              </div>
+              <div class="ufs-promo-banner__ctas">
+                <button type="button" class="btn btn-primary">Discover All Courses</button>
+              </div>
+              <p class="ufs-promo-banner__disclaimer text-body-xs">*Disclaimer text for specific use cases</p>
+            </div>
+          </div>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-promo-banner--dark</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-promo-banner--dark .ufs-promo-banner__title,
+.ufs-promo-banner--dark .ufs-promo-banner__desc,
+.ufs-promo-banner--dark .ufs-promo-banner__countdown-value,
+.ufs-promo-banner--dark .ufs-promo-banner__countdown-label</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-promo-banner--dark .ufs-promo-banner__disclaimer</span> { <span class="t-pr">color</span>: <span class="t-vl">color-mix(in srgb, var(--color-salt) 80%, transparent)</span>; }
+<span class="t-pr">.ufs-promo-banner--dark .btn-secondary</span> { <span class="t-pr">background</span>: <span class="t-vl">transparent</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border-color</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-promo-banner--dark .btn-secondary:hover:not(:disabled):not(.btn-loading)</span> { <span class="t-pr">background</span>: <span class="t-vl">color-mix(in srgb, var(--color-salt) 10%, transparent)</span>; }</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>The <code>--dark</code> modifier only recolours text and controls — it doesn't remove the logo, countdown or secondary CTA. The shipped dark instance omits those as a <strong>content choice</strong>: the <code>ufs-academy-logo.svg</code> asset has a black wordmark that goes invisible on a dark background. If a dark instance needs the logo, use a light/reversed logo asset instead of relying on the modifier to fix contrast automatically.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">Below the <code>1024px</code> breakpoint, the card stacks: image on top at a fixed 390:295 aspect ratio, panel below it in normal flow, everything centred. Padding tightens and the title, description and countdown values all drop a size step.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Default, forced mobile layout</div>
+        <div class="pv-mobile" style="margin:0 0 24px;">
+          <div class="ufs-promo-banner">
+            <div class="ufs-promo-banner__image" style="background-image:url('images/academy/promo-banner-courses.jpg')" role="img" aria-label=""></div>
+            <div class="ufs-promo-banner__panel">
+              <img class="ufs-promo-banner__logo" src="images/academy/ufs-academy-logo.svg" alt="UFS Academy" />
+              <div class="ufs-promo-banner__body">
+                <h2 class="ufs-promo-banner__title text-h2">UFS Academy: Mental Health in Kitchens</h2>
+                <p class="ufs-promo-banner__desc text-body">This series will show you how to take care of yourself and your team to make the kitchen a better working environment for everyone.</p>
+                <div class="ufs-promo-banner__countdown" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">18</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">Days</p>
+                  </div>
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">23</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">Hours</p>
+                  </div>
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">58</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">Minutes</p>
+                  </div>
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">16</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">Seconds</p>
+                  </div>
+                </div>
+              </div>
+              <div class="ufs-promo-banner__ctas">
+                <button type="button" class="btn btn-primary">Discover All Courses</button>
+                <button type="button" class="btn btn-secondary">How Academy Works?</button>
+              </div>
+              <p class="ufs-promo-banner__disclaimer text-body-xs">*Disclaimer text for specific use cases</p>
+            </div>
+          </div>
+        </div>
+        <div class="pv-label"><code>--dark</code> modifier, forced mobile layout</div>
+        <div class="pv-mobile">
+          <div class="ufs-promo-banner ufs-promo-banner--dark">
+            <div class="ufs-promo-banner__image" style="background-image:url('images/academy/K_GPP_5120.jpg')" role="img" aria-label=""></div>
+            <div class="ufs-promo-banner__panel">
+              <div class="ufs-promo-banner__body">
+                <h2 class="ufs-promo-banner__title text-h2">UFS Academy: Mental Health in Kitchens</h2>
+                <p class="ufs-promo-banner__desc text-body">This series will show you how to take care of yourself and your team to make the kitchen a better working environment for everyone.</p>
+              </div>
+              <div class="ufs-promo-banner__ctas">
+                <button type="button" class="btn btn-primary">Discover All Courses</button>
+              </div>
+              <p class="ufs-promo-banner__disclaimer text-body-xs">*Disclaimer text for specific use cases</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Flex order already handles most of this for free: the CTA row (<code>flex-direction: row</code>) and the panel-vs-image split both use flexbox, so under <code>dir="rtl"</code> the panel and buttons auto-mirror to the correct side without any override, and <code>align-items: flex-start</code> resolves to the physical right edge on its own. What's left are the properties that are always physical regardless of direction: <code>text-align: left</code> never becomes right on its own, and the image's absolute <code>inset</code>/<code>left</code>/<code>right</code> positioning plus both elements' asymmetric corner radii need an explicit flip — otherwise the image stays pinned to its LTR side while the panel mirrors underneath it, and the two overlap on the same edge instead of meeting in the middle. Live in <code>full-page-preview-v0.2.html</code>: switch the language control to <strong>AR</strong> to see both instances below translate and mirror in place.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Default — mirrored under <code>dir="rtl"</code></div>
+        <div class="pv-light" style="margin-bottom:20px; padding:24px;">
+          <div class="ufs-promo-banner" dir="rtl">
+            <div class="ufs-promo-banner__image" style="background-image:url('images/academy/promo-banner-courses.jpg')" role="img" aria-label=""></div>
+            <div class="ufs-promo-banner__panel">
+              <img class="ufs-promo-banner__logo" src="images/academy/ufs-academy-logo.svg" alt="UFS Academy" />
+              <div class="ufs-promo-banner__body">
+                <h2 class="ufs-promo-banner__title text-h2">أكاديمية UFS: الصحة النفسية في المطابخ</h2>
+                <p class="ufs-promo-banner__desc text-body">توضح لك هذه السلسلة كيفية الاعتناء بنفسك وبفريقك لجعل المطبخ بيئة عمل أفضل للجميع.</p>
+                <div class="ufs-promo-banner__countdown" aria-label="العد التنازلي للعرض">
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">18</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">أيام</p>
+                  </div>
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">23</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">ساعات</p>
+                  </div>
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">58</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">دقائق</p>
+                  </div>
+                  <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
+                    <p class="ufs-promo-banner__countdown-value text-price-xl">16</p>
+                    <p class="ufs-promo-banner__countdown-label text-body-sm">ثوانٍ</p>
+                  </div>
+                </div>
+              </div>
+              <div class="ufs-promo-banner__ctas">
+                <button type="button" class="btn btn-primary">استكشف جميع الدورات</button>
+                <button type="button" class="btn btn-secondary">كيف تعمل الأكاديمية؟</button>
+              </div>
+              <p class="ufs-promo-banner__disclaimer text-body-xs">*نص إخلاء المسؤولية لحالات استخدام محددة</p>
+            </div>
+          </div>
+        </div>
+        <div class="pv-label"><code>--dark</code> modifier, mirrored under <code>dir="rtl"</code></div>
+        <div class="pv-light" style="padding:24px;">
+          <div class="ufs-promo-banner ufs-promo-banner--dark" dir="rtl">
+            <div class="ufs-promo-banner__image" style="background-image:url('images/academy/K_GPP_5120.jpg')" role="img" aria-label=""></div>
+            <div class="ufs-promo-banner__panel">
+              <div class="ufs-promo-banner__body">
+                <h2 class="ufs-promo-banner__title text-h2">أكاديمية UFS: الصحة النفسية في المطابخ</h2>
+                <p class="ufs-promo-banner__desc text-body">توضح لك هذه السلسلة كيفية الاعتناء بنفسك وبفريقك لجعل المطبخ بيئة عمل أفضل للجميع.</p>
+              </div>
+              <div class="ufs-promo-banner__ctas">
+                <button type="button" class="btn btn-primary">استكشف جميع الدورات</button>
+              </div>
+              <p class="ufs-promo-banner__disclaimer text-body-xs">*نص إخلاء المسؤولية لحالات استخدام محددة</p>
+            </div>
+          </div>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cm">/* Flex order + align-items:flex-start already auto-mirror under
+   dir="rtl" — verified live, no override needed for those. Only the
+   literal-physical values need an explicit flip. Scoped to the same
+   1024px breakpoint as the rules they override. */</span>
+<span class="t-pr">[dir="rtl"] .ufs-promo-banner__panel</span> {
+  <span class="t-pr">text-align</span>: <span class="t-vl">right</span>;
+  <span class="t-pr">border-radius</span>: <span class="t-vl">0</span> <span class="t-va">var(--radius-xl)</span> <span class="t-va">var(--radius-xl)</span> <span class="t-vl">0</span>;
+}
+<span class="t-pr">[dir="rtl"] .ufs-promo-banner__image</span> {
+  <span class="t-pr">left</span>: <span class="t-vl">0</span>; <span class="t-pr">right</span>: <span class="t-vl">49%</span>;
+  <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-xxxl)</span> <span class="t-va">var(--radius-xl)</span> <span class="t-va">var(--radius-xl)</span> <span class="t-va">var(--radius-xl)</span>;
+}</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>These overrides only exist inside the <code>@media (min-width: 1024px)</code> block. Below that breakpoint the panel is already centred (<code>text-align: center</code>) and the image is a normal in-flow block, not absolutely positioned — both are direction-agnostic, so the mobile layout needs no RTL treatment at all.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="full-page-preview-v0.2.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

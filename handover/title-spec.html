@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Title — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.25); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-700); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-700); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.45); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-id  { color: #d2a8ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+    .t-st  { color: #fde68a; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .token-note { color: var(--color-mushroom-700); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: visible; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the Title's own @media (max-width: 768px) block scoped
+       to .pv-mobile with !important. Doc-only; not a production class. */
+    .pv-mobile .ufs-title-section { padding: var(--space-8) var(--space-4) var(--space-6) !important; }
+    .pv-mobile .ufs-title-section__heading { font-size: var(--text-h2-mob-size) !important; }
+    .pv-mobile .ufs-title-section__heading--h3 { font-size: var(--text-h3-mob-size) !important; }
+    .pv-mobile .ufs-title-section__desc { font-size: var(--text-body-sm-size) !important; }
+
+    /* ═══════════════════════════════════════
+       TITLE COMPONENT CSS — mirrored 1:1 from
+       handover/catalog-recipes-example.html (source of truth)
+    ═══════════════════════════════════════ */
+    /* Always full width — left/right padding is viewport-driven (96px
+       desktop, 16px mobile), not a max-width cap. The 720px reading-width
+       cap lives on __inner instead, which this padding doesn't affect. */
+    .ufs-title-section { width: 100%; padding: var(--space-10) var(--space-24) var(--space-8); text-align: center; }
+    .ufs-title-section__eyebrow { font-size: var(--text-overline-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-accessible-orange); margin: 0 0 var(--space-3); }
+    .ufs-title-section__heading { font-size: var(--text-h2-size); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); font-weight: var(--text-h2-w); color: var(--color-brand-dark); margin: 0 0 var(--space-3); }
+    /* h3 variant — an actual <h3> tag for cases where Title sits lower in
+       the page's heading hierarchy, styled down to the h3 scale. */
+    .ufs-title-section__heading--h3 { font-size: var(--text-h3-size); line-height: var(--text-h3-lh); letter-spacing: var(--text-h3-ls); font-weight: var(--text-h3-w); }
+    .ufs-title-section__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-squid-500); margin: 0; }
+    /* The outer element is always full width now, so every instance wraps
+       its eyebrow/heading/desc in __inner to keep the 720px reading-width
+       cap and centring — unaffected by the outer's own padding rules. */
+    .ufs-title-section__inner { max-width: 720px; margin: 0 auto; }
+    @media (max-width: 768px) {
+      .ufs-title-section { padding: var(--space-8) var(--space-4) var(--space-6); }
+      .ufs-title-section__heading { font-size: var(--text-h2-mob-size); }
+      .ufs-title-section__heading--h3 { font-size: var(--text-h3-mob-size); }
+      .ufs-title-section__desc { font-size: var(--text-body-sm-size); }
+    }
+
+    /* Alignment modifier — left-anchors __inner instead of centring it */
+    .ufs-title-section--left { text-align: left; }
+    .ufs-title-section--left .ufs-title-section__inner { margin: 0; }
+    /* RTL — "left" is a physical value, so it needs an explicit flip;
+       everything else (centred default, background modifiers) is
+       direction-agnostic and needs no override. Matches dir="rtl" set
+       either on an ancestor (e.g. <html dir="rtl">, the usual site-wide
+       case) or directly on this element (compound selector, no space). */
+    [dir="rtl"] .ufs-title-section--left,
+    [dir="rtl"].ufs-title-section--left { text-align: right; }
+
+    /* Background modifiers — self-contained block, own bg + radius.
+       Squid-ink flips heading/desc to salt; eyebrow keeps its accent
+       orange in both, since orange reads fine on both surfaces. */
+    .ufs-title-section--dark, .ufs-title-section--mushroom { border-radius: var(--radius-md); }
+    .ufs-title-section--dark { background: var(--color-brand-dark); }
+    .ufs-title-section--dark .ufs-title-section__heading,
+    .ufs-title-section--dark .ufs-title-section__desc { color: var(--color-salt); }
+    .ufs-title-section--mushroom { background: var(--color-mushroom-100); }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#alignment" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Alignment</a>
+      <a href="#heading-size" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Heading Size</a>
+      <a href="#background" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Background</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source of truth: catalog-recipes-example.html<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Title</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">T<span>itle</span></h1>
+        <p class="doc-header-desc">Eyebrow + heading + description block used to open a catalog, listing, or promotional page. Centred by default, with left-aligned, heading-size, and background colour modifiers, documented for implementation.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">catalog-recipes-example.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A single <code>&lt;section class="ufs-title-section"&gt;</code> — an uppercase eyebrow, a heading, and a short description, centred and width-capped for readability. It opens a catalog or listing page above a filters panel or tiles grid — see <code>handover/catalog-recipes-example.html</code> for it in that context — and doubles as a lightweight promotional block via its background modifiers (see Background below).</p>
+
+      <div class="pv-light" style="margin-bottom:24px; padding:8px;">
+        <section class="ufs-title-section">
+          <div class="ufs-title-section__inner">
+            <p class="ufs-title-section__eyebrow">Get Inspired</p>
+            <h2 class="ufs-title-section__heading">Recipes</h2>
+            <p class="ufs-title-section__desc">Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>This was previously documented in-page as <code>.pg-catalog-title</code>, tied to its one use-case. It's renamed to <code>.ufs-title-section</code> here as it moves into the Sections category as a standalone, reusable component — update <code>catalog-recipes-example.html</code>'s usage to match.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc"><code>.ufs-title-section</code> is always full width, with viewport-driven left/right padding (96px desktop, 16px mobile) — not a max-width cap. The 720px reading-width cap and centring live one level in, on <code>.ufs-title-section__inner</code>, which every instance wraps its content in. Inside that: an uppercase eyebrow (<code>__eyebrow</code>, <code>text-overline</code> sizing, accessible-orange), a heading (<code>__heading</code>, <code>&lt;h2&gt;</code> by default), and a body-copy description (<code>__desc</code>). No background or border of its own by default — it sits flush on whatever section contains it.</p>
+
+      <div class="notice notice--tip" style="margin-bottom:24px;">
+        <span class="notice-icon">💡</span>
+        <div>Only the heading is required. <code>__eyebrow</code> and <code>__desc</code> are both optional — omit either (or both) when there's no eyebrow label or supporting copy for a given instance. No CSS changes needed either way: each is a plain sibling element, so removing one just removes its reserved <code>--space-3</code> gap along with it.</div>
+      </div>
+
+      <div class="notice notice--warn" style="margin-bottom:24px;">
+        <span class="notice-icon">⚠️</span>
+        <div><code>__inner</code> is not optional the way <code>__eyebrow</code>/<code>__desc</code> are. Without it, content spans the full padded width with no reading-width cap — fine for a very short heading, but description text will run edge-to-edge on wide viewports.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Full reference markup</div>
+        <div class="card-desc">The default (centred, h2, no background) instance — the baseline every modifier below builds on.</div>
+
+        <div class="pv-label">Heading only — <code>__eyebrow</code> and <code>__desc</code> both omitted</div>
+        <div class="pv-light" style="margin-bottom:24px; padding:8px;">
+          <section class="ufs-title-section">
+            <div class="ufs-title-section__inner">
+              <h2 class="ufs-title-section__heading">Recipes</h2>
+            </div>
+          </section>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anatomy-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section__inner"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section__eyebrow"</span><span class="t-tag">&gt;</span>Get Inspired<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section__heading"</span><span class="t-tag">&gt;</span>Recipes<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section__desc"</span><span class="t-tag">&gt;</span>Chef-built recipes engineered for foodservice kitchens&hellip;<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/section</span><span class="t-tag">&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anatomy-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-title-section</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-10) var(--space-24) var(--space-8)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-title-section__inner</span> { <span class="t-pr">max-width</span>: <span class="t-vl">720px</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 auto</span>; }
+<span class="t-pr">.ufs-title-section__eyebrow</span> {
+  <span class="t-pr">font-size</span>: <span class="t-va">var(--text-overline-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-overline-lh)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-overline-w)</span>;
+  <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-overline-ls)</span>; <span class="t-pr">text-transform</span>: <span class="t-vl">uppercase</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 0</span> <span class="t-va">var(--space-3)</span>;
+}
+<span class="t-pr">.ufs-title-section__heading</span> {
+  <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h2-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h2-lh)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-h2-ls)</span>;
+  <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h2-w)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 0</span> <span class="t-va">var(--space-3)</span>;
+}
+<span class="t-pr">.ufs-title-section__desc</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-squid-500)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+
+@media (max-width: 768px) {
+  <span class="t-pr">.ufs-title-section</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-8) var(--space-4) var(--space-6)</span>; }
+  <span class="t-pr">.ufs-title-section__heading</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h2-mob-size)</span>; }
+  <span class="t-pr">.ufs-title-section__desc</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; }
+}</pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Block width</span><span class="token-var">100%</span><span class="token-note">always full width — __inner caps reading width at 720px instead</span></div>
+          <div class="token-row"><span class="token-prop">Padding (top/bottom)</span><span class="token-var">--space-10 / --space-8</span><span class="token-note">desktop top/bottom; --space-8 / --space-6 mobile</span></div>
+          <div class="token-row"><span class="token-prop">Padding (left/right)</span><span class="token-var">--space-24 / --space-4</span><span class="token-note">96px desktop, 16px mobile — viewport-driven, unrelated to __inner's 720px cap</span></div>
+          <div class="token-row"><span class="token-prop">Eyebrow colour</span><span class="token-var">--color-accessible-orange</span><span class="token-note">uppercase, text-overline sizing</span></div>
+          <div class="token-row"><span class="token-prop">Heading colour</span><span class="token-var">--color-brand-dark</span><span class="token-note">→ --color-salt on the squid-ink background modifier</span></div>
+          <div class="token-row"><span class="token-prop">Heading size</span><span class="token-var">--text-h2-size / --text-h2-mob-size</span><span class="token-note">40px desktop / 28px mobile; 30px / 24px with --h3</span></div>
+          <div class="token-row"><span class="token-prop">Description colour</span><span class="token-var">--color-squid-500</span><span class="token-note">same value as --color-brand-dark</span></div>
+          <div class="token-row"><span class="token-prop">Description size</span><span class="token-var">--text-body-size / --text-body-sm-size</span><span class="token-note">16px desktop / 14px mobile</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ALIGNMENT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="alignment">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Alignment</h2>
+      <p class="section-desc">Default is centred, with the block itself auto-margined to the middle of its container. <code>.ufs-title-section--left</code> drops the centring and left-anchors both the text and the block — for use above a left-aligned grid or when the Title sits inside a wider asymmetric layout.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Default — centred</div>
+        <div class="pv-light" style="margin-bottom:20px; padding:8px;">
+          <section class="ufs-title-section">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">Get Inspired</p>
+              <h2 class="ufs-title-section__heading">Recipes</h2>
+              <p class="ufs-title-section__desc">Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.</p>
+            </div>
+          </section>
+        </div>
+        <div class="pv-label"><code>--left</code> modifier</div>
+        <div class="pv-light" style="padding:8px;">
+          <section class="ufs-title-section ufs-title-section--left">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">Get Inspired</p>
+              <h2 class="ufs-title-section__heading">Recipes</h2>
+              <p class="ufs-title-section__desc">Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.</p>
+            </div>
+          </section>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section ufs-title-section--left"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section__inner"</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- same __eyebrow / __heading / __desc children --&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/section</span><span class="t-tag">&gt;</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ HEADING SIZE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="heading-size">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Heading Size</h2>
+      <p class="section-desc">Default heading is a real <code>&lt;h2&gt;</code>, sized at the h2 scale. When Title sits lower in a page's heading hierarchy — nested inside another section that already opened with its own h2 — use an actual <code>&lt;h3&gt;</code> tag with the <code>--h3</code> modifier class instead, which steps the size down to match. This is a semantic tag change, not just a visual one: pick the level that keeps the page's heading order correct, then apply the matching modifier.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Default — &lt;h2&gt;, h2 scale</div>
+        <div class="pv-light" style="margin-bottom:20px; padding:8px;">
+          <section class="ufs-title-section">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">Get Inspired</p>
+              <h2 class="ufs-title-section__heading">Recipes</h2>
+              <p class="ufs-title-section__desc">Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.</p>
+            </div>
+          </section>
+        </div>
+        <div class="pv-label">&lt;h3&gt; + <code>--h3</code> modifier</div>
+        <div class="pv-light" style="padding:8px;">
+          <section class="ufs-title-section">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">Get Inspired</p>
+              <h3 class="ufs-title-section__heading ufs-title-section__heading--h3">Recipes</h3>
+              <p class="ufs-title-section__desc">Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.</p>
+            </div>
+          </section>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;h3</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section__heading ufs-title-section__heading--h3"</span><span class="t-tag">&gt;</span>Recipes<span class="t-tag">&lt;/h3</span><span class="t-tag">&gt;</span></pre>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>The <code>--h3</code> modifier and the <code>--left</code>/background modifiers are independent — combine them freely, e.g. a left-aligned, h3-sized Title on a squid-ink background.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ BACKGROUND ═══════════════════════════════════════ -->
+    <section class="doc-section" id="background">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Background</h2>
+      <p class="section-desc">Two colour modifiers turn Title into a self-contained block with its own background and rounded corners, for use as a lightweight promotional or divider block rather than a plain in-flow page heading. <code>--dark</code> uses the squid-ink brand colour and flips the heading/description to salt for contrast (the eyebrow keeps its orange accent on both). <code>--mushroom</code> uses the light mushroom-100 surface and keeps the default dark text.</p>
+
+      <div class="ds-card">
+        <div class="pv-label"><code>--dark</code> (squid-ink) modifier</div>
+        <div class="pv-light" style="margin-bottom:20px; padding:8px;">
+          <section class="ufs-title-section ufs-title-section--dark">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">Get Inspired</p>
+              <h2 class="ufs-title-section__heading">Recipes</h2>
+              <p class="ufs-title-section__desc">Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.</p>
+            </div>
+          </section>
+        </div>
+        <div class="pv-label"><code>--mushroom</code> (mushroom-100) modifier</div>
+        <div class="pv-light" style="padding:8px;">
+          <section class="ufs-title-section ufs-title-section--mushroom">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">Get Inspired</p>
+              <h2 class="ufs-title-section__heading">Recipes</h2>
+              <p class="ufs-title-section__desc">Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.</p>
+            </div>
+          </section>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'bg-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'bg-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="bg-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section ufs-title-section--dark"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section__inner"</span><span class="t-tag">&gt;</span> … <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/section</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section ufs-title-section--mushroom"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-title-section__inner"</span><span class="t-tag">&gt;</span> … <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/section</span><span class="t-tag">&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="bg-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-title-section--dark, .ufs-title-section--mushroom</span> { <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>; }
+<span class="t-pr">.ufs-title-section--dark</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-title-section--dark .ufs-title-section__heading,
+.ufs-title-section--dark .ufs-title-section__desc</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-title-section--mushroom</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">Below <code>768px</code>, padding tightens and both the heading and description drop a size step (see Key Tokens in Anatomy). Nothing else about the layout changes — centred stays centred, left-aligned stays left-aligned, background modifiers keep their colour.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Default, forced <code>≤768px</code> width</div>
+        <div class="pv-mobile" style="margin:0 0 24px; padding:8px;">
+          <section class="ufs-title-section">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">Get Inspired</p>
+              <h2 class="ufs-title-section__heading">Recipes</h2>
+              <p class="ufs-title-section__desc">Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.</p>
+            </div>
+          </section>
+        </div>
+        <div class="pv-label"><code>--dark</code> modifier, forced <code>≤768px</code> width</div>
+        <div class="pv-mobile" style="padding:8px;">
+          <section class="ufs-title-section ufs-title-section--dark">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">Get Inspired</p>
+              <h2 class="ufs-title-section__heading">Recipes</h2>
+              <p class="ufs-title-section__desc">Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The centred default and both background modifiers are direction-agnostic — <code>text-align: center</code> and a background colour need no flip under <code>dir="rtl"</code>. Only the <code>--left</code> modifier uses a physical value (<code>text-align: left</code>) and needs an explicit override to become right-aligned in RTL.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Default — centred, unaffected by <code>dir="rtl"</code></div>
+        <div class="pv-light" style="margin-bottom:20px; padding:8px;">
+          <section class="ufs-title-section" dir="rtl">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">اكتشف الإلهام</p>
+              <h2 class="ufs-title-section__heading">الوصفات</h2>
+              <p class="ufs-title-section__desc">وصفات ابتكرها الطهاة لمطابخ خدمات الطعام — قابلة للتوسع، واعية للتكلفة، وجاهزة لإضافتها إلى قائمتك.</p>
+            </div>
+          </section>
+        </div>
+        <div class="pv-label"><code>--left</code> modifier — flips to right-aligned under <code>dir="rtl"</code></div>
+        <div class="pv-light" style="padding:8px;">
+          <section class="ufs-title-section ufs-title-section--left" dir="rtl">
+            <div class="ufs-title-section__inner">
+              <p class="ufs-title-section__eyebrow">اكتشف الإلهام</p>
+              <h2 class="ufs-title-section__heading">الوصفات</h2>
+              <p class="ufs-title-section__desc">وصفات ابتكرها الطهاة لمطابخ خدمات الطعام — قابلة للتوسع، واعية للتكلفة، وجاهزة لإضافتها إلى قائمتك.</p>
+            </div>
+          </section>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cm">/* Matches dir="rtl" on an ancestor (e.g. &lt;html dir="rtl"&gt;, the
+   usual site-wide case) or directly on this element. */</span>
+<span class="t-pr">[dir="rtl"] .ufs-title-section--left,
+[dir="rtl"].ufs-title-section--left</span> { <span class="t-pr">text-align</span>: <span class="t-vl">right</span>; }</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Route <code>__eyebrow</code>, <code>__heading</code>, and <code>__desc</code> copy through the same <code>data-i18n</code> mechanism as the rest of the header/footer — this example hardcodes Arabic strings only to demonstrate the layout.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="catalog-recipes-example.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
