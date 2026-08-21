@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campaign Hero — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.25); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-700); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-700); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.45); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-id  { color: #d2a8ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+    .t-st  { color: #fde68a; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .token-note { color: var(--color-mushroom-700); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states Campaign Hero's own @media (max-width:768px) declarations
+       scoped to .pv-mobile with !important, and suppresses the desktop
+       @media (min-width:1024px) countdown-size bump. Doc-only; not
+       shipped. min-height is dropped to auto here rather than the real
+       70vh — vh measures the actual browser viewport, not this 390px box,
+       so 70vh would size against the wrong thing inside a preview card. */
+    .pv-mobile .ufs-campaign-hero { min-height: auto !important; padding: var(--space-10) var(--space-4) !important; }
+    .pv-mobile .ufs-campaign-hero__logo { width: 150px !important; }
+    .pv-mobile .ufs-campaign-hero__title { font-size: 28px !important; letter-spacing: -0.28px !important; }
+    .pv-mobile .ufs-campaign-hero__desc { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mobile .ufs-campaign-hero__countdown { gap: var(--space-3) !important; }
+    .pv-mobile .ufs-campaign-hero__countdown-value { font-size: var(--text-price-xl-mob-size) !important; }
+    .pv-mobile .ufs-campaign-hero__ctas { flex-direction: column !important; width: 100% !important; gap: var(--space-3) !important; }
+    .pv-mobile .ufs-campaign-hero__ctas .btn { width: 100% !important; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html.
+       Campaign Hero's CTAs depend on this; not itself part of the spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       CAMPAIGN HERO COMPONENT CSS — mirrored 1:1 from
+       handover/full-page-preview-v0.2.html (source of truth)
+    ═══════════════════════════════════════ */
+    .ufs-campaign-hero {
+      position: relative; display: flex; align-items: center; justify-content: center;
+      min-height: 600px; padding: var(--space-16) var(--space-4);
+      overflow: hidden; text-align: center;
+    }
+    .ufs-campaign-hero__media { position: absolute; inset: 0; z-index: 0; background: var(--color-brand-dark); }
+    .ufs-campaign-hero__media video,
+    .ufs-campaign-hero__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .ufs-campaign-hero__overlay { position: absolute; inset: 0; background: var(--color-brand-dark); opacity: 0.5; }
+    .ufs-campaign-hero__content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: var(--space-6); max-width: 720px; width: 100%; }
+    .ufs-campaign-hero__logo { width: 180px; height: auto; display: block; }
+    .ufs-campaign-hero__heading { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); width: 100%; }
+    .ufs-campaign-hero__title { margin: 0; color: var(--color-salt); font-family: var(--font-family); font-size: 40px; line-height: 1.15; font-weight: 900; letter-spacing: -0.4px; text-shadow: 0 3px 7px rgba(0,0,0,0.25); }
+    .ufs-campaign-hero__desc { margin: 0; color: var(--color-salt); font-size: var(--text-body-size); line-height: var(--text-body-lh); text-shadow: 0 3px 7px rgba(0,0,0,0.25); }
+    .ufs-campaign-hero__countdown { display: flex; align-items: center; justify-content: center; gap: var(--space-4); }
+    .ufs-campaign-hero__countdown-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ufs-campaign-hero__countdown-value { color: var(--color-salt); margin: 0; width: 60px; font-size: var(--text-price-xl-mob-size); }
+    .ufs-campaign-hero__countdown-label { color: var(--color-salt); margin: 0; }
+    .ufs-campaign-hero__ctas { display: flex; align-items: center; justify-content: center; gap: var(--space-6); }
+    .ufs-campaign-hero__disclaimer { margin: 0; color: var(--color-salt); font-size: 12px; line-height: 1.4; text-shadow: 0 3px 7px rgba(0,0,0,0.25); }
+    @media (min-width: 1024px) {
+      .ufs-campaign-hero__countdown-value { font-size: var(--text-price-xl-size); }
+    }
+    @media (max-width: 768px) {
+      .ufs-campaign-hero { min-height: 70vh; padding: var(--space-10) var(--space-4); }
+      .ufs-campaign-hero__logo { width: 150px; }
+      .ufs-campaign-hero__title { font-size: 28px; letter-spacing: -0.28px; }
+      .ufs-campaign-hero__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-campaign-hero__countdown { gap: var(--space-3); }
+      .ufs-campaign-hero__ctas { flex-direction: column; width: 100%; gap: var(--space-3); }
+      .ufs-campaign-hero__ctas .btn { width: 100%; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#layout" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop &amp; Mobile Layout</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#background" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Background</a>
+      <a href="#content" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Content Combinations</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source of truth: full-page-preview-v0.2.html<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Campaign Hero</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Campaign <span>Hero</span></h1>
+        <p class="doc-header-desc">Full-bleed marketing hero with a looping background video or a static image, a darkening overlay for text contrast, and a centred content column — optional logo, mandatory title, optional description, optional countdown, mandatory primary CTA, optional secondary CTA, optional disclaimer. Structure, background variants and responsive rules, documented for implementation.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">full-page-preview-v0.2.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A single <code>&lt;section class="ufs-campaign-hero"&gt;</code> — a full-bleed background (looping <code>&lt;video&gt;</code> or static <code>&lt;img&gt;</code>, both <code>object-fit: cover</code>), a darkening overlay for contrast, and a centred 720px content column: an optional logo, a title, an optional description, an optional countdown, a primary CTA, an optional secondary CTA, and an optional disclaimer. Every layout rule is centred/symmetric on both axes, so mobile and RTL need no structural overrides — only type-scale and spacing change responsively (see Desktop &amp; Mobile Layout below).</p>
+
+      <div class="pv-light" style="padding:24px;">
+        <section class="ufs-campaign-hero">
+          <div class="ufs-campaign-hero__media" aria-hidden="true">
+            <video autoplay muted loop playsinline poster="images/academy/promo-banner-courses.jpg">
+              <source src="video/background-video-portrait_1.mp4" type="video/mp4" media="(max-width: 768px)">
+              <source src="video/trend4-landscape_1.mp4" type="video/mp4">
+            </video>
+            <div class="ufs-campaign-hero__overlay"></div>
+          </div>
+          <div class="ufs-campaign-hero__content">
+            <img class="ufs-campaign-hero__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+            <div class="ufs-campaign-hero__heading">
+              <h2 class="ufs-campaign-hero__title">Certified Professional Chef Training</h2>
+              <p class="ufs-campaign-hero__desc">Our team of industry professionals are waiting to teach you skills, tips &amp; tricks you can use right now with carefully composed chef tutorials and chef training material.</p>
+            </div>
+            <div class="ufs-campaign-hero__countdown" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
+              <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                <p class="ufs-campaign-hero__countdown-value text-price-xl">18</p>
+                <p class="ufs-campaign-hero__countdown-label text-body-sm">Days</p>
+              </div>
+              <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                <p class="ufs-campaign-hero__countdown-value text-price-xl">23</p>
+                <p class="ufs-campaign-hero__countdown-label text-body-sm">Hours</p>
+              </div>
+              <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                <p class="ufs-campaign-hero__countdown-value text-price-xl">58</p>
+                <p class="ufs-campaign-hero__countdown-label text-body-sm">Minutes</p>
+              </div>
+              <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                <p class="ufs-campaign-hero__countdown-value text-price-xl">16</p>
+                <p class="ufs-campaign-hero__countdown-label text-body-sm">Seconds</p>
+              </div>
+            </div>
+            <div class="ufs-campaign-hero__ctas btn-on-dark">
+              <button type="button" class="btn btn-primary">Discover More Than 100 Courses</button>
+              <button type="button" class="btn btn-secondary">Secondary Action Here</button>
+            </div>
+            <p class="ufs-campaign-hero__disclaimer">*Disclamer text area option for any legal notes</p>
+          </div>
+        </section>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Only the title and primary CTA are required. Logo, description, countdown, secondary CTA and disclaimer are all optional — omit any of them per instance with no CSS changes needed. See Content Combinations below for a minimal instance with everything else stripped out.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Two top-level children of <code>.ufs-campaign-hero</code>: <code>__media</code> (an absolutely-positioned <code>&lt;video&gt;</code> or <code>&lt;img&gt;</code> plus <code>__overlay</code>, both filling the section) and <code>__content</code> (everything else, centred and capped at 720px — same reading-width convention as <code>.ufs-title-section__inner</code>). Inside content: <code>__logo</code>, a <code>__heading</code> wrapping <code>__title</code>/<code>__desc</code>, then <code>__countdown</code>, <code>__ctas</code> and <code>__disclaimer</code> as content's other direct children.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Full reference markup</div>
+        <div class="card-desc">Every optional piece included — the baseline every instance is a subset of.</div>
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anatomy-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__media"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- video background — or swap for a single &lt;img&gt;, see Background --&gt;</span>
+    <span class="t-tag">&lt;video</span> <span class="t-at">autoplay</span> <span class="t-at">muted</span> <span class="t-at">loop</span> <span class="t-at">playsinline</span> <span class="t-at">poster</span>=<span class="t-str">"…"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;source</span> <span class="t-at">src</span>=<span class="t-str">"portrait.mp4"</span> <span class="t-at">type</span>=<span class="t-str">"video/mp4"</span> <span class="t-at">media</span>=<span class="t-str">"(max-width: 768px)"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;source</span> <span class="t-at">src</span>=<span class="t-str">"landscape.mp4"</span> <span class="t-at">type</span>=<span class="t-str">"video/mp4"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/video&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__overlay"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__content"</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- optional --&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__logo"</span> <span class="t-at">src</span>=<span class="t-str">"…"</span> <span class="t-at">alt</span>=<span class="t-str">"…"</span> <span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__heading"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__title"</span><span class="t-tag">&gt;</span>Title<span class="t-tag">&lt;/h2&gt;</span>
+      <span class="t-cm">&lt;!-- optional --&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__desc"</span><span class="t-tag">&gt;</span>Description<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-cm">&lt;!-- optional — value/label reuse Promo Banner's own
+         .text-price-xl / .text-body-sm classes for identical typography --&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__countdown"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Offer ends in…"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__countdown-item"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__countdown-value text-price-xl"</span><span class="t-tag">&gt;</span>18<span class="t-tag">&lt;/p&gt;</span>
+        <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__countdown-label text-body-sm"</span><span class="t-tag">&gt;</span>Days<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+      <span class="t-cm">&lt;!-- …Hours / Minutes / Seconds, same shape --&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-cm">&lt;!-- .btn-on-dark on the wrapper activates the existing
+         "secondary CTA over a photo" treatment — no new button CSS --&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__ctas btn-on-dark"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span><span class="t-tag">&gt;</span>Primary CTA<span class="t-tag">&lt;/button&gt;</span>
+      <span class="t-cm">&lt;!-- optional --&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary"</span><span class="t-tag">&gt;</span>Secondary CTA<span class="t-tag">&lt;/button&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-cm">&lt;!-- optional --&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__disclaimer"</span><span class="t-tag">&gt;</span>*Disclaimer text<span class="t-tag">&lt;/p&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/section&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anatomy-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-campaign-hero</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>;
+  <span class="t-pr">min-height</span>: <span class="t-vl">600px</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-16) var(--space-4)</span>;
+  <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>;
+}
+<span class="t-pr">.ufs-campaign-hero__media</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">z-index</span>: <span class="t-vl">0</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-campaign-hero__media video,
+.ufs-campaign-hero__media img</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">100%</span>; <span class="t-pr">object-fit</span>: <span class="t-vl">cover</span>; }
+<span class="t-pr">.ufs-campaign-hero__overlay</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">opacity</span>: <span class="t-vl">0.5</span>; }
+<span class="t-pr">.ufs-campaign-hero__content</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; <span class="t-pr">max-width</span>: <span class="t-vl">720px</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-campaign-hero__logo</span> { <span class="t-pr">width</span>: <span class="t-vl">180px</span>; <span class="t-pr">height</span>: <span class="t-vl">auto</span>; <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+<span class="t-pr">.ufs-campaign-hero__heading</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-cm">/* Bespoke hero scale — larger and softer-tracked than .text-h2
+   (weight 900 / line-height 1.15 still match h2's) */</span>
+<span class="t-pr">.ufs-campaign-hero__title</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-vl">40px</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.15</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">900</span>; <span class="t-pr">letter-spacing</span>: <span class="t-vl">-0.4px</span>; <span class="t-pr">text-shadow</span>: <span class="t-vl">0 3px 7px rgba(0,0,0,0.25)</span>; }
+<span class="t-pr">.ufs-campaign-hero__desc</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; <span class="t-pr">text-shadow</span>: <span class="t-vl">0 3px 7px rgba(0,0,0,0.25)</span>; }
+<span class="t-pr">.ufs-campaign-hero__countdown</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-campaign-hero__countdown-item</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-campaign-hero__countdown-value</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">60px</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-price-xl-mob-size)</span>; }
+<span class="t-pr">.ufs-campaign-hero__countdown-label</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-campaign-hero__ctas</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; }
+<span class="t-pr">.ufs-campaign-hero__disclaimer</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-vl">12px</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.4</span>; <span class="t-pr">text-shadow</span>: <span class="t-vl">0 3px 7px rgba(0,0,0,0.25)</span>; }
+<span class="t-pr">@media (min-width: 1024px) { .ufs-campaign-hero__countdown-value { font-size: var(--text-price-xl-size); } }</span></pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Overlay</span><span class="token-var">--color-brand-dark @ 0.5 opacity</span><span class="token-note">flat tint, not mix-blend — keeps a single predictable contrast layer</span></div>
+          <div class="token-row"><span class="token-prop">Content column</span><span class="token-var">max-width: 720px</span><span class="token-note">same reading-width convention as .ufs-title-section__inner</span></div>
+          <div class="token-row"><span class="token-prop">Title size</span><span class="token-var">40px / 28px</span><span class="token-note">desktop / mobile — bespoke hero scale, not a --text-h* token (see Anatomy notice)</span></div>
+          <div class="token-row"><span class="token-prop">Description size</span><span class="token-var">--text-body-size / --text-body-sm-size</span><span class="token-note">16px desktop / 14px mobile</span></div>
+          <div class="token-row"><span class="token-prop">Countdown value size</span><span class="token-var">--text-price-xl-size / -mob-size</span><span class="token-note">36px desktop / 28px mobile — identical to Promo Banner's own countdown</span></div>
+          <div class="token-row"><span class="token-prop">Logo width</span><span class="token-var">180px / 150px</span><span class="token-note">desktop / mobile</span></div>
+          <div class="token-row"><span class="token-prop">Disclaimer size</span><span class="token-var">12px</span><span class="token-note">no matching body-scale token at this size — literal value</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>The title is <strong>not</strong> built from <code>.text-h2</code> or any other heading token — its 40px/28px size, 1.15 line-height and -0.4px/-0.28px letter-spacing are literal values from this component's own Figma spec (weight 900 and line-height 1.15 happen to match <code>--text-h2-w</code>/<code>-lh</code>, but the sizes don't match <code>--text-h2-size</code> at either breakpoint). Treat it as a bespoke hero scale, not a reusable token.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DESKTOP & MOBILE LAYOUT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="layout">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Desktop &amp; Mobile Layout</h2>
+      <p class="section-desc">Height is content-driven with a <code>min-height</code> floor, not a fixed height: <code>min-height</code> only sets a minimum, so if the optional content filled in (logo, description, countdown, both CTAs, disclaimer) runs longer than that floor, the section grows to fit rather than clipping — same principle as Promo Banner and Title. Desktop floor is a fixed <code>600px</code>; mobile uses <code>70vh</code> instead, since a fixed pixel floor that reads as "generous" on desktop can be excessive on a short phone viewport.</p>
+
+      <div class="ds-card">
+        <div class="card-title">What changes at the 768px breakpoint</div>
+        <div class="card-desc">Everything else (centring, column structure, overlay, CTA row shrinking to a column) already reads correctly without any breakpoint-specific structural change.</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">min-height</span><span class="token-var">600px → 70vh</span><span class="token-note">floor, not a cap — content can still push the section taller</span></div>
+          <div class="token-row"><span class="token-prop">padding</span><span class="token-var">--space-16 --space-4 → --space-10 --space-4</span><span class="token-note">top/bottom tightens on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Logo</span><span class="token-var">180px → 150px</span><span class="token-note">width, height auto</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">40px → 28px</span><span class="token-note">letter-spacing also eases from -0.4px to -0.28px</span></div>
+          <div class="token-row"><span class="token-prop">Description</span><span class="token-var">--text-body-size → --text-body-sm-size</span><span class="token-note">16px → 14px</span></div>
+          <div class="token-row"><span class="token-prop">Countdown value</span><span class="token-var">--text-price-xl-size → -mob-size</span><span class="token-note">36px → 28px, at the 1024px breakpoint specifically — matches Promo Banner's own cutoff for the same property</span></div>
+          <div class="token-row"><span class="token-prop">CTAs</span><span class="token-var">row → column, full width</span><span class="token-note">both buttons stack and stretch to 100% below 768px</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>The countdown value's own size switch happens at <code>min-width: 1024px</code>, not the component's usual <code>768px</code> cutoff — deliberately kept aligned with Promo Banner's own countdown breakpoint rather than this component's own, since the whole point of reusing <code>.text-price-xl</code>/<code>.text-body-sm</code> is that the two components' countdowns stay identical.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ BACKGROUND ═══════════════════════════════════════ -->
+    <section class="doc-section" id="background">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Background</h2>
+      <p class="section-desc"><code>.ufs-campaign-hero__media</code> accepts either a looping <code>&lt;video&gt;</code> or a static <code>&lt;img&gt;</code> as its first child — both share the same <code>position:absolute; inset:0; object-fit:cover</code> rule, so no modifier class is needed to switch between them. The video uses two <code>&lt;source&gt;</code> elements so mobile and desktop can each get a differently-cropped export (portrait vs landscape) — evaluated in order, first matching <code>media</code> wins, unconditional source last as the fallback.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Video background — looping, muted, portrait source on mobile</div>
+        <div class="pv-light" style="margin-bottom:20px; padding:24px;">
+          <section class="ufs-campaign-hero">
+            <div class="ufs-campaign-hero__media" aria-hidden="true">
+              <video autoplay muted loop playsinline poster="images/academy/promo-banner-courses.jpg">
+                <source src="video/background-video-portrait_1.mp4" type="video/mp4" media="(max-width: 768px)">
+                <source src="video/trend4-landscape_1.mp4" type="video/mp4">
+              </video>
+              <div class="ufs-campaign-hero__overlay"></div>
+            </div>
+            <div class="ufs-campaign-hero__content">
+              <div class="ufs-campaign-hero__heading">
+                <h2 class="ufs-campaign-hero__title">Certified Professional Chef Training</h2>
+                <p class="ufs-campaign-hero__desc">Our team of industry professionals are waiting to teach you skills, tips &amp; tricks you can use right now.</p>
+              </div>
+              <div class="ufs-campaign-hero__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">Discover More Than 100 Courses</button>
+              </div>
+              <p class="ufs-campaign-hero__disclaimer">*Disclamer text area option for any legal notes</p>
+            </div>
+          </section>
+        </div>
+        <div class="pv-label">Static image background</div>
+        <div class="pv-light" style="padding:24px;">
+          <section class="ufs-campaign-hero">
+            <div class="ufs-campaign-hero__media" aria-hidden="true">
+              <img src="images/academy/promo-banner-courses.jpg" alt="" />
+              <div class="ufs-campaign-hero__overlay"></div>
+            </div>
+            <div class="ufs-campaign-hero__content">
+              <div class="ufs-campaign-hero__heading">
+                <h2 class="ufs-campaign-hero__title">Certified Professional Chef Training</h2>
+                <p class="ufs-campaign-hero__desc">Our team of industry professionals are waiting to teach you skills, tips &amp; tricks you can use right now.</p>
+              </div>
+              <div class="ufs-campaign-hero__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">Discover More Than 100 Courses</button>
+              </div>
+              <p class="ufs-campaign-hero__disclaimer">*Disclamer text area option for any legal notes</p>
+            </div>
+          </section>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cm">&lt;!-- Video --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__media"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;video</span> <span class="t-at">autoplay</span> <span class="t-at">muted</span> <span class="t-at">loop</span> <span class="t-at">playsinline</span> <span class="t-at">poster</span>=<span class="t-str">"fallback.jpg"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;source</span> <span class="t-at">src</span>=<span class="t-str">"portrait.mp4"</span> <span class="t-at">type</span>=<span class="t-str">"video/mp4"</span> <span class="t-at">media</span>=<span class="t-str">"(max-width: 768px)"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;source</span> <span class="t-at">src</span>=<span class="t-str">"landscape.mp4"</span> <span class="t-at">type</span>=<span class="t-str">"video/mp4"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/video&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__overlay"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span>
+
+<span class="t-cm">&lt;!-- Static image — same __media wrapper, an &lt;img&gt; instead --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__media"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"background.jpg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span> <span class="t-tag">/&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-campaign-hero__overlay"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>The video is muted, autoplaying and purely decorative (<code>aria-hidden="true"</code> on the wrapper) — a page's own script is expected to pause it for <code>prefers-reduced-motion: reduce</code> (see the DOMContentLoaded handler in full-page-preview-v0.2.html, which pauses any <code>[data-campaign-hero-video]</code> element under that media query rather than forcing autoplay on everyone regardless of that preference).</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CONTENT COMBINATIONS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="content">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Content Combinations</h2>
+      <p class="section-desc">Only <code>__title</code> and the primary <code>.btn</code> in <code>__ctas</code> are required — every other piece is a plain content omission, not a modifier class. The two instances below are the same markup shape with different pieces left out.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">All elements — logo, description, countdown, both CTAs, disclaimer</div>
+        <div class="pv-light" style="margin-bottom:20px; padding:24px;">
+          <section class="ufs-campaign-hero">
+            <div class="ufs-campaign-hero__media" aria-hidden="true">
+              <img src="images/academy/promo-banner-courses.jpg" alt="" />
+              <div class="ufs-campaign-hero__overlay"></div>
+            </div>
+            <div class="ufs-campaign-hero__content">
+              <img class="ufs-campaign-hero__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+              <div class="ufs-campaign-hero__heading">
+                <h2 class="ufs-campaign-hero__title">Certified Professional Chef Training</h2>
+                <p class="ufs-campaign-hero__desc">Our team of industry professionals are waiting to teach you skills, tips &amp; tricks you can use right now.</p>
+              </div>
+              <div class="ufs-campaign-hero__countdown" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
+                <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                  <p class="ufs-campaign-hero__countdown-value text-price-xl">18</p>
+                  <p class="ufs-campaign-hero__countdown-label text-body-sm">Days</p>
+                </div>
+                <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                  <p class="ufs-campaign-hero__countdown-value text-price-xl">23</p>
+                  <p class="ufs-campaign-hero__countdown-label text-body-sm">Hours</p>
+                </div>
+                <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                  <p class="ufs-campaign-hero__countdown-value text-price-xl">58</p>
+                  <p class="ufs-campaign-hero__countdown-label text-body-sm">Minutes</p>
+                </div>
+                <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                  <p class="ufs-campaign-hero__countdown-value text-price-xl">16</p>
+                  <p class="ufs-campaign-hero__countdown-label text-body-sm">Seconds</p>
+                </div>
+              </div>
+              <div class="ufs-campaign-hero__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">Discover More Than 100 Courses</button>
+                <button type="button" class="btn btn-secondary">Secondary Action Here</button>
+              </div>
+              <p class="ufs-campaign-hero__disclaimer">*Disclamer text area option for any legal notes</p>
+            </div>
+          </section>
+        </div>
+        <div class="pv-label">Minimal — title, description and primary CTA only</div>
+        <div class="pv-light" style="padding:24px;">
+          <section class="ufs-campaign-hero">
+            <div class="ufs-campaign-hero__media" aria-hidden="true">
+              <img src="images/academy/promo-banner-courses.jpg" alt="" />
+              <div class="ufs-campaign-hero__overlay"></div>
+            </div>
+            <div class="ufs-campaign-hero__content">
+              <div class="ufs-campaign-hero__heading">
+                <h2 class="ufs-campaign-hero__title">Certified Professional Chef Training</h2>
+                <p class="ufs-campaign-hero__desc">Our team of industry professionals are waiting to teach you skills, tips &amp; tricks you can use right now.</p>
+              </div>
+              <div class="ufs-campaign-hero__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">Discover More Than 100 Courses</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Dropping the countdown/CTA row's neighbours doesn't leave stray gaps — <code>__content</code>'s own <code>gap: var(--space-6)</code> only applies between whatever children are actually present, and <code>min-height</code> still keeps the section from ever collapsing to hug a two-line minimal instance too tightly.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">Below the <code>768px</code> breakpoint, the layout shape doesn't change — still one centred column — only sizing does: tighter padding, a smaller logo, title and description, and the CTA row stacks into a full-width column.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">All elements, forced mobile layout</div>
+        <div class="pv-mobile">
+          <section class="ufs-campaign-hero">
+            <div class="ufs-campaign-hero__media" aria-hidden="true">
+              <video autoplay muted loop playsinline poster="images/academy/promo-banner-courses.jpg">
+                <source src="video/background-video-portrait_1.mp4" type="video/mp4">
+              </video>
+              <div class="ufs-campaign-hero__overlay"></div>
+            </div>
+            <div class="ufs-campaign-hero__content">
+              <img class="ufs-campaign-hero__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+              <div class="ufs-campaign-hero__heading">
+                <h2 class="ufs-campaign-hero__title">Certified Professional Chef Training</h2>
+                <p class="ufs-campaign-hero__desc">Our team of industry professionals are waiting to teach you skills, tips &amp; tricks you can use right now with carefully composed chef tutorials and chef training material.</p>
+              </div>
+              <div class="ufs-campaign-hero__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">Discover More Than 100 Courses</button>
+              </div>
+              <p class="ufs-campaign-hero__disclaimer">*Disclamer text area option for any legal notes</p>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Every rule on this component is either <code>text-align: center</code> or a symmetric <code>inset</code>/flex row-column centred on both axes — nothing physically left/right-coded. That means it mirrors correctly under <code>dir="rtl"</code> with <strong>zero CSS overrides</strong>, unlike Promo Banner's asymmetric image+panel split (which needs explicit flips — see promo-banner-spec.html). Live in <code>full-page-preview-v0.2.html</code>: the RTL instance sits directly below the English one.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Mirrored under <code>dir="rtl"</code></div>
+        <div class="pv-light" style="padding:24px;">
+          <section class="ufs-campaign-hero" dir="rtl">
+            <div class="ufs-campaign-hero__media" aria-hidden="true">
+              <img src="images/academy/promo-banner-courses.jpg" alt="" />
+              <div class="ufs-campaign-hero__overlay"></div>
+            </div>
+            <div class="ufs-campaign-hero__content">
+              <img class="ufs-campaign-hero__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+              <div class="ufs-campaign-hero__heading">
+                <h2 class="ufs-campaign-hero__title">أكاديمية UFS: الصحة النفسية في المطابخ</h2>
+                <p class="ufs-campaign-hero__desc">توضح لك هذه السلسلة كيفية الاعتناء بنفسك وبفريقك لجعل المطبخ بيئة عمل أفضل للجميع.</p>
+              </div>
+              <div class="ufs-campaign-hero__countdown" aria-label="العد التنازلي للعرض">
+                <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                  <p class="ufs-campaign-hero__countdown-value text-price-xl">18</p>
+                  <p class="ufs-campaign-hero__countdown-label text-body-sm">أيام</p>
+                </div>
+                <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                  <p class="ufs-campaign-hero__countdown-value text-price-xl">23</p>
+                  <p class="ufs-campaign-hero__countdown-label text-body-sm">ساعات</p>
+                </div>
+                <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                  <p class="ufs-campaign-hero__countdown-value text-price-xl">58</p>
+                  <p class="ufs-campaign-hero__countdown-label text-body-sm">دقائق</p>
+                </div>
+                <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+                  <p class="ufs-campaign-hero__countdown-value text-price-xl">16</p>
+                  <p class="ufs-campaign-hero__countdown-label text-body-sm">ثوانٍ</p>
+                </div>
+              </div>
+              <div class="ufs-campaign-hero__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">استكشف جميع الدورات</button>
+                <button type="button" class="btn btn-secondary">كيف تعمل الأكاديمية؟</button>
+              </div>
+              <p class="ufs-campaign-hero__disclaimer">*نص إخلاء المسؤولية لحالات استخدام محددة</p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>The countdown's reading order (Days → Hours → Minutes → Seconds in the DOM) is left untouched under RTL — it auto-mirrors visually along with the rest of the row, the same accepted behaviour Promo Banner's own RTL countdown already ships with. The background swaps to a static image in this RTL example rather than the video, doubling as this spec's demonstration that either background type works identically under either direction.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="full-page-preview-v0.2.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

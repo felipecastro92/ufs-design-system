@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Filters &amp; Catalog Toolbar — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    /* Page-context vars (nav/search-bar heights) that catalog-recipes-example.html
+       sets on its own :root — not part of tokens.css, so restated here for any
+       component below that depends on them (e.g. .signin-panel-hd's height). */
+    :root { --nav-h: 68px; --mnav-h: 56px; --msearch-bar-h: 52px; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.25); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 720px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-700); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-700); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.45); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-id  { color: #d2a8ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+    .t-st  { color: #fde68a; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .token-note { color: var(--color-mushroom-700); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; padding: 24px; }
+    .pv-white { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; padding: 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: visible; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); background: var(--color-salt); padding: var(--space-4) 0; }
+    /* A real @media (max-width: …) query reads the actual browser viewport,
+       not this frame's own 390px width, so each mobile rule below restates
+       its real counterpart with !important, scoped to .pv-mobile — same
+       technique used for the mobile drawer scene above. */
+    .pv-mobile .ufs-filters-dropdown { display: none !important; }
+    .pv-mobile .ufs-filters-bar { margin: 0 var(--space-4) !important; padding: var(--space-3) !important; gap: var(--space-3) !important; }
+    .pv-mobile .ufs-filters-allbtn { width: var(--space-12) !important; padding: 0 !important; }
+    .pv-mobile .ufs-filters-allbtn__label { display: none !important; }
+    .pv-mobile .ufs-catalog-toolbar { padding: 0 var(--space-4) !important; }
+    .pv-mobile .ufs-popular-filters { flex-direction: column !important; align-items: flex-start !important; justify-content: flex-start !important; gap: var(--space-2) !important; padding: 0 var(--space-4) !important; }
+    .pv-mobile .ufs-popular-filters__pills { align-self: stretch; margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); }
+    /* Docked-anywhere demo shell: the real component is `position:sticky`
+       against the page's own scroll, which a spec-doc card can't reproduce
+       in a meaningful way — so previews below render it `position:static`,
+       in its default (non-stuck) resting state, and the Sticky &amp;
+       Responsive Behaviour section documents .is-stuck/.is-docked purely
+       as annotated states rather than live scroll-triggered previews. */
+    .pv-static .ufs-filters-bar { position: static; }
+
+    /* Static state-toggles for demo purposes only (spec doc doesn't wire
+       the real toggleFilterDropdown/toggleSortDropdown JS — see Filter
+       Dropdown section) */
+    .demo-open .ufs-filters-dropdown__panel,
+    .demo-open .ufs-catalog-sort__panel { display: block !important; }
+
+    /* "Real case scenario" scene for the All Filters Drawer — a bounded,
+       tall viewport stand-in (not a real browser chrome, just enough
+       height/context to read as one) with a simplified page mock behind
+       the backdrop, so the drawer's actual on-screen position (pinned to
+       the right edge, full viewport height, above a dimmed page) is
+       obvious at a glance instead of shown as an isolated floating card.
+       .signin-backdrop/.signin-panel are real production classes — only
+       position:fixed is swapped for position:absolute here so both stay
+       confined to this frame instead of covering the whole spec page;
+       every other property (width, transform, box-shadow, z-index) is
+       untouched. */
+    .pv-drawer-scene { position: relative; height: 860px; overflow: hidden; border-radius: var(--radius-md); border: 1px solid var(--color-mushroom-300); }
+    .pv-drawer-scene-page { position: absolute; inset: 0; padding: var(--space-6); background: var(--color-mushroom-100); overflow: hidden; }
+    .pv-drawer-scene-navstub { height: 56px; border-radius: var(--radius-sm); background: var(--color-brand-dark); margin-bottom: var(--space-4); }
+    .pv-drawer-scene-barstub { height: 48px; border-radius: var(--radius-lg); background: var(--color-salt); border: 1px solid var(--color-mushroom-300); margin-bottom: var(--space-6); }
+    .pv-drawer-scene-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+    .pv-drawer-scene-tile { height: 170px; border-radius: var(--radius-md); background: var(--color-salt); border: 1px solid var(--color-mushroom-300); }
+    .pv-drawer-scene .signin-backdrop { position: absolute; }
+    .pv-drawer-scene .signin-panel { position: absolute !important; height: 100% !important; }
+
+    /* Mobile variant of the same scene — narrower frame standing in for a
+       ~390px phone viewport. A real @media (max-width: 1024px) query won't
+       fire off this frame's own width (it reads the actual browser
+       viewport, not a container), so the mobile width override is
+       restated here with !important, scoped to this class, the same
+       technique .pv-mobile uses elsewhere in this doc. */
+    .pv-drawer-scene--mobile { width: 390px; height: 740px; margin: 0 auto; }
+    .pv-drawer-scene--mobile .pv-drawer-scene-grid { grid-template-columns: 1fr; }
+    .pv-drawer-scene--mobile .signin-panel { width: calc(100% - 16px) !important; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from catalog-recipes-example.html.
+       Filters/toolbar CTAs depend on this; not itself part of the spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-sm { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: var(--color-mushroom-100); }
+
+    /* ═══════════════════════════════════════
+       CHECKBOX (.fi-checkbox) — mirrored 1:1 from catalog-recipes-example.html.
+       Shared with forms elsewhere; documented in full at index.html#checkbox.
+       Filter dropdown/drawer checklists reuse it as-is, only the checked-state
+       colour is overridden (accessible-orange instead of brand-dark — see
+       All Filters Drawer below).
+    ═══════════════════════════════════════ */
+    .fi-checkbox-row { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-5) 0; }
+    .fi-checkbox { display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer; }
+    .fi-checkbox input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .fi-checkbox-box {
+      flex-shrink: 0; width: var(--space-5); height: var(--space-5); margin-top: 1px;
+      border: 1.5px solid var(--color-mushroom-700); border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--color-salt); transition: background 0.15s, border-color 0.15s;
+    }
+    .fi-checkbox-box img { width: 11px; height: 11px; opacity: 0; filter: brightness(0) invert(1); transition: opacity 0.1s; }
+    .fi-checkbox input:checked + .fi-checkbox-box { background: var(--color-brand-dark); border-color: var(--color-brand-dark); }
+    .fi-checkbox input:checked + .fi-checkbox-box img { opacity: 1; }
+    .fi-checkbox-label { font-size: var(--text-body-sm-size); color: var(--color-brand-dark); line-height: 1.4; padding-top: 1px; }
+
+    /* ═══════════════════════════════════════
+       ACCORDION (.ufs-accordion__*) — mirrored 1:1 from index.html#accordion.
+       All Filters Drawer reuses it as-is for its category list.
+    ═══════════════════════════════════════ */
+    .ufs-accordion__panel { display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--color-salt); box-shadow: var(--shadow-xs); overflow: hidden; max-width: 640px; }
+    .ufs-accordion__item { border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-accordion__item:last-child { border-bottom: none; }
+    .ufs-accordion__trigger {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-8);
+      width: 100%; padding: var(--space-6); background: var(--color-salt); border: none; cursor: pointer;
+      text-align: left; font-family: var(--font-family); color: var(--color-brand-dark);
+      transition: background 0.15s ease;
+    }
+    .ufs-accordion__trigger:hover { background: var(--color-mushroom-100); }
+    .ufs-accordion__q { font-size: var(--text-body-size); font-weight: 600; line-height: var(--text-body-lh); transition: color 0.2s ease; }
+    .ufs-accordion__item.is-open .ufs-accordion__q { color: var(--color-accessible-orange); }
+    .ufs-accordion__chev {
+      flex-shrink: 0; width: var(--space-5); height: var(--space-5); margin-top: var(--space-1); color: var(--color-brand-dark); opacity: 0.5;
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), color 0.2s ease, opacity 0.2s ease;
+    }
+    .ufs-accordion__trigger:hover .ufs-accordion__chev { opacity: 0.85; }
+    .ufs-accordion__item.is-open .ufs-accordion__chev { transform: rotate(180deg); color: var(--color-accessible-orange); opacity: 1; }
+    .ufs-accordion__content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .ufs-accordion__item.is-open .ufs-accordion__content { grid-template-rows: 1fr; }
+    .ufs-accordion__content-inner { overflow: hidden; min-height: 0; }
+
+    /* ═══════════════════════════════════════
+       SIGN-IN PANEL SCAFFOLD (.signin-panel) — mirrored 1:1 from
+       catalog-recipes-example.html. The right-edge lateral drawer base
+       shared with Sign-In / Registration / Mobile Drawer — full anatomy
+       documented at nav-header-spec.html#signin-panel. The All Filters
+       Drawer below reuses this scaffold as-is; only the filters-specific
+       content and header/body overrides live in the component CSS further
+       down.
+    ═══════════════════════════════════════ */
+    .signin-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900;
+      background: color-mix(in srgb, var(--color-squid-900) 55%, transparent); backdrop-filter: blur(3px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .signin-panel {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 901;
+      width: 420px; background: var(--color-salt);
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s;
+      box-shadow: none;
+      display: flex; flex-direction: column;
+    }
+    .signin-panel.is-open { transform: translateX(0); box-shadow: -8px 0 40px rgba(0,0,0,0.18); }
+    .signin-panel-hd {
+      height: var(--mnav-h); padding: 0 var(--space-4); display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--color-mushroom-300); flex-shrink: 0;
+    }
+    .signin-close {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: var(--color-mushroom-100); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .signin-close:hover { background: var(--color-mushroom-300); }
+    .signin-close svg { width: 12px; height: 12px; }
+    .signin-panel-body { flex: 1; overflow-y: auto; padding: var(--space-7); }
+    .signin-panel-title { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); margin-bottom: var(--space-3); }
+    .signin-panel-ft { flex-shrink: 0; display: flex; gap: var(--space-6); padding: var(--space-4) var(--space-6) var(--space-16); box-shadow: var(--shadow-lg); background: var(--color-salt); }
+    .signin-panel-ft .btn { flex: 1; }
+
+    /* ═══════════════════════════════════════
+       FILTERS & CATALOG TOOLBAR CSS — mirrored 1:1 from
+       handover/catalog-recipes-example.html (source of truth)
+    ═══════════════════════════════════════ */
+    .ufs-filters-bar {
+      display: flex; align-items: center; gap: var(--space-4); max-width: 1280px; margin: 0 auto; padding: var(--space-4);
+      background: var(--color-mushroom-100); border-radius: var(--radius-lg);
+      position: sticky; top: var(--nav-h); z-index: 90;
+      transition: border-radius 0.15s;
+    }
+    /* .is-stuck is set in JS by comparing the bar's live position against its
+       own sticky offset — CSS has no selector for "currently stuck". Top
+       corners square off only while parked under the header. */
+    .ufs-filters-bar.is-stuck { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .ufs-filters-search { position: relative; flex: 1; min-width: 0; }
+    .ufs-filters-search__icon { position: absolute; left: var(--space-4); top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--color-mushroom-700); pointer-events: none; }
+    .ufs-filters-search__input { width: 100%; height: var(--space-12); box-sizing: border-box; padding: 0 var(--space-4) 0 var(--space-10); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm); background: var(--color-salt); font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); outline: none; transition: border-color 0.15s; }
+    .ufs-filters-search__input:focus { border-color: var(--color-brand-dark); }
+    .ufs-filters-search__input::placeholder { color: var(--color-mushroom-700); }
+
+    .ufs-filters-dropdown { position: relative; flex-shrink: 0; }
+    .ufs-filters-dropdown__trigger { display: flex; align-items: center; gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-4); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm); background: var(--color-salt); font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); cursor: pointer; white-space: nowrap; transition: border-color 0.15s; }
+    .ufs-filters-dropdown__trigger:hover { border-color: var(--color-brand-dark); }
+    .ufs-filters-dropdown.is-open .ufs-filters-dropdown__trigger { border-color: var(--color-brand-dark); }
+    .ufs-filters-dropdown__chev { width: 14px; height: 14px; transition: transform 0.2s ease; }
+    .ufs-filters-dropdown.is-open .ufs-filters-dropdown__chev { transform: rotate(180deg); }
+    .ufs-filters-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--radius-full); background: var(--color-accessible-orange); color: var(--color-salt); font-size: var(--text-badge-size); font-weight: 600; line-height: 1; }
+    .ufs-filters-badge[hidden] { display: none; }
+    .ufs-filters-dropdown__panel { display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; min-width: 240px; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: var(--space-4); }
+    .ufs-filters-dropdown.is-open .ufs-filters-dropdown__panel { display: block; }
+    .ufs-filters-dropdown__panel .fi-checkbox-row { margin: 0; }
+    .ufs-filters-dropdown__ft { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-mushroom-300); }
+    .ufs-filters-dropdown__ft .btn-primary { flex: 1; }
+
+    .ufs-filters-bar .btn-secondary { background: var(--color-salt); }
+    .ufs-filters-bar .btn-secondary:hover:not(:disabled) { background: transparent; }
+    .ufs-filters-allbtn__icon { width: 18px; height: 18px; }
+
+    .ufs-catalog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); max-width: 1280px; margin: var(--space-4) auto 0; }
+    .ufs-catalog-results { font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-mushroom-900); margin: 0; }
+
+    .ufs-catalog-sort { position: relative; flex-shrink: 0; }
+    .ufs-catalog-sort__trigger { display: flex; align-items: center; gap: var(--space-2); background: none; border: none; padding: 0; font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; cursor: pointer; }
+    .ufs-catalog-sort__chev { width: 14px; height: 14px; flex-shrink: 0; transition: transform 0.2s ease; }
+    .ufs-catalog-sort.is-open .ufs-catalog-sort__chev { transform: rotate(180deg); }
+    .ufs-catalog-sort__panel { display: none; position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; min-width: 180px; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: var(--space-2); }
+    .ufs-catalog-sort.is-open .ufs-catalog-sort__panel { display: block; }
+    .ufs-catalog-sort__option { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-xs); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); cursor: pointer; }
+    .ufs-catalog-sort__option:hover { background: var(--color-mushroom-100); }
+
+    .ufs-popular-filters { display: flex; align-items: center; justify-content: center; gap: var(--space-3); max-width: 1280px; margin: var(--space-4) auto var(--space-4); }
+    .ufs-popular-filters__label { font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; margin: 0; flex-shrink: 0; }
+    .ufs-popular-filters__pills { display: flex; align-items: center; gap: var(--space-3); overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+    .ufs-popular-filters__pills::-webkit-scrollbar { display: none; }
+    .ufs-popular-filters__pill { display: flex; align-items: center; gap: var(--space-1); height: var(--space-8); padding: 0 var(--space-4); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-full); background: none; font-family: var(--font-family); font-size: var(--text-btn-sm-size); color: var(--color-brand-dark); white-space: nowrap; cursor: pointer; flex-shrink: 0; transition: border-color 0.15s, background 0.15s; }
+    .ufs-popular-filters__pill:hover { border-color: var(--color-brand-dark); }
+    .ufs-popular-filters__pill.is-active { background: var(--color-mushroom-100); border-color: var(--color-accessible-orange); font-weight: var(--text-btn-w); }
+    .ufs-popular-filters__pill-check { width: 14px; height: 14px; flex-shrink: 0; display: none; }
+    .ufs-popular-filters__pill.is-active .ufs-popular-filters__pill-check { display: block; }
+    @media (max-width: 768px) {
+      .ufs-popular-filters { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--space-2); padding: 0 var(--space-4); }
+      .ufs-popular-filters__pills { align-self: stretch; margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); }
+    }
+
+    /* #filters-panel-mobile only exists in this spec doc's mobile scene
+       demo (see All Filters Drawer) — the real page has one #filters-panel
+       and no mobile duplicate, so these rules are restated against both
+       IDs purely to keep the two demo instances visually identical. */
+    #filters-panel .signin-panel-title,
+    #filters-panel-mobile .signin-panel-title { font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); margin-bottom: 0; }
+    #filters-panel .signin-panel-body,
+    #filters-panel-mobile .signin-panel-body { padding: 0 0 var(--space-6); }
+    .ufs-filters-accordion { border-radius: 0; box-shadow: none; }
+    .ufs-filters-accordion .ufs-accordion__trigger { padding: var(--space-4); }
+    .ufs-filters-accordion .ufs-accordion__q { font-size: var(--text-body-sm-size); font-weight: 600; }
+    .ufs-filters-checklist { background: var(--color-mushroom-100); padding: var(--space-4); margin: 0 !important; }
+    .ufs-filters-checklist .fi-checkbox input:checked + .fi-checkbox-box,
+    .ufs-filters-dropdown__panel .fi-checkbox input:checked + .fi-checkbox-box { background: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+
+    @media (min-width: 1480px) {
+      .ufs-filters-bar, .ufs-catalog-toolbar, .ufs-popular-filters { max-width: 1440px; }
+    }
+    @media (max-width: 1279px) {
+      .ufs-filters-dropdown { display: none; }
+    }
+    @media (max-width: 1024px) {
+      .ufs-filters-bar { top: calc(var(--mnav-h) + var(--msearch-bar-h)); transition: transform 0.3s ease, top 0.3s ease, border-radius 0.15s; }
+      .ufs-filters-bar.is-docked { top: var(--mnav-h); }
+      .ufs-filters-bar.is-stuck.is-hidden { transform: translateY(-100%); pointer-events: none; }
+      .signin-panel { width: calc(100% - 16px); }
+    }
+    @media (max-width: 768px) {
+      .ufs-filters-bar { margin: 0 var(--space-4); padding: var(--space-3); gap: var(--space-3); }
+      .ufs-filters-allbtn { width: var(--space-12); padding: 0; flex-shrink: 0; }
+      .ufs-filters-allbtn__label { display: none; }
+      .ufs-catalog-toolbar { padding: 0 var(--space-4); }
+    }
+
+    /* --- Demo-only: fixed widths so dropdown/sort previews below don't
+       need to be shown inside a full 1280px filters bar to read sensibly --- */
+    .pv-inline-demo { display: inline-block; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#filters-bar" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Filters Bar</a>
+      <a href="#filter-dropdown" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Filter Dropdown</a>
+      <a href="#popular-filters" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Popular Filters</a>
+      <a href="#filters-drawer" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> All Filters Drawer</a>
+      <a href="#catalog-toolbar" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Catalog Toolbar</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#responsive" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Sticky &amp; Responsive Behaviour</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source of truth: catalog-recipes-example.html<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Filters &amp; Catalog Toolbar</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Filters &amp; <span>Catalog Toolbar</span></h1>
+        <p class="doc-header-desc">The search + filter system that sits above a catalog grid: a sticky filters bar (search, quick dropdowns, "All filters"), a popular-filters pill shortcut row, the full-filter side drawer, and the results-count/sort toolbar.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">catalog-recipes-example.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">Five pieces, all wired to one shared <code>filterState</code> object on the live page (search input excluded — it's cosmetic here, no live filtering wired): the <strong>Filters Bar</strong> (search + 3 quick dropdowns + "All filters"), <strong>Popular Filters</strong> pills, the <strong>All Filters</strong> side drawer, and the <strong>Catalog Toolbar</strong> (results count + sort). This spec documents each as static, labelled states rather than porting the live filtering engine — see the note in Filter Dropdown below.</p>
+
+      <div class="pv-label">Desktop (&gt; 1280px)</div>
+      <div class="pv-light" style="margin-bottom:24px;">
+        <div class="ufs-filters-bar pv-static" style="position:static;">
+          <div class="ufs-filters-search">
+            <svg class="ufs-filters-search__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="17.5" y1="17.5" x2="13.5" y2="13.5"/></svg>
+            <input type="text" class="ufs-filters-search__input" placeholder="Search recipes" aria-label="Search recipes" />
+          </div>
+          <div class="ufs-filters-dropdown">
+            <button type="button" class="ufs-filters-dropdown__trigger">
+              <span>Main ingredient</span>
+              <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+          <div class="ufs-filters-dropdown">
+            <button type="button" class="ufs-filters-dropdown__trigger">
+              <span>Cuisine</span>
+              <span class="ufs-filters-badge">2</span>
+              <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+          <div class="ufs-filters-dropdown">
+            <button type="button" class="ufs-filters-dropdown__trigger">
+              <span>Type of dish</span>
+              <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+          <button type="button" class="btn btn-secondary ufs-filters-allbtn">
+            <svg class="ufs-filters-allbtn__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="17" y2="6"/><line x1="6" y1="10" x2="14" y2="10"/><line x1="8.5" y1="14" x2="11.5" y2="14"/></svg>
+            <span class="ufs-filters-allbtn__label">All filters</span>
+          </button>
+        </div>
+
+        <div class="ufs-popular-filters">
+          <p class="ufs-popular-filters__label">Popular filters:</p>
+          <div class="ufs-popular-filters__pills">
+            <button type="button" class="ufs-popular-filters__pill is-active">
+              <span>Fish &amp; Seafood</span>
+              <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+            </button>
+            <button type="button" class="ufs-popular-filters__pill">
+              <span>Mediterranean</span>
+              <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+            </button>
+            <button type="button" class="ufs-popular-filters__pill">
+              <span>Sauces &amp; Dressings</span>
+              <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ufs-catalog-toolbar">
+          <p class="ufs-catalog-results">261 recipes</p>
+          <div class="ufs-catalog-sort">
+            <button type="button" class="ufs-catalog-sort__trigger">
+              <span>Sort by: A–Z</span>
+              <svg class="ufs-catalog-sort__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="pv-label">Mobile (&le; 768px) — dropdowns hidden, "All filters" icon-only, popular filters stacked</div>
+      <div class="pv-mobile" style="margin-bottom:24px;">
+        <div class="ufs-filters-bar pv-static" style="position:static;">
+          <div class="ufs-filters-search">
+            <svg class="ufs-filters-search__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="17.5" y1="17.5" x2="13.5" y2="13.5"/></svg>
+            <input type="text" class="ufs-filters-search__input" placeholder="Search recipes" aria-label="Search recipes" />
+          </div>
+          <div class="ufs-filters-dropdown">
+            <button type="button" class="ufs-filters-dropdown__trigger">
+              <span>Main ingredient</span>
+              <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+          <button type="button" class="btn btn-secondary ufs-filters-allbtn">
+            <svg class="ufs-filters-allbtn__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="17" y2="6"/><line x1="6" y1="10" x2="14" y2="10"/><line x1="8.5" y1="14" x2="11.5" y2="14"/></svg>
+            <span class="ufs-filters-allbtn__label">All filters</span>
+          </button>
+        </div>
+
+        <div class="ufs-popular-filters">
+          <p class="ufs-popular-filters__label">Popular filters:</p>
+          <div class="ufs-popular-filters__pills">
+            <button type="button" class="ufs-popular-filters__pill is-active">
+              <span>Fish &amp; Seafood</span>
+              <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+            </button>
+            <button type="button" class="ufs-popular-filters__pill">
+              <span>Mediterranean</span>
+              <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+            </button>
+            <button type="button" class="ufs-popular-filters__pill">
+              <span>Sauces &amp; Dressings</span>
+              <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ufs-catalog-toolbar">
+          <p class="ufs-catalog-results">261 recipes</p>
+          <div class="ufs-catalog-sort">
+            <button type="button" class="ufs-catalog-sort__trigger">
+              <span>Sort by: A–Z</span>
+              <svg class="ufs-catalog-sort__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>This whole system previously lived only in-page as one-off classes tied to the recipe catalog. It's documented here as a standalone, reusable component family — nothing in <code>catalog-recipes-example.html</code> needs to change, this spec just gives it a home.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ FILTERS BAR ═══════════════════════════════════════ -->
+    <section class="doc-section" id="filters-bar">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Filters Bar</h2>
+      <p class="section-desc"><code>.ufs-filters-bar</code> is a sticky row (<code>position: sticky; top: var(--nav-h)</code>) that parks directly under the header once scrolled past: a search input (<code>__search</code>, cosmetic — no live filtering wired), up to any number of quick-filter dropdowns (<code>.ufs-filters-dropdown</code>, desktop-only — see Responsive below), and an "All filters" button (<code>.ufs-filters-allbtn</code>, a <code>.btn.btn-secondary</code> that opens the full drawer). Background is mushroom-100 with rounded corners at rest; scrolled under the header the top corners square off via <code>.is-stuck</code> (JS-toggled, see Sticky &amp; Responsive Behaviour).</p>
+
+      <div class="ds-card">
+        <div class="card-title">Reference markup</div>
+        <div class="card-desc">Search + 3 quick dropdowns + All filters, matching the live recipe catalog instance.</div>
+
+        <div class="pv-white">
+          <div class="ufs-filters-bar" style="position:static;">
+            <div class="ufs-filters-search">
+              <svg class="ufs-filters-search__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="17.5" y1="17.5" x2="13.5" y2="13.5"/></svg>
+              <input type="text" class="ufs-filters-search__input" placeholder="Search recipes" aria-label="Search recipes" />
+            </div>
+            <div class="ufs-filters-dropdown">
+              <button type="button" class="ufs-filters-dropdown__trigger">
+                <span>Main ingredient</span>
+                <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <div class="ufs-filters-dropdown">
+              <button type="button" class="ufs-filters-dropdown__trigger">
+                <span>Cuisine</span>
+                <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <div class="ufs-filters-dropdown">
+              <button type="button" class="ufs-filters-dropdown__trigger">
+                <span>Type of dish</span>
+                <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <button type="button" class="btn btn-secondary ufs-filters-allbtn">
+              <svg class="ufs-filters-allbtn__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="17" y2="6"/><line x1="6" y1="10" x2="14" y2="10"/><line x1="8.5" y1="14" x2="11.5" y2="14"/></svg>
+              <span class="ufs-filters-allbtn__label">All filters</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'bar-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'bar-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="bar-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-bar"</span> <span class="t-at">id</span>=<span class="t-id">"filters-bar"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-search"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;svg</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-search__icon"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;input</span> <span class="t-at">type</span>=<span class="t-str">"text"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-search__input"</span> <span class="t-at">placeholder</span>=<span class="t-str">"Search recipes"</span> <span class="t-tag">/&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+  <span class="t-cm">&lt;!-- one per quick-filter category — see Filter Dropdown below --&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-dropdown"</span> <span class="t-at">data-filter-key</span>=<span class="t-str">"mainIngredient"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-dropdown__trigger"</span> <span class="t-at">aria-expanded</span>=<span class="t-str">"false"</span> <span class="t-at">aria-haspopup</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;span&gt;</span>Main ingredient<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-badge"</span> <span class="t-at">hidden</span><span class="t-tag">&gt;</span>0<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;svg</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-dropdown__chev"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/svg&gt;</span>
+    <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-dropdown__panel"</span> <span class="t-at">role</span>=<span class="t-str">"region"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+  <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary ufs-filters-allbtn"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;svg</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-allbtn__icon"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/svg&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-allbtn__label"</span><span class="t-tag">&gt;</span>All filters<span class="t-tag">&lt;/span&gt;</span>
+  <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="bar-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-filters-bar</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">max-width</span>: <span class="t-vl">1280px</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 auto</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>;
+  <span class="t-pr">position</span>: <span class="t-vl">sticky</span>; <span class="t-pr">top</span>: <span class="t-va">var(--nav-h)</span>; <span class="t-pr">z-index</span>: <span class="t-vl">90</span>;
+  <span class="t-pr">transition</span>: <span class="t-vl">border-radius 0.15s</span>;
+}
+<span class="t-cm">/* CSS has no selector for "currently stuck" — JS compares live
+   position to the sticky offset and toggles this class. */</span>
+<span class="t-pr">.ufs-filters-bar.is-stuck</span> { <span class="t-pr">border-radius</span>: <span class="t-vl">0 0</span> <span class="t-va">var(--radius-lg) var(--radius-lg)</span>; }
+<span class="t-pr">.ufs-filters-search</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-filters-search__icon</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">left</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">top</span>: <span class="t-vl">50%</span>; <span class="t-pr">transform</span>: <span class="t-vl">translateY(-50%)</span>; <span class="t-pr">width</span>: <span class="t-vl">18px</span>; <span class="t-pr">height</span>: <span class="t-vl">18px</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-700)</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-filters-search__input</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-12)</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-4)</span> <span class="t-vl">0</span> <span class="t-va">var(--space-10)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-700)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-filters-search__input:focus</span> { <span class="t-pr">border-color</span>: <span class="t-va">var(--color-brand-dark)</span>; }</pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Bar background</span><span class="token-var">--color-mushroom-100</span><span class="token-note">→ salt on search input / dropdown triggers</span></div>
+          <div class="token-row"><span class="token-prop">Bar radius</span><span class="token-var">--radius-lg</span><span class="token-note">top corners square off while .is-stuck</span></div>
+          <div class="token-row"><span class="token-prop">Input / trigger height</span><span class="token-var">--space-12</span><span class="token-note">48px, shared by search input and dropdown triggers</span></div>
+          <div class="token-row"><span class="token-prop">Input / trigger border</span><span class="token-var">--color-mushroom-700</span><span class="token-note">→ brand-dark on focus/hover/open</span></div>
+          <div class="token-row"><span class="token-prop">Sticky offset</span><span class="token-var">--nav-h</span><span class="token-note">page-level context var, not owned by this component</span></div>
+          <div class="token-row"><span class="token-prop">Max width</span><span class="token-var">1280px / 1440px</span><span class="token-note">1440px above the 1480px lg breakpoint — see Responsive</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>The bar's <code>top</code> offset is <code>var(--nav-h)</code>, a page-level context variable set by the header (see <a href="nav-header-spec.html">nav-header-spec.html</a>), not a token this component owns. Below 1024px it switches to <code>var(--mnav-h) + var(--msearch-bar-h)</code> — see Sticky &amp; Responsive Behaviour.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ FILTER DROPDOWN ═══════════════════════════════════════ -->
+    <section class="doc-section" id="filter-dropdown">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Filter Dropdown</h2>
+      <p class="section-desc">Each quick dropdown (<code>.ufs-filters-dropdown</code>) opens a popover (<code>__panel</code>) with a checkbox list for that category (reuses <code>.fi-checkbox</code> — see <a href="index.html#checkbox">index.html</a>) and a Clear/Save footer (<code>__ft</code>). Selections here stage in a <strong>draft</strong> state and only commit to the shared filter state on Save — closing without saving discards the draft. This differs from the All Filters drawer below, where each checkbox commits live. A count badge (<code>.ufs-filters-badge</code>) appears on the trigger once that category has active (saved) filters.</p>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>The live page wires this with <code>toggleFilterDropdown()</code>, a per-category draft object (<code>quickFilterDraft</code>), and a shared <code>filterState</code> synced across the dropdowns, popular-filter pills, and drawer (<code>syncFilterUI()</code>). This spec shows each resulting visual state as a static, labelled specimen rather than the working engine — see <code>catalog-recipes-example.html</code> for the live logic.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label">Closed, no active filters</div>
+        <div class="pv-white" style="margin-bottom:20px;">
+          <div class="ufs-filters-dropdown pv-inline-demo">
+            <button type="button" class="ufs-filters-dropdown__trigger">
+              <span>Cuisine</span>
+              <span class="ufs-filters-badge" hidden>0</span>
+              <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="pv-label">Closed, 2 active filters — badge shown</div>
+        <div class="pv-white" style="margin-bottom:20px;">
+          <div class="ufs-filters-dropdown pv-inline-demo">
+            <button type="button" class="ufs-filters-dropdown__trigger">
+              <span>Cuisine</span>
+              <span class="ufs-filters-badge">2</span>
+              <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="pv-label">Open — checklist + Clear/Save footer</div>
+        <div class="pv-white" style="padding-bottom:260px;">
+          <div class="ufs-filters-dropdown is-open pv-inline-demo">
+            <button type="button" class="ufs-filters-dropdown__trigger">
+              <span>Cuisine</span>
+              <span class="ufs-filters-badge">1</span>
+              <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="ufs-filters-dropdown__panel" role="region" aria-label="Cuisine filters">
+              <div class="fi-checkbox-row">
+                <label class="fi-checkbox"><input type="checkbox" /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Asian</span></label>
+                <label class="fi-checkbox"><input type="checkbox" checked /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Mediterranean</span></label>
+                <label class="fi-checkbox"><input type="checkbox" /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Latin American</span></label>
+                <label class="fi-checkbox"><input type="checkbox" /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Classic European</span></label>
+              </div>
+              <div class="ufs-filters-dropdown__ft">
+                <button type="button" class="btn btn-secondary btn-sm">Clear</button>
+                <button type="button" class="btn btn-primary btn-sm">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'dd-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'dd-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="dd-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-dropdown"</span> <span class="t-at">data-filter-key</span>=<span class="t-str">"cuisine"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-dropdown__trigger"</span> <span class="t-at">aria-expanded</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;span&gt;</span>Cuisine<span class="t-tag">&lt;/span&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-badge"</span><span class="t-tag">&gt;</span>1<span class="t-tag">&lt;/span&gt;</span>
+    <span class="t-tag">&lt;svg</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-dropdown__chev"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/svg&gt;</span>
+  <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-dropdown__panel"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"fi-checkbox-row"</span><span class="t-tag">&gt;</span>
+      <span class="t-cm">&lt;!-- .fi-checkbox × N — see index.html#checkbox --&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-filters-dropdown__ft"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary btn-sm"</span><span class="t-tag">&gt;</span>Clear<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary btn-sm"</span><span class="t-tag">&gt;</span>Save<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="dd-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-filters-dropdown__trigger</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-12)</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-4)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-700)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-filters-dropdown.is-open .ufs-filters-dropdown__trigger</span> { <span class="t-pr">border-color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-filters-dropdown.is-open .ufs-filters-dropdown__chev</span> { <span class="t-pr">transform</span>: <span class="t-vl">rotate(180deg)</span>; }
+<span class="t-pr">.ufs-filters-badge</span> { <span class="t-pr">display</span>: <span class="t-vl">inline-flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">min-width</span>: <span class="t-vl">18px</span>; <span class="t-pr">height</span>: <span class="t-vl">18px</span>; <span class="t-pr">padding</span>: <span class="t-vl">0 4px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-badge-size)</span>; }
+<span class="t-pr">.ufs-filters-badge[hidden]</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-filters-dropdown__panel</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-vl">calc(100% + 8px)</span>; <span class="t-pr">left</span>: <span class="t-vl">0</span>; <span class="t-pr">z-index</span>: <span class="t-vl">30</span>; <span class="t-pr">min-width</span>: <span class="t-vl">240px</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>; <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-lg)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-filters-dropdown.is-open .ufs-filters-dropdown__panel</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+<span class="t-pr">.ufs-filters-dropdown__ft</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">padding-top</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">border-top</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-300)</span>; }
+<span class="t-pr">.ufs-filters-dropdown__ft .btn-primary</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span>; }</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ POPULAR FILTERS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="popular-filters">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Popular Filters</h2>
+      <p class="section-desc">A shortcut row of pill toggles (<code>.ufs-popular-filters</code>) for a handful of commonly-used filter values, sitting directly below the Filters Bar. Each pill reads/writes the <strong>same</strong> shared filter state as the quick dropdowns and the drawer accordion — activating a pill checks the matching checkbox in both other surfaces, and vice versa. <code>data-filter-key</code> / <code>data-filter-value</code> on each pill map it back to its category and option.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Default + active state</div>
+        <div class="pv-white">
+          <div class="ufs-popular-filters" style="justify-content:flex-start;">
+            <p class="ufs-popular-filters__label">Popular filters:</p>
+            <div class="ufs-popular-filters__pills">
+              <button type="button" class="ufs-popular-filters__pill is-active">
+                <span>Fish &amp; Seafood</span>
+                <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+              </button>
+              <button type="button" class="ufs-popular-filters__pill">
+                <span>Mediterranean</span>
+                <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+              </button>
+              <button type="button" class="ufs-popular-filters__pill">
+                <span>Sauces &amp; Dressings</span>
+                <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'pop-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'pop-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="pop-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-popular-filters"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-popular-filters__label"</span><span class="t-tag">&gt;</span>Popular filters:<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-popular-filters__pills"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-popular-filters__pill is-active"</span> <span class="t-at">data-filter-key</span>=<span class="t-str">"mainIngredient"</span> <span class="t-at">data-filter-value</span>=<span class="t-str">"Fish &amp; Seafood"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;span&gt;</span>Fish &amp; Seafood<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;svg</span> <span class="t-at">class</span>=<span class="t-str">"ufs-popular-filters__pill-check"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/svg&gt;</span>
+    <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="pop-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-popular-filters__pill</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-8)</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-4)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-700)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">background</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-popular-filters__pill.is-active</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">border-color</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>; }
+<span class="t-pr">.ufs-popular-filters__pill-check</span> { <span class="t-pr">width</span>: <span class="t-vl">14px</span>; <span class="t-pr">height</span>: <span class="t-vl">14px</span>; <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-popular-filters__pill.is-active .ufs-popular-filters__pill-check</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+<span class="t-cm">/* Pill row scrolls horizontally rather than wrapping — hidden
+   scrollbar on all engines. */</span>
+<span class="t-pr">.ufs-popular-filters__pills</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">overflow-x</span>: <span class="t-vl">auto</span>; <span class="t-pr">scrollbar-width</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-popular-filters__pills::-webkit-scrollbar</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ALL FILTERS DRAWER ═══════════════════════════════════════ -->
+    <section class="doc-section" id="filters-drawer">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">All Filters Drawer</h2>
+      <p class="section-desc">Opened by the Filters Bar's "All filters" button (and the only path to filters on mobile/tablet, since the quick dropdowns hide below 1280px — see Responsive). It reuses the shared <code>.signin-panel</code> right-side drawer scaffold — see <a href="nav-header-spec.html#signin-panel">nav-header-spec.html</a> for that base anatomy — with drawer-specific content: a multi-open accordion (<code>.ufs-filters-accordion</code>, one item per filter category) containing checkbox lists (<code>.ufs-filters-checklist</code>, orange-accent checked state), and an always-visible sticky footer with Clear filters / Show Results buttons.</p>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Unlike the quick dropdowns' draft-then-Save pattern, checkboxes here commit to the shared filter state <strong>live</strong> — each toggle immediately updates the results count, the drawer's own footer button labels/disabled state, and syncs the quick-dropdown badges and popular-filter pills.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Real case scenario — on-screen position &amp; scale</div>
+        <div class="card-desc">The full <code>.signin-panel</code> scaffold, all 6 filter categories (only the first open by default, matching the live page), pinned to the right edge at full viewport height above a dimmed backdrop — the drawer's actual on-screen footprint, not an isolated fragment. The page mock behind it is a simplified stand-in only; the real Filters Bar / Catalog Toolbar it sits above are documented in full further up this page.</div>
+
+        <div class="pv-label">Desktop (&gt; 1024px) — fixed 420px width</div>
+        <div class="pv-drawer-scene">
+          <div class="pv-drawer-scene-page">
+            <div class="pv-drawer-scene-navstub"></div>
+            <div class="pv-drawer-scene-barstub"></div>
+            <div class="pv-drawer-scene-grid">
+              <div class="pv-drawer-scene-tile"></div>
+              <div class="pv-drawer-scene-tile"></div>
+              <div class="pv-drawer-scene-tile"></div>
+              <div class="pv-drawer-scene-tile"></div>
+            </div>
+          </div>
+          <div class="signin-backdrop is-open"></div>
+          <div class="signin-panel is-open" id="filters-panel">
+            <div class="signin-panel-hd">
+              <h2 class="signin-panel-title" id="filters-panel-title">Filter by</h2>
+              <button class="signin-close" aria-label="Close filters">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+              </button>
+            </div>
+            <div class="signin-panel-body" id="filters-panel-body">
+              <div class="ufs-accordion__panel ufs-filters-accordion" id="filters-accordion">
+                <div class="ufs-accordion__item is-open">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="true">
+                    <span class="ufs-accordion__q">Main ingredient</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                  <div class="ufs-accordion__content">
+                    <div class="ufs-accordion__content-inner">
+                      <div class="fi-checkbox-row ufs-filters-checklist">
+                        <label class="fi-checkbox"><input type="checkbox" /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Beef</span></label>
+                        <label class="fi-checkbox"><input type="checkbox" /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Dairy</span></label>
+                        <label class="fi-checkbox"><input type="checkbox" /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Chicken</span></label>
+                        <label class="fi-checkbox"><input type="checkbox" checked /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Fish &amp; Seafood</span></label>
+                        <label class="fi-checkbox"><input type="checkbox" /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Pork</span></label>
+                        <label class="fi-checkbox"><input type="checkbox" checked /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Poultry</span></label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Cuisine</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Type of dish</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Allergens and diet</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Seasons</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Type of business</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="signin-panel-ft" id="filters-panel-ft">
+              <button type="button" class="btn btn-secondary" id="filters-clear-btn">Clear filters</button>
+              <button type="button" class="btn btn-primary" id="filters-show-btn">Show Results (<span id="filters-show-count">261</span>)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pv-label">Mobile (&le; 1024px) — <code>width: calc(100% - 16px)</code>, near-fullscreen</div>
+        <div class="pv-drawer-scene pv-drawer-scene--mobile">
+          <div class="pv-drawer-scene-page">
+            <div class="pv-drawer-scene-navstub"></div>
+            <div class="pv-drawer-scene-barstub"></div>
+            <div class="pv-drawer-scene-grid">
+              <div class="pv-drawer-scene-tile"></div>
+              <div class="pv-drawer-scene-tile"></div>
+            </div>
+          </div>
+          <div class="signin-backdrop is-open"></div>
+          <div class="signin-panel is-open" id="filters-panel-mobile">
+            <div class="signin-panel-hd">
+              <h2 class="signin-panel-title">Filter by</h2>
+              <button class="signin-close" aria-label="Close filters">
+                <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+              </button>
+            </div>
+            <div class="signin-panel-body">
+              <div class="ufs-accordion__panel ufs-filters-accordion">
+                <div class="ufs-accordion__item is-open">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="true">
+                    <span class="ufs-accordion__q">Main ingredient</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                  <div class="ufs-accordion__content">
+                    <div class="ufs-accordion__content-inner">
+                      <div class="fi-checkbox-row ufs-filters-checklist">
+                        <label class="fi-checkbox"><input type="checkbox" /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Beef</span></label>
+                        <label class="fi-checkbox"><input type="checkbox" checked /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Fish &amp; Seafood</span></label>
+                        <label class="fi-checkbox"><input type="checkbox" checked /><span class="fi-checkbox-box"><img src="icons/check.svg" alt="" /></span><span class="fi-checkbox-label">Poultry</span></label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Cuisine</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Type of dish</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Allergens and diet</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Seasons</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+                <div class="ufs-accordion__item">
+                  <button type="button" class="ufs-accordion__trigger" aria-expanded="false">
+                    <span class="ufs-accordion__q">Type of business</span>
+                    <svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="signin-panel-ft">
+              <button type="button" class="btn btn-secondary">Clear filters</button>
+              <button type="button" class="btn btn-primary">Show Results (<span>261</span>)</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="notice notice--tip" style="margin-top:20px;">
+          <span class="notice-icon">💡</span>
+          <div>The 16px gap on the left isn't a margin on the panel itself — it's <code>width: calc(100% - 16px)</code> on a <code>right:0</code>-pinned element, so a sliver of the dimmed backdrop stays visible and tappable to close the drawer, same purpose the desktop backdrop click-outside serves.</div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Reference markup</div>
+        <div class="card-desc">Same scaffold, isolated from the scene above for a clean HTML/CSS reference.</div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'drawer-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'drawer-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="drawer-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cm">&lt;!-- .signin-panel scaffold — see nav-header-spec.html#signin-panel --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel"</span> <span class="t-at">id</span>=<span class="t-id">"filters-panel"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-hd"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-title"</span><span class="t-tag">&gt;</span>Filter by<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"signin-close"</span><span class="t-at">&gt;</span>…<span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-body"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-accordion__panel ufs-filters-accordion"</span> <span class="t-at">id</span>=<span class="t-id">"filters-accordion"</span><span class="t-tag">&gt;</span>
+      <span class="t-cm">&lt;!-- one .ufs-accordion__item per filter category, each with a
+           .fi-checkbox-row.ufs-filters-checklist inside its content --&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-ft"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary"</span> <span class="t-at">disabled</span><span class="t-tag">&gt;</span>Clear filters<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span> <span class="t-at">disabled</span><span class="t-tag">&gt;</span>Show Results (<span class="t-tag">&lt;span&gt;</span>0<span class="t-tag">&lt;/span&gt;</span>)<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="drawer-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-cm">/* Base panel/backdrop/accordion CSS lives with .signin-panel — this
+   is only what's specific to the filters use of it. */</span>
+<span class="t-pr">#filters-panel .signin-panel-title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h6-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h6-lh)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h6-w)</span>; <span class="t-pr">margin-bottom</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">#filters-panel .signin-panel-body</span> { <span class="t-pr">padding</span>: <span class="t-vl">0 0</span> <span class="t-va">var(--space-6)</span>; }
+<span class="t-pr">.ufs-filters-accordion</span> { <span class="t-pr">border-radius</span>: <span class="t-vl">0</span>; <span class="t-pr">box-shadow</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-filters-accordion .ufs-accordion__trigger</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-filters-checklist</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 !important</span>; }
+<span class="t-pr">.ufs-filters-checklist .fi-checkbox input:checked + .fi-checkbox-box</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">border-color</span>: <span class="t-va">var(--color-accessible-orange)</span>; }
+<span class="t-cm">/* Same orange-accent override applies to the quick-dropdown
+   checkboxes too, not just the drawer. */</span>
+<span class="t-pr">.ufs-filters-dropdown__panel .fi-checkbox input:checked + .fi-checkbox-box</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">border-color</span>: <span class="t-va">var(--color-accessible-orange)</span>; }</pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Everywhere else in the product, <code>.fi-checkbox</code>'s checked state uses <code>--color-brand-dark</code> (see <a href="index.html#checkbox">index.html</a>). Filters is the one exception, using <code>--color-accessible-orange</code> instead to visually tie an active filter back to the orange count badges and active pill state.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CATALOG TOOLBAR ═══════════════════════════════════════ -->
+    <section class="doc-section" id="catalog-toolbar">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Catalog Toolbar</h2>
+      <p class="section-desc">A row (<code>.ufs-catalog-toolbar</code>) holding the results count on the left (<code>.ufs-catalog-results</code>, e.g. "343 recipes") and a sort control on the right (<code>.ufs-catalog-sort</code>) — a plain text+chevron trigger (no button box) that opens a small options panel of radio choices. Selecting an option just updates the trigger's label; it doesn't re-order the grid in this prototype. Unlike the filters dropdowns, this stays a row at every breakpoint, including mobile, rather than collapsing.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Closed</div>
+        <div class="pv-white" style="margin-bottom:20px;">
+          <div class="ufs-catalog-toolbar" style="max-width:100%; margin:0;">
+            <p class="ufs-catalog-results">343 recipes</p>
+            <div class="ufs-catalog-sort pv-inline-demo">
+              <button type="button" class="ufs-catalog-sort__trigger">
+                <span>Sort by: A–Z</span>
+                <svg class="ufs-catalog-sort__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pv-label">Open — 3 radio options, current selection checked</div>
+        <div class="pv-white" style="padding-bottom:170px;">
+          <div class="ufs-catalog-toolbar" style="max-width:100%; margin:0;">
+            <p class="ufs-catalog-results">343 recipes</p>
+            <div class="ufs-catalog-sort is-open pv-inline-demo">
+              <button type="button" class="ufs-catalog-sort__trigger">
+                <span>Sort by: Most Popular</span>
+                <svg class="ufs-catalog-sort__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="ufs-catalog-sort__panel" role="region" aria-label="Sort options">
+                <label class="ufs-catalog-sort__option"><input type="radio" name="spec-sort-demo" /> A–Z</label>
+                <label class="ufs-catalog-sort__option"><input type="radio" name="spec-sort-demo" /> Latest Added</label>
+                <label class="ufs-catalog-sort__option"><input type="radio" name="spec-sort-demo" checked /> Most Popular</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'sort-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'sort-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="sort-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-catalog-toolbar"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-catalog-results"</span><span class="t-tag">&gt;</span>343 recipes<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-catalog-sort"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-catalog-sort__trigger"</span> <span class="t-at">aria-expanded</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;span&gt;</span>Sort by: A–Z<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;svg</span> <span class="t-at">class</span>=<span class="t-str">"ufs-catalog-sort__chev"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/svg&gt;</span>
+    <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-catalog-sort__panel"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;label</span> <span class="t-at">class</span>=<span class="t-str">"ufs-catalog-sort__option"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;input</span> <span class="t-at">type</span>=<span class="t-str">"radio"</span> <span class="t-at">name</span>=<span class="t-str">"catalog-sort"</span> <span class="t-at">checked</span><span class="t-tag">/&gt;</span> A–Z<span class="t-tag">&lt;/label</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;label</span> <span class="t-at">class</span>=<span class="t-str">"ufs-catalog-sort__option"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;input</span> <span class="t-at">type</span>=<span class="t-str">"radio"</span> <span class="t-at">name</span>=<span class="t-str">"catalog-sort"</span><span class="t-tag">/&gt;</span> Latest Added<span class="t-tag">&lt;/label</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;label</span> <span class="t-at">class</span>=<span class="t-str">"ufs-catalog-sort__option"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;input</span> <span class="t-at">type</span>=<span class="t-str">"radio"</span> <span class="t-at">name</span>=<span class="t-str">"catalog-sort"</span><span class="t-tag">/&gt;</span> Most Popular<span class="t-tag">&lt;/label</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="sort-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-catalog-toolbar</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">max-width</span>: <span class="t-vl">1280px</span>; <span class="t-pr">margin</span>: <span class="t-va">var(--space-4)</span> <span class="t-vl">auto 0</span>; }
+<span class="t-pr">.ufs-catalog-results</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-catalog-sort__trigger</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">background</span>: <span class="t-vl">none</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; }
+<span class="t-pr">.ufs-catalog-sort.is-open .ufs-catalog-sort__chev</span> { <span class="t-pr">transform</span>: <span class="t-vl">rotate(180deg)</span>; }
+<span class="t-pr">.ufs-catalog-sort__panel</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-vl">calc(100% + 8px)</span>; <span class="t-pr">right</span>: <span class="t-vl">0</span>; <span class="t-pr">min-width</span>: <span class="t-vl">180px</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>; <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-lg)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-2)</span>; }
+<span class="t-pr">.ufs-catalog-sort.is-open .ufs-catalog-sort__panel</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+<span class="t-pr">.ufs-catalog-sort__option:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RESPONSIVE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="responsive">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Sticky &amp; Responsive Behaviour</h2>
+      <p class="section-desc">The Filters Bar is <code>position: sticky</code> against the page's own scroll, so its "stuck" and mobile-docked states can't be reproduced live inside a spec-doc card — this section documents them as annotated states instead. See <code>catalog-recipes-example.html</code> for the working <code>syncFiltersBarStuck()</code> / <code>hideMobileSearchBar()</code> / <code>showMobileSearchBar()</code> logic.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Breakpoints</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">≥ 1480px</span><span class="token-var">max-width: 1440px</span><span class="token-note">Filters Bar, Popular Filters &amp; Catalog Toolbar cap wider than the 1280px default</span></div>
+          <div class="token-row"><span class="token-prop">1280–1479px</span><span class="token-var">default, 1280px cap</span><span class="token-note">all 3 quick dropdowns visible</span></div>
+          <div class="token-row"><span class="token-prop">≤ 1279px</span><span class="token-var">.ufs-filters-dropdown { display: none }</span><span class="token-note">quick dropdowns hide — "All filters" drawer becomes the only path to filtering</span></div>
+          <div class="token-row"><span class="token-prop">≤ 1024px</span><span class="token-var">top: var(--mnav-h) + var(--msearch-bar-h)</span><span class="token-note">sticky offset follows the mobile nav + mobile search bar instead of the desktop nav</span></div>
+          <div class="token-row"><span class="token-prop">≤ 768px</span><span class="token-var">.ufs-filters-allbtn__label { display: none }</span><span class="token-note">"All filters" becomes icon-only, width var(--space-12)</span></div>
+        </div>
+
+        <div class="card-subtitle" style="margin-top:24px;">is-stuck</div>
+        <p style="font-size:13px; line-height:20px; color:var(--color-mushroom-900); margin-bottom:16px;">CSS has no selector for "currently stuck" under <code>position: sticky</code>, so <code>syncFiltersBarStuck()</code> compares the bar's live <code>getBoundingClientRect().top</code> against its own computed sticky offset on scroll, toggling <code>.is-stuck</code> — which squares off the top corners so the bar reads as flush with the header above it.</p>
+
+        <div class="card-subtitle">Mobile: docking with the search bar</div>
+        <p style="font-size:13px; line-height:20px; color:var(--color-mushroom-900);">Below 1024px, the Filters Bar and the persistent mobile search bar (see <a href="nav-header-spec.html">nav-header-spec.html</a>) trade off the same slot on scroll: both start visible, stacked, on initial load. Scrolling down hides the search bar and adds <code>.is-docked</code> to the Filters Bar, moving its sticky offset up to sit flush under the mobile nav in the search bar's place. Scrolling back up brings the search bar back and adds <code>.is-hidden</code> to the Filters Bar (gated on also having <code>.is-stuck</code>, so it can't apply while the bar is still in its normal flow position), translating it out of view instead.</p>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The Filters Bar, dropdowns, and Popular Filters are all flex rows built with logical/direction-agnostic properties (<code>gap</code>, no physical <code>margin-left</code>/<code>right</code>), so <code>dir="rtl"</code> mirrors them with no overrides needed beyond what <code>.fi-checkbox</code>, <code>.btn</code>, and <code>.signin-panel</code> already handle at the base level (see their respective specs).</p>
+
+      <div class="ds-card">
+        <div class="card-title">Full preview — dir="rtl"</div>
+        <div class="card-desc">Same Filters Bar + Popular Filters + Catalog Toolbar shown together in Overview, mirrored — desktop and mobile.</div>
+
+        <div class="pv-label">Desktop (&gt; 1280px) — dir="rtl"</div>
+        <div class="pv-light" style="margin-bottom:24px;" dir="rtl">
+          <div class="ufs-filters-bar" style="position:static;">
+            <div class="ufs-filters-search">
+              <svg class="ufs-filters-search__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="17.5" y1="17.5" x2="13.5" y2="13.5"/></svg>
+              <input type="text" class="ufs-filters-search__input" placeholder="ابحث عن الوصفات" aria-label="ابحث عن الوصفات" />
+            </div>
+            <div class="ufs-filters-dropdown">
+              <button type="button" class="ufs-filters-dropdown__trigger">
+                <span>المكوّن الرئيسي</span>
+                <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <div class="ufs-filters-dropdown">
+              <button type="button" class="ufs-filters-dropdown__trigger">
+                <span>المطبخ</span>
+                <span class="ufs-filters-badge">2</span>
+                <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <div class="ufs-filters-dropdown">
+              <button type="button" class="ufs-filters-dropdown__trigger">
+                <span>نوع الطبق</span>
+                <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <button type="button" class="btn btn-secondary ufs-filters-allbtn">
+              <svg class="ufs-filters-allbtn__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="17" y2="6"/><line x1="6" y1="10" x2="14" y2="10"/><line x1="8.5" y1="14" x2="11.5" y2="14"/></svg>
+              <span class="ufs-filters-allbtn__label">كل الفلاتر</span>
+            </button>
+          </div>
+
+          <div class="ufs-popular-filters" style="justify-content:flex-start;">
+            <p class="ufs-popular-filters__label">الفلاتر الشائعة:</p>
+            <div class="ufs-popular-filters__pills">
+              <button type="button" class="ufs-popular-filters__pill is-active">
+                <span>سمك ومأكولات بحرية</span>
+                <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+              </button>
+              <button type="button" class="ufs-popular-filters__pill">
+                <span>البحر المتوسط</span>
+                <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+              </button>
+              <button type="button" class="ufs-popular-filters__pill">
+                <span>صلصات وتتبيلات</span>
+                <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="ufs-catalog-toolbar">
+            <p class="ufs-catalog-results">261 وصفة</p>
+            <div class="ufs-catalog-sort">
+              <button type="button" class="ufs-catalog-sort__trigger">
+                <span>الترتيب حسب: أ-ي</span>
+                <svg class="ufs-catalog-sort__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pv-label">Mobile (&le; 768px) — dir="rtl"</div>
+        <div class="pv-mobile" dir="rtl">
+          <div class="ufs-filters-bar" style="position:static;">
+            <div class="ufs-filters-search">
+              <svg class="ufs-filters-search__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="17.5" y1="17.5" x2="13.5" y2="13.5"/></svg>
+              <input type="text" class="ufs-filters-search__input" placeholder="ابحث عن الوصفات" aria-label="ابحث عن الوصفات" />
+            </div>
+            <div class="ufs-filters-dropdown">
+              <button type="button" class="ufs-filters-dropdown__trigger">
+                <span>المكوّن الرئيسي</span>
+                <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+            <button type="button" class="btn btn-secondary ufs-filters-allbtn">
+              <svg class="ufs-filters-allbtn__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="17" y2="6"/><line x1="6" y1="10" x2="14" y2="10"/><line x1="8.5" y1="14" x2="11.5" y2="14"/></svg>
+              <span class="ufs-filters-allbtn__label">كل الفلاتر</span>
+            </button>
+          </div>
+
+          <div class="ufs-popular-filters" style="justify-content:flex-start;">
+            <p class="ufs-popular-filters__label">الفلاتر الشائعة:</p>
+            <div class="ufs-popular-filters__pills">
+              <button type="button" class="ufs-popular-filters__pill is-active">
+                <span>سمك ومأكولات بحرية</span>
+                <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+              </button>
+              <button type="button" class="ufs-popular-filters__pill">
+                <span>البحر المتوسط</span>
+                <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+              </button>
+              <button type="button" class="ufs-popular-filters__pill">
+                <span>صلصات وتتبيلات</span>
+                <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="ufs-catalog-toolbar">
+            <p class="ufs-catalog-results">261 وصفة</p>
+            <div class="ufs-catalog-sort">
+              <button type="button" class="ufs-catalog-sort__trigger">
+                <span>الترتيب حسب: أ-ي</span>
+                <svg class="ufs-catalog-sort__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Route all labels (search placeholder, dropdown/pill/sort text, results count) through the same <code>data-i18n</code> mechanism as the rest of the header/footer — this example hardcodes Arabic strings only to demonstrate the layout.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="catalog-recipes-example.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

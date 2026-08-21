@@ -897,11 +897,86 @@
       background: linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-dark) 0%, transparent) 23.5%, var(--color-brand-dark) 74%);
     }
     .ufs-tile--topic:hover { box-shadow: var(--shadow-lg); }
-    .ufs-tile__topic-body { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; padding: var(--space-8) var(--space-5) var(--space-6); }
+    .ufs-tile__topic-body { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; padding: var(--space-8) var(--space-5) var(--space-6); }
+    /* Optional — same overline scale as .ufs-tile__eyebrow (Article/
+       Training tiles), but mushroom-500 instead of mushroom-900 on this
+       (dark-gradient) default: mushroom-900 reads on a plain white card,
+       not against a dark photo+gradient background. Unlike title/desc/
+       link, this one DOES need a variant-specific override below — the
+       light variant flips it to a dark colour. No alignment rule of its
+       own — inherits __topic-body's text-align/align-items (centred by
+       default, left/right for the wide/RTL variants), same as title/desc. */
+    .ufs-tile__topic-eyebrow { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); line-height: var(--text-overline-lh); text-transform: uppercase; color: var(--color-mushroom-500); margin: 0; }
     .ufs-tile__topic-title { font-size: var(--text-h4-size); font-weight: var(--text-h3-w); line-height: var(--text-h3-lh); color: var(--color-salt); margin: 0; }
     .ufs-tile__topic-desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-salt); margin: 0; }
     .ufs-tile__topic-link { display: inline-flex; align-items: end; gap: var(--space-1); font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: 600; color: var(--color-brand-primary); background: none; border: none; cursor: pointer; }
     .ufs-tile__topic-link svg { width: 16px; height: 16px; }
+
+    /* Light Topic Tile — colour-only modifier, independent of and
+       combinable with .ufs-tile--topic-wide (regular or wide, either can
+       be light). Meant for topic tiles sitting in squid-ink or
+       image-background flex-carousels, where the default dark gradient/
+       white text would otherwise read too close to the carousel's own
+       dark surface — swaps the gradient to fade up to salt instead of
+       brand-dark, and the title/desc to brand-dark instead of salt. Same
+       23.5%/74% gradient stops as the dark variant, not Figma's slightly
+       different values for this specific instance — colour is the only
+       thing that changes. The "Check the Articles" link also switches to
+       --color-accessible-orange here — --color-brand-primary (#FF5A00, the
+       dark variant's link colour) is too bright/low-contrast against the
+       now-light background this variant fades up to. */
+    .ufs-tile--topic-light::before {
+      background: linear-gradient(to bottom, color-mix(in srgb, var(--color-salt) 0%, transparent) 23.5%, var(--color-salt) 74%);
+    }
+    .ufs-tile--topic-light .ufs-tile__topic-title,
+    .ufs-tile--topic-light .ufs-tile__topic-desc { color: var(--color-brand-dark); }
+    .ufs-tile--topic-light .ufs-tile__topic-link { color: var(--color-accessible-orange); }
+    .ufs-tile--topic-light .ufs-tile__topic-eyebrow { color: var(--color-mushroom-900); }
+
+    /* Wide Topic Tile — same anatomy as .ufs-tile--topic (media/photo/
+       gradient/hover-zoom all reused as-is, combine both classes on one
+       element), just a wider carousel-only card: fixed 650px width (height
+       unchanged — Figma's own wide-tile frame is 605×400, same 400px as
+       the narrow tile), content left-anchored instead of centred, heading
+       bumped from the h4 to the h3 type scale, and the body's horizontal
+       padding grows/shrinks asymmetrically to match (more room on the
+       leading edge, less on the trailing one, now that text isn't
+       centred). Logical padding-inline-start/end (not left/right) means
+       that asymmetry — and the align-items:flex-start anchor — mirror to
+       the correct edge under dir="rtl" with no override needed; only the
+       literal text-align needs an explicit RTL flip. Gradient overlay is
+       intentionally left identical to the narrow tile's, not Figma's
+       slightly different stops for this variant, so both share one
+       consistent treatment.
+
+       Width needs the same carousel-agnostic 3-class scoping used for
+       .ufs-flex-carousel .ufs-carousel-card.ufs-teaser below — every
+       .ufs-flex-carousel--X variant sets its own generic 2-class
+       .ufs-carousel-card width (e.g. .ufs-flex-carousel--mushroom
+       .ufs-carousel-card), which outranks a bare 1-class
+       .ufs-tile--topic-wide rule regardless of source order. Matching
+       that specificity (rather than duplicating per variant, like
+       .ufs-tile--brand does for --mushroom specifically) makes this work
+       in any carousel variant without needing to know which one ahead of
+       time.
+
+       Everything below is gated behind the same 769px breakpoint every
+       other component in this file treats as "desktop" — on mobile the
+       wide tile is meant to look exactly like the narrow one, width
+       included, so none of these overrides should apply at all below
+       that point rather than needing their own separate mobile reset. */
+    @media (min-width: 769px) {
+      .ufs-flex-carousel .ufs-carousel-card.ufs-tile--topic-wide { width: 650px; }
+      .ufs-tile--topic-wide .ufs-tile__topic-body {
+        align-items: flex-start; text-align: left;
+        padding-top: var(--space-8); padding-bottom: var(--space-8);
+        padding-inline-start: var(--space-8); padding-inline-end: var(--space-4);
+      }
+      .ufs-tile--topic-wide .ufs-tile__topic-title {
+        font-size: var(--text-h3-size); font-weight: var(--text-h3-w); line-height: var(--text-h3-lh); letter-spacing: -0.3px;
+      }
+      [dir="rtl"] .ufs-tile--topic-wide .ufs-tile__topic-body { text-align: right; }
+    }
 
     @media (max-width: 480px) {
       .ufs-tile__image { height: 200px; }
@@ -1039,13 +1114,13 @@
 
     /* No-scroll / "compact" state — activates automatically (via JS in
        initFlexCarousel below) whenever the tiles fit the track without
-       needing to scroll. This is a function of measured overflow
-       (track.scrollWidth vs clientWidth), not a fixed tile count, since
-       whether N tiles overflow depends on the viewport too — the same
-       tile set can scroll at 1280px and not need to at 1920px. Desktop
-       only; mobile keeps its swipeable layout regardless (its own dot
-       logic already collapses to a single, non-interactive dot when
-       there's nothing to page through). */
+       needing to scroll. Threshold is (viewport width − this component's
+       own left padding × 2) — see availableWidth() in initFlexCarousel —
+       not a fixed tile count, since whether N tiles overflow depends on
+       the viewport too — the same tile set can scroll at 1280px and not
+       need to at 1920px. Desktop only; mobile keeps its swipeable layout
+       regardless (its own dot logic already collapses to a single,
+       non-interactive dot when there's nothing to page through). */
     @media (min-width: 769px) {
       .ufs-flex-carousel.is-compact .ufs-flex-carousel__head {
         flex-direction: column; align-items: center; text-align: center;
@@ -1104,6 +1179,49 @@
        this was caught. Track padding for the hover shadow now lives on the
        shared .ufs-carousel-track rule, so every carousel gets it.) */
     .ufs-flex-carousel--squid .ufs-carousel-card { width: 320px; height: auto; }
+    /* Global rule: every Tile (Recipe/Article, plus Topic Tile below, which
+       has none by default) gets a --color-mushroom-300 border when placed
+       in a squid-ink or image-background flex-carousel — a light, visible
+       edge against a dark/photo backdrop, replacing this codebase's
+       earlier squid-only --color-squid-300 border-colour rule for the
+       same reasoning superseded by this one. .ufs-tile--topic-wide's
+       own 2-class selector for width still wins over the equal-specificity
+       border here regardless of order (different property, no conflict);
+       .ufs-tile--topic's own border:none is 1-class and loses to this
+       2-class selector. */
+    .ufs-flex-carousel--squid .ufs-tile,
+    .ufs-flex-carousel--image .ufs-tile {
+      border: 1px solid var(--color-mushroom-300);
+    }
+
+    /* Teaser (col-4) cards placed in a flex-carousel — same fixed-width
+       principle as the Tile cards above (stepSize() needs uniform card
+       widths), matching Recipe Tile's own 320px rather than Teaser's usual
+       ~277px 4-up grid-column width. background:none strips the shared
+       .ufs-carousel-card base rule's --carousel-card-bg fill — unlike
+       Tile, Teaser isn't meant to read as a card, just image + text sitting
+       directly on the carousel's own background. .ufs-teaser's real sizing
+       (image ratio, title/desc scale) normally only exists scoped under
+       .ufs-teaser-wrapper--4 in the grid layout; nesting a grid wrapper
+       inside the carousel's flex track isn't workable, so those rules are
+       duplicated here scoped to the carousel instead — this block is the
+       4-up type scale, verbatim. */
+    .ufs-flex-carousel .ufs-carousel-card.ufs-teaser { width: 320px; height: auto; gap: var(--space-4); background: none; }
+    .ufs-flex-carousel .ufs-teaser__image { aspect-ratio: 275 / 190; border-radius: var(--radius-sm); }
+    .ufs-flex-carousel .ufs-teaser__title { font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); }
+    .ufs-flex-carousel .ufs-teaser__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+    @media (min-width: 1024px) {
+      .ufs-flex-carousel .ufs-teaser__body,
+      .ufs-flex-carousel .ufs-teaser__heading { gap: var(--space-2); }
+    }
+    /* Squid-ink carousel — identical colour flip to .pg-teaser-section
+       --squidink's own eyebrow/title/desc/link overrides, just rescoped to
+       the carousel context so Teaser stays legible on the dark surface. */
+    .ufs-flex-carousel--squid .ufs-teaser__eyebrow { color: var(--color-mushroom-500); }
+    .ufs-flex-carousel--squid .ufs-teaser__title,
+    .ufs-flex-carousel--squid .ufs-teaser__desc { color: var(--color-salt); }
+    .ufs-flex-carousel--squid .ufs-teaser__link { color: var(--color-brand-primary); }
+
     .ufs-flex-carousel--mushroom {
       background: var(--color-mushroom-100);
       gap: var(--space-6); /* tighter row spacing than the default space-8 */
@@ -1133,7 +1251,7 @@
        to orange-700 on this variant so the indicator clears AA 3:1 (4.09:1). */
     .ufs-flex-carousel--mushroom .ufs-carousel-dot.is-active { background: var(--color-orange-700); }
     .ufs-flex-carousel--image {
-      background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/M_GPP_6074.jpg');
+      background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/carousel/flex-carousel-bg.jpg');
       background-size: cover, cover; background-position: center, center; background-repeat: no-repeat, no-repeat;
       --carousel-title-color: var(--color-salt);
       --carousel-desc-color: rgba(255,255,255,0.75);
@@ -1147,7 +1265,11 @@
       --carousel-arrow-bg: transparent;
       --carousel-arrow-active-bg: rgba(255,255,255,0.25);
     }
-    .ufs-flex-carousel--image .ufs-carousel-card { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+    /* width/height:auto — same fix already applied to --recipe-test/--squid/
+       --mushroom above: without it, real tile content (Recipe/Article/Wide
+       Topic Tile) gets squashed into the base .ufs-carousel-card's fixed
+       270×270px placeholder box instead of sizing to its own content. */
+    .ufs-flex-carousel--image .ufs-carousel-card { width: 320px; height: auto; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 
     @media (max-width: 768px) {
       .ufs-flex-carousel { padding: 56px var(--space-4); gap: var(--space-6); }
@@ -1413,6 +1535,58 @@
       .ufs-fw-banner__scrim { display: none; }
     }
 
+    /* ================================================================
+       CAMPAIGN HERO — full-bleed section with a looping background video
+       or a static image, a darkening overlay for text contrast, and a
+       centred content column (720px cap, same reading-width convention
+       as .ufs-title-section__inner). Countdown value/label carry the
+       SAME .text-price-xl / .text-body-sm utility classes Promo Banner's
+       own countdown uses (see promo-banner-spec.html) for identical
+       sizing and font-properties between the two components — only
+       colour/width/spacing are set here.
+
+       Height is content-driven with a min-height floor, not a fixed
+       height: min-height only sets a minimum, so if the optional content
+       filled in (logo, desc, countdown, both CTAs, disclaimer) runs
+       longer than that floor, the section grows to fit rather than
+       clipping — same principle as Promo Banner and Title.
+    ================================================================ */
+    .ufs-campaign-hero {
+      position: relative; display: flex; align-items: center; justify-content: center;
+      min-height: 600px; padding: var(--space-16) var(--space-4);
+      overflow: hidden; text-align: center;
+    }
+    .ufs-campaign-hero__media { position: absolute; inset: 0; z-index: 0; background: var(--color-brand-dark); }
+    .ufs-campaign-hero__media video,
+    .ufs-campaign-hero__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .ufs-campaign-hero__overlay { position: absolute; inset: 0; background: var(--color-brand-dark); opacity: 0.5; }
+    .ufs-campaign-hero__content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: var(--space-6); max-width: 720px; width: 100%; }
+    .ufs-campaign-hero__logo { width: 180px; height: auto; display: block; }
+    .ufs-campaign-hero__heading { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); width: 100%; }
+    /* Bespoke hero scale — larger and with softer tracking than .text-h2
+       (weight 900 / line-height 1.15 still match h2's), per this
+       component's own Figma spec rather than the standard heading scale. */
+    .ufs-campaign-hero__title { margin: 0; color: var(--color-salt); font-family: var(--font-family); font-size: 40px; line-height: 1.15; font-weight: 900; letter-spacing: -0.4px; text-shadow: 0 3px 7px rgba(0,0,0,0.25); }
+    .ufs-campaign-hero__desc { margin: 0; color: var(--color-salt); font-size: var(--text-body-size); line-height: var(--text-body-lh); text-shadow: 0 3px 7px rgba(0,0,0,0.25); }
+    .ufs-campaign-hero__countdown { display: flex; align-items: center; justify-content: center; gap: var(--space-4); }
+    .ufs-campaign-hero__countdown-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ufs-campaign-hero__countdown-value { color: var(--color-salt); margin: 0; width: 60px; font-size: var(--text-price-xl-mob-size); }
+    .ufs-campaign-hero__countdown-label { color: var(--color-salt); margin: 0; }
+    .ufs-campaign-hero__ctas { display: flex; align-items: center; justify-content: center; gap: var(--space-6); }
+    .ufs-campaign-hero__disclaimer { margin: 0; color: var(--color-salt); font-size: 12px; line-height: 1.4; text-shadow: 0 3px 7px rgba(0,0,0,0.25); }
+    @media (min-width: 1024px) {
+      .ufs-campaign-hero__countdown-value { font-size: var(--text-price-xl-size); }
+    }
+    @media (max-width: 768px) {
+      .ufs-campaign-hero { min-height: 70vh; padding: var(--space-10) var(--space-4); }
+      .ufs-campaign-hero__logo { width: 150px; }
+      .ufs-campaign-hero__title { font-size: 28px; letter-spacing: -0.28px; }
+      .ufs-campaign-hero__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-campaign-hero__countdown { gap: var(--space-3); }
+      .ufs-campaign-hero__ctas { flex-direction: column; width: 100%; gap: var(--space-3); }
+      .ufs-campaign-hero__ctas .btn { width: 100%; }
+    }
+
     /* RTL — arrow shapes/flip and floating positions mirror like the
        flex-carousel above; layout itself (flex row) reverses automatically. */
     [dir="rtl"] .ufs-fw-banner .ufs-carousel-arrow { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
@@ -1472,6 +1646,30 @@
     .ufs-promo-banner--dark .ufs-promo-banner__disclaimer { color: color-mix(in srgb, var(--color-salt) 80%, transparent); }
     .ufs-promo-banner--dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
     .ufs-promo-banner--dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+
+    /* TITLE — eyebrow + heading + description, centred and width-capped.
+       handover/catalog-recipes-example.html is this component's source of
+       truth; mirrored here to preview it above a squid-ink teaser section. */
+    .ufs-title-section { width: 100%; padding: var(--space-10) var(--space-24) var(--space-8); text-align: center; }
+    .ufs-title-section__eyebrow { font-size: var(--text-overline-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-accessible-orange); margin: 0 0 var(--space-3); }
+    .ufs-title-section__heading { font-size: var(--text-h2-size); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); font-weight: var(--text-h2-w); color: var(--color-brand-dark); margin: 0 0 var(--space-3); }
+    .ufs-title-section__heading--h3 { font-size: var(--text-h3-size); line-height: var(--text-h3-lh); letter-spacing: var(--text-h3-ls); font-weight: var(--text-h3-w); }
+    .ufs-title-section__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-squid-500); margin: 0; }
+    .ufs-title-section__inner { max-width: 720px; margin: 0 auto; }
+    .ufs-title-section--left { text-align: left; }
+    .ufs-title-section--left .ufs-title-section__inner { margin: 0; }
+    [dir="rtl"] .ufs-title-section--left,
+    [dir="rtl"].ufs-title-section--left { text-align: right; }
+    .ufs-title-section--dark { background: var(--color-brand-dark); }
+    .ufs-title-section--dark .ufs-title-section__heading,
+    .ufs-title-section--dark .ufs-title-section__desc { color: var(--color-salt); }
+    .ufs-title-section--mushroom { background: var(--color-mushroom-100); }
+    @media (max-width: 768px) {
+      .ufs-title-section { padding: var(--space-8) var(--space-4) var(--space-6); }
+      .ufs-title-section__heading { font-size: var(--text-h2-mob-size); }
+      .ufs-title-section__heading--h3 { font-size: var(--text-h3-mob-size); }
+      .ufs-title-section__desc { font-size: var(--text-body-sm-size); }
+    }
 
     @media (min-width: 1024px) {
       .ufs-promo-banner {
@@ -1535,6 +1733,202 @@
        inside this box (border-box), so it keeps applying unchanged. */
     @media (min-width: 1440px) {
       .pg-promo-banner-section { max-width: 1440px; margin-inline: auto; }
+    }
+
+    /* ================================================================
+       TEASER — image + eyebrow(optional) + title + desc(optional) +
+       link-or-button(optional), stacked horizontally in 3 desktop
+       variants (2/3/4 up, each spanning an equal share of a 1240px-max
+       wrapper) and collapsing to a single-column bordered list on
+       mobile. CTA type is variant-determined, not a free per-instance
+       choice: the 2-up variant always renders a filled button, the 3-up
+       and 4-up variants always render a plain text link. Values below
+       are adapted from Figma nodes 1626:7234 (2-up), 1626:7028 (3-up),
+       1626:7160 (4-up) and 1626:7441 (mobile) — every spacing/type/color
+       value maps exactly onto an existing DS token; only the mobile
+       eyebrow (10px, no matching token) and the fixed 120px mobile
+       image width are literal pixel values with no token equivalent.
+    ================================================================ */
+    .pg-teaser-section { background: var(--color-salt); padding: var(--space-16) var(--space-20); }
+    @media (min-width: 1024px) {
+      .pg-teaser-section { padding-top: var(--space-24); padding-bottom: var(--space-24); }
+    }
+    @media (max-width: 768px) {
+      .pg-teaser-section { padding-left: var(--space-4); padding-right: var(--space-4); }
+    }
+    /* Background variants — same rules as .pg-teaser-lg-section: white is
+       the unstyled default, squid-ink flips title/desc to salt and the
+       eyebrow to mushroom-500, and the 3-up/4-up text-link CTA switches
+       to the brighter --color-brand-primary (UFS Orange, #FF5A00) for
+       contrast against the dark surface instead of the usual
+       --color-accessible-orange used everywhere else. */
+    .pg-teaser-section--mushroom { background: var(--color-mushroom-100); }
+    .pg-teaser-section--squidink { background: var(--color-brand-dark); }
+    .pg-teaser-section--squidink .ufs-teaser__eyebrow { color: var(--color-mushroom-500); }
+    .pg-teaser-section--squidink .ufs-teaser__title,
+    .pg-teaser-section--squidink .ufs-teaser__desc { color: var(--color-salt); }
+    .pg-teaser-section--squidink .ufs-teaser__link { color: var(--color-brand-primary); }
+
+    /* 3-up/4-up are mostly paired with a Title component directly above, so
+       they need less top padding (avoids doubling the gap Title already
+       provides) and a bit more bottom breathing room. 2-up isn't paired the
+       same way and keeps the section's own default padding above. */
+    .pg-teaser-section:has(.ufs-teaser-wrapper--3),
+    .pg-teaser-section:has(.ufs-teaser-wrapper--4) {
+      padding-top: var(--space-2);
+      padding-bottom: var(--space-10);
+    }
+
+    .ufs-teaser-wrapper { display: grid; max-width: 1240px; margin-inline: auto; }
+    .ufs-teaser-wrapper--2 { grid-template-columns: repeat(2, 1fr); gap: var(--space-9); }
+    .ufs-teaser-wrapper--3 { grid-template-columns: repeat(3, 1fr); gap: var(--space-8); }
+    .ufs-teaser-wrapper--4 { grid-template-columns: repeat(4, 1fr); gap: var(--space-8); }
+
+    .ufs-teaser { display: flex; flex-direction: column; }
+    .ufs-teaser-wrapper--2 .ufs-teaser { gap: var(--space-6); }
+    .ufs-teaser-wrapper--3 .ufs-teaser,
+    .ufs-teaser-wrapper--4 .ufs-teaser { gap: var(--space-4); }
+
+    .ufs-teaser__image { position: relative; width: 100%; overflow: hidden; }
+    .ufs-teaser__image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .ufs-teaser-wrapper--2 .ufs-teaser__image { aspect-ratio: 572 / 396; border-radius: var(--radius-md); }
+    .ufs-teaser-wrapper--3 .ufs-teaser__image { aspect-ratio: 366 / 252; border-radius: var(--radius-sm); }
+    .ufs-teaser-wrapper--4 .ufs-teaser__image { aspect-ratio: 275 / 190; border-radius: var(--radius-sm); }
+
+    .ufs-teaser__body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); width: 100%; }
+    .ufs-teaser__eyebrow {
+      font-size: var(--text-overline-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w);
+      letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-mushroom-900);
+      margin: 0; width: 100%;
+    }
+    .ufs-teaser__heading { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+    @media (min-width: 1024px) {
+      .ufs-teaser-wrapper--3 .ufs-teaser__body,
+      .ufs-teaser-wrapper--4 .ufs-teaser__body,
+      .ufs-teaser-wrapper--3 .ufs-teaser__heading,
+      .ufs-teaser-wrapper--4 .ufs-teaser__heading { gap: var(--space-2); }
+    }
+    .ufs-teaser__title { margin: 0; color: var(--color-brand-dark); width: 100%; }
+    .ufs-teaser-wrapper--2 .ufs-teaser__title { font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w); }
+    .ufs-teaser-wrapper--3 .ufs-teaser__title,
+    .ufs-teaser-wrapper--4 .ufs-teaser__title { font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); }
+    .ufs-teaser__desc { margin: 0; color: var(--color-brand-dark); width: 100%; }
+    .ufs-teaser-wrapper--2 .ufs-teaser__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); }
+    .ufs-teaser-wrapper--3 .ufs-teaser__desc,
+    .ufs-teaser-wrapper--4 .ufs-teaser__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+
+    /* 2-up CTA — filled button, reuses .btn.btn-primary as-is; the design
+       adds 4px on top of the body's own 12px gap (16px total desc→cta). */
+    .ufs-teaser-wrapper--2 .ufs-teaser__cta { margin-top: var(--space-1); }
+    /* 3-up/4-up CTA — plain text link, matches the .reg-email-edit /
+       promo-banner-link established "text link" treatment. */
+    .ufs-teaser__link {
+      font-size: var(--text-btn-size); font-weight: var(--text-btn-w); color: var(--color-accessible-orange);
+      text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+    }
+
+    @media (max-width: 768px) {
+      .ufs-teaser-wrapper { grid-template-columns: 1fr; gap: 0; }
+      .ufs-teaser-wrapper--2 .ufs-teaser,
+      .ufs-teaser-wrapper--3 .ufs-teaser,
+      .ufs-teaser-wrapper--4 .ufs-teaser {
+        flex-direction: row; align-items: flex-start; gap: var(--space-4);
+        padding: var(--space-6) 0; border-bottom: 1px solid var(--color-mushroom-300);
+      }
+      .ufs-teaser-wrapper--2 .ufs-teaser:last-child,
+      .ufs-teaser-wrapper--3 .ufs-teaser:last-child,
+      .ufs-teaser-wrapper--4 .ufs-teaser:last-child { border-bottom: none; padding-bottom: 0; }
+      .ufs-teaser-wrapper--2 .ufs-teaser:first-child,
+      .ufs-teaser-wrapper--3 .ufs-teaser:first-child,
+      .ufs-teaser-wrapper--4 .ufs-teaser:first-child { padding-top: 0; }
+      .ufs-teaser-wrapper--2 .ufs-teaser__image,
+      .ufs-teaser-wrapper--3 .ufs-teaser__image,
+      .ufs-teaser-wrapper--4 .ufs-teaser__image { width: 120px; flex-shrink: 0; }
+      .ufs-teaser__body { gap: var(--space-1); }
+      .ufs-teaser-wrapper--2 .ufs-teaser__heading,
+      .ufs-teaser-wrapper--3 .ufs-teaser__heading,
+      .ufs-teaser-wrapper--4 .ufs-teaser__heading { gap: var(--space-1); }
+      .ufs-teaser__eyebrow { font-size: 10px; }
+      .ufs-teaser-wrapper--2 .ufs-teaser__title,
+      .ufs-teaser-wrapper--3 .ufs-teaser__title,
+      .ufs-teaser-wrapper--4 .ufs-teaser__title { font-size: var(--text-h6-mob-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); }
+      .ufs-teaser-wrapper--2 .ufs-teaser__desc,
+      .ufs-teaser-wrapper--3 .ufs-teaser__desc,
+      .ufs-teaser-wrapper--4 .ufs-teaser__desc { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); }
+      /* 2-up mobile CTA — same button, shrunk to .btn-sm's proportions
+         (40px height matches the Figma mobile button exactly) and an 8px
+         top gap (vs 4px on desktop). */
+      .ufs-teaser-wrapper--2 .ufs-teaser__cta {
+        margin-top: var(--space-2); height: var(--space-10); padding: 0 var(--space-4);
+        font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w);
+      }
+    }
+
+    /* RTL — flex/grid column order and text-align:start-by-default already
+       auto-mirror; nothing here uses a physical left/right value, so no
+       override is needed beyond the global [dir="rtl"] rules elsewhere. */
+
+    /* ================================================================
+       TEASER — LG. The 1-card variant: text and image each take an equal
+       50% share of a 1240px-max wrapper, gap 56px desktop / 24px mobile
+       (image moves on top). Distinct from the grid Teaser — always a
+       filled button (no text-link alternative), plus 3 background
+       variants painted on a full-bleed section wrapper (the component
+       itself still caps at 1240px and centres inside it). Adapted from
+       Figma nodes 1648:7704 (mushroom), 1648:7716 (squid-ink), 1648:7728
+       (white/default) and 1648:7740 (mobile) — every value maps exactly
+       onto an existing token (title = --text-h3, desc = --text-body-lg,
+       mobile title = --text-h3-mob-size, gaps = --space-9/-6/-4/-2/-1).
+    ================================================================ */
+    .pg-teaser-lg-section { padding: var(--space-10) var(--space-20); background: var(--color-salt); }
+    .pg-teaser-lg-section--mushroom { background: var(--color-mushroom-100); }
+    .pg-teaser-lg-section--squidink { background: var(--color-brand-dark); }
+    @media (min-width: 1024px) {
+      .pg-teaser-lg-section { padding-top: var(--space-14); padding-bottom: var(--space-14); }
+    }
+    @media (max-width: 768px) {
+      .pg-teaser-lg-section { padding-left: var(--space-4); padding-right: var(--space-4); }
+    }
+
+    .ufs-teaser-lg { display: flex; align-items: center; gap: var(--space-14); max-width: 1240px; margin-inline: auto; }
+    /* Default DOM/visual order is text-then-image (image on the right).
+       This modifier reverses it for an image-left layout; like the rest
+       of this file's flex-based components, row/row-reverse both
+       auto-mirror under dir="rtl" with no extra override needed. */
+    .ufs-teaser-lg--image-left { flex-direction: row-reverse; }
+
+    .ufs-teaser-lg__text { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: var(--space-4); flex: 1; min-width: 0; }
+    .ufs-teaser-lg__content { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); width: 100%; }
+    .ufs-teaser-lg__eyebrow {
+      font-size: var(--text-overline-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w);
+      letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-mushroom-900);
+      margin: 0; width: 100%;
+    }
+    .ufs-teaser-lg__title {
+      font-size: var(--text-h3-size); line-height: var(--text-h3-lh); font-weight: var(--text-h3-w);
+      letter-spacing: var(--text-h3-ls); color: var(--color-brand-dark); margin: 0; width: 100%;
+    }
+    .ufs-teaser-lg__desc { font-size: var(--text-body-lg-size); line-height: var(--text-body-lg-lh); color: var(--color-brand-dark); margin: 0; width: 100%; }
+    /* Extra 4px on top of __text's own 16px gap (20px total desc→cta),
+       same "gap plus a little more" pattern as the grid Teaser's 2-up CTA. */
+    .ufs-teaser-lg__cta { margin-top: var(--space-1); }
+
+    .pg-teaser-lg-section--squidink .ufs-teaser-lg__eyebrow { color: var(--color-mushroom-500); }
+    .pg-teaser-lg-section--squidink .ufs-teaser-lg__title,
+    .pg-teaser-lg-section--squidink .ufs-teaser-lg__desc { color: var(--color-salt); }
+
+    .ufs-teaser-lg__image { position: relative; flex: 1; min-width: 0; overflow: hidden; aspect-ratio: 572 / 396; border-radius: var(--radius-md); }
+    .ufs-teaser-lg__image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+    @media (max-width: 768px) {
+      /* column-reverse (not column) — markup order is always text-then-
+         image (image visually moves via row-reverse on desktop for the
+         --image-left variant), so on mobile only reversing the stack
+         order puts the image on top for BOTH variants, as required. */
+      .ufs-teaser-lg { flex-direction: column-reverse; align-items: stretch; gap: var(--space-6); }
+      .ufs-teaser-lg__title { font-size: var(--text-h3-mob-size); }
+      .ufs-teaser-lg__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-teaser-lg__cta.btn { width: 100%; }
     }
 
     /* ── Products section ────────────────────────────────── */
@@ -3774,6 +4168,106 @@
     </section>
 
     <!-- ================================================================
+         CAMPAIGN HERO — demo instance, looping background video. Two
+         <source>s let the browser pick a crop that matches the viewport —
+         portrait for mobile, landscape for desktop — evaluated in order,
+         first matching media wins (unconditional landscape source last as
+         the fallback). Poster is the static frame shown before the video
+         can play (and what non-video browsers/crawlers see). Countdown
+         reuses the exact .text-price-xl / .text-body-sm classes Promo
+         Banner's own countdown uses — see the CSS comment above
+         .ufs-campaign-hero.
+    ================================================================ -->
+    <section class="ufs-campaign-hero">
+      <div class="ufs-campaign-hero__media" aria-hidden="true">
+        <video autoplay muted loop playsinline poster="images/academy/promo-banner-courses.jpg" data-campaign-hero-video>
+          <source src="video/background-video-portrait_1.mp4" type="video/mp4" media="(max-width: 768px)">
+          <source src="video/trend4-landscape_1.mp4" type="video/mp4">
+        </video>
+        <div class="ufs-campaign-hero__overlay"></div>
+      </div>
+      <div class="ufs-campaign-hero__content">
+        <img class="ufs-campaign-hero__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+        <div class="ufs-campaign-hero__heading">
+          <h2 class="ufs-campaign-hero__title">Certified Professional Chef Training</h2>
+          <p class="ufs-campaign-hero__desc">Our team of industry professionals are waiting to teach you skills, tips &amp; tricks you can use right now with carefully composed chef tutorials and chef training material.</p>
+        </div>
+        <div class="ufs-campaign-hero__countdown" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
+          <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+            <p class="ufs-campaign-hero__countdown-value text-price-xl">18</p>
+            <p class="ufs-campaign-hero__countdown-label text-body-sm">Days</p>
+          </div>
+          <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+            <p class="ufs-campaign-hero__countdown-value text-price-xl">23</p>
+            <p class="ufs-campaign-hero__countdown-label text-body-sm">Hours</p>
+          </div>
+          <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+            <p class="ufs-campaign-hero__countdown-value text-price-xl">58</p>
+            <p class="ufs-campaign-hero__countdown-label text-body-sm">Minutes</p>
+          </div>
+          <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+            <p class="ufs-campaign-hero__countdown-value text-price-xl">16</p>
+            <p class="ufs-campaign-hero__countdown-label text-body-sm">Seconds</p>
+          </div>
+        </div>
+        <div class="ufs-campaign-hero__ctas btn-on-dark">
+          <button type="button" class="btn btn-primary">Discover More Than 100 Courses</button>
+          <button type="button" class="btn btn-secondary">Secondary Action Here</button>
+        </div>
+        <p class="ufs-campaign-hero__disclaimer">*Disclamer text area option for any legal notes</p>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         CAMPAIGN HERO — RTL demo, dir="rtl". Also doubles as the static-
+         image background variant (an <img> in .ufs-campaign-hero__media
+         instead of a <video> — same object-fit:cover rule handles either).
+         Every layout rule on this component is either text-align:center
+         or a symmetric inset/flex row-column centered on both axes —
+         nothing physically left/right-coded — so it mirrors correctly
+         with no [dir="rtl"] CSS overrides needed at all (unlike Promo
+         Banner's asymmetric image+panel split, which does need explicit
+         flips — see promo-banner-spec.html). Arabic copy reused from that
+         same file's own UFS Academy RTL demo.
+    ================================================================ -->
+    <section class="ufs-campaign-hero" dir="rtl">
+      <div class="ufs-campaign-hero__media" aria-hidden="true">
+        <img src="images/academy/promo-banner-courses.jpg" alt="" />
+        <div class="ufs-campaign-hero__overlay"></div>
+      </div>
+      <div class="ufs-campaign-hero__content">
+        <img class="ufs-campaign-hero__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+        <div class="ufs-campaign-hero__heading">
+          <h2 class="ufs-campaign-hero__title">أكاديمية UFS: الصحة النفسية في المطابخ</h2>
+          <p class="ufs-campaign-hero__desc">توضح لك هذه السلسلة كيفية الاعتناء بنفسك وبفريقك لجعل المطبخ بيئة عمل أفضل للجميع.</p>
+        </div>
+        <div class="ufs-campaign-hero__countdown" aria-label="العد التنازلي للعرض">
+          <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+            <p class="ufs-campaign-hero__countdown-value text-price-xl">18</p>
+            <p class="ufs-campaign-hero__countdown-label text-body-sm">أيام</p>
+          </div>
+          <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+            <p class="ufs-campaign-hero__countdown-value text-price-xl">23</p>
+            <p class="ufs-campaign-hero__countdown-label text-body-sm">ساعات</p>
+          </div>
+          <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+            <p class="ufs-campaign-hero__countdown-value text-price-xl">58</p>
+            <p class="ufs-campaign-hero__countdown-label text-body-sm">دقائق</p>
+          </div>
+          <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
+            <p class="ufs-campaign-hero__countdown-value text-price-xl">16</p>
+            <p class="ufs-campaign-hero__countdown-label text-body-sm">ثوانٍ</p>
+          </div>
+        </div>
+        <div class="ufs-campaign-hero__ctas btn-on-dark">
+          <button type="button" class="btn btn-primary">استكشف جميع الدورات</button>
+          <button type="button" class="btn btn-secondary">كيف تعمل الأكاديمية؟</button>
+        </div>
+        <p class="ufs-campaign-hero__disclaimer">*نص إخلاء المسؤولية لحالات استخدام محددة</p>
+      </div>
+    </section>
+
+    <!-- ================================================================
          ANNOUNCEMENT BANNER — demo instance. Dismissable, session-only
          (reappears on next page load). Countdown ticks live toward
          data-countdown-end; desktop flows title/text/link as one sentence,
@@ -4624,6 +5118,86 @@
       <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile" data-i18n="carousel-cta">Discover more items</button>
     </section>
 
+    <!-- TEST — fourth flex-carousel: 4 Teaser (col-4) cards in place of the
+         empty placeholder cards, squid-ink variant — see the CSS comment
+         above .ufs-flex-carousel .ufs-carousel-card.ufs-teaser for the
+         fixed-width/type-scale/colour rules this relies on. Content reused
+         from the shipped squid-ink 4-up Teaser section further down the
+         page (Events/Careers/News/Awards). -->
+    <section class="ufs-flex-carousel ufs-flex-carousel--squid">
+      <div class="ufs-flex-carousel__head">
+        <div class="ufs-flex-carousel__intro">
+          <h2 class="ufs-flex-carousel__title text-h3">More From UFS Academy</h2>
+          <p class="ufs-flex-carousel__desc">Teaser (col-4) cards placed inside the flex-carousel track.</p>
+        </div>
+        <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+      </div>
+
+      <div class="ufs-flex-carousel__track-wrap">
+        <div class="ufs-carousel-track">
+          <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+          <div class="ufs-carousel-card ufs-teaser">
+            <div class="ufs-teaser__image"><img src="images/carousel/slide3.jpg" alt=""/></div>
+            <div class="ufs-teaser__body">
+              <p class="ufs-teaser__eyebrow">Events</p>
+              <div class="ufs-teaser__heading">
+                <h3 class="ufs-teaser__title">Upcoming culinary events</h3>
+                <p class="ufs-teaser__desc">See where our chefs are showcasing next, from trade shows to live cooking demos.</p>
+              </div>
+              <a href="#" class="ufs-teaser__link">Learn more</a>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-teaser">
+            <div class="ufs-teaser__image"><img src="images/academy/quiz-bg.jpg" alt=""/></div>
+            <div class="ufs-teaser__body">
+              <p class="ufs-teaser__eyebrow">Careers</p>
+              <div class="ufs-teaser__heading">
+                <h3 class="ufs-teaser__title">Work with UFS</h3>
+                <p class="ufs-teaser__desc">Explore career opportunities across our culinary and commercial teams.</p>
+              </div>
+              <a href="#" class="ufs-teaser__link">Learn more</a>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-teaser">
+            <div class="ufs-teaser__image"><img src="images/tiles/product.jpg" alt=""/></div>
+            <div class="ufs-teaser__body">
+              <p class="ufs-teaser__eyebrow">News</p>
+              <div class="ufs-teaser__heading">
+                <h3 class="ufs-teaser__title">Latest industry news</h3>
+                <p class="ufs-teaser__desc">Stay current on trends shaping professional kitchens worldwide.</p>
+              </div>
+              <a href="#" class="ufs-teaser__link">Learn more</a>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-teaser">
+            <div class="ufs-teaser__image"><img src="images/tiles/reward.jpg" alt=""/></div>
+            <div class="ufs-teaser__body">
+              <p class="ufs-teaser__eyebrow">Awards</p>
+              <div class="ufs-teaser__heading">
+                <h3 class="ufs-teaser__title">Celebrating culinary excellence</h3>
+                <p class="ufs-teaser__desc">See this year's winners of the UFS Chef Awards program.</p>
+              </div>
+              <a href="#" class="ufs-teaser__link">Learn more</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ufs-flex-carousel__foot">
+        <div class="ufs-carousel-dots"></div>
+        <div class="ufs-flex-carousel__arrows">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+    </section>
+
     <!-- Flex Carousel — Mushroom-100 variant -->
     <section class="ufs-flex-carousel ufs-flex-carousel--mushroom">
       <div class="ufs-flex-carousel__head">
@@ -4638,11 +5212,12 @@
         <div class="ufs-carousel-track">
           <div class="ufs-carousel-spacer" aria-hidden="true"></div>
           <!-- TEST — 10 Topic Tiles (.ufs-tile.ufs-tile--topic) in place of the empty placeholder cards -->
-          <div class="ufs-carousel-card ufs-tile ufs-tile--topic">
+          <div class="ufs-carousel-card ufs-tile ufs-tile--topic ufs-tile--topic-wide">
             <div class="ufs-tile__topic-media">
-              <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
+              <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div>
             </div>
             <div class="ufs-tile__topic-body">
+              <p class="ufs-tile__topic-eyebrow">Culinary Skills</p>
               <h3 class="ufs-tile__topic-title" data-i18n="tt1-title">Ingredients Knowledge</h3>
               <p class="ufs-tile__topic-desc" data-i18n="tt1-desc">Learn to select, store, and understand ingredients for quality results.</p>
               <button class="ufs-tile__topic-link"><span data-i18n="tile-check-courses">Check All the Courses</span>
@@ -4655,6 +5230,7 @@
               <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
             </div>
             <div class="ufs-tile__topic-body">
+              <p class="ufs-tile__topic-eyebrow">Compliance</p>
               <h3 class="ufs-tile__topic-title" data-i18n="tt2-title">Food Safety &amp; Hygiene</h3>
               <p class="ufs-tile__topic-desc" data-i18n="tt2-desc">Master HACCP fundamentals and daily kitchen safety best practices.</p>
               <button class="ufs-tile__topic-link"><span data-i18n="tile-check-courses">Check All the Courses</span>
@@ -4679,6 +5255,7 @@
               <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
             </div>
             <div class="ufs-tile__topic-body">
+              <p class="ufs-tile__topic-eyebrow">Compliance</p>
               <h3 class="ufs-tile__topic-title" data-i18n="tt8-title">Allergen Management</h3>
               <p class="ufs-tile__topic-desc" data-i18n="tt8-desc">Identify, label, and communicate allergens with confidence.</p>
               <button class="ufs-tile__topic-link"><span data-i18n="tile-check-courses">Check All the Courses</span>
@@ -4686,9 +5263,9 @@
               </button>
             </div>
           </div>
-          <div class="ufs-carousel-card ufs-tile ufs-tile--topic">
+          <div class="ufs-carousel-card ufs-tile ufs-tile--topic ufs-tile--topic-wide">
             <div class="ufs-tile__topic-media">
-              <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
+              <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div>
             </div>
             <div class="ufs-tile__topic-body">
               <h3 class="ufs-tile__topic-title" data-i18n="tt9-title">Sustainable Sourcing</h3>
@@ -4703,6 +5280,7 @@
               <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
             </div>
             <div class="ufs-tile__topic-body">
+              <p class="ufs-tile__topic-eyebrow">Sustainability</p>
               <h3 class="ufs-tile__topic-title" data-i18n="tt10-title">Waste Reduction Strategies</h3>
               <p class="ufs-tile__topic-desc" data-i18n="tt10-desc">Cut food waste and boost your bottom line with proven techniques.</p>
               <button class="ufs-tile__topic-link"><span data-i18n="tile-check-courses">Check All the Courses</span>
@@ -4715,6 +5293,7 @@
               <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
             </div>
             <div class="ufs-tile__topic-body">
+              <p class="ufs-tile__topic-eyebrow">Trends</p>
               <h3 class="ufs-tile__topic-title" data-i18n="tt4-title">Culinary Trends 2026</h3>
               <p class="ufs-tile__topic-desc" data-i18n="tt4-desc">Stay ahead with the flavours and formats shaping menus this year.</p>
               <button class="ufs-tile__topic-link"><span data-i18n="tile-check-courses">Check All the Courses</span>
@@ -4727,6 +5306,7 @@
               <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
             </div>
             <div class="ufs-tile__topic-body">
+              <p class="ufs-tile__topic-eyebrow">Business Skills</p>
               <h3 class="ufs-tile__topic-title" data-i18n="tt5-title">Portion Control Essentials</h3>
               <p class="ufs-tile__topic-desc" data-i18n="tt5-desc">Standardise servings to protect margins without sacrificing value.</p>
               <button class="ufs-tile__topic-link"><span data-i18n="tile-check-courses">Check All the Courses</span>
@@ -4751,6 +5331,7 @@
               <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
             </div>
             <div class="ufs-tile__topic-body">
+              <p class="ufs-tile__topic-eyebrow">Guest Experience</p>
               <h3 class="ufs-tile__topic-title" data-i18n="tt7-title">Customer Experience Design</h3>
               <p class="ufs-tile__topic-desc" data-i18n="tt7-desc">Turn service touchpoints into loyalty-building moments.</p>
               <button class="ufs-tile__topic-link"><span data-i18n="tile-check-courses">Check All the Courses</span>
@@ -4777,28 +5358,126 @@
     </section>
 
     <!-- Flex Carousel — Background-image variant -->
+    <!-- TEST — fifth flex-carousel: mixed card types (1 Wide Topic Tile, 2
+         Recipe Tiles, 1 Article Tile) in place of the empty placeholder
+         cards, image-background variant. Demonstrates that every card type
+         is self-contained (own background/border) and can be freely mixed
+         in one track regardless of the carousel's own --carousel-card-bg/
+         backdrop-filter glass treatment, which only shows through on the
+         (now unused) empty placeholder cards. -->
     <section class="ufs-flex-carousel ufs-flex-carousel--image">
       <div class="ufs-flex-carousel__head">
         <div class="ufs-flex-carousel__intro">
-          <h2 class="ufs-flex-carousel__title text-h3" data-i18n="carousel-title">Carousel title</h2>
-          <p class="ufs-flex-carousel__desc" data-i18n="carousel-desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+          <h2 class="ufs-flex-carousel__title text-h3">Chef Inspiration</h2>
+          <p class="ufs-flex-carousel__desc">Recipes, trends and stories to spark your next menu idea.</p>
         </div>
-        <button class="btn btn-secondary ufs-flex-carousel__cta" data-i18n="carousel-cta">Discover more items</button>
+        <button class="btn btn-secondary ufs-flex-carousel__cta">See all inspiration</button>
       </div>
 
       <div class="ufs-flex-carousel__track-wrap">
         <div class="ufs-carousel-track">
           <div class="ufs-carousel-spacer" aria-hidden="true"></div>
-          <div class="ufs-carousel-card"></div>
-          <div class="ufs-carousel-card"></div>
-          <div class="ufs-carousel-card"></div>
-          <div class="ufs-carousel-card"></div>
-          <div class="ufs-carousel-card"></div>
-          <div class="ufs-carousel-card"></div>
-          <div class="ufs-carousel-card"></div>
-          <div class="ufs-carousel-card"></div>
-          <div class="ufs-carousel-card"></div>
-          <div class="ufs-carousel-card"></div>
+
+          <div class="ufs-carousel-card ufs-tile ufs-tile--topic ufs-tile--topic-wide ufs-tile--topic-light">
+            <div class="ufs-tile__topic-media">
+              <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div>
+            </div>
+            <div class="ufs-tile__topic-body">
+              <p class="ufs-tile__topic-eyebrow">Inspiration</p>
+              <h3 class="ufs-tile__topic-title">Trend Watch</h3>
+              <p class="ufs-tile__topic-desc">Stay inspired with the latest industry trends &amp; news</p>
+              <button class="ufs-tile__topic-link"><span>Check the Articles</span>
+                <svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <span class="ufs-tile__badge">Popular</span>
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Herb-Roasted Chicken with Pan Sauce</h3>
+              <div class="ufs-tile__rating">
+                <span class="ufs-tile__stars">
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                </span>
+                <span>(332)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Chicken</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Gluten Free</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <div class="ufs-tile__body">
+              <h3 class="ufs-tile__title">Creamy Wild Mushroom Risotto</h3>
+              <div class="ufs-tile__rating">
+                <span class="ufs-tile__stars">
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                </span>
+                <span>(128)</span>
+              </div>
+              <div class="ufs-tile__meta">
+                <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Side</span><span class="ufs-tile__meta-sep">&middot;</span>
+                <span class="ufs-tile__meta-item">Gluten Free</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile">
+            <div class="ufs-tile__image">
+              <div class="ufs-tile__image-media" style="background-image:url('images/tiles/article.jpg')"></div>
+              <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+            <span class="ufs-tile__badge">Trending</span>
+            <div class="ufs-tile__content">
+              <div class="ufs-tile__body">
+                <div class="ufs-tile__eyebrow">Trend Watch</div>
+                <h3 class="ufs-tile__title">How to update your menus: new trends and designs</h3>
+                <div class="ufs-tile__meta">
+                  <span class="ufs-tile__meta-item">5 minutes read</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ufs-carousel-card ufs-tile ufs-tile--topic ufs-tile--topic-light">
+            <div class="ufs-tile__topic-media">
+              <div class="ufs-tile__topic-photo" style="background-image:url('images/tiles/topic.jpg')"></div>
+            </div>
+            <div class="ufs-tile__topic-body">
+              <h3 class="ufs-tile__topic-title">Culinary Trends 2026</h3>
+              <p class="ufs-tile__topic-desc">Stay ahead with the flavours and formats shaping menus this year.</p>
+              <button class="ufs-tile__topic-link"><span>Check All the Courses</span>
+                <svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -4813,6 +5492,8 @@
           </button>
         </div>
       </div>
+
+      <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">See all inspiration</button>
     </section>
 
     <!-- Flex Carousel — No-scroll state example: 3 Article Tiles, mushroom
@@ -4922,10 +5603,58 @@
         var cards = Array.prototype.slice.call(track.querySelectorAll('.ufs-carousel-card'));
         var activeIndex = 0;
         var scrollTicking = false;
+        /* goTo()'s smooth-scroll animation fires its own stream of 'scroll'
+           events while still in flight — without this guard, the listener
+           below recomputes activeIndex from scrollLeft on an early,
+           barely-moved mid-animation frame and can overwrite the correct
+           index goTo() already set back down to the previous one, leaving
+           the paginator/prev-button stuck a step behind a scroll that did
+           visually happen. Suppressed for a window comfortably longer than
+           the browser's default smooth-scroll duration, then re-armed for
+           genuine user-driven scrolling (swipe/trackpad/scrollbar). */
+        var suppressScrollSync = false;
+        var suppressScrollTimer = null;
 
         function stepSize() {
           if (cards.length < 2) return cards.length ? cards[0].getBoundingClientRect().width : 0;
           return cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
+        }
+        function contentWidth() {
+          /* track.scrollWidth isn't reliable here either — the track is a
+             flex child that stretches to fill its (bled, edge-to-edge)
+             track-wrap, so once its own box is wider than the cards it
+             holds, scrollWidth reports that box width instead of the
+             cards' actual extent, overstating how much room the content
+             needs. Measuring the cards' own rendered edges instead gives
+             the true content span regardless of how wide the track box
+             happens to be. min/max (not first/last card) keeps this
+             direction-agnostic — in RTL the first card in the DOM is the
+             rightmost one on screen, so first.left/last.right would be
+             backwards. */
+          if (!cards.length) return 0;
+          var lefts = cards.map(function(c) { return c.getBoundingClientRect().left; });
+          var rights = cards.map(function(c) { return c.getBoundingClientRect().right; });
+          return Math.max.apply(null, rights) - Math.min.apply(null, lefts);
+        }
+        function availableWidth() {
+          /* track.clientWidth isn't used here on purpose — it's measured
+             while the carousel is still in its normal, edge-bled state
+             (.ufs-flex-carousel__track-wrap's negative margins pull it past
+             the padding to the true screen edge), which is wider than the
+             padded width the carousel actually settles into once
+             .is-compact removes that bleed. Cards judged "fits" against the
+             wider bled number could then not actually fit once centered
+             back inside the narrower padding, with controls now hidden.
+             Deriving the threshold straight from the viewport and the
+             carousel's own left padding (doubled, assuming symmetric
+             left/right padding — true at every breakpoint here, no
+             max-width cap on .ufs-flex-carousel to diverge from) sidesteps
+             that: it's the same number regardless of which state the
+             carousel is currently in. clientWidth (not innerWidth) on
+             <html> excludes the scrollbar, matching what CSS media
+             queries/vw actually measure against. */
+          var padding = parseFloat(getComputedStyle(root).paddingLeft) || 0;
+          return document.documentElement.clientWidth - (padding * 2);
         }
         function maxIndex() {
           var step = stepSize();
@@ -4933,8 +5662,13 @@
           /* stepSize() is signed (negative in RTL, where Chromium reports
              negative scrollLeft); the reachable index count is direction-
              agnostic, so divide by the magnitude. goTo()/scroll-sync keep the
-             signed step so their scrollLeft math cancels in both directions. */
-          return Math.max(0, Math.round((track.scrollWidth - track.clientWidth) / Math.abs(step)));
+             signed step so their scrollLeft math cancels in both directions.
+             Math.ceil (not round) — any overflow at all, even a fraction of
+             a step, should count as a reachable page. Rounding would treat
+             sub-half-step overflow as zero, which flips the carousel into
+             is-compact (centred, no controls) while content is still
+             genuinely wider than the available width. */
+          return Math.max(0, Math.ceil((contentWidth() - availableWidth()) / Math.abs(step)));
         }
         function render() {
           var maxI = maxIndex();
@@ -4959,8 +5693,11 @@
         }
         function goTo(index) {
           activeIndex = Math.max(0, Math.min(maxIndex(), index));
+          clearTimeout(suppressScrollTimer);
+          suppressScrollSync = true;
           track.scrollTo({ left: activeIndex * stepSize(), behavior: 'smooth' });
           render();
+          suppressScrollTimer = setTimeout(function() { suppressScrollSync = false; }, 500);
         }
 
         cards.forEach(function(_, i) {
@@ -4980,6 +5717,7 @@
            settles — a post-scroll debounce reads as "not reflecting" the
            swipe on a real device. */
         track.addEventListener('scroll', function() {
+          if (suppressScrollSync) return;
           if (scrollTicking) return;
           scrollTicking = true;
           requestAnimationFrame(function() {
@@ -5003,6 +5741,16 @@
          regardless of where in the page it's placed. */
       document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.ufs-flex-carousel').forEach(initFlexCarousel);
+
+        /* Campaign Hero's background video is purely decorative — pause it
+           (holding on the poster frame) for anyone who's asked the OS for
+           reduced motion, rather than forcing an auto-looping video on
+           them regardless of that preference. */
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          document.querySelectorAll('[data-campaign-hero-video]').forEach(function(video) {
+            video.pause();
+          });
+        }
       });
     })();
   </script>
@@ -5161,6 +5909,270 @@
           </div>
           <p class="ufs-promo-banner__disclaimer text-body-xs" data-i18n="promo-disclaimer">*Disclaimer text for specific use cases</p>
         </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TEASER — 2-up (each card spans 6 of 12 cols). CTA is always a
+         filled button in this variant. See handover/full-page-preview-v0.2.html
+         CSS comment above .pg-teaser-section for the full anatomy notes.
+    ================================================================ -->
+    <section class="pg-teaser-section">
+      <div class="ufs-teaser-wrapper ufs-teaser-wrapper--2">
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/academy/K_GPP_5120.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Onboarding</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Register for free</h3>
+              <p class="ufs-teaser__desc">Lead your kitchen to success by building a positive, cohesive culture. Access resources to help you motivate your team, improve communication, and support their well-being.</p>
+            </div>
+            <a href="#" class="btn btn-primary ufs-teaser__cta">Learn More</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/academy/promo-banner-courses.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Certification</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Get UFS Academy certified</h3>
+              <p class="ufs-teaser__desc">Complete our free online modules and earn a certificate recognised across professional kitchens — a credential you can add to your CV.</p>
+            </div>
+            <a href="#" class="btn btn-primary ufs-teaser__cta">Start Learning</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEASER — 3-up (each card spans 4 of 12 cols). CTA is always a
+         plain text link in this variant. -->
+    <section class="pg-teaser-section">
+      <div class="ufs-teaser-wrapper ufs-teaser-wrapper--3">
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/tiles/recipe.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Recipes</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Browse our recipe library</h3>
+              <p class="ufs-teaser__desc">500+ chef-tested recipes built around UFS pantry staples, searchable by cuisine, course and dietary need.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/tiles/topic.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Sustainability</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Our sustainability commitments</h3>
+              <p class="ufs-teaser__desc">See how we're helping professional kitchens reduce waste and source more responsibly.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/tiles/training.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Training</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Live culinary masterclasses</h3>
+              <p class="ufs-teaser__desc">Join monthly sessions with guest chefs covering technique, plating and menu development.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEASER — 4-up (each card spans 3 of 12 cols). CTA is always a
+         plain text link in this variant. -->
+    <section class="pg-teaser-section">
+      <div class="ufs-teaser-wrapper ufs-teaser-wrapper--4">
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/banners/promo-1.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Loyalty</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Earn points on every order</h3>
+              <p class="ufs-teaser__desc">Redeem loyalty points for exclusive merchandise, training and culinary experiences.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/tiles/article.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Support</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Talk to our team</h3>
+              <p class="ufs-teaser__desc">Get help with orders, products or your account from our dedicated support line.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/banners/promo-3.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Trade terms</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Review your trade terms</h3>
+              <p class="ufs-teaser__desc">Understand your pricing tiers, payment terms and delivery agreements.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/hero/1260×839 px.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Partners</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Meet our brand partners</h3>
+              <p class="ufs-teaser__desc">Discover the trusted brands behind every UFS product, from Knorr to Hellmann's.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TEASER — 2-up, mushroom background. Same background-variant rules
+         as .pg-teaser-lg-section (see CSS comment above .pg-teaser-section
+         for the squid-ink text-color notes — white bg needs none). -->
+    <section class="pg-teaser-section pg-teaser-section--mushroom">
+      <div class="ufs-teaser-wrapper ufs-teaser-wrapper--2">
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/carousel/slide2.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Recipes</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Discover seasonal menus</h3>
+              <p class="ufs-teaser__desc">Explore chef-curated seasonal menus built around what's fresh, local and in demand this quarter.</p>
+            </div>
+            <a href="#" class="btn btn-primary ufs-teaser__cta">Browse Menus</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/banners/promo-4.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Community</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Join the UFS chef community</h3>
+              <p class="ufs-teaser__desc">Connect with thousands of culinary professionals sharing tips, techniques and industry insights.</p>
+            </div>
+            <a href="#" class="btn btn-primary ufs-teaser__cta">Join the Community</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TITLE — dark/squid-ink modifier, h3 variant, placeholder copy.
+         Previewing it directly above the squid-ink teaser section below. -->
+    <section class="ufs-title-section ufs-title-section--dark">
+      <div class="ufs-title-section__inner">
+        <p class="ufs-title-section__eyebrow">Eyebrow Text</p>
+        <h3 class="ufs-title-section__heading ufs-title-section__heading--h3">Placeholder Section Title</h3>
+        <p class="ufs-title-section__desc">Placeholder description text for this section, giving a sense of line length and wrap at the body copy size.</p>
+      </div>
+    </section>
+
+    <!-- TEASER — 4-up, squid-ink background. The text-link CTA switches to
+         --color-brand-primary here (see .pg-teaser-section--squidink
+         .ufs-teaser__link). -->
+    <section class="pg-teaser-section pg-teaser-section--squidink">
+      <div class="ufs-teaser-wrapper ufs-teaser-wrapper--4">
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/carousel/slide3.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Events</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Upcoming culinary events</h3>
+              <p class="ufs-teaser__desc">See where our chefs are showcasing next, from trade shows to live cooking demos.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/academy/quiz-bg.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Careers</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Work with UFS</h3>
+              <p class="ufs-teaser__desc">Explore career opportunities across our culinary and commercial teams.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/tiles/product.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">News</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Latest industry news</h3>
+              <p class="ufs-teaser__desc">Stay current on trends shaping professional kitchens worldwide.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+        <div class="ufs-teaser">
+          <div class="ufs-teaser__image"><img src="images/tiles/reward.jpg" alt=""/></div>
+          <div class="ufs-teaser__body">
+            <p class="ufs-teaser__eyebrow">Awards</p>
+            <div class="ufs-teaser__heading">
+              <h3 class="ufs-teaser__title">Celebrating culinary excellence</h3>
+              <p class="ufs-teaser__desc">See this year's winners of the UFS Chef Awards program.</p>
+            </div>
+            <a href="#" class="ufs-teaser__link">Learn more</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         TEASER — LG (1-card), mushroom background, image on the right
+         (the default order). See CSS comment above .pg-teaser-lg-section
+         for anatomy notes.
+    ================================================================ -->
+    <section class="pg-teaser-lg-section pg-teaser-lg-section--mushroom">
+      <div class="ufs-teaser-lg">
+        <div class="ufs-teaser-lg__text">
+          <div class="ufs-teaser-lg__content">
+            <p class="ufs-teaser-lg__eyebrow">Onboarding</p>
+            <h2 class="ufs-teaser-lg__title">Don't miss out!</h2>
+            <p class="ufs-teaser-lg__desc">Be the first to unveil the top culinary trends for 2025. Sign up for our newsletter to get notified about the Future Menus Global Launch!</p>
+          </div>
+          <a href="#" class="btn btn-primary ufs-teaser-lg__cta">Join our newsletter to be notified</a>
+        </div>
+        <div class="ufs-teaser-lg__image"><img src="images/carousel/slide1.jpg" alt=""/></div>
+      </div>
+    </section>
+
+    <!-- TEASER — LG, squid-ink background, image on the left. -->
+    <section class="pg-teaser-lg-section pg-teaser-lg-section--squidink">
+      <div class="ufs-teaser-lg ufs-teaser-lg--image-left">
+        <div class="ufs-teaser-lg__text">
+          <div class="ufs-teaser-lg__content">
+            <p class="ufs-teaser-lg__eyebrow">Loyalty Program</p>
+            <h2 class="ufs-teaser-lg__title">Unlock exclusive rewards</h2>
+            <p class="ufs-teaser-lg__desc">Join the UFS Loyalty Program and start earning points on every order — redeemable for training, merchandise and culinary experiences.</p>
+          </div>
+          <a href="#" class="btn btn-primary ufs-teaser-lg__cta">Join the loyalty program</a>
+        </div>
+        <div class="ufs-teaser-lg__image"><img src="images/banners/promo-2.jpg" alt=""/></div>
+      </div>
+    </section>
+
+    <!-- TEASER — LG, white/default background, image on the right. -->
+    <section class="pg-teaser-lg-section">
+      <div class="ufs-teaser-lg">
+        <div class="ufs-teaser-lg__text">
+          <div class="ufs-teaser-lg__content">
+            <p class="ufs-teaser-lg__eyebrow">UFS Academy</p>
+            <h2 class="ufs-teaser-lg__title">Free training, real results</h2>
+            <p class="ufs-teaser-lg__desc">Explore dozens of free culinary and business courses designed specifically for professional kitchens.</p>
+          </div>
+          <a href="#" class="btn btn-primary ufs-teaser-lg__cta">Explore UFS Academy</a>
+        </div>
+        <div class="ufs-teaser-lg__image"><img src="images/K_GPP_3996.jpg" alt=""/></div>
       </div>
     </section>
 

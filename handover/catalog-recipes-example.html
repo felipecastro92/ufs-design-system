@@ -696,6 +696,17 @@
       padding: var(--space-16) var(--space-24);
       display: flex; flex-direction: column; gap: var(--space-8);
     }
+    /* .ufs-flex-carousel's own display:flex above (author CSS) beats the UA
+       stylesheet's [hidden]{display:none} at equal specificity — same fix
+       already applied to .ufs-filters-badge[hidden] elsewhere in this file. */
+    #future-menus-carousel[hidden] { display: none; }
+    /* Breathing room above and below the carousel, between the two tiles
+       grids — lives on the carousel itself (id-scoped to this catalog-page
+       instance only, not a global .ufs-flex-carousel change) rather than as
+       either grid's own padding-bottom/margin-top, so it naturally
+       disappears along with the carousel when it's hidden instead of
+       leaving a stray gap where it used to be. */
+    #future-menus-carousel { margin-top: var(--space-16); margin-bottom: var(--space-16); }
     .ufs-flex-carousel__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6); }
     .ufs-flex-carousel__intro { display: flex; flex-direction: column; gap: var(--space-2); flex: 1; min-width: 0; }
     .ufs-flex-carousel__title { color: var(--carousel-title-color); margin: 0; }
@@ -770,7 +781,8 @@
       /* Desktop only — mobile keeps its normal wrap at the smaller
          .ufs-flex-carousel__desc font-size set in the max-width:768px
          block below. */
-      .ufs-flex-carousel--recipe .ufs-flex-carousel__desc {
+      .ufs-flex-carousel--recipe .ufs-flex-carousel__desc,
+      .ufs-flex-carousel--squid .ufs-flex-carousel__desc {
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       }
     }
@@ -1075,6 +1087,10 @@
        this was caught. Track padding for the hover shadow now lives on the
        shared .ufs-carousel-track rule, so every carousel gets it.) */
     .ufs-flex-carousel--squid .ufs-carousel-card { width: 320px; height: auto; }
+    /* Global rule: a bordered Tile on a squid-ink surface swaps its border
+       from --color-mushroom-300 (too low-contrast against dark) to
+       --color-squid-300. Card fill stays white — only the border changes. */
+    .ufs-flex-carousel--squid .ufs-tile { border-color: var(--color-squid-300); }
     .ufs-flex-carousel--mushroom {
       background: var(--color-mushroom-100);
       gap: var(--space-6); /* tighter row spacing than the default space-8 */
@@ -1128,6 +1144,7 @@
       .ufs-flex-carousel__foot { justify-content: center; margin-top: calc(var(--space-2) - var(--space-6)); }
       .ufs-carousel-dots { flex: 1; justify-content: center; }
       .ufs-flex-carousel__arrows { display: none; }
+      #future-menus-carousel { margin-top: var(--space-8); margin-bottom: var(--space-8); }
     }
 
     /* ── Flex Carousel — RTL (full mirror) ─────────────────
@@ -2811,7 +2828,6 @@
     .ufs-title-section__inner { max-width: 720px; margin: 0 auto; }
     .ufs-title-section--left { text-align: left; }
     .ufs-title-section--left .ufs-title-section__inner { margin: 0; }
-    .ufs-title-section--dark, .ufs-title-section--mushroom { border-radius: var(--radius-md); }
     .ufs-title-section--dark { background: var(--color-brand-dark); }
     .ufs-title-section--dark .ufs-title-section__heading,
     .ufs-title-section--dark .ufs-title-section__desc { color: var(--color-salt); }
@@ -2852,17 +2868,89 @@
     .ufs-filters-bar .btn-secondary:hover:not(:disabled) { background: transparent; }
     .ufs-filters-allbtn__icon { width: 18px; height: 18px; }
 
-    .ufs-catalog-results { max-width: 1280px; margin: var(--space-4) auto 0; font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-mushroom-900); }
+    /* Row holding the results count (left) and the sort control (right) —
+       stays a row on every breakpoint, unlike .ufs-filters-dropdown which
+       hides below 1279px, since this needs to stay visible+right-aligned
+       on mobile too. */
+    .ufs-catalog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); max-width: 1280px; margin: var(--space-4) auto 0; }
+    .ufs-catalog-results { font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-mushroom-900); margin: 0; }
+
+    /* Sort control — cosmetic only, no open/close JS. Trigger is plain
+       text + icon (no button box), and the options panel is permanently
+       visible (no display:none / click-to-open) so the 3 drafted options
+       are readable without needing any interaction. */
+    .ufs-catalog-sort { position: relative; flex-shrink: 0; }
+    .ufs-catalog-sort__trigger { display: flex; align-items: center; gap: var(--space-2); background: none; border: none; padding: 0; font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; cursor: pointer; }
+    .ufs-catalog-sort__chev { width: 14px; height: 14px; flex-shrink: 0; transition: transform 0.2s ease; }
+    .ufs-catalog-sort.is-open .ufs-catalog-sort__chev { transform: rotate(180deg); }
+    .ufs-catalog-sort__panel { display: none; position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; min-width: 180px; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: var(--space-2); }
+    .ufs-catalog-sort.is-open .ufs-catalog-sort__panel { display: block; }
+    .ufs-catalog-sort__option { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-xs); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); cursor: pointer; }
+    .ufs-catalog-sort__option:hover { background: var(--color-mushroom-100); }
+
+    /* Popular filters — a shortcut row of pill toggles for a handful of
+       filter values, sitting directly below the filters bar. Each pill
+       reads/writes the SAME filterState the quick dropdowns and the "All
+       filters" drawer accordion already share (see FILTER_CATEGORIES /
+       togglePopularFilter / syncFilterUI) — activating a pill checks the
+       matching checkbox in both surfaces, and vice versa. */
+    .ufs-popular-filters { display: flex; align-items: center; justify-content: center; gap: var(--space-3); max-width: 1280px; margin: var(--space-4) auto var(--space-4); }
+    .ufs-popular-filters__label { font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; margin: 0; flex-shrink: 0; }
+    .ufs-popular-filters__pills { display: flex; align-items: center; gap: var(--space-3); overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+    .ufs-popular-filters__pills::-webkit-scrollbar { display: none; }
+    .ufs-popular-filters__pill { display: flex; align-items: center; gap: var(--space-1); height: var(--space-8); padding: 0 var(--space-4); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-full); background: none; font-family: var(--font-family); font-size: var(--text-btn-sm-size); color: var(--color-brand-dark); white-space: nowrap; cursor: pointer; flex-shrink: 0; transition: border-color 0.15s, background 0.15s; }
+    .ufs-popular-filters__pill:hover { border-color: var(--color-brand-dark); }
+    .ufs-popular-filters__pill.is-active { background: var(--color-mushroom-100); border-color: var(--color-accessible-orange); font-weight: var(--text-btn-w); }
+    .ufs-popular-filters__pill-check { width: 14px; height: 14px; flex-shrink: 0; display: none; }
+    .ufs-popular-filters__pill.is-active .ufs-popular-filters__pill-check { display: block; }
+    @media (max-width: 768px) {
+      .ufs-popular-filters { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--space-2); padding: 0 var(--space-4); }
+      /* align-items:flex-start above shrinks __pills to its content width
+         (column mode's cross-axis default) instead of the row's available
+         width, so an overflowing pill row stretches the whole page instead
+         of scrolling within itself. align-self:stretch caps it back to the
+         row's width so its own overflow-x:auto is what scrolls, not the
+         page. Negative margin + matching padding then bleeds the scrollable
+         area to the true screen edge (same technique as .drawer-brands-list
+         above) so an overflowing pill is visible right up to the edge
+         instead of clipping 16px early at the row's own padding. */
+      .ufs-popular-filters__pills {
+        align-self: stretch;
+        margin-left: calc(-1 * var(--space-4));
+        margin-right: calc(-1 * var(--space-4));
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+      }
+    }
 
     /* --- Tiles grid --- */
     .pg-catalog-grid { max-width: 1280px; margin: var(--space-6) auto 0; padding: 0 0 var(--space-16); display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--space-8); }
     .pg-catalog-grid .ufs-tile { min-width: 0; width: 100%; }
+    /* Grid 1 only — its padding-bottom moves to #future-menus-carousel's own
+       margin-top instead (below), so the gap in between the two grids goes
+       away along with the carousel when it's hidden rather than leaving a
+       stray gap. Grid 2 keeps .pg-catalog-grid's own padding-bottom as-is —
+       that one's for the "Load More Recipes" button, unrelated to this. */
+    #catalog-tiles-grid { padding-bottom: 0; }
     .pg-catalog-loadmore { max-width: 1280px; margin: 0 auto var(--space-16); text-align: center; }
+
+    /* SEO copy block below Load More — centred, 720px reading-width column
+       (matches .ufs-title-section__inner's convention). Only the intro
+       paragraph shows by default; the rest sits behind a Read more/less
+       toggle so it doesn't push real page content down, while still being
+       present in the DOM for search engines either way. */
+    .ufs-catalog-seo { max-width: 720px; margin: 0 auto var(--space-16); padding: 0 var(--space-4); text-align: center; }
+    .ufs-catalog-seo__text { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); margin: 0; }
+    .ufs-catalog-seo__more { margin-top: var(--space-4); text-align: left; }
+    .ufs-catalog-seo__more p { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); margin: 0 0 var(--space-4); }
+    .ufs-catalog-seo__more p:last-child { margin-bottom: 0; }
+    .ufs-catalog-seo__toggle { display: inline-block; margin-top: var(--space-3); font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; }
 
     /* --- lg: >1480px — cap container width so it doesn't stretch edge-to-edge --- */
     @media (min-width: 1480px) {
       .ufs-filters-bar,
-      .ufs-catalog-results,
+      .ufs-catalog-toolbar,
+      .ufs-popular-filters,
       .pg-catalog-grid,
       .pg-catalog-loadmore { max-width: 1440px; }
     }
@@ -2904,7 +2992,7 @@
       .ufs-filters-bar { margin: 0 var(--space-4); padding: var(--space-3); gap: var(--space-3); }
       .ufs-filters-allbtn { width: var(--space-12); padding: 0; flex-shrink: 0; }
       .ufs-filters-allbtn__label { display: none; }
-      .ufs-catalog-results { padding: 0 var(--space-4); }
+      .ufs-catalog-toolbar { padding: 0 var(--space-4); }
       .pg-catalog-grid { grid-template-columns: 1fr; gap: 0; padding: 0 0 var(--space-8); margin-top: var(--space-4); }
     }
 
@@ -3651,7 +3739,42 @@
       </button>
     </div>
 
-    <p class="ufs-catalog-results" id="catalog-results">343 recipes</p>
+    <div class="ufs-popular-filters">
+      <p class="ufs-popular-filters__label">Popular filters:</p>
+      <div class="ufs-popular-filters__pills">
+        <button type="button" class="ufs-popular-filters__pill" data-filter-key="mainIngredient" data-filter-value="Fish &amp; Seafood" onclick="togglePopularFilter(this)">
+          <span>Fish &amp; Seafood</span>
+          <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+        </button>
+        <button type="button" class="ufs-popular-filters__pill" data-filter-key="cuisine" data-filter-value="Mediterranean" onclick="togglePopularFilter(this)">
+          <span>Mediterranean</span>
+          <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+        </button>
+        <button type="button" class="ufs-popular-filters__pill" data-filter-key="typeOfDish" data-filter-value="Sauces &amp; Dressings" onclick="togglePopularFilter(this)">
+          <span>Sauces &amp; Dressings</span>
+          <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="ufs-catalog-toolbar">
+      <p class="ufs-catalog-results" id="catalog-results">343 recipes</p>
+
+      <!-- Sort control — open/close only (matches .ufs-filters-dropdown's
+           toggle + click-outside-to-close pattern); no real re-sorting of
+           the grid, selecting an option just updates the trigger label. -->
+      <div class="ufs-catalog-sort" id="catalog-sort">
+        <button type="button" class="ufs-catalog-sort__trigger" onclick="toggleSortDropdown()" aria-haspopup="true" aria-expanded="false">
+          <span id="catalog-sort-label">Sort by: A–Z</span>
+          <svg class="ufs-catalog-sort__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="ufs-catalog-sort__panel" role="region" aria-label="Sort options">
+          <label class="ufs-catalog-sort__option"><input type="radio" name="catalog-sort" checked onchange="selectSortOption(this, 'A–Z')"/> A–Z</label>
+          <label class="ufs-catalog-sort__option"><input type="radio" name="catalog-sort" onchange="selectSortOption(this, 'Latest Added')"/> Latest Added</label>
+          <label class="ufs-catalog-sort__option"><input type="radio" name="catalog-sort" onchange="selectSortOption(this, 'Most Popular')"/> Most Popular</label>
+        </div>
+      </div>
+    </div>
 
     <!-- ================================================================
          TILES GRID — 4 Recipe Tiles, flexible width. lg: row of 4. md:
@@ -3895,17 +4018,14 @@
         </div>
       </div>
     </div>
-
-    <div class="pg-catalog-loadmore">
-      <button type="button" class="btn btn-primary">Load More Recipes</button>
-    </div>
-
     <!-- ================================================================
-         FUTURE MENUS 4 RECIPES — flex-carousel, recipe tiles, mushroom bg
+         FUTURE MENUS 4 RECIPES — flex-carousel, recipe tiles, squid-ink bg
          (handover/flex-carousel-spec.html for the component's own docs;
-         .ufs-flex-carousel--recipe scoping documented above at its CSS)
+         .ufs-flex-carousel--squid scoping documented above at its CSS —
+         .ufs-tile cards keep their own white background regardless of
+         variant, so they read as cards sitting on the dark surface)
     ================================================================ -->
-    <section class="ufs-flex-carousel ufs-flex-carousel--recipe">
+    <section class="ufs-flex-carousel ufs-flex-carousel--squid" id="future-menus-carousel">
       <div class="ufs-flex-carousel__head">
         <div class="ufs-flex-carousel__intro">
           <h2 class="ufs-flex-carousel__title text-h3">Future Menus 4 Recipes</h2>
@@ -4228,6 +4348,265 @@
       </div>
 
       <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover Future Menus 4</button>
+    </section>
+
+    <!-- Second recipe grid — duplicate content for now, per the
+         reordered layout: grid(8) -> carousel -> grid(8) -> Load More. -->
+    <div class="pg-catalog-grid ufs-catalog-grid" id="catalog-tiles-grid-2">
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <span class="ufs-tile__badge">Popular</span>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Herb-Roasted Chicken with Pan Sauce</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(332)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Chicken</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Gluten Free</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Smoky Beef Chili with Cornbread</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(214)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Beef</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Latin American</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <span class="ufs-tile__badge">New</span>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Miso-Glazed Salmon with Bok Choy</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(89)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Fish &amp; Seafood</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Asian</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Creamy Mushroom &amp; Thyme Risotto</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(457)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Dairy</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Vegetarian</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <span class="ufs-tile__badge">New</span>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Blackened Cajun Shrimp Tacos</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(167)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Fish &amp; Seafood</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Gluten Free</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Slow-Braised Pork Ragu with Pappardelle</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(243)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Pork</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Contains Gluten</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <span class="ufs-tile__badge">Popular</span>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Charred Broccolini with Almond Romesco</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(98)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Vegetable</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Side</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Vegan</span>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="ufs-tile">
+        <div class="ufs-tile__image">
+          <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+          <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+            <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+          </button>
+        </div>
+        <div class="ufs-tile__content">
+        <div class="ufs-tile__body">
+          <h3 class="ufs-tile__title">Honey-Glazed Duck Breast with Cherry Jus</h3>
+          <div class="ufs-tile__rating">
+          <span class="ufs-tile__stars">
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+          </span>
+            <span>(71)</span>
+          </div>
+          <div class="ufs-tile__meta">
+            <span class="ufs-tile__meta-item">Poultry</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
+            <span class="ufs-tile__meta-item">Gluten Free</span>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pg-catalog-loadmore">
+      <button type="button" class="btn btn-primary">Load More Recipes</button>
+    </div>
+
+    <section class="ufs-catalog-seo">
+      <p class="ufs-catalog-seo__text">Discover our recipes created by chefs for chefs. Our culinary team have created recipes using the Unilever Food Solutions range of products to help you promote and introduce new time-saving dishes to your menu. Get inspired!</p>
+      <div class="ufs-catalog-seo__more" id="catalog-seo-more" hidden>
+        <p>If you would like nutrition information for our recipes, please contact us.</p>
+        <p><strong>Plant-based Recipes –</strong> We support the plant-forward movement to include more plant-based foods and less animal products in the diet. Our guiding principle is that our recipes contain at least 80% plant-derived ingredients and up to 20% animal-derived ingredients.</p>
+        <p><strong>Vegetarian Recipes –</strong> Our (ovo-lacto) vegetarian recipes may contain dairy products and eggs, but no other animal products.</p>
+        <p>Our products in these recipes are suitable for vegetarian diets. Always check the label of all additional ingredients you use to ensure they are free of all animal products.</p>
+        <p><strong>Vegan Recipes –</strong> Our vegan recipes do not contain any animal products.</p>
+        <p>Our products in these recipes are suitable for vegan diets and do not contain animal by-products. Always check the label of all additional ingredients you use to ensure they are vegan.</p>
+        <p><strong>Gluten-free Recipes –</strong> Our gluten-free recipes do not contain gluten, a protein found in many foods including wheat, rye, barley, etc.</p>
+        <p>Our products in these recipes are gluten-free. Always check the label of all other ingredients you use to ensure they are gluten-free.</p>
+      </div>
+      <button type="button" class="ufs-catalog-seo__toggle" id="catalog-seo-toggle" onclick="toggleCatalogSeo()" aria-expanded="false" aria-controls="catalog-seo-more">Read more</button>
     </section>
 
   </main>
@@ -7001,7 +7380,7 @@
     var QUICK_DROPDOWN_KEYS = ['mainIngredient', 'cuisine', 'typeOfDish'];
     var filterState = {};
     FILTER_CATEGORIES.forEach(function(cat) { filterState[cat.key] = []; });
-    filterState.mainIngredient = ['Beef', 'Pork']; // matches the Figma reference state
+    // Catalog starts with no filters active.
 
     /* Quick dropdowns (desktop ufs-filters-bar only) stage changes here and
        only commit into filterState on Save — unlike the side drawer's
@@ -7088,6 +7467,16 @@
         }
       });
 
+      /* Popular filter pills read the same filterState — kept in sync here
+         so they reflect a change made from any surface (a pill itself, the
+         drawer accordion, or a saved quick dropdown), not just their own
+         clicks. */
+      document.querySelectorAll('.ufs-popular-filters__pill').forEach(function(pill) {
+        var key = pill.getAttribute('data-filter-key');
+        var val = pill.getAttribute('data-filter-value');
+        pill.classList.toggle('is-active', filterState[key].indexOf(val) !== -1);
+      });
+
       var results = Math.max(12, 343 - totalActive * 41);
       var showCount = document.getElementById('filters-show-count');
       var resultsEl = document.getElementById('catalog-results');
@@ -7099,11 +7488,35 @@
       var showBtn = document.getElementById('filters-show-btn');
       if (clearBtn) clearBtn.disabled = !hasAny;
       if (showBtn) showBtn.disabled = !hasAny;
+
+      /* Future Menus 4 Recipes carousel is a promo, not search results — it
+         hides as soon as any filter is active (the page is now a filtered
+         results view) and comes back once every filter is cleared. */
+      var promoCarousel = document.getElementById('future-menus-carousel');
+      if (promoCarousel) promoCarousel.hidden = hasAny;
     }
 
     function clearAllFilters() {
       FILTER_CATEGORIES.forEach(function(cat) { filterState[cat.key] = []; });
       syncFilterUI();
+    }
+
+    function togglePopularFilter(btn) {
+      var key = btn.getAttribute('data-filter-key');
+      var val = btn.getAttribute('data-filter-value');
+      var arr = filterState[key];
+      var idx = arr.indexOf(val);
+      if (idx === -1) arr.push(val); else arr.splice(idx, 1);
+      syncFilterUI();
+    }
+
+    function toggleCatalogSeo() {
+      var more = document.getElementById('catalog-seo-more');
+      var btn = document.getElementById('catalog-seo-toggle');
+      var willShow = more.hidden;
+      more.hidden = !willShow;
+      btn.setAttribute('aria-expanded', String(willShow));
+      btn.textContent = willShow ? 'Read less' : 'Read more';
     }
 
     /* Quick dropdown checkboxes only stage a change into quickFilterDraft —
@@ -7161,7 +7574,33 @@
       document.querySelectorAll('.ufs-filters-dropdown.is-open').forEach(function(d) {
         if (!d.contains(e.target)) d.classList.remove('is-open');
       });
+      var sort = document.getElementById('catalog-sort');
+      if (sort.classList.contains('is-open') && !sort.contains(e.target)) closeSortDropdown();
     });
+
+    /* Sort control — open/close only, same toggle + click-outside-to-close
+       pattern as toggleFilterDropdown above. Selecting an option updates
+       the trigger label and closes the panel; it doesn't actually re-sort
+       the grid (no real data to sort against here). */
+    function toggleSortDropdown() {
+      var sort = document.getElementById('catalog-sort');
+      var isOpen = sort.classList.contains('is-open');
+      if (isOpen) closeSortDropdown(); else openSortDropdown();
+    }
+    function openSortDropdown() {
+      var sort = document.getElementById('catalog-sort');
+      sort.classList.add('is-open');
+      sort.querySelector('.ufs-catalog-sort__trigger').setAttribute('aria-expanded', 'true');
+    }
+    function closeSortDropdown() {
+      var sort = document.getElementById('catalog-sort');
+      sort.classList.remove('is-open');
+      sort.querySelector('.ufs-catalog-sort__trigger').setAttribute('aria-expanded', 'false');
+    }
+    function selectSortOption(input, label) {
+      document.getElementById('catalog-sort-label').textContent = 'Sort by: ' + label;
+      closeSortDropdown();
+    }
 
     function toggleFilterAccordionItem(trigger) {
       var item = trigger.closest('.ufs-accordion__item');
