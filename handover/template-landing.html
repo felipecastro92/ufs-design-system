@@ -4147,7 +4147,7 @@
     <!-- Campaign Hero — video background, verbatim instance. -->
     <section class="ufs-campaign-hero">
       <div class="ufs-campaign-hero__media" aria-hidden="true">
-        <video autoplay muted loop playsinline poster="images/academy/promo-banner-courses.jpg" data-campaign-hero-video>
+        <video autoplay muted loop playsinline poster="images/academy/promo-banner-courses.jpg" data-campaign-hero-video data-mobile-src="video/background-video-portrait_1.mp4" data-desktop-src="video/trend4-landscape_1.mp4">
           <source src="video/background-video-portrait_1.mp4" type="video/mp4" media="(max-width: 768px)">
           <source src="video/trend4-landscape_1.mp4" type="video/mp4">
         </video>
@@ -5084,6 +5084,31 @@
             video.pause();
           });
         }
+
+        /* <source media="…"> on <video> is only reliably honoured by some
+           browsers (notably inconsistent on Safari/iOS) and, even where it
+           works, is only evaluated once at initial resource selection —
+           it doesn't react to the viewport crossing the breakpoint later,
+           e.g. rotating a device or resizing a desktop window. Setting
+           .src explicitly here, and re-checking on every matchMedia
+           change, makes the mobile/desktop swap actually reliable instead
+           of depending on that. */
+        document.querySelectorAll('[data-campaign-hero-video]').forEach(function(video) {
+          var mobileSrc = video.dataset.mobileSrc;
+          var desktopSrc = video.dataset.desktopSrc;
+          if (!mobileSrc || !desktopSrc) return;
+          var mq = window.matchMedia('(max-width: 768px)');
+          function applyHeroVideoSrc() {
+            var wanted = mq.matches ? mobileSrc : desktopSrc;
+            if (video.getAttribute('src') === wanted) return;
+            var wasPlaying = !video.paused;
+            video.setAttribute('src', wanted);
+            video.load();
+            if (wasPlaying) video.play().catch(function() {});
+          }
+          applyHeroVideoSrc();
+          mq.addEventListener('change', applyHeroVideoSrc);
+        });
       });
     })();
   </script>
