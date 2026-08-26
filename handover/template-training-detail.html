@@ -1154,7 +1154,9 @@
     .ufs-training-hero__panel {
       flex-shrink: 0; width: 40%;
       display: flex; align-items: center;
-      padding: var(--space-16);
+      padding-block: var(--space-16);
+      padding-inline-start: var(--space-24);
+      padding-inline-end: var(--space-16);
     }
     .ufs-training-hero__content { display: flex; flex-direction: column; gap: var(--space-6); width: 100%; }
     .ufs-training-hero__eyebrow {
@@ -1203,10 +1205,13 @@
       border-radius: var(--radius-full);
       background: rgba(0,0,0,0.25);
       border: 1px solid rgba(255,255,255,0.6);
-      transition: background 0.15s;
+      transition: background 0.15s, transform 0.15s;
     }
     .ufs-training-hero__trailer-icon svg { width: 40px; height: 40px; fill: var(--color-salt); }
-    .ufs-training-hero__trailer:hover .ufs-training-hero__trailer-icon { background: rgba(255,255,255,0.4); }
+    /* Same hover treatment as the Teaser video trigger's play icon
+       (handover/teaser-spec.html): darken further + scale 1.08, instead
+       of this control's old lighten-on-hover. */
+    .ufs-training-hero__trailer:hover .ufs-training-hero__trailer-icon { background: rgba(0,0,0,0.4); transform: scale(1.08); }
     .ufs-training-hero__trailer-label { color: var(--color-salt); font-size: var(--text-body-sm-size); line-height: 22px; }
     /* Zoom is scoped to hovering the trailer control specifically (not
        the whole image) via :has() — already used elsewhere in this DS
@@ -2910,10 +2915,11 @@
        as auto too, and the dropdown needs to render outside this row. */
     .ufs-breadcrumb__list { display: flex; align-items: baseline; list-style: none; margin: 0; padding: 0; gap: var(--space-2); flex-wrap: nowrap; }
     .ufs-breadcrumb__item { display: flex; align-items: center; flex-shrink: 0; }
+    .ufs-breadcrumb__item.is-current { flex-shrink: 1; min-width: 0; }
     .ufs-breadcrumb__link { font-size: var(--text-body-xs-size); font-weight: var(--text-body-w); color: var(--color-mushroom-900); text-decoration: none; white-space: nowrap; transition: color 0.15s; }
     .ufs-breadcrumb__link:hover { color: var(--color-brand-dark); text-decoration: underline; }
     .ufs-breadcrumb__home-icon { display: none; width: 14px; height: 14px; flex-shrink: 0; }
-    .ufs-breadcrumb__current { font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; }
+    .ufs-breadcrumb__current { font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; min-width: 0; }
     .ufs-breadcrumb__sep { display: flex; align-items: center; color: var(--color-mushroom-700); flex-shrink: 0; }
     .ufs-breadcrumb__sep svg { width: 8px; height: 8px; display: block; }
 
@@ -4187,7 +4193,10 @@
       <div class="ufs-training-hero__media">
         <div class="ufs-training-hero__photo"></div>
         <div class="ufs-training-hero__overlay"></div>
-        <button type="button" class="ufs-training-hero__trailer" aria-label="Watch trailer">
+        <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+          <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+        </button>
+        <button type="button" class="ufs-training-hero__trailer" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Watch trailer">
           <span class="ufs-training-hero__trailer-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
           <span class="ufs-training-hero__trailer-label">Watch trailer</span>
         </button>
@@ -5859,7 +5868,17 @@
     /* Training sticky CTA: hidden until the training-hero's own CTA scrolls
        out of view, so there's never two conversion asks on screen at once.
        Not context-gated — #training-detail-main (and its hero CTA) is
-       always in the DOM regardless of the preview harness's ctrl-bar state. */
+       always in the DOM regardless of the preview harness's ctrl-bar state.
+
+       heroBtnSeen guards against IntersectionObserver's very first callback,
+       fired synchronously on observe() with whatever the current state is —
+       on short mobile viewports the hero CTA sits at or below the fold on
+       load (stacked hero: 300px media + copy easily exceeds a phone's
+       viewport height), so that first callback reports isIntersecting:false
+       before the user has scrolled at all. Without the guard that reads as
+       "scrolled past it" and the sticky bar appears immediately. Requiring
+       the hero CTA to have been seen in view at least once first makes the
+       rule match its name: hidden until it scrolls OUT of view. */
     var trainingCtaObserver = null;
     function setupTrainingStickyCta() {
       var stickyBar = document.getElementById('training-sticky-cta');
@@ -5869,9 +5888,11 @@
       document.body.classList.remove('sticky-cta-visible');
       var heroBtn = document.getElementById('training-hero-cta');
       if (!heroBtn) return;
+      var heroBtnSeen = false;
       trainingCtaObserver = new IntersectionObserver(function(entries) {
         entries.forEach(function(entry) {
-          var visible = !entry.isIntersecting;
+          if (entry.isIntersecting) heroBtnSeen = true;
+          var visible = heroBtnSeen && !entry.isIntersecting;
           stickyBar.classList.toggle('is-visible', visible);
           document.body.classList.toggle('sticky-cta-visible', visible);
         });
