@@ -1031,6 +1031,140 @@
        hack now that the size itself is global. */
 
     /* ==========================================================================
+       CHEF TILE — culinary-team profile card. Two forms sharing one BEM
+       block: the default (carousel/fixed) is a centred vertical layout,
+       320px wide; .ufs-tile--chef-inline is a modifier that flips it to a
+       left-aligned horizontal layout for standalone in-page use (fluid
+       width, capped at 380px). Doesn't reuse .ufs-tile's vertical anatomy
+       — own CSS, same approach as Brand/Topic Tile.
+
+       No independently-interactive children anymore (the eyebrow and the
+       follow panel/social links were removed in a later Figma pass) — the
+       whole card is now a plain anchor, same as Brand/Recipe Tile. No
+       stretched-link workaround needed. */
+    .ufs-tile--chef {
+      display: flex; flex-direction: column;
+      position: relative;
+      width: 320px; min-width: 320px;
+      /* Cancels the shared .ufs-tile base rule's padding-bottom
+         (--space-4) — bottom spacing now comes from
+         .ufs-tile__chef-body's own padding instead. */
+      padding-bottom: 0;
+      background: var(--color-mushroom-100);
+      /* Shared .ufs-tile defaults to a mushroom-300 border (meant for the
+         other 6 tile types) — overridden here to a flat 1px white border
+         in every context, mushroom and squid included (squid needs its
+         own override below to beat that shared .ufs-tile rule, which
+         otherwise wins on specificity). On the white/default carousel this
+         reads as functionally borderless since it matches the section
+         background exactly — intentional, not a bug. */
+      border: 1px solid var(--color-salt);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    /* Decorative top band, fixed form only (Figma has no equivalent on the
+       inline form) — a soft tint behind the avatar, clipped to the card's
+       own rounded corners by the parent's overflow:hidden. Positioned
+       behind .ufs-tile__chef-body via z-index rather than DOM order,
+       since an absolutely-positioned element paints above static in-flow
+       content regardless of source order. */
+    .ufs-tile__chef-band {
+      position: absolute; top: 0; left: 0; right: 0; z-index: 0;
+      height: 88px;
+      background: rgba(203, 197, 199, 0.3);
+    }
+    .ufs-tile__chef-body {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      gap: var(--space-3);
+      padding: var(--space-6) var(--space-4) var(--space-8);
+    }
+    .ufs-tile__chef-main { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); width: 100%; }
+    .ufs-tile__chef-avatar {
+      width: 120px; height: 120px; flex-shrink: 0;
+      border-radius: var(--radius-full);
+      border: 2px solid var(--color-salt);
+      box-shadow: var(--shadow-xs);
+      background-color: var(--color-mushroom-300);
+      background-size: cover; background-position: center;
+    }
+    .ufs-tile__chef-info { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: 100%; }
+    .ufs-tile__chef-name-role { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); width: 100%; }
+    .ufs-tile__chef-name { margin: 0; font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); color: var(--color-brand-dark); }
+    .ufs-tile__chef-role { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600; color: var(--color-brand-dark); }
+    .ufs-tile__chef-quote { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 400; color: var(--color-brand-dark); }
+    .ufs-tile__chef-quote em { font-style: italic; }
+    /* Replaces the old follow panel — a text link to the chef's full
+       profile with a trailing chevron, same layout/weight as
+       .ufs-tile__topic-link (Topic Tile) but coloured accessible-orange
+       instead of brand-primary. Lives inside .ufs-tile__chef-info so it
+       inherits that element's center/left alignment automatically between
+       the fixed and inline forms, same as name/role/quote already do — no
+       separate alignment override needed. */
+    .ufs-tile__chef-link {
+      margin: 0;
+      display: inline-flex; align-items: end; justify-content: center;
+      gap: var(--space-1);
+      font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600;
+      color: var(--color-accessible-orange);
+    }
+    .ufs-tile__chef-link svg { width: 16px; height: 16px; flex-shrink: 0; }
+    @media (min-width: 1024px) {
+      .ufs-tile__chef-link { margin-top: var(--space-2); }
+    }
+    @media (max-width: 1023px) {
+      .ufs-tile__chef-link svg { width: 14px; height: 14px; }
+    }
+
+    /* Inline modifier — horizontal, left-aligned, fluid width capped at
+       Figma's 380px. Used as a standalone component (not carousel-bound):
+       width:100% + max-width:380px means it fills a narrow mobile
+       container on its own, no separate mobile override needed. */
+    .ufs-tile--chef-inline { width: 100%; max-width: 380px; min-width: 0; }
+    .ufs-tile--chef-inline .ufs-tile__chef-body { align-items: flex-start; text-align: left; padding: var(--space-6) var(--space-4) var(--space-6) var(--space-6); }
+    .ufs-tile--chef-inline .ufs-tile__chef-main { flex-direction: row; align-items: flex-start; }
+    .ufs-tile--chef-inline .ufs-tile__chef-avatar { width: 70px; height: 70px; }
+    .ufs-tile--chef-inline .ufs-tile__chef-info { align-items: flex-start; text-align: left; }
+    .ufs-tile--chef-inline .ufs-tile__chef-name-role { align-items: flex-start; }
+    .ufs-tile--chef-inline .ufs-tile__chef-name { font-size: var(--text-h6-size); line-height: var(--text-h6-lh); }
+    .ufs-tile--chef-inline .ufs-tile__chef-role,
+    .ufs-tile--chef-inline .ufs-tile__chef-quote,
+    .ufs-tile--chef-inline .ufs-tile__chef-link { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); }
+    .ufs-tile--chef-inline .ufs-tile__chef-link { justify-content: flex-start; }
+
+    /* Fixed size applies in any carousel context — carousel-agnostic
+       2-class scoping (.ufs-carousel-card.ufs-tile--chef), not scoped to
+       --mushroom, so the card isn't left at the generic .ufs-carousel-card
+       270x270 default (and clipped by overflow:hidden) on a plain white
+       .ufs-flex-carousel. */
+    .ufs-carousel-card.ufs-tile--chef { width: 320px; min-width: 320px; height: auto; }
+    /* On a mushroom-100 carousel, the tile's own default mushroom-100
+       background would be invisible against it — bump one step darker,
+       same rule as Brand Tile. Border stays the base rule's white — no
+       override needed here, just the background step. */
+    .ufs-flex-carousel--mushroom .ufs-tile--chef { background: var(--color-mushroom-300); }
+    /* Squid-ink carousel: the shared .ufs-flex-carousel--squid .ufs-tile
+       rule (2-class) sits later in the file and would otherwise win on
+       source order at equal specificity, giving the card a mushroom-300
+       border instead of the white one every other context gets. 3-class
+       scoping (.ufs-carousel-card.ufs-tile--chef) guarantees this wins
+       regardless of order — same technique already used elsewhere in this
+       file for the same kind of override-priority problem. */
+    .ufs-flex-carousel--squid .ufs-carousel-card.ufs-tile--chef { border: 1px solid var(--color-salt); }
+
+    /* RTL — flex-direction:column stays put; only the inline modifier's
+       row and the asymmetric body padding are physical values needing an
+       explicit flip. Avatar is symmetric, no override needed.
+       :is(...) matches dir="rtl" as EITHER a page-level ancestor (real
+       usage, e.g. <html dir="rtl">) OR set directly on this same element
+       (used below by the doc specimens, for local side-by-side
+       comparison) — a plain descendant-combinator selector only catches
+       the former and silently no-ops for the latter. */
+    :is([dir="rtl"] .ufs-tile--chef-inline, .ufs-tile--chef-inline[dir="rtl"]) .ufs-tile__chef-body { padding: var(--space-6) var(--space-6) var(--space-6) var(--space-4); }
+    :is([dir="rtl"] .ufs-tile--chef-inline, .ufs-tile--chef-inline[dir="rtl"]) .ufs-tile__chef-info,
+    :is([dir="rtl"] .ufs-tile--chef-inline, .ufs-tile--chef-inline[dir="rtl"]) .ufs-tile__chef-name-role { text-align: right; }
+
+    /* ==========================================================================
        TILES — catalog-grid responsive behavior (≤768px)
        This is the SAME .ufs-tile component, not a separate variant. In the
        flex-carousel it always renders as the regular card, at every
@@ -1688,11 +1822,12 @@
       .ufs-promo-banner {
         display: flex;
         border-radius: var(--radius-xl);
+        border-top-right-radius: var(--radius-xxxl);
       }
       .ufs-promo-banner__panel {
         flex: 0 0 52%; min-width: 0;
         align-items: flex-start; text-align: left;
-        min-height: 480px;
+        min-height: 400px;
         gap: var(--space-6);
         padding: var(--space-16) var(--space-16) var(--space-14) var(--space-14);
         border-radius: var(--radius-xl) 0 0 var(--radius-xl);
@@ -4797,6 +4932,133 @@
       </div>
 
       <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+    </section>
+
+    <!-- Flex Carousel — Chef Tiles, white background -->
+    <section class="ufs-flex-carousel">
+      <div class="ufs-flex-carousel__head">
+        <div class="ufs-flex-carousel__intro">
+          <h2 class="ufs-flex-carousel__title text-h3">Meet the masterminds behind the trainings</h2>
+          <p class="ufs-flex-carousel__desc">The culinary team behind every recipe, technique and course on UFS Professional.</p>
+        </div>
+        <button class="btn btn-secondary ufs-flex-carousel__cta">See all chefs</button>
+      </div>
+
+      <div class="ufs-flex-carousel__track-wrap">
+        <div class="ufs-carousel-track">
+          <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+          <a class="ufs-carousel-card ufs-tile ufs-tile--chef" href="#" aria-label="View Chef Brandon Collins&rsquo;s profile">
+            <div class="ufs-tile__chef-band"></div>
+            <div class="ufs-tile__chef-body">
+              <div class="ufs-tile__chef-main">
+                <div class="ufs-tile__chef-avatar" style="background-image:url('images/chef-profiles/brandon-collins.png')"></div>
+                <div class="ufs-tile__chef-info">
+                  <div class="ufs-tile__chef-name-role">
+                    <p class="ufs-tile__chef-name">Chef Brandon Collins</p>
+                    <p class="ufs-tile__chef-role">Executive Pastry Chef</p>
+                  </div>
+                  <p class="ufs-tile__chef-quote">Chef Brandon has led pastry programs at three Michelin kitchens. Motto: <em>&ldquo;precision is the secret ingredient&rdquo;</em>.</p>
+                  <p class="ufs-tile__chef-link">Check Chef&rsquo;s Profile<svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+                </div>
+              </div>
+            </div>
+          </a>
+          <a class="ufs-carousel-card ufs-tile ufs-tile--chef" href="#" aria-label="View Chef Eric Chua&rsquo;s profile">
+            <div class="ufs-tile__chef-band"></div>
+            <div class="ufs-tile__chef-body">
+              <div class="ufs-tile__chef-main">
+                <div class="ufs-tile__chef-avatar" style="background-image:url('images/chef-profiles/eric-chua.png')"></div>
+                <div class="ufs-tile__chef-info">
+                  <div class="ufs-tile__chef-name-role">
+                    <p class="ufs-tile__chef-name">Chef Eric Chua</p>
+                    <p class="ufs-tile__chef-role">Chef Instructor, Sauces &amp; Stocks</p>
+                  </div>
+                  <p class="ufs-tile__chef-quote">Chef Eric has spent 20 years perfecting classic French sauces. Motto: <em>&ldquo;master the base, and every dish follows&rdquo;</em>.</p>
+                  <p class="ufs-tile__chef-link">Check Chef&rsquo;s Profile<svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+                </div>
+              </div>
+            </div>
+          </a>
+          <a class="ufs-carousel-card ufs-tile ufs-tile--chef" href="#" aria-label="View Chef Philip Li&rsquo;s profile">
+            <div class="ufs-tile__chef-band"></div>
+            <div class="ufs-tile__chef-body">
+              <div class="ufs-tile__chef-main">
+                <div class="ufs-tile__chef-avatar" style="background-image:url('images/chef-profiles/philip-li.png')"></div>
+                <div class="ufs-tile__chef-info">
+                  <div class="ufs-tile__chef-name-role">
+                    <p class="ufs-tile__chef-name">Chef Philip Li</p>
+                    <p class="ufs-tile__chef-role">Plating &amp; Presentation Specialist</p>
+                  </div>
+                  <p class="ufs-tile__chef-quote">Chef Philip believes a dish is tasted with the eyes first. His motto: <em>&ldquo;plate like every table is a critic&rsquo;s table&rdquo;</em>.</p>
+                  <p class="ufs-tile__chef-link">Check Chef&rsquo;s Profile<svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+                </div>
+              </div>
+            </div>
+          </a>
+          <a class="ufs-carousel-card ufs-tile ufs-tile--chef" href="#" aria-label="View Chef Giuseppe Buscicchio&rsquo;s profile">
+            <div class="ufs-tile__chef-band"></div>
+            <div class="ufs-tile__chef-body">
+              <div class="ufs-tile__chef-main">
+                <div class="ufs-tile__chef-avatar" style="background-image:url('images/chef-profiles/giuseppe-buscicchio.png')"></div>
+                <div class="ufs-tile__chef-info">
+                  <div class="ufs-tile__chef-name-role">
+                    <p class="ufs-tile__chef-name">Chef Giuseppe Buscicchio</p>
+                    <p class="ufs-tile__chef-role">Grill &amp; Live-Fire Specialist</p>
+                  </div>
+                  <p class="ufs-tile__chef-quote">Chef Giuseppe trained over open flame across three continents. Motto: <em>&ldquo;low and slow beats fast and careless&rdquo;</em>.</p>
+                  <p class="ufs-tile__chef-link">Check Chef&rsquo;s Profile<svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+                </div>
+              </div>
+            </div>
+          </a>
+          <a class="ufs-carousel-card ufs-tile ufs-tile--chef" href="#" aria-label="View Chef Kyla Tuori&rsquo;s profile">
+            <div class="ufs-tile__chef-band"></div>
+            <div class="ufs-tile__chef-body">
+              <div class="ufs-tile__chef-main">
+                <div class="ufs-tile__chef-avatar" style="background-image:url('images/chef-profiles/kyla-tuori.png')"></div>
+                <div class="ufs-tile__chef-info">
+                  <div class="ufs-tile__chef-name-role">
+                    <p class="ufs-tile__chef-name">Chef Kyla Tuori</p>
+                    <p class="ufs-tile__chef-role">Head of Culinary R&amp;D</p>
+                  </div>
+                  <p class="ufs-tile__chef-quote">Chef Kyla tests new plant-based bases in the UFS innovation kitchen. Motto: <em>&ldquo;taste first, trend second&rdquo;</em>.</p>
+                  <p class="ufs-tile__chef-link">Check Chef&rsquo;s Profile<svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+                </div>
+              </div>
+            </div>
+          </a>
+          <a class="ufs-carousel-card ufs-tile ufs-tile--chef" href="#" aria-label="View Chef Alvaro Lima&rsquo;s profile">
+            <div class="ufs-tile__chef-band"></div>
+            <div class="ufs-tile__chef-body">
+              <div class="ufs-tile__chef-main">
+                <div class="ufs-tile__chef-avatar" style="background-image:url('images/chef-profiles/alvaro-lima.png')"></div>
+                <div class="ufs-tile__chef-info">
+                  <div class="ufs-tile__chef-name-role">
+                    <p class="ufs-tile__chef-name">Chef Alvaro Lima</p>
+                    <p class="ufs-tile__chef-role">Corporate Chef</p>
+                  </div>
+                  <p class="ufs-tile__chef-quote">Chef Alvaro has 15 years of menu development experience. Motto: <em>&ldquo;consistency is the secret&rdquo;</em>.</p>
+                  <p class="ufs-tile__chef-link">Check Chef&rsquo;s Profile<svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+                </div>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <div class="ufs-flex-carousel__foot">
+        <div class="ufs-carousel-dots"></div>
+        <div class="ufs-flex-carousel__arrows">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">See all chefs</button>
     </section>
 
     <!-- FAQ — accordion component (see index.html#accordion). IDs
