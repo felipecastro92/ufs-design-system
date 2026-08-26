@@ -1249,6 +1249,10 @@
       .ufs-flex-carousel .ufs-teaser__body,
       .ufs-flex-carousel .ufs-teaser__heading { gap: var(--space-2); }
     }
+    /* Video trigger icon, sized to match the 4-up/col-3 tier this carousel's
+       teaser type scale is drawn from (see block comment above). */
+    .ufs-flex-carousel .ufs-teaser__play-icon { width: var(--space-16); height: var(--space-16); }
+    .ufs-flex-carousel .ufs-teaser__play-icon svg { width: 26px; height: 26px; }
     /* Squid-ink carousel — identical colour flip to .pg-teaser-section
        --squidink's own eyebrow/title/desc/link overrides, just rescoped to
        the carousel context so Teaser stays legible on the dark surface. */
@@ -1310,10 +1314,36 @@
     .ufs-teaser-wrapper--4 .ufs-teaser { gap: var(--space-4); }
 
     .ufs-teaser__image { position: relative; width: 100%; overflow: hidden; }
-    .ufs-teaser__image img { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .ufs-teaser__image img { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s ease; }
     .ufs-teaser-wrapper--2 .ufs-teaser__image { aspect-ratio: 572 / 396; border-radius: var(--radius-md); }
     .ufs-teaser-wrapper--3 .ufs-teaser__image { aspect-ratio: 366 / 252; border-radius: var(--radius-sm); }
     .ufs-teaser-wrapper--4 .ufs-teaser__image { aspect-ratio: 275 / 190; border-radius: var(--radius-sm); }
+
+    /* Optional per-card video trigger — same pattern as the Teaser spec's
+       video variant (handover/teaser-spec.html). Drop a .ufs-teaser__play-
+       overlay (flat rgba(0,0,0,0.2) scrim) + a .ufs-teaser__play button
+       (with a data-video-url) inside a card's .ufs-teaser__image, in that
+       order — siblings that don't get them stay plain images. Opens the
+       shared lightbox near the end of this file. */
+    .ufs-teaser__play-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.2); pointer-events: none; }
+    .ufs-teaser__play {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; padding: 0; cursor: pointer;
+    }
+    .ufs-teaser__play-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: var(--space-20); height: var(--space-20); border-radius: var(--radius-full);
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.6);
+      transition: background 0.15s, transform 0.15s;
+    }
+    .ufs-teaser__play-icon svg { width: 32px; height: 32px; fill: var(--color-salt); }
+    .ufs-teaser__play:hover .ufs-teaser__play-icon { background: rgba(0,0,0,0.4); transform: scale(1.08); }
+    .ufs-teaser__image:has(.ufs-teaser__play:hover) img { transform: scale(1.06); }
+    .ufs-teaser-wrapper--3 .ufs-teaser__play-icon,
+    .ufs-teaser-wrapper--4 .ufs-teaser__play-icon { width: var(--space-16); height: var(--space-16); }
+    .ufs-teaser-wrapper--3 .ufs-teaser__play-icon svg,
+    .ufs-teaser-wrapper--4 .ufs-teaser__play-icon svg { width: 26px; height: 26px; }
 
     .ufs-teaser__body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); width: 100%; }
     .ufs-teaser__eyebrow {
@@ -3437,6 +3467,25 @@
       #filters-panel .signin-panel-title { font-size: var(--text-h6-mob-size); }
       .signin-panel-ft .btn { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
     }
+
+    /* ═══════════════════════════════════════
+       VIDEO LIGHTBOX — shared modal opened by any [data-video-url] trigger
+       (currently the Course Content carousel's Teaser cards). Same
+       lb-overlay/lb-panel pattern as teaser-spec.html's video variant.
+    ═══════════════════════════════════════ */
+    .lb-overlay {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.88);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .lb-overlay.open { opacity: 1; pointer-events: all; }
+    .lb-wrap { position: relative; width: min(900px, calc(100vw - 32px)); }
+    .lb-panel { aspect-ratio: 16 / 9; background: var(--color-brand-dark); border-radius: var(--radius-lg); overflow: hidden; transform: scale(0.95); transition: transform 0.25s; }
+    .lb-overlay.open .lb-panel { transform: scale(1); }
+    .lb-panel iframe { width: 100%; height: 100%; border: none; display: block; }
+    .lb-close { position: absolute; top: -44px; right: 0; background: none; border: none; color: var(--color-salt); font-size: 30px; line-height: 1; padding: 6px; cursor: pointer; opacity: 0.8; transition: opacity 0.15s; }
+    .lb-close:hover { opacity: 1; }
   </style>
 </head>
 <body class="color-light">
@@ -4159,7 +4208,13 @@
         <div class="ufs-carousel-track">
           <div class="ufs-carousel-spacer" aria-hidden="true"></div>
           <div class="ufs-carousel-card ufs-teaser">
-            <div class="ufs-teaser__image"><img src="images/tiles/article.jpg" alt=""/></div>
+            <div class="ufs-teaser__image">
+              <img src="images/tiles/article.jpg" alt=""/>
+              <span class="ufs-teaser__play-overlay"></span>
+              <button type="button" class="ufs-teaser__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Play video">
+                <span class="ufs-teaser__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+            </div>
             <div class="ufs-teaser__body">
               <p class="ufs-teaser__eyebrow">Module 1</p>
               <div class="ufs-teaser__heading">
@@ -4170,7 +4225,13 @@
             </div>
           </div>
           <div class="ufs-carousel-card ufs-teaser">
-            <div class="ufs-teaser__image"><img src="images/tiles/recipe.jpg" alt=""/></div>
+            <div class="ufs-teaser__image">
+              <img src="images/tiles/recipe.jpg" alt=""/>
+              <span class="ufs-teaser__play-overlay"></span>
+              <button type="button" class="ufs-teaser__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Play video">
+                <span class="ufs-teaser__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+            </div>
             <div class="ufs-teaser__body">
               <p class="ufs-teaser__eyebrow">Module 2</p>
               <div class="ufs-teaser__heading">
@@ -4181,7 +4242,13 @@
             </div>
           </div>
           <div class="ufs-carousel-card ufs-teaser">
-            <div class="ufs-teaser__image"><img src="images/tiles/training.jpg" alt=""/></div>
+            <div class="ufs-teaser__image">
+              <img src="images/tiles/training.jpg" alt=""/>
+              <span class="ufs-teaser__play-overlay"></span>
+              <button type="button" class="ufs-teaser__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Play video">
+                <span class="ufs-teaser__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+            </div>
             <div class="ufs-teaser__body">
               <p class="ufs-teaser__eyebrow">Module 3</p>
               <div class="ufs-teaser__heading">
@@ -4192,7 +4259,13 @@
             </div>
           </div>
           <div class="ufs-carousel-card ufs-teaser">
-            <div class="ufs-teaser__image"><img src="images/tiles/product.jpg" alt=""/></div>
+            <div class="ufs-teaser__image">
+              <img src="images/tiles/product.jpg" alt=""/>
+              <span class="ufs-teaser__play-overlay"></span>
+              <button type="button" class="ufs-teaser__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Play video">
+                <span class="ufs-teaser__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+            </div>
             <div class="ufs-teaser__body">
               <p class="ufs-teaser__eyebrow">Module 4</p>
               <div class="ufs-teaser__heading">
@@ -4203,7 +4276,13 @@
             </div>
           </div>
           <div class="ufs-carousel-card ufs-teaser">
-            <div class="ufs-teaser__image"><img src="images/tiles/topic.jpg" alt=""/></div>
+            <div class="ufs-teaser__image">
+              <img src="images/tiles/topic.jpg" alt=""/>
+              <span class="ufs-teaser__play-overlay"></span>
+              <button type="button" class="ufs-teaser__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Play video">
+                <span class="ufs-teaser__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+            </div>
             <div class="ufs-teaser__body">
               <p class="ufs-teaser__eyebrow">Module 5</p>
               <div class="ufs-teaser__heading">
@@ -4214,7 +4293,13 @@
             </div>
           </div>
           <div class="ufs-carousel-card ufs-teaser">
-            <div class="ufs-teaser__image"><img src="images/tiles/article.jpg" alt=""/></div>
+            <div class="ufs-teaser__image">
+              <img src="images/tiles/article.jpg" alt=""/>
+              <span class="ufs-teaser__play-overlay"></span>
+              <button type="button" class="ufs-teaser__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Play video">
+                <span class="ufs-teaser__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+            </div>
             <div class="ufs-teaser__body">
               <p class="ufs-teaser__eyebrow">Module 6</p>
               <div class="ufs-teaser__heading">
@@ -4225,7 +4310,13 @@
             </div>
           </div>
           <div class="ufs-carousel-card ufs-teaser">
-            <div class="ufs-teaser__image"><img src="images/tiles/recipe.jpg" alt=""/></div>
+            <div class="ufs-teaser__image">
+              <img src="images/tiles/recipe.jpg" alt=""/>
+              <span class="ufs-teaser__play-overlay"></span>
+              <button type="button" class="ufs-teaser__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Play video">
+                <span class="ufs-teaser__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+            </div>
             <div class="ufs-teaser__body">
               <p class="ufs-teaser__eyebrow">Module 7</p>
               <div class="ufs-teaser__heading">
@@ -4236,7 +4327,13 @@
             </div>
           </div>
           <div class="ufs-carousel-card ufs-teaser">
-            <div class="ufs-teaser__image"><img src="images/tiles/training.jpg" alt=""/></div>
+            <div class="ufs-teaser__image">
+              <img src="images/tiles/training.jpg" alt=""/>
+              <span class="ufs-teaser__play-overlay"></span>
+              <button type="button" class="ufs-teaser__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Play video">
+                <span class="ufs-teaser__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+            </div>
             <div class="ufs-teaser__body">
               <p class="ufs-teaser__eyebrow">Module 8</p>
               <div class="ufs-teaser__heading">
@@ -5260,6 +5357,16 @@
       </div>
     </div>
   </footer>
+
+  <!-- VIDEO LIGHTBOX — shared by every [data-video-url] trigger on this page -->
+  <div class="lb-overlay" id="lb-overlay" role="dialog" aria-modal="true" aria-label="Video">
+    <div class="lb-wrap">
+      <button class="lb-close" id="lb-close" aria-label="Close">&times;</button>
+      <div class="lb-panel">
+        <iframe id="lb-iframe" src="" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
 
   <script>
     /* ================================================================
@@ -7567,6 +7674,36 @@
       render();
     }
     document.querySelectorAll('.ufs-flex-carousel').forEach(initFlexCarousel);
+
+    /* ── Video lightbox ─────────────────────────────────────────── */
+    (function () {
+      var lbOverlay = document.getElementById('lb-overlay');
+      var lbIframe  = document.getElementById('lb-iframe');
+      var lbClose   = document.getElementById('lb-close');
+      if (!lbOverlay) return;
+
+      function openLB(url) {
+        lbIframe.src = url;
+        lbOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLB() {
+        lbOverlay.classList.remove('open');
+        lbIframe.src = '';
+        document.body.style.overflow = '';
+      }
+
+      document.querySelectorAll('[data-video-url]').forEach(function (trigger) {
+        trigger.addEventListener('click', function () {
+          openLB(trigger.getAttribute('data-video-url'));
+        });
+      });
+      lbClose.addEventListener('click', closeLB);
+      lbOverlay.addEventListener('click', function (e) { if (e.target === lbOverlay) closeLB(); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lbOverlay.classList.contains('open')) closeLB();
+      });
+    })();
   </script>
 
   <!-- Mobile AI chat overlay -->
