@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Tip — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.25); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.35); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-700); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-700); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+    .pv-count { font-family: var(--font-family-mono); font-size: 10px; background: var(--color-mushroom-300); color: var(--color-brand-dark); padding: 1px 6px; border-radius: 3px; }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: visible; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); font-size: 11px; }
+    .token-note { color: var(--color-mushroom-700); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PRODUCT TIP — a row of trust/benefit cards (title + one-line desc),
+       up to 5 per row on desktop. Adapted from Figma "Rosana 2.0" nodes
+       1867:4035 (single card, desktop), 1867:4034 (5-card desktop row
+       example) and 1896:3994 (5-card mobile stack example), file
+       wn1YOo6XTkD1v9sZrK2Oe1. Cards are plain flex children with
+       flex:1 1 0, so any row of 2-5 items divides evenly with zero
+       per-count breakpoints — the interesting part is what happens past
+       5 items, covered in the Row-Split Rule section below.
+    ═══════════════════════════════════════ */
+    .ufs-product-tips-rows { display: flex; flex-direction: column; gap: var(--space-8); }
+    .ufs-product-tips { display: flex; align-items: stretch; gap: var(--space-8); }
+    .ufs-product-tip {
+      flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2);
+      background: rgba(255,222,204,0.3); border: 1px solid var(--color-brand-primary);
+      border-radius: var(--radius-lg); padding: var(--space-6);
+    }
+    .ufs-product-tip__title {
+      font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w);
+      color: var(--color-brand-dark); margin: 0;
+    }
+    .ufs-product-tip__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin: 0; }
+    .ufs-product-tips__footnote { font-size: var(--text-fine-print-size); line-height: var(--text-fine-print-lh); color: var(--color-mushroom-900); margin: var(--space-4) 0 0; }
+
+    /* ── Mobile ──────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .ufs-product-tips-rows { gap: var(--space-4); }
+      .ufs-product-tips { flex-direction: column; gap: var(--space-4); }
+      .ufs-product-tip { border-radius: var(--radius-md); padding: var(--space-4); }
+      .ufs-product-tip__title { font-size: var(--text-h5-mob-size); }
+    }
+
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the component's own @media(max-width:768px) declarations
+       scoped to .pv-mobile with !important. Doc-only; not shipped. Same
+       pattern as product-hero-spec.html's .pv-mobile block. */
+    .pv-mobile .ufs-product-tips-rows { gap: var(--space-4) !important; }
+    .pv-mobile .ufs-product-tips { flex-direction: column !important; gap: var(--space-4) !important; }
+    .pv-mobile .ufs-product-tip { border-radius: var(--radius-md) !important; padding: var(--space-4) !important; }
+    .pv-mobile .ufs-product-tip__title { font-size: var(--text-h5-mob-size) !important; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Product Tip</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy &amp; Rules</a>
+      <a href="#row-split" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Row-Split Rule</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Developer</div>
+      <a href="#usage" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Usage</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Figma nodes 1867:4035 (card), 1867:4034 / 1896:3994 (row/stack examples).<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Product Tip</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Product <span>Tip</span></h1>
+        <p class="doc-header-desc">A row of short trust/benefit cards (bold title + one-line description) that fully responsively accommodates 2, 3, 4 or 5 cards per row on desktop, and — past 5 — automatically balances the overflow across additional rows instead of leaving an awkward short last row. Stacks to a single full-width column on mobile.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">Figma 1867:4035 / 1867:4034 / 1896:3994</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">The reference 5-card row — every part is real markup, not a screenshot. Resize the window (or open this page on a phone) to see it collapse to a single stacked column below 768px.</p>
+
+      <div class="pv-light" style="padding: 48px 24px;">
+        <div class="ufs-product-tips-rows" id="pt-demo"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY & RULES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Product Tip</div>
+      <h2 class="section-title">Anatomy &amp; Rules</h2>
+      <p class="section-desc">Three nested pieces: <code>.ufs-product-tips-rows</code> (the whole component — a vertical stack of one or more rows), <code>.ufs-product-tips</code> (one row), and <code>.ufs-product-tip</code> (one card). Every card in a row is <code>flex: 1 1 0</code>, so 2, 3, 4 or 5 cards in the same row divide it evenly with no per-count CSS — the row simply has as many children as it's given.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Card</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Background</span><span class="token-var">rgba(255,222,204,.3)</span><span class="token-note">Literal value, not a DS token — Orange-100 (#FFDECC) at 30% opacity</span></div>
+          <div class="token-row"><span class="token-prop">Border</span><span class="token-var">1px solid var(--color-brand-primary)</span><span class="token-note">#FF5A00, UFS Orange — same on every card, desktop and mobile</span></div>
+          <div class="token-row"><span class="token-prop">Radius</span><span class="token-var">var(--radius-lg)</span><span class="token-note">16px desktop → var(--radius-md) 12px mobile</span></div>
+          <div class="token-row"><span class="token-prop">Padding</span><span class="token-var">var(--space-6)</span><span class="token-note">24px desktop → var(--space-4) 16px mobile</span></div>
+          <div class="token-row"><span class="token-prop">Title↔desc gap</span><span class="token-var">var(--space-2)</span><span class="token-note">8px, same on both breakpoints</span></div>
+          <div class="token-row"><span class="token-prop">Card width</span><span class="token-var">flex: 1 1 0</span><span class="token-note">Equal share of the row; align-items:stretch on the row matches every card in it to the tallest one's height</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Typography</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">var(--text-h5-*)</span><span class="token-note">20px/600w desktop → var(--text-h5-mob-size) 18px mobile</span></div>
+          <div class="token-row"><span class="token-prop">Description</span><span class="token-var">var(--text-body-sm-*)</span><span class="token-note">14px/1.5, same on both breakpoints</span></div>
+          <div class="token-row"><span class="token-prop">Text colour</span><span class="token-var">var(--color-brand-dark)</span><span class="token-note">Both title and description — Squid Ink, not literal black</span></div>
+          <div class="token-row"><span class="token-prop">Footnote</span><span class="token-var">var(--text-fine-print-size)</span><span class="token-note">10px, var(--color-mushroom-900) — optional, sits below every row</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Spacing</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Gap between cards in a row</span><span class="token-var">var(--space-8)</span><span class="token-note">32px desktop → var(--space-4) 16px mobile</span></div>
+          <div class="token-row"><span class="token-prop">Gap between rows</span><span class="token-var">var(--space-8)</span><span class="token-note">Same token as the card gap — desktop only; on mobile the whole component is one continuous vertical stack (see Row-Split Rule)</span></div>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-tips-rows"</span><span class="t-tag">&gt;</span>
+  <span class="t-cm">&lt;!-- one .ufs-product-tips per row (see Row-Split Rule for how many rows) --&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-tips"</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- one .ufs-product-tip per card, 2-5 of these per row --&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-tip"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-tip__title"</span><span class="t-tag">&gt;</span>No added MSG<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-tip__desc"</span><span class="t-tag">&gt;</span>Full-bodied flavour built from real ingredients.<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-tips__footnote"</span><span class="t-tag">&gt;</span>*Optional disclaimer, sits below every row.<span class="t-tag">&lt;/p&gt;</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ROW-SPLIT RULE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="row-split">
+      <div class="section-breadcrumb">Product Tip</div>
+      <h2 class="section-title">Row-Split Rule</h2>
+      <p class="section-desc">Desktop rows hold a maximum of 5 cards. Below 5 items there's nothing to decide — one row, done. Past 5, the naive approach (fill each row to 5, dump whatever's left into a final short row) produces lopsided results like 5+1 or 5+2. Instead, the total is split as <strong>evenly as possible</strong> across the fewest rows that still respect the 5-per-row cap, with any remainder going to the earliest rows.</p>
+
+      <div class="ds-card">
+        <div class="card-title">The formula</div>
+        <p class="card-desc">Run once per instance, in <code>renderProductTips()</code> (see Usage).</p>
+        <div class="code-block-wrap" style="margin-top:0;">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">var</span> rows      = Math.ceil(tips.length / <span class="t-vl">5</span>);              <span class="t-cm">// fewest rows that keep every row ≤5</span>
+<span class="t-pr">var</span> base      = Math.floor(tips.length / rows);       <span class="t-cm">// even split size</span>
+<span class="t-pr">var</span> remainder = tips.length % rows;                  <span class="t-cm">// how many rows need one extra card</span>
+<span class="t-cm">// the first `remainder` rows get (base + 1) cards; the rest get `base`</span></pre>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>1–5 items always render as a single row — the formula only starts producing more than one row once <code>tips.length &gt; 5</code>.</div>
+      </div>
+
+      <div class="card-subtitle">Worked examples</div>
+
+      <div class="pv-label">6 items <span class="pv-count">rows = ceil(6/5) = 2 → 3 + 3</span></div>
+      <div class="pv-light" style="padding: 32px 24px;">
+        <div class="ufs-product-tips-rows" id="pt-ex-6"></div>
+      </div>
+
+      <div class="pv-label">7 items <span class="pv-count">rows = ceil(7/5) = 2 → 4 + 3</span></div>
+      <div class="pv-light" style="padding: 32px 24px;">
+        <div class="ufs-product-tips-rows" id="pt-ex-7"></div>
+      </div>
+
+      <div class="pv-label">8 items <span class="pv-count">rows = ceil(8/5) = 2 → 4 + 4</span></div>
+      <div class="pv-light" style="padding: 32px 24px;">
+        <div class="ufs-product-tips-rows" id="pt-ex-8"></div>
+      </div>
+
+      <div class="pv-label">11 items <span class="pv-count">rows = ceil(11/5) = 3 → 4 + 4 + 3</span></div>
+      <div class="pv-light" style="padding: 32px 24px;">
+        <div class="ufs-product-tips-rows" id="pt-ex-11"></div>
+      </div>
+
+      <div class="notice notice--tip" style="margin-top:18px;">
+        <span class="notice-icon">💡</span>
+        <div>The pattern generalises past these examples too — e.g. 9 items → 5 + 4, 10 → 5 + 5, 13 → ceil(13/5)=3 rows → 5 + 4 + 4. If a designer hands you a specific N not shown here, run it through the formula above rather than guessing.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">Below 768px, row grouping stops mattering — every card in every row collapses into one continuous full-width vertical stack with a single consistent 16px gap throughout (<code>.ufs-product-tips-rows</code> and every <code>.ufs-product-tips</code> inside it both switch to the same <code>flex-direction: column; gap: var(--space-4)</code>). A 7-card component still renders as one flat stack of 7 on mobile, even though it was two rows (4+3) on desktop — the row-split rule is a desktop-only concept.</p>
+
+      <div class="pv-mobile" style="padding: 24px 16px;">
+        <div class="ufs-product-tips-rows" id="pt-demo-mobile"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Every layer of this component — the row, the cards inside it, the title/description stack inside each card — is a plain <code>flex-direction: row</code> or <code>column</code> flexbox with no physically-positioned children (no <code>left</code>/<code>right</code>, no fixed-side arrows like the Product Hero's gallery has). Flexbox's <code>row</code> axis is direction-relative, not physical, so it mirrors automatically under <code>dir="rtl"</code> — the first card in markup order still renders first in reading order, just right-to-left. <strong>No component-specific RTL overrides are needed.</strong></p>
+
+      <div class="pv-label">RTL — 3 items</div>
+      <div class="pv-light" style="padding: 32px 24px;" dir="rtl">
+        <div class="ufs-product-tips-rows" id="pt-demo-rtl"></div>
+      </div>
+
+      <div class="pv-label">RTL — 7 items <span class="pv-count">4 + 3, same split rule</span></div>
+      <div class="pv-light" style="padding: 32px 24px;" dir="rtl">
+        <div class="ufs-product-tips-rows" id="pt-demo-rtl-7"></div>
+      </div>
+
+      <div class="notice notice--info" style="margin-top:18px;">
+        <span class="notice-icon">ℹ️</span>
+        <div>The card background, border and text colours are all symmetric (equal on every side, or a flat fill), so nothing about the card itself needs a <code>[dir="rtl"]</code> selector either — unlike components with an offset shadow, a one-sided accent border, or absolutely-positioned controls.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ USAGE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="usage">
+      <div class="section-breadcrumb">Developer</div>
+      <h2 class="section-title">Usage</h2>
+      <p class="section-desc">Unlike most components in this DS, Product Tip's markup is generated by JS rather than hand-authored per page — the row split has to be computed from however many tips the page passes in, so hand-splitting invites mistakes as content changes. Give the page a single empty mount point (<code>&lt;div class="ufs-product-tips-rows" id="..."&gt;&lt;/div&gt;</code>) and call <code>renderProductTips()</code> with your data.</p>
+
+      <div class="ds-card usage-section" style="display:block;">
+        <div class="code-panel-tabs" style="display:flex; gap:8px; margin-bottom:4px;">
+          <button class="code-panel-tab active" onclick="showPanel('pt-js',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">JS</button>
+        </div>
+        <div class="code-block-wrap" id="pt-js" style="display:block"><pre class="code-body"><span class="t-cm">// One call per .ufs-product-tips-rows mount point on the page</span>
+<span class="t-pr">function</span> renderProductTips(containerId, tips, footnote) {
+  <span class="t-pr">var</span> container = document.getElementById(containerId);
+  <span class="t-pr">if</span> (!container) <span class="t-pr">return</span>;
+  <span class="t-pr">var</span> rows      = Math.ceil(tips.length / <span class="t-vl">5</span>);
+  <span class="t-pr">var</span> base      = Math.floor(tips.length / rows);
+  <span class="t-pr">var</span> remainder = tips.length % rows;
+  <span class="t-pr">var</span> html = <span class="t-str">''</span>;
+  <span class="t-pr">var</span> i = <span class="t-vl">0</span>;
+  <span class="t-pr">for</span> (<span class="t-pr">var</span> r = <span class="t-vl">0</span>; r &lt; rows; r++) {
+    <span class="t-pr">var</span> size = base + (r &lt; remainder ? <span class="t-vl">1</span> : <span class="t-vl">0</span>);
+    html += <span class="t-str">'&lt;div class="ufs-product-tips"&gt;'</span>;
+    <span class="t-pr">for</span> (<span class="t-pr">var</span> c = <span class="t-vl">0</span>; c &lt; size; c++) {
+      <span class="t-pr">var</span> tip = tips[i++];
+      html += <span class="t-str">'&lt;div class="ufs-product-tip"&gt;'</span> +
+        <span class="t-str">'&lt;p class="ufs-product-tip__title"&gt;'</span> + tip.title + <span class="t-str">'&lt;/p&gt;'</span> +
+        <span class="t-str">'&lt;p class="ufs-product-tip__desc"&gt;'</span> + tip.desc + <span class="t-str">'&lt;/p&gt;'</span> +
+        <span class="t-str">'&lt;/div&gt;'</span>;
+    }
+    html += <span class="t-str">'&lt;/div&gt;'</span>;
+  }
+  <span class="t-pr">if</span> (footnote) html += <span class="t-str">'&lt;p class="ufs-product-tips__footnote"&gt;'</span> + footnote + <span class="t-str">'&lt;/p&gt;'</span>;
+  container.innerHTML = html;
+}
+
+<span class="t-cm">// Example: a 7-tip product renders as a 4+3 split automatically</span>
+renderProductTips(<span class="t-str">'product-tips-rows'</span>, [
+  { title: <span class="t-str">'No added MSG'</span>, desc: <span class="t-str">'Full-bodied flavour built from real ingredients.'</span> },
+  { title: <span class="t-str">'Consistent every batch'</span>, desc: <span class="t-str">'Standardised seasoning, every time.'</span> },
+  <span class="t-cm">// … 5 more tips</span>
+], <span class="t-str">'*Optional footnote text.'</span>);</pre></div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    function showPanel(panelId, clickedBtn) {
+      var container = clickedBtn.closest('.ds-card, .usage-section');
+      container.querySelectorAll('.code-panel-tab').forEach(function(b) { b.classList.remove('active'); });
+      clickedBtn.classList.add('active');
+      container.querySelectorAll('.code-block-wrap').forEach(function(w) { w.style.display = 'none'; });
+      document.getElementById(panelId).style.display = 'block';
+    }
+
+    /* ── Product Tip render + row-split ─────────────────────────── */
+    function renderProductTips(containerId, tips, footnote) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+      var rows = Math.ceil(tips.length / 5);
+      var base = Math.floor(tips.length / rows);
+      var remainder = tips.length % rows;
+      var html = '';
+      var i = 0;
+      for (var r = 0; r < rows; r++) {
+        var size = base + (r < remainder ? 1 : 0);
+        html += '<div class="ufs-product-tips">';
+        for (var c = 0; c < size; c++) {
+          var tip = tips[i++];
+          html += '<div class="ufs-product-tip">' +
+            '<p class="ufs-product-tip__title">' + tip.title + '</p>' +
+            '<p class="ufs-product-tip__desc">' + tip.desc + '</p>' +
+            '</div>';
+        }
+        html += '</div>';
+      }
+      if (footnote) html += '<p class="ufs-product-tips__footnote">' + footnote + '</p>';
+      container.innerHTML = html;
+    }
+
+    /* ── Demo data ───────────────────────────────────────────────── */
+    var PT_REAL_TIPS = [
+      { title: 'No added MSG', desc: 'Full-bodied flavour built from real ingredients, not flavour enhancers.' },
+      { title: 'Consistent every batch', desc: 'Standardised seasoning means the same result every time.' },
+      { title: 'Versatile base', desc: 'Works across soups, sauces, braises and risottos without reformulating.' },
+      { title: 'Fast to prep', desc: 'Dissolves quickly in hot water — no simmering from scratch.' },
+      { title: 'Long shelf life', desc: 'Resealable tub stays fresh in dry storage, reducing waste.' }
+    ];
+    function makeTips(n) {
+      var out = [];
+      for (var i = 1; i <= n; i++) {
+        out.push({ title: 'Tip ' + i, desc: 'Placeholder description text for benefit ' + i + '.' });
+      }
+      return out;
+    }
+    var PT_RTL_TIPS = [
+      { title: 'خالٍ من الغلوتامات', desc: 'نكهة غنية من مكونات حقيقية، دون معززات نكهة.' },
+      { title: 'جودة ثابتة في كل دفعة', desc: 'توابل موحدة تعطي نفس النتيجة في كل مرة.' },
+      { title: 'قاعدة متعددة الاستخدامات', desc: 'يعمل مع الحساء والصلصات واليخنات دون تعديل الوصفة.' }
+    ];
+    var PT_RTL_TIPS_7 = PT_RTL_TIPS.concat([
+      { title: 'تحضير سريع', desc: 'يذوب بسرعة في الماء الساخن أثناء الخدمة.' },
+      { title: 'مدة صلاحية طويلة', desc: 'عبوة قابلة لإعادة الإغلاق تحافظ على الجودة.' },
+      { title: 'موثوق من الطهاة', desc: 'يستخدمه المحترفون في المطابخ التجارية.' },
+      { title: 'جودة موثوقة', desc: 'مذاق وقوام يمكن الاعتماد عليهما في كل طبق.' }
+    ]);
+
+    renderProductTips('pt-demo', PT_REAL_TIPS);
+    renderProductTips('pt-demo-mobile', makeTips(7), '*Optional footnote text sits below every row.');
+    renderProductTips('pt-ex-6', makeTips(6));
+    renderProductTips('pt-ex-7', makeTips(7));
+    renderProductTips('pt-ex-8', makeTips(8));
+    renderProductTips('pt-ex-11', makeTips(11));
+    renderProductTips('pt-demo-rtl', PT_RTL_TIPS);
+    renderProductTips('pt-demo-rtl-7', PT_RTL_TIPS_7);
+  </script>
+</body>
+</html>
