@@ -838,6 +838,7 @@
       border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
       overflow: visible;
+      touch-action: pan-x;
     }
     .ufs-tile__fav svg { width: 20px; height: 18px; }
     .ufs-tile__fav svg path { fill: none; stroke: var(--color-brand-dark); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
@@ -880,7 +881,7 @@
     .ufs-tile__meta-sep { color: var(--color-mushroom-500); font-size: var(--text-badge-size); }
 
     .ufs-tile__cta { padding: 0 var(--space-4); margin-top: var(--space-1); }
-    .ufs-tile__cta .btn { width: 100%; }
+    .ufs-tile__cta .btn { width: 100%; touch-action: pan-x; }
     .ufs-tile__link-row { display: flex; justify-content: center; padding-top: var(--space-2); padding-bottom: var(--space-2); }
     .ufs-tile__link { font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); background: none; border: none; cursor: pointer; text-decoration: underline; }
 
@@ -1332,10 +1333,22 @@
        order — siblings that don't get them stay plain images. Opens the
        shared lightbox near the end of this file. */
     .ufs-teaser__play-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.2); pointer-events: none; }
+    /* Hit area matches the visible icon (not the whole image) so a swipe
+       starting anywhere else on the card reaches the carousel's native
+       scroll — a full-cover button here was intercepting touch-start on
+       iOS before the ancestor's overflow-x:auto could claim the gesture,
+       making the video area of the card unswipeable. touch-action:pan-x
+       is a second line of defence for whatever area the button does
+       cover. Mouse/trackpad users (hover:hover) get the old full-cover
+       button back since there's no touch-scroll conflict for them. */
     .ufs-teaser__play {
-      position: absolute; inset: 0; width: 100%; height: 100%;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
       display: flex; align-items: center; justify-content: center;
       background: none; border: none; padding: 0; cursor: pointer;
+      touch-action: pan-x;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-teaser__play { inset: 0; top: auto; left: auto; transform: none; width: 100%; height: 100%; }
     }
     .ufs-teaser__play-icon {
       display: flex; align-items: center; justify-content: center;
@@ -3595,6 +3608,19 @@
     .ufs-product-hero__info { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-6); }
     .ufs-product-hero__intro { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); width: 100%; }
     .ufs-product-hero__header { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+    /* Mobile-only duplicate of .header, physically before .gallery in the
+       DOM — display:none/flex toggled per breakpoint below. Replaced an
+       earlier display:contents-based reorder: display:contents on .info/
+       .intro flattened them into the same flex formatting context as
+       .gallery so .header's order:-1 could jump ahead of it, but iOS
+       Safari has documented bugs recalculating flex-item sizing across
+       reflows when an ancestor uses display:contents — this is what was
+       causing .ufs-product-hero__main to render at the wrong (larger)
+       size specifically on a reload, confirmed via on-device screenshots.
+       Physical duplication (same pattern as .ufs-flex-carousel__cta--
+       mobile elsewhere in this file) sidesteps the bug entirely: both
+       .gallery and .info stay real, un-flattened boxes at all times. */
+    .ufs-product-hero__header--mobile-copy { display: none; }
     .ufs-product-hero__eyebrow {
       font-size: var(--text-overline-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w);
       letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: rgba(34,29,55,0.6);
@@ -3626,10 +3652,9 @@
     @media (max-width: 768px) {
       .ufs-product-hero { flex-direction: column; align-items: stretch; gap: var(--space-6); max-width: 100%; padding: 0 var(--space-4); }
       .ufs-product-hero__gallery { flex: none; max-width: 100%; gap: var(--space-2); }
-      .ufs-product-hero__info { max-width: 100%; display: contents; }
-      .ufs-product-hero__intro { display: contents; }
-      .ufs-product-hero__header { order: -1; width: 100%; margin-top: var(--space-5); }
-      .ufs-product-hero__link { margin-top: calc(var(--space-4) - var(--space-6)); }
+      .ufs-product-hero__info { max-width: 100%; }
+      .ufs-product-hero__header--mobile-copy { display: flex; margin-top: var(--space-5); }
+      .ufs-product-hero__intro .ufs-product-hero__header { display: none; }
       .ufs-product-hero__title { font-size: var(--text-h3-mob-size); line-height: var(--text-h3-lh); letter-spacing: var(--text-h3-ls); }
       .ufs-product-hero__cta.btn-lg { width: 100%; height: var(--space-12); padding: 0 var(--space-6); font-size: var(--text-btn-size); font-weight: var(--text-btn-w); }
       .ufs-product-hero__utility { width: 100%; justify-content: space-between; }
@@ -4404,14 +4429,23 @@
     ================================================================ -->
     <section class="pg-product-hero-section">
       <div class="ufs-product-hero" id="ph-bin-demo">
+        <!-- Mobile-only duplicate of the eyebrow+title, shown above the
+             gallery on mobile. See the CSS block for why this replaced a
+             display:contents cascade — physical duplication toggled by
+             display:none/flex per breakpoint, same pattern as
+             .ufs-flex-carousel__cta--mobile elsewhere in this file. -->
+        <div class="ufs-product-hero__header ufs-product-hero__header--mobile-copy">
+          <p class="ufs-product-hero__eyebrow">Condiments</p>
+          <h1 class="ufs-product-hero__title">Knorr Professional Chicken Stock Granules 1 Kg</h1>
+        </div>
         <div class="ufs-product-hero__gallery">
           <div class="ufs-product-hero__main">
             <div class="ufs-product-hero__main-track" id="ph-bin-track">
               <div class="ufs-product-hero__main-frame"><img src="images/hero/packshot.jpg" alt="Knorr Professional Chicken Stock Granules 1 Kg — front"/></div>
-              <div class="ufs-product-hero__main-frame"><img src="images/K_GPP_3996.jpg" alt="Knorr Professional Chicken Stock Granules 1 Kg — in use"/></div>
-              <div class="ufs-product-hero__main-frame"><img src="images/academy/K_GPP_5120.jpg" alt="Knorr Professional Chicken Stock Granules 1 Kg — preparation"/></div>
-              <div class="ufs-product-hero__main-frame"><img src="images/M_GPP_6074.jpg" alt="Knorr Professional Chicken Stock Granules 1 Kg — plated"/></div>
-              <div class="ufs-product-hero__main-frame"><img src="images/tiles/recipe.jpg" alt="Knorr Professional Chicken Stock Granules 1 Kg — serving suggestion"/></div>
+              <div class="ufs-product-hero__main-frame"><img src="images/product-detail/product-hero/product-2.png" alt="Knorr Professional Aromat Original Seasoning — available pack sizes"/></div>
+              <div class="ufs-product-hero__main-frame"><img src="images/product-detail/product-hero/product-3.png" alt="Knorr Professional — original recipe, consistent taste and quality claims"/></div>
+              <div class="ufs-product-hero__main-frame"><img src="images/product-detail/product-hero/product-4.png" alt="Knorr Professional Rosmarino seasoning jar with nutrition label"/></div>
+              <div class="ufs-product-hero__main-frame"><img src="images/product-detail/product-hero/product-5.png" alt="Ingredients list panel"/></div>
             </div>
             <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous image">
               <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
@@ -4422,10 +4456,10 @@
           </div>
           <div class="ufs-product-hero__thumbs">
             <button type="button" class="ufs-product-hero__thumb is-active" aria-label="View image 1" aria-selected="true"><img src="images/hero/packshot.jpg" alt=""/></button>
-            <button type="button" class="ufs-product-hero__thumb" aria-label="View image 2" aria-selected="false"><img src="images/K_GPP_3996.jpg" alt=""/></button>
-            <button type="button" class="ufs-product-hero__thumb" aria-label="View image 3" aria-selected="false"><img src="images/academy/K_GPP_5120.jpg" alt=""/></button>
-            <button type="button" class="ufs-product-hero__thumb" aria-label="View image 4" aria-selected="false"><img src="images/M_GPP_6074.jpg" alt=""/></button>
-            <button type="button" class="ufs-product-hero__thumb" aria-label="View image 5" aria-selected="false"><img src="images/tiles/recipe.jpg" alt=""/></button>
+            <button type="button" class="ufs-product-hero__thumb" aria-label="View image 2" aria-selected="false"><img src="images/product-detail/product-hero/product-2.png" alt=""/></button>
+            <button type="button" class="ufs-product-hero__thumb" aria-label="View image 3" aria-selected="false"><img src="images/product-detail/product-hero/product-3.png" alt=""/></button>
+            <button type="button" class="ufs-product-hero__thumb" aria-label="View image 4" aria-selected="false"><img src="images/product-detail/product-hero/product-4.png" alt=""/></button>
+            <button type="button" class="ufs-product-hero__thumb" aria-label="View image 5" aria-selected="false"><img src="images/product-detail/product-hero/product-5.png" alt=""/></button>
           </div>
         </div>
         <div class="ufs-product-hero__info">
