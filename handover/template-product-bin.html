@@ -725,6 +725,7 @@
     .ufs-carousel-track {
       display: flex;
       overflow-x: auto; scroll-behavior: smooth;
+      touch-action: pan-x; -webkit-overflow-scrolling: touch;
       scrollbar-width: none; -ms-overflow-style: none;
       padding-right: var(--space-24);
       /* overflow-x:auto forces overflow-y to compute as auto too (never
@@ -3603,7 +3604,18 @@
     }
     .ufs-product-hero__gallery { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
     .ufs-product-hero__main { position: relative; }
-    .ufs-product-hero__main-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border-radius: var(--radius-md); }
+    /* scroll-snap-type: proximity (not mandatory) — mandatory forces a
+       snap on every scroll end, so a light/quick swipe that doesn't
+       carry enough momentum past the halfway point gets pulled back to
+       where it started instead of advancing, reading as an unresponsive
+       gesture on iPhone. proximity only snaps when the scroll already
+       comes to rest near a snap point. touch-action/-webkit-overflow-
+       scrolling are explicit panning/momentum hints for the same
+       swipe-reliability issue. */
+    .ufs-product-hero__main-track {
+      display: flex; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; border-radius: var(--radius-md);
+      touch-action: pan-x; -webkit-overflow-scrolling: touch;
+    }
     .ufs-product-hero__main-track::-webkit-scrollbar { display: none; }
     .ufs-product-hero__main-frame {
       flex: 0 0 100%; scroll-snap-align: start;
@@ -8041,18 +8053,28 @@
       var cards = Array.prototype.slice.call(track.querySelectorAll('.ufs-carousel-card'));
       var activeIndex = 0;
       var scrollTicking = false;
+      /* Geometry is cached (measured once, not on every scroll frame) —
+         getBoundingClientRect() forces a synchronous layout read, and the
+         old code called it up to 6-8x per animation frame during an
+         active touch-drag (stepSize() was invoked from three separate
+         call sites in the same frame). That main-thread contention while
+         iOS is also compositing the scroll gesture is exactly what
+         produced the "swipe isn't smooth / sometimes doesn't respond"
+         reports on iPhone. Cards don't resize mid-scroll, so caching on
+         init + window resize is safe. */
+      var cachedStep = 0;
+      var cachedMaxIndex = 0;
 
-      function stepSize() {
-        if (cards.length < 2) return cards.length ? cards[0].getBoundingClientRect().width : 0;
-        return cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
-      }
-      function maxIndex() {
-        var step = stepSize();
-        if (!step) return 0;
-        return Math.max(0, Math.round((track.scrollWidth - track.clientWidth) / Math.abs(step)));
+      function measure() {
+        cachedStep = cards.length < 2
+          ? (cards.length ? cards[0].getBoundingClientRect().width : 0)
+          : cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
+        cachedMaxIndex = cachedStep
+          ? Math.max(0, Math.round((track.scrollWidth - track.clientWidth) / Math.abs(cachedStep)))
+          : 0;
       }
       function render() {
-        var maxI = maxIndex();
+        var maxI = cachedMaxIndex;
         /* maxI === 0 means there's nowhere to scroll to — the tiles fit
            the track already. Toggles the compact/centered desktop layout;
            inert below 769px since that CSS lives in a min-width query. */
@@ -8075,8 +8097,8 @@
         if (nextBtn) nextBtn.disabled = activeIndex >= maxI;
       }
       function goTo(index) {
-        activeIndex = Math.max(0, Math.min(maxIndex(), index));
-        track.scrollTo({ left: activeIndex * stepSize(), behavior: 'smooth' });
+        activeIndex = Math.max(0, Math.min(cachedMaxIndex, index));
+        track.scrollTo({ left: activeIndex * cachedStep, behavior: 'smooth' });
         render();
       }
 
@@ -8097,14 +8119,14 @@
         if (scrollTicking) return;
         scrollTicking = true;
         requestAnimationFrame(function() {
-          var step = stepSize();
-          if (step) activeIndex = Math.max(0, Math.min(maxIndex(), Math.round(track.scrollLeft / step)));
+          if (cachedStep) activeIndex = Math.max(0, Math.min(cachedMaxIndex, Math.round(track.scrollLeft / cachedStep)));
           render();
           scrollTicking = false;
         });
       }, { passive: true });
 
-      window.addEventListener('resize', function() { render(); });
+      window.addEventListener('resize', function() { measure(); render(); });
+      measure();
       render();
     }
     document.querySelectorAll('.ufs-flex-carousel').forEach(initFlexCarousel);

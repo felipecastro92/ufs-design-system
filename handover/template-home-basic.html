@@ -716,6 +716,7 @@
     .ufs-carousel-track {
       display: flex;
       overflow-x: auto; scroll-behavior: smooth;
+      touch-action: pan-x; -webkit-overflow-scrolling: touch;
       scrollbar-width: none; -ms-overflow-style: none;
       padding-right: var(--space-24);
       /* overflow-x:auto forces overflow-y to compute as auto too (never
@@ -4704,6 +4705,16 @@
            genuine user-driven scrolling (swipe/trackpad/scrollbar). */
         var suppressScrollSync = false;
         var suppressScrollTimer = null;
+        /* Geometry is cached (measured once on init/resize, not on every
+           scroll frame) — getBoundingClientRect() forces a synchronous
+           layout read, and contentWidth() alone calls it once per card;
+           the old code invoked this whole measurement chain multiple
+           times per animation frame during an active touch-drag, which
+           is exactly the main-thread contention that produced the "swipe
+           isn't smooth / sometimes doesn't respond" reports on iPhone.
+           Cards don't resize mid-scroll, so caching is safe. */
+        var cachedStep = 0;
+        var cachedMaxIndex = 0;
 
         function stepSize() {
           if (cards.length < 2) return cards.length ? cards[0].getBoundingClientRect().width : 0;
@@ -4746,9 +4757,9 @@
           var padding = parseFloat(getComputedStyle(root).paddingLeft) || 0;
           return document.documentElement.clientWidth - (padding * 2);
         }
-        function maxIndex() {
+        function measure() {
           var step = stepSize();
-          if (!step) return 0;
+          cachedStep = step;
           /* stepSize() is signed (negative in RTL, where Chromium reports
              negative scrollLeft); the reachable index count is direction-
              agnostic, so divide by the magnitude. goTo()/scroll-sync keep the
@@ -4758,10 +4769,10 @@
              sub-half-step overflow as zero, which flips the carousel into
              is-compact (centred, no controls) while content is still
              genuinely wider than the available width. */
-          return Math.max(0, Math.ceil((contentWidth() - availableWidth()) / Math.abs(step)));
+          cachedMaxIndex = step ? Math.max(0, Math.ceil((contentWidth() - availableWidth()) / Math.abs(step))) : 0;
         }
         function render() {
-          var maxI = maxIndex();
+          var maxI = cachedMaxIndex;
           /* maxI === 0 means there's nowhere to scroll to — the tiles fit
              the track already. Toggles the compact/centered desktop layout;
              inert below 769px since that CSS lives in a min-width query. */
@@ -4782,10 +4793,10 @@
           if (nextBtn) nextBtn.disabled = activeIndex >= maxI;
         }
         function goTo(index) {
-          activeIndex = Math.max(0, Math.min(maxIndex(), index));
+          activeIndex = Math.max(0, Math.min(cachedMaxIndex, index));
           clearTimeout(suppressScrollTimer);
           suppressScrollSync = true;
-          track.scrollTo({ left: activeIndex * stepSize(), behavior: 'smooth' });
+          track.scrollTo({ left: activeIndex * cachedStep, behavior: 'smooth' });
           render();
           suppressScrollTimer = setTimeout(function() { suppressScrollSync = false; }, 500);
         }
@@ -4811,14 +4822,14 @@
           if (scrollTicking) return;
           scrollTicking = true;
           requestAnimationFrame(function() {
-            var step = stepSize();
-            if (step) activeIndex = Math.max(0, Math.min(maxIndex(), Math.round(track.scrollLeft / step)));
+            if (cachedStep) activeIndex = Math.max(0, Math.min(cachedMaxIndex, Math.round(track.scrollLeft / cachedStep)));
             render();
             scrollTicking = false;
           });
         }, { passive: true });
 
-        window.addEventListener('resize', function() { render(); });
+        window.addEventListener('resize', function() { measure(); render(); });
+        measure();
         render();
       }
 
