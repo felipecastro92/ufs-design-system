@@ -1210,7 +1210,7 @@
     .ufs-recipe-hero__media { position: relative; flex: 1; min-width: 0; overflow: hidden; }
     .ufs-recipe-hero__photo { position: absolute; inset: 0; background-image: url('images/hero/recipe.jpg'); background-size: cover; background-position: center; }
 
-    .ufs-recipe-hero__fav { width: var(--space-12); height: var(--space-12); top: var(--space-6); right: var(--space-10); }
+    .ufs-recipe-hero__fav { width: var(--space-12); height: var(--space-12); top: var(--space-7); right: var(--space-7); }
     [dir="rtl"] .ufs-recipe-hero__fav { right: auto; left: var(--space-10); }
     .ufs-recipe-hero__fav svg { width: 24px; height: 21.6px; }
 
@@ -1222,7 +1222,7 @@
       .ufs-recipe-hero__author-avatar { width: 32px; height: 32px; }
       .ufs-recipe-hero__author-name { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
       .ufs-recipe-hero__media { height: 300px; flex: none; order: -1; }
-      .ufs-recipe-hero__fav { width: var(--space-10); height: var(--space-10); }
+      .ufs-recipe-hero__fav { top: var(--space-4); right: var(--space-4); width: var(--space-10); height: var(--space-10); }
       .ufs-recipe-hero__fav svg { width: 20px; height: 18px; }
     }
 
@@ -1249,7 +1249,16 @@
        row (MEADOWLAND Professional) that reveals an inline product tile
        instead of text — the product is a real, addressable UFS SKU, so
        a tile (image + name + CTA) communicates that better than a note. */
-    .ufs-recipe-body { display: grid; grid-template-columns: 406px 1fr; gap: var(--space-14); padding: var(--space-14) var(--space-8) var(--space-24); max-width: 1240px; margin: 0 auto; }
+    /* grid-template-rows/explicit placement (rather than the 2-item,
+       1-row grid this used to be) so .ufs-recipe-extras can sit as a
+       THIRD item — a sibling of .ufs-recipe-ingredients/.ufs-recipe-prep,
+       not nested inside .ufs-recipe-prep's DOM — while still visually
+       stacking right under Preparation's content in column 2. Row-gap
+       matches .ufs-recipe-prep's own internal gap (--space-10) so the
+       rhythm reads as continuous from "intro → steps" to "steps → chef
+       tile", i.e. looks like part of that column. See the HTML comment
+       above .ufs-recipe-extras for why it's a sibling, not a child. */
+    .ufs-recipe-body { display: grid; grid-template-columns: 406px 1fr; grid-template-rows: auto auto; column-gap: var(--space-14); row-gap: var(--space-10); padding: var(--space-14) var(--space-8) var(--space-24); max-width: 1240px; margin: 0 auto; }
 
     /* Recipe tabs — mobile only, see the @media (max-width: 768px) block
        below for the sticky/visible rules. Hidden here so it never enters
@@ -1257,7 +1266,11 @@
     .ufs-recipe-tabs { display: none; }
 
     /* ---- Left panel ---- */
-    .ufs-recipe-ingredients { display: flex; flex-direction: column; gap: var(--space-8); }
+    /* Spans both grid rows — otherwise row 1's height would be forced to
+       fit ingredients' own (usually much taller) full content, shoving
+       .ufs-recipe-extras in row 2/column 2 down away from Preparation's
+       steps instead of sitting snugly right under them. */
+    .ufs-recipe-ingredients { display: flex; flex-direction: column; gap: var(--space-8); grid-column: 1; grid-row: 1 / 3; }
     .ufs-recipe-ingredients__servings { display: flex; align-items: center; gap: var(--space-6); }
     .ufs-recipe-ingredients__servings-label { margin: 0; font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); color: var(--color-brand-dark); }
     .ufs-recipe-ingredients__title { margin: 0; font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w); color: var(--color-brand-dark); }
@@ -1312,8 +1325,13 @@
     .ufs-recipe-ingredients__cta { width: 100%; justify-content: center; }
 
     /* ---- Right panel ---- */
-    .ufs-recipe-prep { display: flex; flex-direction: column; gap: var(--space-10); }
+    .ufs-recipe-prep { display: flex; flex-direction: column; gap: var(--space-10); grid-column: 2; grid-row: 1; }
     .ufs-recipe-prep__intro { margin: 0; font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); }
+    /* Mobile-only duplicate, hidden by default (desktop) — see the
+       @media (max-width: 768px) block below, and the HTML comment above
+       the duplicate markup, for the full rationale. */
+    .ufs-recipe-prep__intro--mobile { display: none; }
+    .ufs-recipe-intro-more { display: none; }
     .ufs-recipe-prep__title { margin: 0; font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w); color: var(--color-brand-dark); }
     .ufs-recipe-steps { display: flex; flex-direction: column; gap: var(--space-8); }
     .ufs-recipe-step { display: flex; gap: var(--space-4); position: relative; }
@@ -1343,8 +1361,29 @@
     .ufs-recipe-step__list li { font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); }
 
     @media (max-width: 768px) {
+      /* Swap which intro copy is visible — the real one (inside
+         .ufs-recipe-prep, desktop's Preparation column) hides, the
+         standalone mobile copy (sits above the tabs, outside both panels)
+         shows, so it survives whichever tab is active. */
+      .ufs-recipe-prep__intro:not(.ufs-recipe-prep__intro--mobile) { display: none; }
+      /* Clamped to 3 lines by default — -webkit-line-clamp requires
+         display:-webkit-box (not block) to take effect; .is-expanded
+         (set by toggleIntroClamp) switches back to a normal block so the
+         full text reflows at its natural height. */
+      .ufs-recipe-prep__intro--mobile {
+        display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden;
+        padding: var(--space-6) var(--space-4) 0;
+      }
+      .ufs-recipe-prep__intro--mobile.is-expanded { display: block; -webkit-line-clamp: unset; overflow: visible; }
+      .ufs-recipe-intro-more {
+        display: inline-block; margin: var(--space-2) var(--space-4) 0;
+        background: none; border: none; padding: 0; cursor: pointer;
+        font-family: var(--font-family); font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600;
+        color: var(--color-accessible-orange); text-decoration: underline; text-underline-offset: 2px;
+      }
       .ufs-recipe-tabs {
         display: flex;
+        margin-top: var(--space-5);
         position: sticky; top: var(--mnav-h); z-index: 99;
         background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300);
       }
@@ -1356,13 +1395,31 @@
         transition: color 0.15s, border-color 0.15s;
       }
       .ufs-recipe-tabs__btn.is-active { color: var(--color-accessible-orange); border-bottom-color: var(--color-accessible-orange); }
-      .ufs-recipe-body { grid-template-columns: 1fr; gap: var(--space-10); padding: var(--space-8) var(--space-4) var(--space-16); }
-      .ufs-recipe-ingredients__servings { flex-wrap: wrap; gap: var(--space-3); }
+      /* Back to a single-column stack — the desktop grid-template-rows/
+         explicit placement above (ingredients spanning both rows, prep
+         and extras in column 2) doesn't apply here; all three items
+         reset to grid-column:1 so they just stack in DOM order:
+         ingredients, prep, extras. Row-gap only (no columns left to gap
+         between), matching .ufs-recipe-prep's own internal rhythm.
+         .ufs-recipe-extras's own reset lives further down, right after
+         its base rule (see .ufs-recipe-extras's own @media block below)
+         — NOT here, even though this is otherwise the natural place for
+         it: .ufs-recipe-extras's base grid-column:2 declaration sits
+         *after* this rule in the file, so at equal specificity it would
+         win the cascade tie and silently undo this reset (confirmed via
+         computed-style: ingredients/prep reset fine from here, extras
+         didn't, until moved past its own base rule). */
+      .ufs-recipe-body { grid-template-columns: 1fr; grid-template-rows: none; column-gap: 0; row-gap: var(--space-10); padding: var(--space-8) var(--space-4) var(--space-16); }
+      .ufs-recipe-ingredients, .ufs-recipe-prep { grid-column: 1; grid-row: auto; }
+      .ufs-recipe-ingredients__servings { gap: var(--space-6); }
       /* Exclusive tab panels — only the active one renders. Ingredients
          is first in the DOM (matches it being the default/first tab), so
          no explicit order override is needed the way the old
          side-by-side mobile stack required (that always showed Prep
-         first regardless of source order; tabs replace that need). */
+         first regardless of source order; tabs replace that need).
+         .ufs-recipe-extras is untouched by this rule — it's not
+         .ufs-recipe-ingredients or .ufs-recipe-prep, so it's never
+         hidden, and always renders after whichever tab panel is active. */
       .ufs-recipe-ingredients, .ufs-recipe-prep { display: none; }
       .ufs-recipe-body[data-active-tab="ingredients"] .ufs-recipe-ingredients { display: flex; }
       .ufs-recipe-body[data-active-tab="preparation"] .ufs-recipe-prep { display: flex; }
@@ -1378,11 +1435,52 @@
       .ufs-recipe-step__subtitle { font-size: var(--text-h5-mob-size); }
     }
 
-    /* Chef tile + Download/Print/Email — see the section comment in the
-       body markup. Same 1240px content width as .ufs-recipe-body. */
-    .ufs-recipe-extras { display: flex; flex-direction: column; gap: var(--space-10); max-width: 1240px; margin: 0 auto; padding: 0 var(--space-8) var(--space-24); }
+    /* Tags — see Figma "Rosana 2.0" node 2027:4954. Lives inside
+       .ufs-recipe-extras alongside the chef tile/utility bar (see that
+       element's own HTML comment) — always visible on mobile regardless
+       of which tab is active, not scoped to the Preparation panel. */
+    .ufs-recipe-tags { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+    /* Border color has no exact DS token — Figma specifies literal
+       rgba(78,78,78,0.2), same "closest token unavailable, literal value"
+       precedent already used elsewhere in this file (e.g. Recipe Hero
+       title's -0.4px letter-spacing). Typography maps exactly to the
+       existing --text-overline-* tokens (Figma's own spec for this
+       layer — Utilities/Overline, size 12/weight 600/lh 1.4/ls 0.96px —
+       is a byte-for-byte match, not just "closest"). */
+    .ufs-recipe-tag {
+      display: inline-flex; align-items: center; justify-content: center;
+      height: var(--space-6); padding: var(--space-1) var(--space-3);
+      background: var(--color-mushroom-100);
+      border: 1px solid rgba(78, 78, 78, 0.2);
+      border-radius: var(--radius-full);
+      font-family: var(--font-family);
+      font-size: var(--text-overline-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls);
+      text-transform: uppercase; color: var(--color-mushroom-900);
+      text-decoration: none; white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    /* Scoped to real pointing devices — same reasoning as the .ufs-tile
+       hover fix earlier: an unscoped :hover here would fire on touch via
+       iOS's simulated hover, right as a user's finger lands on a tag. */
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-recipe-tag:hover { background: var(--color-mushroom-300); border-color: rgba(78, 78, 78, 0.35); }
+    }
 
-    .ufs-recipe-utility { display: inline-flex; align-items: center; background: var(--color-mushroom-100); border-radius: var(--radius-sm); overflow: hidden; }
+    /* Chef tile + Download/Print/Email — see the HTML comment above this
+       element in the body markup for why it's a grid sibling rather than
+       nested inside .ufs-recipe-prep. No page-container styling of its
+       own (no max-width/margin/padding) — it's a grid item inside
+       .ufs-recipe-body now, not a standalone full-width section, so it
+       just inherits that grid's own sizing/padding. */
+    .ufs-recipe-extras { display: flex; flex-direction: column; gap: var(--space-10); grid-column: 2; grid-row: 2; }
+
+    /* align-self:flex-start — .ufs-recipe-extras is a flex column, whose
+       default align-items:stretch would otherwise force this inline-flex
+       (shrink-to-fit) element to 100% of the column's width on desktop.
+       The mobile override below still wins there with its own explicit
+       width:100%, since a specified width always takes precedence over
+       stretch sizing regardless of align-self. */
+    .ufs-recipe-utility { display: inline-flex; align-items: center; align-self: flex-start; background: var(--color-mushroom-100); border-radius: var(--radius-sm); overflow: hidden; }
     .ufs-recipe-utility__btn {
       display: flex; align-items: center; gap: var(--space-1); padding: var(--space-2) var(--space-4);
       background: none; border: none; cursor: pointer;
@@ -1393,7 +1491,16 @@
     .ufs-recipe-utility__btn img { width: 20px; height: 20px; }
 
     @media (max-width: 768px) {
-      .ufs-recipe-extras { padding: 0 var(--space-4) var(--space-16); gap: var(--space-8); }
+      /* No padding here — .ufs-recipe-extras is a grid child of
+         .ufs-recipe-body now, which already supplies the page-edge
+         padding at this breakpoint; adding more here would double it.
+         grid-column/grid-row reset has to live in THIS block (after the
+         base .ufs-recipe-extras rule above, not the earlier ≤768px block
+         alongside ingredients/prep's own reset) so it actually wins the
+         cascade tie against that base rule's grid-column:2 — see the
+         comment on .ufs-recipe-ingredients, .ufs-recipe-prep's own reset
+         for the full explanation. */
+      .ufs-recipe-extras { grid-column: 1; grid-row: auto; gap: var(--space-8); }
       .ufs-recipe-utility { width: 100%; justify-content: space-between; }
     }
 
@@ -1401,7 +1508,7 @@
        spec (Figma node 1957:4696, the same node this Servings stepper is
        built against). See index.html for the full rationale. */
     .fi-qty {
-      display: inline-flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+      display: inline-flex; align-items: center; justify-content: space-between; width: 100%;
       padding: 5px; border-radius: var(--radius-full); background: var(--color-mushroom-100);
     }
     .fi-qty-btn {
@@ -4419,6 +4526,25 @@
          renders (toggled via data-active-tab on .ufs-recipe-body below),
          not a continuous scroll with both sections present.
     ================================================================ -->
+    <!-- Mobile-only duplicate of .ufs-recipe-prep__intro (see that element
+         inside .ufs-recipe-prep below) — on mobile the intro needs to sit
+         above the tabs, outside both tab panels, so it's always visible
+         regardless of which tab is active; on desktop it must stay inside
+         the Preparation column exactly as before. Rather than moving the
+         real intro out of .ufs-recipe-prep (which would require
+         restructuring .ufs-recipe-body's grid to keep desktop identical),
+         this duplicate is display:none by default and only shown ≤768px,
+         while the original is hidden at that same breakpoint — zero
+         effect on desktop either way. Keep the copy in sync manually if
+         the intro text changes.
+         Clamped to 3 lines on mobile (-webkit-line-clamp, not truncated
+         desktop text) with a Read more/Read less toggle — same
+         toggle-a-class-and-swap-the-label pattern as the FAQ accordion's
+         toggleAccordionReveal, just scoped to this one paragraph instead
+         of a whole accordion panel. -->
+    <p class="ufs-recipe-prep__intro ufs-recipe-prep__intro--mobile" id="recipe-intro-mobile">A rich, silky mashed potato built for high-volume service — MEADOWLAND Professional keeps it glossy and stable under a bain-marie, while Knorr Professional Chicken Stock Granules rounds out the seasoning without extra prep. Scales cleanly from a la carte to full banquet covers.</p>
+    <button type="button" class="ufs-recipe-intro-more" data-more-label="Read more" data-less-label="Read less" aria-expanded="false" aria-controls="recipe-intro-mobile" onclick="toggleIntroClamp(this)">Read more</button>
+
     <div class="ufs-recipe-tabs" role="tablist" aria-label="Recipe sections">
       <button type="button" class="ufs-recipe-tabs__btn is-active" role="tab" aria-selected="true" aria-controls="recipe-panel-ingredients" id="recipe-tab-ingredients" onclick="switchRecipeTab('ingredients')">Ingredients</button>
       <button type="button" class="ufs-recipe-tabs__btn" role="tab" aria-selected="false" aria-controls="recipe-panel-preparation" id="recipe-tab-preparation" onclick="switchRecipeTab('preparation')">Preparation</button>
@@ -4467,9 +4593,9 @@
               <span class="ufs-ingredient-row__qty" data-base-qty="10" data-unit="g">10 g</span>
             </div>
           </div>
-          <div class="ufs-ingredient-row ufs-ingredient-row--linked">
+          <div class="ufs-ingredient-row ufs-ingredient-row--linked is-open">
             <div class="ufs-ingredient-row__main">
-              <button type="button" class="ufs-ingredient-row__trigger" aria-expanded="false" aria-controls="ingredient-meadowland-panel" onclick="toggleIngredientRow(this)">
+              <button type="button" class="ufs-ingredient-row__trigger" aria-expanded="true" aria-controls="ingredient-meadowland-panel" onclick="toggleIngredientRow(this)">
                 MEADOWLAND Professional
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
               </button>
@@ -4593,39 +4719,72 @@
           </ol>
         </div>
       </div>
-    </section>
 
-    <!-- ================================================================
-         CHEF TILE + DOWNLOAD/PRINT/EMAIL — after Preparation. Same at
-         every breakpoint (not tab-scoped, not mobile-only): sits below
-         the tabbed/side-by-side ingredients+prep section either way.
-    ================================================================ -->
-    <section class="ufs-recipe-extras">
-      <a class="ufs-tile ufs-tile--chef ufs-tile--chef-inline" href="#" aria-label="View Chef Philip Li's profile">
-        <div class="ufs-tile__chef-body">
-          <div class="ufs-tile__chef-main">
-            <div class="ufs-tile__chef-avatar" style="background-image:url('images/chef-profiles/philip-li.png')"></div>
-            <div class="ufs-tile__chef-info">
-              <div class="ufs-tile__chef-name-role">
-                <p class="ufs-tile__chef-name">Chef Philip Li</p>
-                <p class="ufs-tile__chef-role">Plating &amp; Presentation Specialist</p>
+      <!-- ================================================================
+           TAGS + CHEF TILE + DOWNLOAD/PRINT/EMAIL — a grid sibling of
+           .ufs-recipe-ingredients/.ufs-recipe-prep above (NOT nested
+           inside .ufs-recipe-prep's DOM), explicitly grid-placed to sit
+           visually right under Preparation's content on desktop — see
+           .ufs-recipe-body's grid-template-rows/explicit placement below.
+           Pixel-identical to true nesting since .ufs-recipe-prep carries
+           no background/border/padding of its own to "contain" it in.
+           Kept as a sibling (not duplicated) specifically so mobile can
+           show it unconditionally after whichever tab panel is active —
+           it isn't targeted by the .ufs-recipe-ingredients/.ufs-recipe-prep
+           tab show/hide rule, so it never disappears when switching tabs.
+           Tags used to live inside .ufs-recipe-prep itself (hidden with
+           the rest of that panel when Ingredients was the active tab on
+           mobile) — moved here so they're always visible too, same as
+           the chef tile/utility bar. Living here doesn't change desktop's
+           visual order or spacing at all: this whole block already sits
+           directly under Preparation's steps via the grid, and the gap
+           between them (.ufs-recipe-body's row-gap) is the same
+           var(--space-10) .ufs-recipe-prep used internally, so moving
+           tags from one flex column to the next produces an identical
+           gap either way.
+      ================================================================ -->
+      <div class="ufs-recipe-extras">
+        <!-- TAGS — see Figma "Rosana 2.0" node 2027:4954. New/complementary
+             to Recipe Hero's own 3 tags (Side dish, Bulk cooking, Gluten
+             free) — ingredient/technique tags here rather than repeating
+             the dish-type ones already shown at the top of the page.
+             Real links (not decorative) — no dedicated filtered-recipes
+             view exists yet in this prototype, so they point at
+             template-catalog.html as the closest existing browse page. -->
+        <div class="ufs-recipe-tags">
+          <a class="ufs-recipe-tag" href="template-catalog.html">Potato</a>
+          <a class="ufs-recipe-tag" href="template-catalog.html">Dairy</a>
+          <a class="ufs-recipe-tag" href="template-catalog.html">Mash</a>
+          <a class="ufs-recipe-tag" href="template-catalog.html">Catering</a>
+          <a class="ufs-recipe-tag" href="template-catalog.html">Bain-marie Service</a>
+        </div>
+
+        <a class="ufs-tile ufs-tile--chef ufs-tile--chef-inline" href="#" aria-label="View Chef Philip Li's profile">
+          <div class="ufs-tile__chef-body">
+            <div class="ufs-tile__chef-main">
+              <div class="ufs-tile__chef-avatar" style="background-image:url('images/chef-profiles/philip-li.png')"></div>
+              <div class="ufs-tile__chef-info">
+                <div class="ufs-tile__chef-name-role">
+                  <p class="ufs-tile__chef-name">Chef Philip Li</p>
+                  <p class="ufs-tile__chef-role">Plating &amp; Presentation Specialist</p>
+                </div>
+                <p class="ufs-tile__chef-quote">Chef Philip brings a bulk-kitchen eye to every plate. Motto: <em>&ldquo;consistency is what makes a dish repeatable&rdquo;</em>.</p>
+                <p class="ufs-tile__chef-link">Check Chef&rsquo;s Profile<svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
               </div>
-              <p class="ufs-tile__chef-quote">Chef Philip brings a bulk-kitchen eye to every plate. Motto: <em>&ldquo;consistency is what makes a dish repeatable&rdquo;</em>.</p>
-              <p class="ufs-tile__chef-link">Check Chef&rsquo;s Profile<svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
             </div>
           </div>
-        </div>
-      </a>
+        </a>
 
-      <!-- Reuses Product Hero's .ufs-product-hero__utility component
-           verbatim (see template-product-bin.html), renamed to a
-           generic block since it's not inside a product-hero context
-           here — same values, same icons/dowload.svg+print.svg+email.svg,
-           same decorative (no onclick) buttons as that original. -->
-      <div class="ufs-recipe-utility">
-        <button type="button" class="ufs-recipe-utility__btn"><img src="icons/dowload.svg" alt=""/> Download</button>
-        <button type="button" class="ufs-recipe-utility__btn"><img src="icons/print.svg" alt=""/> Print</button>
-        <button type="button" class="ufs-recipe-utility__btn"><img src="icons/email.svg" alt=""/> Email</button>
+        <!-- Reuses Product Hero's .ufs-product-hero__utility component
+             verbatim (see template-product-bin.html), renamed to a
+             generic block since it's not inside a product-hero context
+             here — same values, same icons/dowload.svg+print.svg+email.svg,
+             same decorative (no onclick) buttons as that original. -->
+        <div class="ufs-recipe-utility">
+          <button type="button" class="ufs-recipe-utility__btn"><img src="icons/dowload.svg" alt=""/> Download</button>
+          <button type="button" class="ufs-recipe-utility__btn"><img src="icons/print.svg" alt=""/> Print</button>
+          <button type="button" class="ufs-recipe-utility__btn"><img src="icons/email.svg" alt=""/> Email</button>
+        </div>
       </div>
     </section>
 
@@ -5143,6 +5302,221 @@
       <button type="button" class="btn btn-primary" id="filters-show-btn" disabled onclick="closeFiltersPanel()">Show Results (<span id="filters-show-count">0</span>)</button>
     </div>
   </div>
+
+  <!-- ================================================================
+       RELATED RECIPES — mushroom-bg flex-carousel, before the footer.
+       Auto-initialized by the bulk document.querySelectorAll('.ufs-flex-
+       carousel').forEach(initFlexCarousel) call — no extra JS needed.
+       Content is potato/mash/bulk-cooking themed to stay coherent with
+       this page's own recipe, rather than reusing an unrelated set.
+  ================================================================ -->
+  <section class="ufs-flex-carousel ufs-flex-carousel--mushroom">
+    <div class="ufs-flex-carousel__head">
+      <div class="ufs-flex-carousel__intro">
+        <h2 class="ufs-flex-carousel__title text-h3">Related recipes</h2>
+        <p class="ufs-flex-carousel__desc">More ways to put this mash to work in your kitchen.</p>
+      </div>
+    </div>
+    <div class="ufs-flex-carousel__track-wrap">
+      <div class="ufs-carousel-track">
+        <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+
+        <div class="ufs-carousel-card ufs-tile">
+          <div class="ufs-tile__image">
+            <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+            <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <span class="ufs-tile__badge">Popular</span>
+          <div class="ufs-tile__body">
+            <h3 class="ufs-tile__title">Creamy Garlic Mash</h3>
+            <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+              <span>(298)</span>
+            </div>
+            <div class="ufs-tile__meta">
+              <span class="ufs-tile__meta-item">Potato</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Side</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Gluten Free</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ufs-carousel-card ufs-tile">
+          <div class="ufs-tile__image">
+            <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+            <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <div class="ufs-tile__body">
+            <h3 class="ufs-tile__title">Loaded Baked Potato Casserole</h3>
+            <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+              <span>(156)</span>
+            </div>
+            <div class="ufs-tile__meta">
+              <span class="ufs-tile__meta-item">Potato</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Bake</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ufs-carousel-card ufs-tile">
+          <div class="ufs-tile__image">
+            <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+            <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <span class="ufs-tile__badge">New</span>
+          <div class="ufs-tile__body">
+            <h3 class="ufs-tile__title">Colcannon with Crispy Bacon</h3>
+            <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+              <span>(89)</span>
+            </div>
+            <div class="ufs-tile__meta">
+              <span class="ufs-tile__meta-item">Potato</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Side</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ufs-carousel-card ufs-tile">
+          <div class="ufs-tile__image">
+            <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+            <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <div class="ufs-tile__body">
+            <h3 class="ufs-tile__title">Duchess Potatoes for Plated Service</h3>
+            <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+              <span>(112)</span>
+            </div>
+            <div class="ufs-tile__meta">
+              <span class="ufs-tile__meta-item">Potato</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Bake</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Banquet</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ufs-carousel-card ufs-tile">
+          <div class="ufs-tile__image">
+            <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+            <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <span class="ufs-tile__badge">Bestseller</span>
+          <div class="ufs-tile__body">
+            <h3 class="ufs-tile__title">Shepherd&rsquo;s Pie with Herb Mash Topping</h3>
+            <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+              <span>(267)</span>
+            </div>
+            <div class="ufs-tile__meta">
+              <span class="ufs-tile__meta-item">Potato</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Main</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ufs-carousel-card ufs-tile">
+          <div class="ufs-tile__image">
+            <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+            <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <div class="ufs-tile__body">
+            <h3 class="ufs-tile__title">Root Vegetable Mash with Nutmeg</h3>
+            <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+              <span>(74)</span>
+            </div>
+            <div class="ufs-tile__meta">
+              <span class="ufs-tile__meta-item">Potato</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Vegetarian</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ufs-carousel-card ufs-tile">
+          <div class="ufs-tile__image">
+            <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+            <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <div class="ufs-tile__body">
+            <h3 class="ufs-tile__title">Potato Gratin Dauphinoise</h3>
+            <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+              <span>(203)</span>
+            </div>
+            <div class="ufs-tile__meta">
+              <span class="ufs-tile__meta-item">Potato</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Bake</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Dairy</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="ufs-carousel-card ufs-tile">
+          <div class="ufs-tile__image">
+            <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+            <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <div class="ufs-tile__body">
+            <h3 class="ufs-tile__title">Bangers and Mash with Onion Gravy</h3>
+            <div class="ufs-tile__rating">
+              <span class="ufs-tile__stars">
+                <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+              </span>
+              <span>(145)</span>
+            </div>
+            <div class="ufs-tile__meta">
+              <span class="ufs-tile__meta-item">Potato</span><span class="ufs-tile__meta-sep">&middot;</span>
+              <span class="ufs-tile__meta-item">Main</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="ufs-flex-carousel__foot">
+      <div class="ufs-carousel-dots"></div>
+      <div class="ufs-flex-carousel__arrows">
+        <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+        </button>
+        <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+        </button>
+      </div>
+    </div>
+  </section>
 
   </div><!-- /real-page-content -->
 
@@ -6427,6 +6801,17 @@
       var panel = btn.closest('.ufs-accordion__panel');
       var expanded = panel.classList.toggle('is-expanded');
       btn.textContent = expanded ? btn.dataset.lessLabel : btn.dataset.moreLabel;
+      if (!expanded) btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+
+    /* Mobile recipe intro — same toggle-a-class/swap-the-label pattern as
+       toggleAccordionReveal above, scoped to the single clamped
+       paragraph instead of a whole accordion panel. */
+    function toggleIntroClamp(btn) {
+      var intro = document.getElementById('recipe-intro-mobile');
+      var expanded = intro.classList.toggle('is-expanded');
+      btn.textContent = expanded ? btn.dataset.lessLabel : btn.dataset.moreLabel;
+      btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       if (!expanded) btn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
 
