@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Training Hero — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow: hidden; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-pr  { color: #93c5fd; }
+    .t-kw  { color: #ff7b72; }
+    .t-id  { color: #d2a8ff; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+
+    /* ═══════════════════════════════════════
+       FAVOURITE TOGGLE — reused verbatim from tiles-spec.html's
+       .ufs-tile__fav (canonical source), resized/repositioned locally by
+       .ufs-training-hero__fav below. Same toggleTileFav() JS, same
+       pop + 6-line splash animation on favourite (not on un-favourite).
+    ═══════════════════════════════════════ */
+    .ufs-tile__fav {
+      position: absolute; top: var(--space-3); right: var(--space-3); z-index: 2;
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.8); backdrop-filter: blur(3px); box-shadow: var(--shadow-xs);
+      border: none; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .ufs-tile__fav svg { width: 20px; height: 18px; }
+    .ufs-tile__fav svg path { fill: none; stroke: var(--color-brand-dark); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
+    .ufs-tile__fav.is-active svg path { fill: var(--color-brand-primary); stroke: var(--color-brand-primary); stroke-width: 1; }
+    @keyframes ufs-tile-fav-pop { 0% { transform: scale(1); } 35% { transform: scale(1.5); } 65% { transform: scale(0.9); } 100% { transform: scale(1); } }
+    @keyframes ufs-tile-fav-splash { 0% { transform: rotate(var(--angle)) translateY(-8px) scaleY(1); opacity: 1; } 100% { transform: rotate(var(--angle)) translateY(-26px) scaleY(0.5); opacity: 0; } }
+    .ufs-tile__fav svg.fav-pop { animation: ufs-tile-fav-pop 0.32s ease forwards; }
+    .ufs-tile__fav-splash { position: absolute; width: 3px; height: 11px; border-radius: 3px; top: 50%; left: 50%; margin: -5.5px 0 0 -1.5px; pointer-events: none; animation: ufs-tile-fav-splash 0.42s cubic-bezier(0.2, 0, 0.5, 1) forwards; background: var(--color-brand-primary); }
+    [dir="rtl"] .ufs-tile__fav { right: auto; left: var(--space-3); }
+
+    /* ═══════════════════════════════════════
+       VIDEO LIGHTBOX — shared modal opened by the trailer trigger. Same
+       lb-overlay/lb-panel pattern already documented in teaser-spec.html
+       and shipped as-is in template-training-detail.html.
+    ═══════════════════════════════════════ */
+    .lb-overlay {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.88);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .lb-overlay.open { opacity: 1; pointer-events: all; }
+    .lb-wrap { position: relative; width: min(900px, calc(100vw - 32px)); }
+    .lb-panel { aspect-ratio: 16 / 9; background: var(--color-brand-dark); border-radius: var(--radius-lg); overflow: hidden; transform: scale(0.95); transition: transform 0.25s; }
+    .lb-overlay.open .lb-panel { transform: scale(1); }
+    .lb-panel iframe { width: 100%; height: 100%; border: none; display: block; }
+    .lb-close { position: absolute; top: -44px; right: 0; background: none; border: none; color: var(--color-salt); font-size: 30px; line-height: 1; padding: 6px; cursor: pointer; opacity: 0.8; transition: opacity 0.15s; }
+    .lb-close:hover { opacity: 1; }
+
+    /* ═══════════════════════════════════════
+       TRAINING HERO — full-bleed two-panel section: 40%-width dark text
+       panel (eyebrow/title/desc/instructor/CTA) beside a flexible image
+       panel with a dark overlay and a "Watch trailer" control. Below
+       769px the panels stack (image on top, fixed 300px height) — exact
+       Figma breakpoint switch, same as Topic Tile's --wide modifier and
+       Chef Tile's own responsive pattern. Instructor content matches Chef
+       Tile's own Eric Chua persona (chef-profiles/eric-chua.png) — same
+       person, same DS.
+    ═══════════════════════════════════════ */
+    .ufs-training-hero { display: flex; width: 100%; min-height: 540px; background: var(--color-brand-dark); }
+    .ufs-training-hero__panel {
+      flex-shrink: 0; width: 40%;
+      display: flex; align-items: center;
+      padding-block: var(--space-16);
+      padding-inline-start: var(--space-24);
+      padding-inline-end: var(--space-16);
+    }
+    .ufs-training-hero__content { display: flex; flex-direction: column; gap: var(--space-6); width: 100%; }
+    .ufs-training-hero__eyebrow {
+      margin: 0; color: var(--color-brand-primary);
+      font-size: var(--text-overline-size); line-height: var(--text-overline-lh);
+      font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls);
+      text-transform: uppercase;
+    }
+    .ufs-training-hero__title {
+      margin: 0; color: var(--color-salt);
+      font-size: var(--text-h3-size); line-height: var(--text-h3-lh); font-weight: var(--text-h3-w);
+      letter-spacing: -0.3px;
+    }
+    .ufs-training-hero__desc { margin: 0; color: var(--color-salt); font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+    .ufs-training-hero__instructor { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-1) 0; }
+    .ufs-training-hero__instructor-label {
+      margin: 0; color: var(--color-salt);
+      font-size: var(--text-badge-size); line-height: var(--text-badge-lh); letter-spacing: var(--text-badge-ls);
+      text-transform: uppercase;
+    }
+    .ufs-training-hero__instructor-row { display: flex; align-items: center; gap: var(--space-3); }
+    .ufs-training-hero__instructor-avatar { flex-shrink: 0; width: 40px; height: 40px; border-radius: var(--radius-full); background-size: cover; background-position: center; }
+    .ufs-training-hero__instructor-name { margin: 0; color: var(--color-salt); font-size: var(--text-body-size); line-height: var(--text-body-lh); font-weight: 600; }
+    .ufs-training-hero__instructor-role { margin: 0; color: var(--color-salt); font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); }
+    .ufs-training-hero__cta { margin-top: var(--space-3); }
+
+    .ufs-training-hero__media { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+    .ufs-training-hero__photo {
+      position: absolute; inset: 0;
+      background-image: url('images/training/hero.jpg'); background-size: cover; background-position: center;
+      transition: transform 0.35s ease;
+    }
+    .ufs-training-hero__overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.35); }
+    .ufs-training-hero__fav { width: var(--space-12); height: var(--space-12); top: var(--space-6); right: var(--space-10); }
+    [dir="rtl"] .ufs-training-hero__fav { right: auto; left: var(--space-10); }
+    .ufs-training-hero__fav svg { width: 24px; height: 21.6px; }
+    .ufs-training-hero__trailer {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2);
+      width: 100%; height: 100%;
+      background: none; border: none; cursor: pointer; font-family: var(--font-family);
+    }
+    .ufs-training-hero__trailer-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: 102px; height: 102px;
+      border-radius: var(--radius-full);
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.6);
+      transition: background 0.15s, transform 0.15s;
+    }
+    .ufs-training-hero__trailer-icon svg { width: 40px; height: 40px; fill: var(--color-salt); }
+    .ufs-training-hero__trailer:hover .ufs-training-hero__trailer-icon { background: rgba(0,0,0,0.4); transform: scale(1.08); }
+    .ufs-training-hero__trailer-label { color: var(--color-salt); font-size: var(--text-body-sm-size); line-height: 22px; }
+    .ufs-training-hero__media:has(.ufs-training-hero__trailer:hover) .ufs-training-hero__photo { transform: scale(1.06); }
+
+    @media (max-width: 768px) {
+      .ufs-training-hero { flex-direction: column; min-height: 0; }
+      .ufs-training-hero__panel { width: 100%; padding: var(--space-6) var(--space-4); }
+      .ufs-training-hero__content { gap: var(--space-2); }
+      .ufs-training-hero__title { font-size: var(--text-h3-mob-size); letter-spacing: -0.24px; }
+      .ufs-training-hero__desc { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); }
+      .ufs-training-hero__instructor-avatar { width: 32px; height: 32px; }
+      .ufs-training-hero__instructor-name { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-training-hero__cta .btn { width: 100%; }
+      .ufs-training-hero__media { height: 300px; flex: none; order: -1; }
+      .ufs-training-hero__fav { width: var(--space-10); height: var(--space-10); }
+      .ufs-training-hero__fav svg { width: 20px; height: 18px; }
+      .ufs-training-hero__trailer-icon { width: 72px; height: 72px; }
+      .ufs-training-hero__trailer-icon svg { width: 22px; height: 22px; }
+    }
+
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the component's own @media(max-width:768px) declarations
+       scoped to .pv-mobile with !important. Doc-only; not shipped. Same
+       pattern as product-hero-spec.html's .pv-mobile block. */
+    .pv-mobile .ufs-training-hero { flex-direction: column !important; min-height: 0 !important; }
+    .pv-mobile .ufs-training-hero__panel { width: 100% !important; padding: var(--space-6) var(--space-4) !important; }
+    .pv-mobile .ufs-training-hero__content { gap: var(--space-2) !important; }
+    .pv-mobile .ufs-training-hero__title { font-size: var(--text-h3-mob-size) !important; letter-spacing: -0.24px !important; }
+    .pv-mobile .ufs-training-hero__desc { font-size: var(--text-body-xs-size) !important; line-height: var(--text-body-xs-lh) !important; }
+    .pv-mobile .ufs-training-hero__instructor-avatar { width: 32px !important; height: 32px !important; }
+    .pv-mobile .ufs-training-hero__instructor-name { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mobile .ufs-training-hero__cta .btn { width: 100% !important; }
+    .pv-mobile .ufs-training-hero__media { height: 300px !important; flex: none !important; order: -1 !important; }
+    .pv-mobile .ufs-training-hero__fav { width: var(--space-10) !important; height: var(--space-10) !important; }
+    .pv-mobile .ufs-training-hero__fav svg { width: 20px !important; height: 18px !important; }
+    .pv-mobile .ufs-training-hero__trailer-icon { width: 72px !important; height: 72px !important; }
+    .pv-mobile .ufs-training-hero__trailer-icon svg { width: 22px !important; height: 22px !important; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Training Hero</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy &amp; Rules</a>
+      <div class="sidebar-group-label" style="margin-top:8px">States</div>
+      <a href="#states" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Favourite &amp; Trailer Hover</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Example</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Developer</div>
+      <a href="#usage" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Usage</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">template-training-detail.html's own hero.<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Training Hero</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Training <span>Hero</span></h1>
+        <p class="doc-header-desc">Full-bleed two-panel hero for course/training pages: a 40%-width dark content panel (eyebrow, title, description, instructor byline, CTA) beside a photo panel with a dark overlay, a favourite toggle, and a "Watch trailer" control that opens the DS's shared video lightbox. Below 768px the panels stack, photo on top.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">template-training-detail.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">Fully live: click the heart to favourite (pop + splash fires once, on favourite only), and click "Watch trailer" to open the real video lightbox.</p>
+
+      <div class="pv-light">
+        <section class="ufs-training-hero">
+          <div class="ufs-training-hero__panel">
+            <div class="ufs-training-hero__content">
+              <p class="ufs-training-hero__eyebrow">Training</p>
+              <h1 class="ufs-training-hero__title">Middle Eastern Cuisine with Chef Rabeh</h1>
+              <p class="ufs-training-hero__desc">Make pasta from scratch with true Italian techniques in these online culinary courses! Learn about Italian cooking &amp; how to make the perfect Tagliatelle - Italian style!</p>
+              <div class="ufs-training-hero__instructor">
+                <p class="ufs-training-hero__instructor-label">Instructor:</p>
+                <div class="ufs-training-hero__instructor-row">
+                  <div class="ufs-training-hero__instructor-avatar" style="background-image:url('images/chef-profiles/eric-chua.png')"></div>
+                  <div>
+                    <p class="ufs-training-hero__instructor-name">Chef Eric Chua</p>
+                    <p class="ufs-training-hero__instructor-role">Head of Culinary Services UFS</p>
+                  </div>
+                </div>
+              </div>
+              <div class="ufs-training-hero__cta">
+                <button type="button" class="btn btn-primary">Start Training Now</button>
+              </div>
+            </div>
+          </div>
+          <div class="ufs-training-hero__media">
+            <div class="ufs-training-hero__photo"></div>
+            <div class="ufs-training-hero__overlay"></div>
+            <button class="ufs-tile__fav ufs-training-hero__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+            <button type="button" class="ufs-training-hero__trailer" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="Watch trailer">
+              <span class="ufs-training-hero__trailer-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              <span class="ufs-training-hero__trailer-label">Watch trailer</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY & RULES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Training Hero</div>
+      <h2 class="section-title">Anatomy &amp; Rules</h2>
+      <p class="section-desc">A fixed 40% / flex-1 split — the content panel never grows past 40% of the row regardless of copy length, and the photo fills whatever's left. Squid-500 (var(--color-brand-dark)) background throughout; every text node inside the content panel is Salt (white) or brand-primary (eyebrow only).</p>
+
+      <div class="ds-card">
+        <div class="card-title">Content panel</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Width</span><span class="token-var">40%</span><span class="token-note">flex-shrink:0 — never compresses below this, even with long titles</span></div>
+          <div class="token-row"><span class="token-prop">Padding</span><span class="token-var">var(--space-16) block, var(--space-24)/var(--space-16) inline</span><span class="token-note">64px vertical, 96px start / 64px end — logical properties, so this auto-flips in RTL</span></div>
+          <div class="token-row"><span class="token-prop">Eyebrow</span><span class="token-var">.text-overline family</span><span class="token-note">uppercase, color var(--color-brand-primary)</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">var(--text-h3-*)</span><span class="token-note">literal -0.3px letter-spacing override, not --text-h3-ls — same precedent as .ufs-tile--topic-wide's title</span></div>
+          <div class="token-row"><span class="token-prop">Description</span><span class="token-var">var(--text-body-sm-*)</span><span class="token-note">color Salt</span></div>
+          <div class="token-row"><span class="token-prop">Instructor avatar</span><span class="token-var">40px circle</span><span class="token-note">literal px, not a --space token — no exact 40px space step exists</span></div>
+          <div class="token-row"><span class="token-prop">Instructor name</span><span class="token-var">var(--text-body-size), 600 weight</span><span class="token-note">role line below at var(--text-body-xs-size)</span></div>
+          <div class="token-row"><span class="token-prop">CTA</span><span class="token-var">.btn.btn-primary</span><span class="token-note">margin-top var(--space-3) above it; full-width on mobile</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Media panel</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Width</span><span class="token-var">flex: 1</span><span class="token-note">fills whatever remains of the row past the fixed 40% content panel</span></div>
+          <div class="token-row"><span class="token-prop">Overlay</span><span class="token-var">rgba(0,0,0,0.35)</span><span class="token-note">flat scrim, full bleed, sits above the photo and below the trailer control</span></div>
+          <div class="token-row"><span class="token-prop">Favourite</span><span class="token-var">.ufs-tile__fav.ufs-training-hero__fav</span><span class="token-note">reused from Tiles, resized to var(--space-12) 48px and repositioned top:var(--space-6) right:var(--space-10) for this hero's larger canvas</span></div>
+          <div class="token-row"><span class="token-prop">Trailer icon</span><span class="token-var">102px circle</span><span class="token-note">rgba(0,0,0,0.25) fill, 1px rgba(255,255,255,0.6) border — literal px, no exact --space match</span></div>
+          <div class="token-row"><span class="token-prop">Trailer label</span><span class="token-var">var(--text-body-sm-size)</span><span class="token-note">color Salt, below the icon</span></div>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__panel"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__content"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__eyebrow"</span><span class="t-tag">&gt;</span>Training<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;h1</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__title"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/h1&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__desc"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__instructor"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/div&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__cta"</span><span class="t-tag">&gt;&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span><span class="t-tag">&gt;</span>Start Training Now<span class="t-tag">&lt;/button&gt;&lt;/div&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__media"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__photo"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__overlay"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__fav ufs-training-hero__fav"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleTileFav(this, event)"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-training-hero__trailer"</span> <span class="t-at">data-video-url</span>=<span class="t-str">"…"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/section&gt;</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ STATES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="states">
+      <div class="section-breadcrumb">States</div>
+      <h2 class="section-title">Favourite &amp; Trailer Hover</h2>
+      <p class="section-desc">Two interactive states live on the media panel: the favourite heart toggles filled/outline via <code>toggleTileFav()</code>, and hovering the trailer control darkens its icon circle, scales it 1.08×, and zooms the photo behind it 1.06× via a <code>:has()</code>-scoped selector — the zoom only fires while the trailer itself is hovered, not anywhere else on the photo.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Favourite — default vs. active</div>
+        <div class="pv-light" style="padding:24px; display:flex; gap:24px; background:var(--color-brand-dark);">
+          <div style="position:relative; width:64px; height:64px;">
+            <button class="ufs-tile__fav" style="position:static;" aria-label="Add to favourites" aria-pressed="false">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+          <div style="position:relative; width:64px; height:64px;">
+            <button class="ufs-tile__fav is-active" style="position:static;" aria-label="Remove from favourites" aria-pressed="true">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Active fill</span><span class="token-var">var(--color-brand-primary)</span><span class="token-note">on .ufs-tile__fav.is-active svg path — both fill and stroke</span></div>
+          <div class="token-row"><span class="token-prop">Favourite pop</span><span class="token-var">ufs-tile-fav-pop 0.32s</span><span class="token-note">scale 1 → 1.5 → 0.9 → 1, fires only on false→true (not on removal)</span></div>
+          <div class="token-row"><span class="token-prop">Trailer hover icon</span><span class="token-var">rgba(0,0,0,0.4) + scale(1.08)</span><span class="token-note">up from the resting rgba(0,0,0,0.25)</span></div>
+          <div class="token-row"><span class="token-prop">Trailer hover photo zoom</span><span class="token-var">scale(1.06)</span><span class="token-note">via .ufs-training-hero__media:has(.ufs-training-hero__trailer:hover) — hover the "Watch trailer" control in the Overview demo above to see it live</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Example</h2>
+      <p class="section-desc">Below 768px the panels stack — photo first (<code>order:-1</code>, fixed 300px height), content panel below at full width. Title drops to <code>--text-h3-mob-size</code>, description to <code>--text-body-xs-size</code>, the CTA goes full-width, and both the favourite button and trailer icon shrink.</p>
+
+      <div class="pv-mobile">
+        <section class="ufs-training-hero">
+          <div class="ufs-training-hero__panel">
+            <div class="ufs-training-hero__content">
+              <p class="ufs-training-hero__eyebrow">Training</p>
+              <h1 class="ufs-training-hero__title">Middle Eastern Cuisine with Chef Rabeh</h1>
+              <p class="ufs-training-hero__desc">Make pasta from scratch with true Italian techniques in these online culinary courses!</p>
+              <div class="ufs-training-hero__instructor">
+                <p class="ufs-training-hero__instructor-label">Instructor:</p>
+                <div class="ufs-training-hero__instructor-row">
+                  <div class="ufs-training-hero__instructor-avatar" style="background-image:url('images/chef-profiles/eric-chua.png')"></div>
+                  <div>
+                    <p class="ufs-training-hero__instructor-name">Chef Eric Chua</p>
+                    <p class="ufs-training-hero__instructor-role">Head of Culinary Services UFS</p>
+                  </div>
+                </div>
+              </div>
+              <div class="ufs-training-hero__cta">
+                <button type="button" class="btn btn-primary">Start Training Now</button>
+              </div>
+            </div>
+          </div>
+          <div class="ufs-training-hero__media">
+            <div class="ufs-training-hero__photo"></div>
+            <div class="ufs-training-hero__overlay"></div>
+            <button class="ufs-tile__fav ufs-training-hero__fav" aria-label="Add to favourites" aria-pressed="false">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+            <button type="button" class="ufs-training-hero__trailer" aria-label="Watch trailer">
+              <span class="ufs-training-hero__trailer-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              <span class="ufs-training-hero__trailer-label">Watch trailer</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The panel/media split and everything flowing inside each is flex-based and mirrors automatically. The content panel's padding uses logical properties (<code>padding-inline-start</code>/<code>-end</code>) so it flips for free. The one physically-positioned element is the favourite button (<code>top</code>/<code>right</code>), which gets an explicit <code>[dir="rtl"]</code> override.</p>
+
+      <div class="pv-label">RTL</div>
+      <div class="pv-light" dir="rtl">
+        <section class="ufs-training-hero">
+          <div class="ufs-training-hero__panel">
+            <div class="ufs-training-hero__content">
+              <p class="ufs-training-hero__eyebrow">تدريب</p>
+              <h1 class="ufs-training-hero__title">فنون الطهي الشرق أوسطية مع الشيف ربيع</h1>
+              <p class="ufs-training-hero__desc">اصنع المعكرونة من الصفر بتقنيات إيطالية أصيلة في هذه الدورات! تعرّف على فن الطهي الإيطالي وكيفية تحضير التالياتيلي على الطريقة الإيطالية!</p>
+              <div class="ufs-training-hero__instructor">
+                <p class="ufs-training-hero__instructor-label">المدرّب:</p>
+                <div class="ufs-training-hero__instructor-row">
+                  <div class="ufs-training-hero__instructor-avatar" style="background-image:url('images/chef-profiles/eric-chua.png')"></div>
+                  <div>
+                    <p class="ufs-training-hero__instructor-name">الشيف إريك تشوا</p>
+                    <p class="ufs-training-hero__instructor-role">رئيس الخدمات الطهوية في UFS</p>
+                  </div>
+                </div>
+              </div>
+              <div class="ufs-training-hero__cta">
+                <button type="button" class="btn btn-primary">ابدأ التدريب الآن</button>
+              </div>
+            </div>
+          </div>
+          <div class="ufs-training-hero__media">
+            <div class="ufs-training-hero__photo"></div>
+            <div class="ufs-training-hero__overlay"></div>
+            <button class="ufs-tile__fav ufs-training-hero__fav" aria-label="أضف إلى المفضلة" aria-pressed="false" onclick="toggleTileFav(this, event)">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+            <button type="button" class="ufs-training-hero__trailer" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0" aria-label="مشاهدة العرض الترويجي">
+              <span class="ufs-training-hero__trailer-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              <span class="ufs-training-hero__trailer-label">مشاهدة العرض الترويجي</span>
+            </button>
+          </div>
+        </section>
+      </div>
+
+      <div class="code-block-wrap" style="margin-top:16px;">
+        <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">[dir="rtl"] .ufs-training-hero__fav</span> { <span class="t-pr">right</span>: <span class="t-vl">auto</span>; <span class="t-pr">left</span>: <span class="t-va">var(--space-10)</span>; }
+<span class="t-cm">/* Content panel padding is already logical (padding-inline-start/-end),
+   so it needs no [dir="rtl"] override at all. */</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ USAGE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="usage">
+      <div class="section-breadcrumb">Developer</div>
+      <h2 class="section-title">Usage</h2>
+      <p class="section-desc">Two small JS hooks power the interactive parts: <code>toggleTileFav()</code> (shared with every <code>.ufs-tile__fav</code> instance across the DS — see tiles-spec.html) and the shared video lightbox (<code>openLB()</code>/<code>closeLB()</code>, wired to any <code>[data-video-url]</code> trigger — see teaser-spec.html#video for the reference implementation). Adding this hero to a page that doesn't already use the lightbox elsewhere means porting the <code>.lb-overlay</code> markup + JS too.</p>
+
+      <div class="ds-card usage-section" style="display:block;">
+        <div class="code-panel-tabs" style="display:flex; gap:8px; margin-bottom:4px;">
+          <button class="code-panel-tab active" onclick="showPanel('th-js',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">JS</button>
+        </div>
+        <div class="code-block-wrap" id="th-js" style="display:block"><pre class="code-body"><span class="t-cm">// Favourite toggle — shared across every .ufs-tile__fav on the page</span>
+<span class="t-pr">function</span> toggleTileFav(btn, event) {
+  <span class="t-pr">if</span> (event) event.stopPropagation();
+  <span class="t-pr">var</span> active = btn.classList.toggle(<span class="t-str">'is-active'</span>);
+  btn.setAttribute(<span class="t-str">'aria-pressed'</span>, active ? <span class="t-str">'true'</span> : <span class="t-str">'false'</span>);
+  <span class="t-pr">if</span> (active) {
+    <span class="t-cm">// pop animation + 6-line splash burst — see tiles-spec.html for the full sequence</span>
+  }
+}
+
+<span class="t-cm">// Video lightbox — shared by every [data-video-url] trigger</span>
+(<span class="t-pr">function</span> () {
+  <span class="t-pr">var</span> lbOverlay = document.getElementById(<span class="t-str">'lb-overlay'</span>);
+  <span class="t-pr">var</span> lbIframe  = document.getElementById(<span class="t-str">'lb-iframe'</span>);
+  <span class="t-pr">function</span> openLB(url) { lbIframe.src = url; lbOverlay.classList.add(<span class="t-str">'open'</span>); document.body.style.overflow = <span class="t-str">'hidden'</span>; }
+  <span class="t-pr">function</span> closeLB() { lbOverlay.classList.remove(<span class="t-str">'open'</span>); lbIframe.src = <span class="t-str">''</span>; document.body.style.overflow = <span class="t-str">''</span>; }
+  document.querySelectorAll(<span class="t-str">'[data-video-url]'</span>).forEach(<span class="t-pr">function</span> (trigger) {
+    trigger.addEventListener(<span class="t-str">'click'</span>, <span class="t-pr">function</span> () { openLB(trigger.getAttribute(<span class="t-str">'data-video-url'</span>)); });
+  });
+})();</pre></div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="full-page-preview-v0.2.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <!-- VIDEO LIGHTBOX — shared by every .ufs-training-hero__trailer trigger on this page -->
+  <div class="lb-overlay" id="lb-overlay" role="dialog" aria-modal="true" aria-label="Video">
+    <div class="lb-wrap">
+      <button class="lb-close" id="lb-close" aria-label="Close">&times;</button>
+      <div class="lb-panel">
+        <iframe id="lb-iframe" src="" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    function showPanel(panelId, clickedBtn) {
+      var container = clickedBtn.closest('.ds-card, .usage-section');
+      container.querySelectorAll('.code-panel-tab').forEach(function(b) { b.classList.remove('active'); });
+      clickedBtn.classList.add('active');
+      container.querySelectorAll('.code-block-wrap').forEach(function(w) { w.style.display = 'none'; });
+      document.getElementById(panelId).style.display = 'block';
+    }
+
+    /* ── Favourite toggle ───────────────────────────────────────── */
+    function toggleTileFav(btn, event) {
+      if (event) event.stopPropagation();
+      var active = btn.classList.toggle('is-active');
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      var svg = btn.querySelector('svg');
+      if (active) {
+        svg.classList.remove('fav-pop'); void svg.offsetWidth; svg.classList.add('fav-pop');
+        [10, 72, 138, 194, 258, 322].forEach(function(angle) {
+          var line = document.createElement('span');
+          line.className = 'ufs-tile__fav-splash';
+          line.style.setProperty('--angle', angle + 'deg');
+          btn.appendChild(line);
+          setTimeout(function() { line.remove(); }, 450);
+        });
+      }
+    }
+
+    /* ── Video lightbox ─────────────────────────────────────────── */
+    (function () {
+      var lbOverlay = document.getElementById('lb-overlay');
+      var lbIframe  = document.getElementById('lb-iframe');
+      var lbClose   = document.getElementById('lb-close');
+      if (!lbOverlay) return;
+
+      function openLB(url) {
+        lbIframe.src = url;
+        lbOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLB() {
+        lbOverlay.classList.remove('open');
+        lbIframe.src = '';
+        document.body.style.overflow = '';
+      }
+
+      document.querySelectorAll('[data-video-url]').forEach(function (trigger) {
+        trigger.addEventListener('click', function () {
+          openLB(trigger.getAttribute('data-video-url'));
+        });
+      });
+      lbClose.addEventListener('click', closeLB);
+      lbOverlay.addEventListener('click', function (e) { if (e.target === lbOverlay) closeLB(); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lbOverlay.classList.contains('open')) closeLB();
+      });
+    })();
+  </script>
+</body>
+</html>

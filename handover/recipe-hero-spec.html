@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recipe Hero — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: visible; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+    .t-kw  { color: #ff7b72; }
+    .t-id  { color: #d2a8ff; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       TILE FAVOURITE BUTTON — reused as-is from Tiles (see tiles-spec.
+       html for the full component); only position/size are overridden
+       per hero below.
+    ═══════════════════════════════════════ */
+    .ufs-tile__fav {
+      position: absolute; top: var(--space-3); right: var(--space-3); z-index: 2;
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.8); backdrop-filter: blur(3px);
+      box-shadow: var(--shadow-xs), 1px 1px 0px rgba(255,255,255,0.5) inset, -1px -1px 0px rgba(255,255,255,0.5) inset;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      overflow: visible;
+    }
+    [dir="rtl"] .ufs-tile__fav { right: auto; left: var(--space-3); }
+    .ufs-tile__fav svg { width: 20px; height: 18px; }
+    .ufs-tile__fav svg path { fill: none; stroke: var(--color-brand-dark); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
+    .ufs-tile__fav.is-active svg path { fill: var(--color-brand-primary); stroke: var(--color-brand-primary); stroke-width: 1; }
+    @keyframes ufs-tile-fav-pop { 0% { transform: scale(1); } 35% { transform: scale(1.5); } 65% { transform: scale(0.9); } 100% { transform: scale(1); } }
+    .ufs-tile__fav svg.fav-pop { animation: ufs-tile-fav-pop 0.32s ease forwards; }
+
+    /* ═══════════════════════════════════════
+       RECIPE HERO — a dark, split hero: a 40%-width content panel
+       (eyebrow, title, star rating, tags, author) beside a full-bleed
+       photo/video media panel with a favourite toggle. Same skeleton as
+       Training Hero (handover/template-training-detail.html's
+       .ufs-training-hero) — both are duplicated per-file rather than
+       shared, per this handover's no-shared-stylesheet convention, but
+       kept structurally identical so a fix/variant on one ports cleanly
+       to the other. Source: template-recipe-detail.html.
+    ═══════════════════════════════════════ */
+    .ufs-recipe-hero { display: flex; width: 100%; min-height: 540px; background: var(--color-brand-dark); }
+    .ufs-recipe-hero__panel { flex-shrink: 0; width: 40%; display: flex; align-items: center; padding: var(--space-16); }
+    .ufs-recipe-hero__content { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+    .ufs-recipe-hero__text-group { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+    .ufs-recipe-hero__eyebrow {
+      margin: 0; color: var(--color-brand-primary);
+      font-size: var(--text-overline-size); line-height: var(--text-overline-lh);
+      font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls);
+      text-transform: uppercase;
+    }
+    /* letter-spacing overridden to a literal -0.4px rather than the
+       --text-h2-ls token — same "closest token unavailable, literal
+       value" precedent used elsewhere in this handover. */
+    .ufs-recipe-hero__title {
+      margin: 0; color: var(--color-salt);
+      font-size: var(--text-h2-size); line-height: var(--text-h2-lh); font-weight: var(--text-h2-w);
+      letter-spacing: -0.4px;
+    }
+    .ufs-recipe-hero__rating { display: flex; align-items: center; gap: var(--space-1); }
+    .ufs-recipe-hero__rating svg { width: 14px; height: 14px; fill: var(--color-brand-primary); }
+    .ufs-recipe-hero__rating span { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-100); }
+    .ufs-recipe-hero__tags { display: flex; flex-wrap: wrap; gap: var(--space-3); padding-top: var(--space-1); }
+    /* Translucent-white pill, badge-size type — a dark-surface treatment,
+       distinct from .ufs-recipe-tag (the light-surface, overline-size
+       pill used after the Preparation steps further down the page). */
+    .ufs-recipe-hero__tag {
+      display: inline-flex; align-items: center; height: var(--space-6); padding: 2px var(--space-2);
+      border-radius: var(--radius-full); background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      font-size: var(--text-badge-size); line-height: var(--text-badge-lh); letter-spacing: var(--text-badge-ls);
+      text-transform: uppercase; color: var(--color-salt);
+    }
+    .ufs-recipe-hero__author { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-1) 0; }
+    .ufs-recipe-hero__author-label {
+      margin: 0; color: var(--color-salt);
+      font-size: var(--text-badge-size); line-height: var(--text-badge-lh); letter-spacing: var(--text-badge-ls);
+      text-transform: uppercase;
+    }
+    .ufs-recipe-hero__author-row { display: flex; align-items: center; gap: var(--space-3); }
+    .ufs-recipe-hero__author-avatar { flex-shrink: 0; width: 40px; height: 40px; border-radius: var(--radius-full); background-size: cover; background-position: center; }
+    .ufs-recipe-hero__author-name { margin: 0; color: var(--color-salt); font-size: var(--text-body-size); line-height: var(--text-body-lh); font-weight: 600; }
+    .ufs-recipe-hero__author-role { margin: 0; color: var(--color-salt); font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); }
+
+    .ufs-recipe-hero__media { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+    .ufs-recipe-hero__photo { position: absolute; inset: 0; background-image: url('images/hero/recipe.jpg'); background-size: cover; background-position: center; transition: transform 0.35s ease; }
+
+    .ufs-recipe-hero__fav { width: var(--space-12); height: var(--space-12); top: var(--space-7); right: var(--space-7); }
+    [dir="rtl"] .ufs-recipe-hero__fav { right: auto; left: var(--space-7); }
+    .ufs-recipe-hero__fav svg { width: 24px; height: 21.6px; }
+
+    /* ═══════════════════════════════════════
+       VIDEO VARIANT — ported from Training Hero's own media panel (see
+       template-training-detail.html's .ufs-training-hero__trailer),
+       renamed __watch (not __trailer: a recipe isn't a "trailer", it's a
+       steps walkthrough) with the visible label changed to "Watch preparation".
+       Structurally identical: a dark scrim over the photo, centred
+       play-circle + label, opens the same shared video lightbox every
+       [data-video-url] trigger in this DS uses — see
+       teaser-spec.html#video for that mechanic; it's not re-documented
+       here.
+    ═══════════════════════════════════════ */
+    .ufs-recipe-hero__overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.35); }
+    .ufs-recipe-hero__watch {
+      position: relative; z-index: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2);
+      width: 100%; height: 100%;
+      background: none; border: none; cursor: pointer; font-family: var(--font-family);
+    }
+    .ufs-recipe-hero__watch-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: 102px; height: 102px;
+      border-radius: var(--radius-full);
+      background: rgba(0,0,0,0.25);
+      border: 1px solid rgba(255,255,255,0.6);
+      transition: background 0.15s, transform 0.15s;
+    }
+    .ufs-recipe-hero__watch-icon svg { width: 40px; height: 40px; fill: var(--color-salt); }
+    .ufs-recipe-hero__watch:hover .ufs-recipe-hero__watch-icon { background: rgba(0,0,0,0.4); transform: scale(1.08); }
+    .ufs-recipe-hero__watch-label { color: var(--color-salt); font-size: var(--text-body-sm-size); line-height: 22px; }
+    /* Same :has()-scoped hover-zoom as Training Hero — only while
+       hovering the watch control itself, not the whole media panel. */
+    .ufs-recipe-hero__media:has(.ufs-recipe-hero__watch:hover) .ufs-recipe-hero__photo { transform: scale(1.06); }
+
+    @media (max-width: 768px) {
+      .ufs-recipe-hero { flex-direction: column; min-height: 0; }
+      .ufs-recipe-hero__panel { width: 100%; padding: var(--space-6) var(--space-4); }
+      .ufs-recipe-hero__content { gap: var(--space-2); }
+      .ufs-recipe-hero__title { font-size: var(--text-h3-mob-size); letter-spacing: -0.24px; }
+      .ufs-recipe-hero__author-avatar { width: 32px; height: 32px; }
+      .ufs-recipe-hero__author-name { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-recipe-hero__media { height: 300px; flex: none; order: -1; }
+      .ufs-recipe-hero__fav { top: var(--space-4); right: var(--space-4); width: var(--space-10); height: var(--space-10); }
+      [dir="rtl"] .ufs-recipe-hero__fav { right: auto; left: var(--space-4); }
+      .ufs-recipe-hero__fav svg { width: 20px; height: 18px; }
+      .ufs-recipe-hero__watch-icon { width: 72px; height: 72px; }
+      .ufs-recipe-hero__watch-icon svg { width: 22px; height: 22px; }
+    }
+
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the component's own @media(max-width:768px) declarations
+       scoped to .pv-mobile with !important. Doc-only; not shipped. Same
+       pattern as product-hero-spec.html's .pv-mobile block. */
+    .pv-mobile .ufs-recipe-hero { flex-direction: column !important; min-height: 0 !important; }
+    .pv-mobile .ufs-recipe-hero__panel { width: 100% !important; padding: var(--space-6) var(--space-4) !important; }
+    .pv-mobile .ufs-recipe-hero__content { gap: var(--space-2) !important; }
+    .pv-mobile .ufs-recipe-hero__title { font-size: var(--text-h3-mob-size) !important; letter-spacing: -0.24px !important; }
+    .pv-mobile .ufs-recipe-hero__author-avatar { width: 32px !important; height: 32px !important; }
+    .pv-mobile .ufs-recipe-hero__author-name { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mobile .ufs-recipe-hero__media { height: 300px !important; flex: none !important; order: -1 !important; }
+    .pv-mobile .ufs-recipe-hero__fav { top: var(--space-4) !important; right: var(--space-4) !important; width: var(--space-10) !important; height: var(--space-10) !important; }
+    .pv-mobile .ufs-recipe-hero__watch-icon { width: 72px !important; height: 72px !important; }
+    .pv-mobile .ufs-recipe-hero__watch-icon svg { width: 22px !important; height: 22px !important; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Recipe Hero</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy &amp; Rules</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#video-variant" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Video Variant</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Developer</div>
+      <a href="#usage" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Usage</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Same skeleton as Training Hero.<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Recipe Hero</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Recipe <span>Hero</span></h1>
+        <p class="doc-header-desc">The dark split hero at the top of a recipe detail page: a content panel (eyebrow, title, star rating, tags, author) beside a full-bleed photo panel with a favourite toggle. Same skeleton as Training Hero, and now documented with the same optional video treatment.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">template-recipe-detail.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">The default form: a static photo fills the media panel, no play control. This is what every recipe uses today — see Video Variant below for the optional "Watch preparation" treatment.</p>
+
+      <div class="pv-light" style="padding: 0;">
+        <section class="ufs-recipe-hero">
+          <div class="ufs-recipe-hero__panel">
+            <div class="ufs-recipe-hero__content">
+              <div class="ufs-recipe-hero__text-group">
+                <p class="ufs-recipe-hero__eyebrow">Recipe</p>
+                <h1 class="ufs-recipe-hero__title">Knorr Professional Mashed Potato for Bulk Cooking</h1>
+                <div class="ufs-recipe-hero__rating">
+                  <span class="ufs-tile__stars">
+                    <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                  </span>
+                  <span>(332)</span>
+                </div>
+                <div class="ufs-recipe-hero__tags">
+                  <span class="ufs-recipe-hero__tag">Side dish</span>
+                  <span class="ufs-recipe-hero__tag">Bulk cooking</span>
+                  <span class="ufs-recipe-hero__tag">Gluten free</span>
+                </div>
+              </div>
+              <div class="ufs-recipe-hero__author">
+                <p class="ufs-recipe-hero__author-label">Created by:</p>
+                <div class="ufs-recipe-hero__author-row">
+                  <div class="ufs-recipe-hero__author-avatar" style="background-image:url('images/chef-profiles/philip-li.png')"></div>
+                  <div>
+                    <p class="ufs-recipe-hero__author-name">Chef Philip Li</p>
+                    <p class="ufs-recipe-hero__author-role">Plating &amp; Presentation Specialist</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="ufs-recipe-hero__media">
+            <div class="ufs-recipe-hero__photo"></div>
+            <button class="ufs-tile__fav ufs-recipe-hero__fav" aria-label="Add to favourites" aria-pressed="false">
+              <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            </button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY & RULES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Recipe Hero</div>
+      <h2 class="section-title">Anatomy &amp; Rules</h2>
+      <p class="section-desc">Two children — <code>.ufs-recipe-hero__panel</code> (fixed 40% width) and <code>.ufs-recipe-hero__media</code> (flex:1, fills the rest) — sitting side by side against a squid-ink background. Desktop only; the mobile breakpoint stacks them full-width, photo on top (see Mobile Examples).</p>
+
+      <div class="ds-card">
+        <div class="card-title">Content panel</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Panel width</span><span class="token-var">40%</span><span class="token-note">fixed, not flex — media takes whatever's left</span></div>
+          <div class="token-row"><span class="token-prop">Eyebrow</span><span class="token-var">.text-overline family</span><span class="token-note">brand-primary orange, uppercase</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">var(--text-h2-*)</span><span class="token-note">salt colour, -0.4px literal letter-spacing (no exact token) → var(--text-h3-mob-size) on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Rating</span><span class="token-var">.ufs-recipe-hero__rating</span><span class="token-note">.ufs-tile__stars reused as-is (see Tiles), count text in mushroom-100</span></div>
+          <div class="token-row"><span class="token-prop">Tags</span><span class="token-var">.ufs-recipe-hero__tag</span><span class="token-note">translucent-white pill, badge-size type — distinct from the light-surface .ufs-recipe-tag used lower on the page</span></div>
+          <div class="token-row"><span class="token-prop">Author</span><span class="token-var">.ufs-recipe-hero__author</span><span class="token-note">40px avatar, name (body/600w) + role (body-xs), both salt</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Media panel</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Photo</span><span class="token-var">.ufs-recipe-hero__photo</span><span class="token-note">position:absolute, inset:0, cover — fills whatever height the row establishes</span></div>
+          <div class="token-row"><span class="token-prop">Favourite toggle</span><span class="token-var">.ufs-tile__fav</span><span class="token-note">reused as-is from Tiles, repositioned to top-right var(--space-7) and enlarged to var(--space-12)</span></div>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__panel"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__content"</span><span class="t-tag">&gt;</span>
+      <span class="t-cm">&lt;!-- eyebrow, title, rating, tags, author — see anatomy above --&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__media"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__photo"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__fav ufs-recipe-hero__fav"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Add to favourites"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/section&gt;</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ VIDEO VARIANT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="video-variant">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Video Variant</h2>
+      <p class="section-desc">Recipe Hero can hold a video the same way Training Hero does: a dark scrim over the photo plus a centred play control, opening a video in the DS's shared lightbox. Structurally it's Training Hero's <code>__trailer</code> control ported wholesale — same overlay, same 102px play circle, same hover-zoom on the photo — under the <code>__watch</code> name instead, with the visible label changed to <strong>"Watch preparation"</strong> rather than "Watch trailer".</p>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Renamed <code>__trailer</code> → <code>__watch</code> deliberately, not just relabelled: a recipe doesn't have a "trailer", it has a steps walkthrough. The class name change is internal only — nothing about the markup shape, CSS values, or interaction changes from Training Hero's version.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label">Default — photo only</div>
+        <div class="pv-light" style="padding: 0; margin-bottom: 20px;">
+          <section class="ufs-recipe-hero" style="min-height: 420px;">
+            <div class="ufs-recipe-hero__panel">
+              <div class="ufs-recipe-hero__content">
+                <div class="ufs-recipe-hero__text-group">
+                  <p class="ufs-recipe-hero__eyebrow">Recipe</p>
+                  <h1 class="ufs-recipe-hero__title">Knorr Professional Mashed Potato for Bulk Cooking</h1>
+                </div>
+              </div>
+            </div>
+            <div class="ufs-recipe-hero__media">
+              <div class="ufs-recipe-hero__photo"></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="pv-label">Video variant — overlay + "Watch preparation"</div>
+        <div class="pv-light" style="padding: 0;">
+          <section class="ufs-recipe-hero" style="min-height: 420px;">
+            <div class="ufs-recipe-hero__panel">
+              <div class="ufs-recipe-hero__content">
+                <div class="ufs-recipe-hero__text-group">
+                  <p class="ufs-recipe-hero__eyebrow">Recipe</p>
+                  <h1 class="ufs-recipe-hero__title">Knorr Professional Mashed Potato for Bulk Cooking</h1>
+                </div>
+              </div>
+            </div>
+            <div class="ufs-recipe-hero__media">
+              <div class="ufs-recipe-hero__photo"></div>
+              <div class="ufs-recipe-hero__overlay"></div>
+              <button type="button" class="ufs-recipe-hero__watch" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Watch preparation">
+                <span class="ufs-recipe-hero__watch-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                <span class="ufs-recipe-hero__watch-label">Watch preparation</span>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <div class="code-block-wrap" style="margin-top: 20px;">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'watch-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'watch-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="watch-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__media"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__photo"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__overlay"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__watch"</span>
+          <span class="t-at">data-video-url</span>=<span class="t-str">"https://player.vimeo.com/video/…"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Watch preparation"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__watch-icon"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/span&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-hero__watch-label"</span><span class="t-tag">&gt;</span>Watch preparation<span class="t-tag">&lt;/span&gt;</span>
+  <span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__fav ufs-recipe-hero__fav"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="watch-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">.ufs-recipe-hero__overlay</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.35)</span>; }
+<span class="t-pr">.ufs-recipe-hero__watch</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>;
+  <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">100%</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">none</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>;
+}
+<span class="t-pr">.ufs-recipe-hero__watch-icon</span> {
+  <span class="t-pr">width</span>: <span class="t-vl">102px</span>; <span class="t-pr">height</span>: <span class="t-vl">102px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.25)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid rgba(255,255,255,0.6)</span>;
+  <span class="t-pr">transition</span>: <span class="t-vl">background 0.15s, transform 0.15s</span>;
+}
+<span class="t-pr">.ufs-recipe-hero__watch:hover .ufs-recipe-hero__watch-icon</span> { <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.4)</span>; <span class="t-pr">transform</span>: <span class="t-vl">scale(1.08)</span>; }
+<span class="t-pr">.ufs-recipe-hero__watch-label</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-vl">22px</span>; }
+<span class="t-cm">/* zoom the photo only while hovering the watch control, not the whole panel */</span>
+<span class="t-pr">.ufs-recipe-hero__media:has(.ufs-recipe-hero__watch:hover) .ufs-recipe-hero__photo</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.06)</span>; }</pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Scrim</span><span class="token-var">rgba(0,0,0,0.35)</span><span class="token-note">flat overlay, no gradient</span></div>
+          <div class="token-row"><span class="token-prop">Play circle (desktop)</span><span class="token-var">102px</span><span class="token-note">translucent-black fill, 60%-white 1px border → 72px on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Play icon</span><span class="token-var">40px</span><span class="token-note">salt fill → 22px on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Label</span><span class="token-var">"Watch preparation"</span><span class="token-note">var(--text-body-sm-size), salt, 22px line-height</span></div>
+          <div class="token-row"><span class="token-prop">Trigger</span><span class="token-var">[data-video-url]</span><span class="token-note">opens the shared lightbox — see teaser-spec.html#video</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>The lightbox itself (<code>#lb-overlay</code>, <code>openLB()</code>/<code>closeLB()</code>) is a page-level singleton shared by every <code>[data-video-url]</code> trigger — Teaser's play buttons, Training Hero's trailer, and this variant all wire to the same instance. Adding this variant to a page that doesn't already use the lightbox elsewhere means porting that markup + JS too; see teaser-spec.html#video for the reference implementation.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">Below 768px the two panels stack — photo on top (<code>order: -1</code>, fixed 300px height), content panel below, full width. The video variant's play circle and icon both shrink to match Training Hero's own mobile treatment.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Default, forced <code>≤768px</code> width</div>
+        <div class="pv-mobile" style="margin-bottom: 24px;">
+          <section class="ufs-recipe-hero">
+            <div class="ufs-recipe-hero__panel">
+              <div class="ufs-recipe-hero__content">
+                <div class="ufs-recipe-hero__text-group">
+                  <p class="ufs-recipe-hero__eyebrow">Recipe</p>
+                  <h1 class="ufs-recipe-hero__title">Knorr Professional Mashed Potato for Bulk Cooking</h1>
+                  <div class="ufs-recipe-hero__tags">
+                    <span class="ufs-recipe-hero__tag">Side dish</span>
+                    <span class="ufs-recipe-hero__tag">Bulk cooking</span>
+                  </div>
+                </div>
+                <div class="ufs-recipe-hero__author">
+                  <p class="ufs-recipe-hero__author-label">Created by:</p>
+                  <div class="ufs-recipe-hero__author-row">
+                    <div class="ufs-recipe-hero__author-avatar" style="background-image:url('images/chef-profiles/philip-li.png')"></div>
+                    <div>
+                      <p class="ufs-recipe-hero__author-name">Chef Philip Li</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="ufs-recipe-hero__media">
+              <div class="ufs-recipe-hero__photo"></div>
+              <button class="ufs-tile__fav ufs-recipe-hero__fav" aria-label="Add to favourites">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <div class="pv-label">Video variant, forced <code>≤768px</code> width</div>
+        <div class="pv-mobile">
+          <section class="ufs-recipe-hero">
+            <div class="ufs-recipe-hero__panel">
+              <div class="ufs-recipe-hero__content">
+                <div class="ufs-recipe-hero__text-group">
+                  <p class="ufs-recipe-hero__eyebrow">Recipe</p>
+                  <h1 class="ufs-recipe-hero__title">Knorr Professional Mashed Potato for Bulk Cooking</h1>
+                </div>
+              </div>
+            </div>
+            <div class="ufs-recipe-hero__media">
+              <div class="ufs-recipe-hero__photo"></div>
+              <div class="ufs-recipe-hero__overlay"></div>
+              <button type="button" class="ufs-recipe-hero__watch" aria-label="Watch preparation">
+                <span class="ufs-recipe-hero__watch-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                <span class="ufs-recipe-hero__watch-label">Watch preparation</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The layout is entirely flex/gap-based with no physical margins, so it mirrors under <code>dir="rtl"</code> with only one explicit override: the favourite button's corner position.</p>
+
+      <div class="ds-card">
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Favourite button</span><span class="token-var">[dir="rtl"] .ufs-recipe-hero__fav</span><span class="token-note">right → left, both desktop and mobile values</span></div>
+          <div class="token-row"><span class="token-prop">Watch control</span><span class="token-var">no override needed</span><span class="token-note">icon + label are centred and stacked (flex-direction:column) — direction-agnostic</span></div>
+          <div class="token-row"><span class="token-prop">Content panel</span><span class="token-var">no override needed</span><span class="token-note">gap-based flex column throughout — text-align follows the browser's own RTL default</span></div>
+        </div>
+
+        <div class="pv-label" style="margin-top:20px;">RTL — default</div>
+        <div class="pv-light" style="padding: 0;" dir="rtl">
+          <section class="ufs-recipe-hero">
+            <div class="ufs-recipe-hero__panel">
+              <div class="ufs-recipe-hero__content">
+                <div class="ufs-recipe-hero__text-group">
+                  <p class="ufs-recipe-hero__eyebrow">وصفة</p>
+                  <h1 class="ufs-recipe-hero__title">بطاطس مهروسة كنور بروفيشنال للطبخ بالجملة</h1>
+                  <div class="ufs-recipe-hero__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                    <span>(332)</span>
+                  </div>
+                  <div class="ufs-recipe-hero__tags">
+                    <span class="ufs-recipe-hero__tag">طبق جانبي</span>
+                    <span class="ufs-recipe-hero__tag">طبخ بالجملة</span>
+                    <span class="ufs-recipe-hero__tag">خالٍ من الغلوتين</span>
+                  </div>
+                </div>
+                <div class="ufs-recipe-hero__author">
+                  <p class="ufs-recipe-hero__author-label">بواسطة:</p>
+                  <div class="ufs-recipe-hero__author-row">
+                    <div class="ufs-recipe-hero__author-avatar" style="background-image:url('images/chef-profiles/philip-li.png')"></div>
+                    <div>
+                      <p class="ufs-recipe-hero__author-name">الشيف فيليب لي</p>
+                      <p class="ufs-recipe-hero__author-role">أخصائي التقديم والعرض</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="ufs-recipe-hero__media">
+              <div class="ufs-recipe-hero__photo"></div>
+              <button class="ufs-tile__fav ufs-recipe-hero__fav" aria-label="أضف إلى المفضلة" aria-pressed="false">
+                <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <div class="pv-label" style="margin-top:20px;">RTL — video variant</div>
+        <div class="pv-light" style="padding: 0;" dir="rtl">
+          <section class="ufs-recipe-hero" style="min-height: 420px;">
+            <div class="ufs-recipe-hero__panel">
+              <div class="ufs-recipe-hero__content">
+                <div class="ufs-recipe-hero__text-group">
+                  <p class="ufs-recipe-hero__eyebrow">وصفة</p>
+                  <h1 class="ufs-recipe-hero__title">بطاطس مهروسة كنور بروفيشنال للطبخ بالجملة</h1>
+                </div>
+              </div>
+            </div>
+            <div class="ufs-recipe-hero__media">
+              <div class="ufs-recipe-hero__photo"></div>
+              <div class="ufs-recipe-hero__overlay"></div>
+              <button type="button" class="ufs-recipe-hero__watch" aria-label="شاهد التحضير">
+                <span class="ufs-recipe-hero__watch-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                <span class="ufs-recipe-hero__watch-label">شاهد التحضير</span>
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <div class="code-block-wrap" style="margin-top:20px;">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-pr">[dir="rtl"] .ufs-recipe-hero__fav</span> { <span class="t-pr">right</span>: <span class="t-vl">auto</span>; <span class="t-pr">left</span>: <span class="t-va">var(--space-7)</span>; }
+<span class="t-cm">/* mobile value flips the same way, at var(--space-4) instead of var(--space-7) */</span>
+@media (max-width: <span class="t-vl">768px</span>) {
+  <span class="t-pr">[dir="rtl"] .ufs-recipe-hero__fav</span> { <span class="t-pr">right</span>: <span class="t-vl">auto</span>; <span class="t-pr">left</span>: <span class="t-va">var(--space-4)</span>; }
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ USAGE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="usage">
+      <div class="section-breadcrumb">Developer</div>
+      <h2 class="section-title">Usage</h2>
+      <p class="section-desc">Pure CSS + a shared JS mechanic — no per-instance JS of its own. The photo-only default needs nothing beyond the markup in Anatomy above.</p>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>The video variant is documented here but not yet wired into <code>template-recipe-detail.html</code>'s live recipe — that page still ships the photo-only default. Adopting it on a real recipe page means adding the <code>.ufs-recipe-hero__overlay</code>/<code>__watch</code> markup shown above, plus the shared lightbox markup/JS from teaser-spec.html#video if that page doesn't already include it (template-training-detail.html already does, since Training Hero uses the same mechanic).</div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="template-recipe-detail.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
