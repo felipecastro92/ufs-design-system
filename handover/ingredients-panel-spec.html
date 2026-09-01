@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ingredients Panel — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow: hidden; }
+    /* White backdrop — this component sits on the page's own white
+       background on the real Recipe Detail page (body:{background:
+       var(--color-salt)}), not a mushroom-100 section, so the demo
+       panels here use .pv-white instead of the usual .pv-light. */
+    .pv-white { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow: hidden; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); background: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-pr  { color: #93c5fd; }
+    .t-kw  { color: #ff7b72; }
+    .t-id  { color: #d2a8ff; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled):not(.btn-loading) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled):not(.btn-loading) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-sm { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
+    .btn-icon-left { padding-left: var(--space-3); }
+    .btn-icon-left img { width: var(--space-5); height: var(--space-5); }
+
+    /* ═══════════════════════════════════════
+       QUANTITY SELECTOR — reused verbatim from index.html's Form Inputs
+       (.fi-qty), re-themed here to drive live ingredient-quantity
+       scaling instead of a static count. Figma node 1957:4696.
+    ═══════════════════════════════════════ */
+    .fi-qty {
+      display: inline-flex; align-items: center; justify-content: space-between;
+      padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-mushroom-100);
+    }
+    .fi-qty-btn {
+      flex-shrink: 0; width: var(--space-12); height: var(--space-12);
+      border-radius: var(--radius-full);
+      background: var(--color-salt); border: none; box-shadow: var(--shadow-xs);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: box-shadow 0.15s, color 0.15s;
+      color: var(--color-brand-dark);
+    }
+    .fi-qty-btn:hover:not(:disabled) { box-shadow: var(--shadow-sm); color: var(--color-accessible-orange); }
+    .fi-qty-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+    .fi-qty-btn svg { width: var(--space-6); height: var(--space-6); display: block; fill: currentColor; }
+    .fi-qty-pill {
+      min-width: 24px; padding: 0 var(--space-2);
+      font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lg-lh); font-weight: 600;
+      color: var(--color-brand-dark); text-align: center;
+    }
+
+    /* ═══════════════════════════════════════
+       PRODUCT TILE (catalog-preview, sm-img) — reused verbatim from
+       tiles-spec.html / template-recipe-detail.html's own MEADOWLAND
+       row, laid out with its ≤768px catalog-grid horizontal reflow
+       applied unconditionally, since this disclosure needs that layout
+       at every viewport, not just mobile.
+    ═══════════════════════════════════════ */
+    .ufs-tile--catalog-preview { position: relative; display: grid; grid-template-columns: 140px 1fr; grid-template-areas: "image content"; align-items: center; column-gap: var(--space-3); min-width: 0; width: 100%; border: none; border-radius: var(--radius-md); background: var(--color-mushroom-100); padding: var(--space-4); margin: var(--space-3) 0 var(--space-4); }
+    .ufs-tile--catalog-preview .ufs-tile__image { grid-area: image; width: 140px; height: 140px; border-radius: var(--radius-md); position: relative; overflow: hidden; }
+    .ufs-tile--catalog-preview .ufs-tile__image-media { width: 100%; height: 100%; background-size: cover; background-position: center; }
+    .ufs-tile--catalog-preview .ufs-tile__fav { position: absolute; width: var(--space-8); height: var(--space-8); top: var(--space-2); right: var(--space-2); border-radius: var(--radius-full); background: rgba(255,255,255,0.8); backdrop-filter: blur(3px); box-shadow: var(--shadow-xs); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    .ufs-tile--catalog-preview .ufs-tile__fav svg { width: 16px; height: 14px; }
+    .ufs-tile--catalog-preview .ufs-tile__fav svg path { fill: none; stroke: var(--color-brand-dark); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
+    .ufs-tile--catalog-preview .ufs-tile__fav.is-active svg path { fill: var(--color-brand-primary); stroke: var(--color-brand-primary); }
+    .ufs-tile--catalog-preview .ufs-tile__badge { position: absolute; top: var(--space-2); left: var(--space-2); background: var(--color-aubergine); border: 1px solid var(--color-brand-primary); border-radius: var(--radius-full); height: auto; padding: 2px var(--space-2); color: var(--color-salt); font-size: var(--text-badge-size); letter-spacing: var(--text-badge-ls); text-transform: uppercase; }
+    [dir="rtl"] .ufs-tile--catalog-preview .ufs-tile__fav { right: auto; left: var(--space-2); }
+    [dir="rtl"] .ufs-tile--catalog-preview .ufs-tile__badge { left: auto; right: var(--space-2); }
+    .ufs-tile--catalog-preview .ufs-tile__content { display: flex; flex-direction: column; grid-area: content; gap: var(--space-3); }
+    .ufs-tile--catalog-preview .ufs-tile__body { padding: 0; gap: var(--space-1); display: flex; flex-direction: column; }
+    .ufs-tile--catalog-preview .ufs-tile__eyebrow { font-size: var(--text-badge-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-mushroom-900); }
+    .ufs-tile--catalog-preview .ufs-tile__title { font-size: var(--text-body-sm-size); font-weight: 600; line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin: 0; }
+    .ufs-tile--catalog-preview .ufs-tile__rating { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-badge-size); color: var(--color-mushroom-900); }
+    .ufs-tile--catalog-preview .ufs-tile__stars { display: inline-flex; }
+    .ufs-tile--catalog-preview .ufs-tile__stars svg { width: 12px; height: 12px; fill: var(--color-brand-primary); }
+    .ufs-tile--catalog-preview .ufs-tile__meta { display: flex; flex-wrap: wrap; gap: var(--space-1); font-size: var(--text-fine-print-size); color: var(--color-mushroom-900); }
+    .ufs-tile--catalog-preview .ufs-tile__cta { padding: 0; margin-top: 0; }
+    .ufs-tile--catalog-preview-sm-img { grid-template-columns: 120px 1fr; }
+    .ufs-tile--catalog-preview-sm-img .ufs-tile__image { width: 120px; height: 120px; }
+
+    /* ═══════════════════════════════════════
+       INGREDIENTS PANEL — title, servings stepper (live-scales every
+       ingredient quantity), grouped ingredient rows, and an expandable
+       row revealing an inline product tile. Figma "Rosana 2.0" node
+       1974:4929 (left column of the Recipe Detail two-panel layout —
+       shown here full-width and standalone; on the real page it sits in
+       a fixed ~406px column beside the Preparation panel).
+    ═══════════════════════════════════════ */
+    .ufs-recipe-ingredients { display: flex; flex-direction: column; gap: var(--space-8); max-width: 406px; }
+    .ufs-recipe-ingredients__servings { display: flex; align-items: center; gap: var(--space-6); }
+    .ufs-recipe-ingredients__servings-label { margin: 0; font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); color: var(--color-brand-dark); }
+    .ufs-recipe-ingredients__title { margin: 0; font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w); color: var(--color-brand-dark); }
+    .ufs-recipe-ingredients__group { display: flex; flex-direction: column; gap: 0; }
+    .ufs-recipe-ingredients__group-title { margin: 0 0 var(--space-2); font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); color: var(--color-brand-dark); }
+
+    .ufs-ingredient-row { display: flex; flex-direction: column; border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-ingredient-row__main { display: flex; align-items: center; justify-content: space-between; height: 40px; }
+    .ufs-ingredient-row__name { font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); }
+    .ufs-ingredient-row__qty { font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); font-variant-numeric: tabular-nums; }
+    .ufs-ingredient-row--linked .ufs-ingredient-row__name { display: inline-flex; align-items: center; gap: var(--space-1); }
+    .ufs-ingredient-row__trigger {
+      display: inline-flex; align-items: center; gap: var(--space-1);
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh);
+      color: var(--color-accessible-orange);
+    }
+    .ufs-ingredient-row__trigger svg { width: var(--space-6); height: var(--space-6); flex-shrink: 0; transition: transform 0.2s ease; }
+    .ufs-ingredient-row.is-open .ufs-ingredient-row__trigger svg { transform: rotate(180deg); }
+    .ufs-ingredient-row__panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .ufs-ingredient-row.is-open .ufs-ingredient-row__panel { grid-template-rows: 1fr; }
+    .ufs-ingredient-row__panel-inner { overflow: hidden; min-height: 0; }
+
+    .ufs-recipe-ingredients__cta { width: 100%; justify-content: center; }
+
+    @media (max-width: 768px) {
+      .ufs-recipe-ingredients__title { font-size: var(--text-h4-mob-size); }
+      .ufs-ingredient-row__name, .ufs-ingredient-row__qty, .ufs-ingredient-row__trigger { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-recipe-ingredients__servings-label, .ufs-recipe-ingredients__group-title { font-size: var(--text-h6-mob-size); }
+      .fi-qty-pill { font-size: var(--text-body-sm-size); }
+      .fi-qty-btn { width: var(--space-10); height: var(--space-10); }
+    }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the component's own @media(max-width:768px) declarations
+       scoped to .pv-mobile with !important. Doc-only; not shipped. Same
+       pattern as product-hero-spec.html's .pv-mobile block. */
+    .pv-mobile .ufs-recipe-ingredients__title { font-size: var(--text-h4-mob-size) !important; }
+    .pv-mobile .ufs-ingredient-row__name, .pv-mobile .ufs-ingredient-row__qty, .pv-mobile .ufs-ingredient-row__trigger { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mobile .ufs-recipe-ingredients__servings-label, .pv-mobile .ufs-recipe-ingredients__group-title { font-size: var(--text-h6-mob-size) !important; }
+    .pv-mobile .fi-qty-pill { font-size: var(--text-body-sm-size) !important; }
+    .pv-mobile .fi-qty-btn { width: var(--space-10) !important; height: var(--space-10) !important; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Ingredients Panel</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy &amp; Rules</a>
+      <div class="sidebar-group-label" style="margin-top:8px">States</div>
+      <a href="#states" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Servings &amp; Expandable Row</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Example</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Developer</div>
+      <a href="#usage" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Usage</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Figma node 1974:4929 (left column).<br/>Markup &amp; CSS documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Ingredients Panel</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Ingredients <span>Panel</span></h1>
+        <p class="doc-header-desc">The left column of a Recipe Detail page: a title, a servings stepper that live-recalculates every ingredient quantity, grouped ingredient rows, and one expandable row that reveals an inline product tile for a branded UFS ingredient (MEADOWLAND Professional). Ends in a single full-width CTA.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">template-recipe-detail.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">Fully live: tap the servings stepper and every ingredient quantity below rescales in place, and click "MEADOWLAND Professional" to expand its inline product tile.</p>
+
+      <div class="pv-white" style="padding: 40px 32px;">
+        <div class="ufs-recipe-ingredients" id="ing-demo">
+          <h2 class="ufs-recipe-ingredients__title">Ingredients</h2>
+
+          <div class="ufs-recipe-ingredients__servings">
+            <p class="ufs-recipe-ingredients__servings-label">Servings:</p>
+            <div class="fi-qty" id="ing-servings-qty" data-base-servings="10">
+              <button type="button" class="fi-qty-btn" aria-label="Decrease servings" onclick="ingStepServings(this, -1)">
+                <svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M33.75 20.7C34.4542 20.7 35.0917 20.9854 35.5531 21.4469C36.0146 21.9083 36.3 22.5458 36.3 23.25C36.3 23.9542 36.0146 24.5917 35.5531 25.0531C35.0917 25.5146 34.4542 25.8 33.75 25.8H11.25C10.5458 25.8 9.90835 25.5146 9.44689 25.0531C8.98543 24.5917 8.70001 23.9542 8.70001 23.25C8.70001 22.5458 8.98543 21.9083 9.44689 21.4469C9.90835 20.9854 10.5458 20.7 11.25 20.7H33.75Z"/></svg>
+              </button>
+              <span class="fi-qty-pill"><span class="fi-qty-value" id="ing-servings-value">10</span></span>
+              <button type="button" class="fi-qty-btn" aria-label="Increase servings" onclick="ingStepServings(this, 1)">
+                <svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M22.5 9.45C23.2042 9.45 23.8417 9.73542 24.3031 10.1969C24.7646 10.6583 25.05 11.2958 25.05 12V20.7H33.75C34.4542 20.7 35.0917 20.9854 35.5531 21.4469C36.0146 21.9083 36.3 22.5458 36.3 23.25C36.3 23.9542 36.0146 24.5917 35.5531 25.0531C35.0917 25.5146 34.4542 25.8 33.75 25.8H25.05V34.5C25.05 35.2042 24.7646 35.8417 24.3031 36.3031C23.8417 36.7646 23.2042 37.05 22.5 37.05C21.7958 37.05 21.1583 36.7646 20.6969 36.3031C20.2354 35.8417 19.95 35.2042 19.95 34.5V25.8H11.25C10.5458 25.8 9.90835 25.5146 9.44689 25.0531C8.98543 24.5917 8.70001 23.9542 8.70001 23.25C8.70001 22.5458 8.98543 21.9083 9.44689 21.4469C9.90835 20.9854 10.5458 20.7 11.25 20.7H19.95V12C19.95 11.2958 20.2354 10.6583 20.6969 10.1969C21.1583 9.73542 21.7958 9.45 22.5 9.45Z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="ufs-recipe-ingredients__group">
+            <h3 class="ufs-recipe-ingredients__group-title">For the mash:</h3>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">Potatoes, peeled &amp; diced</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="2000" data-unit="g">2000 g</span>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">Water</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="1500" data-unit="ml">1500 ml</span>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">Salt</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="10" data-unit="g">10 g</span>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row ufs-ingredient-row--linked is-open">
+              <div class="ufs-ingredient-row__main">
+                <button type="button" class="ufs-ingredient-row__trigger" aria-expanded="true" aria-controls="ing-meadowland-panel" onclick="toggleIngredientRow(this)">
+                  MEADOWLAND Professional
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <span class="ufs-ingredient-row__qty" data-base-qty="200" data-unit="g">200 g</span>
+              </div>
+              <div class="ufs-ingredient-row__panel" id="ing-meadowland-panel">
+                <div class="ufs-ingredient-row__panel-inner">
+                  <div class="ufs-tile ufs-tile--catalog-preview ufs-tile--catalog-preview-sm-img">
+                    <div class="ufs-tile__image">
+                      <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                      <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                        <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                      </button>
+                    </div>
+                    <span class="ufs-tile__badge">Chef's pick</span>
+                    <div class="ufs-tile__content">
+                      <div class="ufs-tile__body">
+                        <div class="ufs-tile__eyebrow">Fats &amp; Oils</div>
+                        <h3 class="ufs-tile__title">MEADOWLAND Professional Liquid Margarine, 10 L</h3>
+                        <div class="ufs-tile__rating">
+                          <span class="ufs-tile__stars">
+                            <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          </span>
+                          <span>(332)</span>
+                        </div>
+                        <div class="ufs-tile__meta">
+                          <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
+                          <span class="ufs-tile__meta-item">Vegetarian</span>
+                        </div>
+                      </div>
+                      <div class="ufs-tile__cta"><a href="template-product-bin.html" class="btn btn-primary btn-sm">Buy it now</a></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">Whole milk, warmed</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="300" data-unit="ml">300 ml</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ufs-recipe-ingredients__group">
+            <h3 class="ufs-recipe-ingredients__group-title">For the seasoning:</h3>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">Knorr Professional Chicken Stock Granules</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="40" data-unit="g">40 g</span>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">White pepper, ground</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="4" data-unit="g">4 g</span>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">Nutmeg, ground</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="2" data-unit="g">2 g</span>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">Chives, finely chopped</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="15" data-unit="g">15 g</span>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-icon-left ufs-recipe-ingredients__cta">
+            <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="" style="filter:brightness(0) invert(1)"/>
+            Add all UFS Products to Cart
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY & RULES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Ingredients Panel</div>
+      <h2 class="section-title">Anatomy &amp; Rules</h2>
+      <p class="section-desc">On the real Recipe Detail page this sits in a fixed <code>406px</code> column (<code>grid-column:1</code>, spanning both grid rows so Preparation's own row-2 sibling content lines up snugly under it) beside the Preparation panel — shown here full-width and standalone, capped at the same 406px for an accurate reading measure.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Title &amp; Servings</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Panel gap</span><span class="token-var">var(--space-8)</span><span class="token-note">between title, servings row, each group, and the CTA</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">var(--text-h4-*)</span><span class="token-note">→ var(--text-h4-mob-size) on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Servings label</span><span class="token-var">var(--text-h6-*)</span><span class="token-note">"Servings:" — → var(--text-h6-mob-size) on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Quantity selector</span><span class="token-var">.fi-qty</span><span class="token-note">reused verbatim from index.html's Form Inputs — same node, re-themed to drive live scaling instead of a static count</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Ingredient groups &amp; rows</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Group title</span><span class="token-var">var(--text-h6-*)</span><span class="token-note">e.g. "For the mash:" — → var(--text-h6-mob-size) on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Row height</span><span class="token-var">40px</span><span class="token-note">.ufs-ingredient-row__main — literal px, name/qty vertically centred</span></div>
+          <div class="token-row"><span class="token-prop">Row border</span><span class="token-var">1px solid var(--color-mushroom-300)</span><span class="token-note">bottom only, on every row including the last of a group</span></div>
+          <div class="token-row"><span class="token-prop">Name / Qty</span><span class="token-var">var(--text-body-size)</span><span class="token-note">qty uses font-variant-numeric:tabular-nums so digits don't shift width as they rescale</span></div>
+          <div class="token-row"><span class="token-prop">Expandable row link</span><span class="token-var">var(--color-accessible-orange)</span><span class="token-note">.ufs-ingredient-row__trigger — replaces the plain name for one linked ingredient (MEADOWLAND)</span></div>
+          <div class="token-row"><span class="token-prop">Disclosure panel</span><span class="token-var">grid-template-rows 0fr → 1fr</span><span class="token-note">same reveal mechanism as the Accordion's Usage Information disclosure, 0.3s cubic-bezier</span></div>
+          <div class="token-row"><span class="token-prop">Nested product tile</span><span class="token-var">.ufs-tile--catalog-preview-sm-img</span><span class="token-note">the ≤768px catalog-grid reflow (120px image + content) applied unconditionally, not media-gated — see tiles-spec.html</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">CTA</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Button</span><span class="token-var">.btn.btn-primary.btn-icon-left</span><span class="token-note">full width, cart icon inverted to white via filter</span></div>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-ingredients"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-ingredients__title"</span><span class="t-tag">&gt;</span>Ingredients<span class="t-tag">&lt;/h2&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-ingredients__servings"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-ingredients__group"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;h3</span> <span class="t-at">class</span>=<span class="t-str">"ufs-recipe-ingredients__group-title"</span><span class="t-tag">&gt;</span>For the mash:<span class="t-tag">&lt;/h3&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ingredient-row"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ingredient-row__main"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ingredient-row__name"</span><span class="t-tag">&gt;</span>Potatoes, peeled &amp;amp; diced<span class="t-tag">&lt;/span&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ingredient-row__qty"</span> <span class="t-at">data-base-qty</span>=<span class="t-str">"2000"</span> <span class="t-at">data-unit</span>=<span class="t-str">"g"</span><span class="t-tag">&gt;</span>2000 g<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-cm">&lt;!-- expandable row: same shape + .ufs-ingredient-row--linked.is-open + trigger/panel/tile --&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary btn-icon-left ufs-recipe-ingredients__cta"</span><span class="t-tag">&gt;</span>Add all UFS Products to Cart<span class="t-tag">&lt;/button&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ STATES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="states">
+      <div class="section-breadcrumb">States</div>
+      <h2 class="section-title">Servings &amp; Expandable Row</h2>
+      <p class="section-desc">Two independent interactions: the servings stepper rescales every <code>[data-base-qty]</code> quantity relative to <code>[data-base-servings]</code>, and the linked ingredient row toggles its disclosure panel — both live in the Overview demo above.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Servings scaling</div>
+        <p class="card-desc">Rounding is precision-aware: whole numbers above 10 (kitchen quantities don't need decimals at that scale), one decimal place below it — so small seasoning amounts like "4 g" don't collapse to a "0 g"/"1 g" step that loses the recipe's ratio.</p>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Min servings</span><span class="token-var">1</span><span class="token-note">Decrease button disables at the floor</span></div>
+          <div class="token-row"><span class="token-prop">Scale formula</span><span class="token-var">baseQty × next / base</span><span class="token-note">every [data-base-qty] element recalculated on each step</span></div>
+          <div class="token-row"><span class="token-prop">Rounding</span><span class="token-var">≥10 → whole; &lt;10 → 1 decimal</span><span class="token-note">Math.round vs Math.round(x*10)/10</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Expandable ingredient row</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Trigger</span><span class="token-var">.ufs-ingredient-row__trigger</span><span class="token-note">replaces the plain name span; chevron rotates 180° when open</span></div>
+          <div class="token-row"><span class="token-prop">Default state</span><span class="token-var">.is-open</span><span class="token-note">MEADOWLAND ships expanded by default on the real page</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Example</h2>
+      <p class="section-desc">Below 768px the title steps down to <code>--text-h4-mob-size</code>, servings/group labels to <code>--text-h6-mob-size</code>, and row name/quantity/trigger text to <code>--text-body-sm-size</code> — the quantity selector's own pill and buttons shrink too. Fully interactive, same as desktop.</p>
+
+      <div class="pv-mobile" style="padding: 32px 20px;">
+        <div class="ufs-recipe-ingredients" id="ing-demo-mobile">
+          <h2 class="ufs-recipe-ingredients__title">Ingredients</h2>
+
+          <div class="ufs-recipe-ingredients__servings">
+            <p class="ufs-recipe-ingredients__servings-label">Servings:</p>
+            <div class="fi-qty" id="ing-servings-qty-mobile" data-base-servings="10">
+              <button type="button" class="fi-qty-btn" aria-label="Decrease servings" onclick="ingStepServings(this, -1)">
+                <svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M33.75 20.7C34.4542 20.7 35.0917 20.9854 35.5531 21.4469C36.0146 21.9083 36.3 22.5458 36.3 23.25C36.3 23.9542 36.0146 24.5917 35.5531 25.0531C35.0917 25.5146 34.4542 25.8 33.75 25.8H11.25C10.5458 25.8 9.90835 25.5146 9.44689 25.0531C8.98543 24.5917 8.70001 23.9542 8.70001 23.25C8.70001 22.5458 8.98543 21.9083 9.44689 21.4469C9.90835 20.9854 10.5458 20.7 11.25 20.7H33.75Z"/></svg>
+              </button>
+              <span class="fi-qty-pill"><span class="fi-qty-value" id="ing-servings-value-mobile">10</span></span>
+              <button type="button" class="fi-qty-btn" aria-label="Increase servings" onclick="ingStepServings(this, 1)">
+                <svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M22.5 9.45C23.2042 9.45 23.8417 9.73542 24.3031 10.1969C24.7646 10.6583 25.05 11.2958 25.05 12V20.7H33.75C34.4542 20.7 35.0917 20.9854 35.5531 21.4469C36.0146 21.9083 36.3 22.5458 36.3 23.25C36.3 23.9542 36.0146 24.5917 35.5531 25.0531C35.0917 25.5146 34.4542 25.8 33.75 25.8H25.05V34.5C25.05 35.2042 24.7646 35.8417 24.3031 36.3031C23.8417 36.7646 23.2042 37.05 22.5 37.05C21.7958 37.05 21.1583 36.7646 20.6969 36.3031C20.2354 35.8417 19.95 35.2042 19.95 34.5V25.8H11.25C10.5458 25.8 9.90835 25.5146 9.44689 25.0531C8.98543 24.5917 8.70001 23.9542 8.70001 23.25C8.70001 22.5458 8.98543 21.9083 9.44689 21.4469C9.90835 20.9854 10.5458 20.7 11.25 20.7H19.95V12C19.95 11.2958 20.2354 10.6583 20.6969 10.1969C21.1583 9.73542 21.7958 9.45 22.5 9.45Z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="ufs-recipe-ingredients__group">
+            <h3 class="ufs-recipe-ingredients__group-title">For the mash:</h3>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">Potatoes, peeled &amp; diced</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="2000" data-unit="g">2000 g</span>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row ufs-ingredient-row--linked">
+              <div class="ufs-ingredient-row__main">
+                <button type="button" class="ufs-ingredient-row__trigger" aria-expanded="false" aria-controls="ing-meadowland-panel-mobile" onclick="toggleIngredientRow(this)">
+                  MEADOWLAND Professional
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <span class="ufs-ingredient-row__qty" data-base-qty="200" data-unit="g">200 g</span>
+              </div>
+              <div class="ufs-ingredient-row__panel" id="ing-meadowland-panel-mobile">
+                <div class="ufs-ingredient-row__panel-inner">
+                  <div class="ufs-tile ufs-tile--catalog-preview ufs-tile--catalog-preview-sm-img">
+                    <div class="ufs-tile__image">
+                      <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                    </div>
+                    <span class="ufs-tile__badge">Chef's pick</span>
+                    <div class="ufs-tile__content">
+                      <div class="ufs-tile__body">
+                        <div class="ufs-tile__eyebrow">Fats &amp; Oils</div>
+                        <h3 class="ufs-tile__title">MEADOWLAND Professional Liquid Margarine, 10 L</h3>
+                        <div class="ufs-tile__meta">
+                          <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
+                          <span class="ufs-tile__meta-item">Vegetarian</span>
+                        </div>
+                      </div>
+                      <div class="ufs-tile__cta"><a href="template-product-bin.html" class="btn btn-primary btn-sm">Buy it now</a></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ufs-recipe-ingredients__group">
+            <h3 class="ufs-recipe-ingredients__group-title">For the seasoning:</h3>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">Knorr Professional Chicken Stock Granules</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="40" data-unit="g">40 g</span>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-icon-left ufs-recipe-ingredients__cta">
+            <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="" style="filter:brightness(0) invert(1)"/>
+            Add all UFS Products to Cart
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Every row is a plain flex row of symmetric, unpositioned children — no <code>left</code>/<code>right</code> values anywhere in this component. It mirrors automatically under <code>dir="rtl"</code> with zero extra CSS: the quantity stepper's +/- buttons swap sides, the expand chevron stays trailing, and the nested product tile's own favourite/badge corners flip via its existing RTL rules (see tiles-spec.html).</p>
+
+      <div class="pv-label">RTL</div>
+      <div class="pv-white" style="padding: 40px 32px;" dir="rtl">
+        <div class="ufs-recipe-ingredients" id="ing-demo-rtl">
+          <h2 class="ufs-recipe-ingredients__title">المكونات</h2>
+
+          <div class="ufs-recipe-ingredients__servings">
+            <p class="ufs-recipe-ingredients__servings-label">عدد الحصص:</p>
+            <div class="fi-qty" id="ing-servings-qty-rtl" data-base-servings="10">
+              <button type="button" class="fi-qty-btn" aria-label="تقليل عدد الحصص" onclick="ingStepServings(this, -1)">
+                <svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M33.75 20.7C34.4542 20.7 35.0917 20.9854 35.5531 21.4469C36.0146 21.9083 36.3 22.5458 36.3 23.25C36.3 23.9542 36.0146 24.5917 35.5531 25.0531C35.0917 25.5146 34.4542 25.8 33.75 25.8H11.25C10.5458 25.8 9.90835 25.5146 9.44689 25.0531C8.98543 24.5917 8.70001 23.9542 8.70001 23.25C8.70001 22.5458 8.98543 21.9083 9.44689 21.4469C9.90835 20.9854 10.5458 20.7 11.25 20.7H33.75Z"/></svg>
+              </button>
+              <span class="fi-qty-pill"><span class="fi-qty-value" id="ing-servings-value-rtl">10</span></span>
+              <button type="button" class="fi-qty-btn" aria-label="زيادة عدد الحصص" onclick="ingStepServings(this, 1)">
+                <svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M22.5 9.45C23.2042 9.45 23.8417 9.73542 24.3031 10.1969C24.7646 10.6583 25.05 11.2958 25.05 12V20.7H33.75C34.4542 20.7 35.0917 20.9854 35.5531 21.4469C36.0146 21.9083 36.3 22.5458 36.3 23.25C36.3 23.9542 36.0146 24.5917 35.5531 25.0531C35.0917 25.5146 34.4542 25.8 33.75 25.8H25.05V34.5C25.05 35.2042 24.7646 35.8417 24.3031 36.3031C23.8417 36.7646 23.2042 37.05 22.5 37.05C21.7958 37.05 21.1583 36.7646 20.6969 36.3031C20.2354 35.8417 19.95 35.2042 19.95 34.5V25.8H11.25C10.5458 25.8 9.90835 25.5146 9.44689 25.0531C8.98543 24.5917 8.70001 23.9542 8.70001 23.25C8.70001 22.5458 8.98543 21.9083 9.44689 21.4469C9.90835 20.9854 10.5458 20.7 11.25 20.7H19.95V12C19.95 11.2958 20.2354 10.6583 20.6969 10.1969C21.1583 9.73542 21.7958 9.45 22.5 9.45Z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="ufs-recipe-ingredients__group">
+            <h3 class="ufs-recipe-ingredients__group-title">للهريس:</h3>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">بطاطس مقشرة ومقطعة</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="2000" data-unit="جم">2000 جم</span>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row">
+              <div class="ufs-ingredient-row__main">
+                <span class="ufs-ingredient-row__name">ماء</span>
+                <span class="ufs-ingredient-row__qty" data-base-qty="1500" data-unit="مل">1500 مل</span>
+              </div>
+            </div>
+            <div class="ufs-ingredient-row ufs-ingredient-row--linked is-open">
+              <div class="ufs-ingredient-row__main">
+                <button type="button" class="ufs-ingredient-row__trigger" aria-expanded="true" aria-controls="ing-meadowland-panel-rtl" onclick="toggleIngredientRow(this)">
+                  ميدولاند بروفيشنال
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <span class="ufs-ingredient-row__qty" data-base-qty="200" data-unit="جم">200 جم</span>
+              </div>
+              <div class="ufs-ingredient-row__panel" id="ing-meadowland-panel-rtl">
+                <div class="ufs-ingredient-row__panel-inner">
+                  <div class="ufs-tile ufs-tile--catalog-preview ufs-tile--catalog-preview-sm-img">
+                    <div class="ufs-tile__image">
+                      <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                      <button class="ufs-tile__fav" aria-label="أضف إلى المفضلة" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                        <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                      </button>
+                    </div>
+                    <span class="ufs-tile__badge">اختيار الشيف</span>
+                    <div class="ufs-tile__content">
+                      <div class="ufs-tile__body">
+                        <div class="ufs-tile__eyebrow">دهون وزيوت</div>
+                        <h3 class="ufs-tile__title">ميدولاند بروفيشنال مارجرين سائل، 10 لتر</h3>
+                        <div class="ufs-tile__meta">
+                          <span class="ufs-tile__meta-item">خالٍ من الغلوتين</span><span class="ufs-tile__meta-sep">&middot;</span>
+                          <span class="ufs-tile__meta-item">نباتي</span>
+                        </div>
+                      </div>
+                      <div class="ufs-tile__cta"><a href="template-product-bin.html" class="btn btn-primary btn-sm">اشترِ الآن</a></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-icon-left ufs-recipe-ingredients__cta">
+            <img class="ufs-icon ufs-icon--20" src="icons/cart.svg" alt="" style="filter:brightness(0) invert(1)"/>
+            أضف كل منتجات UFS إلى السلة
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ USAGE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="usage">
+      <div class="section-breadcrumb">Developer</div>
+      <h2 class="section-title">Usage</h2>
+      <p class="section-desc">Two JS functions drive the interactivity: a servings-stepper handler that rescales every <code>[data-base-qty]</code> element within the same panel, and a generic disclosure toggle for the expandable ingredient row.</p>
+
+      <div class="ds-card usage-section" style="display:block;">
+        <div class="code-panel-tabs" style="display:flex; gap:8px; margin-bottom:4px;">
+          <button class="code-panel-tab active" onclick="showPanel('ing-js',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">JS</button>
+        </div>
+        <div class="code-block-wrap" id="ing-js" style="display:block"><pre class="code-body"><span class="t-cm">// Servings stepper — scoped to the panel it lives in, so multiple
+// instances on one page (as in this doc) never cross-scale each other</span>
+<span class="t-pr">function</span> stepServings(qtyEl, delta) {
+  <span class="t-pr">var</span> valueEl = qtyEl.querySelector(<span class="t-str">'.fi-qty-value'</span>);
+  <span class="t-pr">var</span> base = parseInt(qtyEl.dataset.baseServings, 10);
+  <span class="t-pr">var</span> current = parseInt(valueEl.textContent, 10);
+  <span class="t-pr">var</span> next = Math.max(<span class="t-vl">1</span>, current + delta);
+  <span class="t-pr">if</span> (next === current) <span class="t-pr">return</span>;
+  valueEl.textContent = next;
+  qtyEl.querySelector(<span class="t-str">'[aria-label*="ecrease"], [aria-label*="قليل"]'</span>).disabled = (next &lt;= <span class="t-vl">1</span>);
+  qtyEl.closest(<span class="t-str">'.ufs-recipe-ingredients'</span>).querySelectorAll(<span class="t-str">'[data-base-qty]'</span>).forEach(<span class="t-pr">function</span>(el) {
+    <span class="t-pr">var</span> baseQty = parseFloat(el.dataset.baseQty);
+    <span class="t-pr">var</span> unit = el.dataset.unit;
+    <span class="t-pr">var</span> scaled = baseQty * next / base;
+    <span class="t-pr">var</span> rounded = scaled &gt;= <span class="t-vl">10</span> ? Math.round(scaled) : Math.round(scaled * <span class="t-vl">10</span>) / <span class="t-vl">10</span>;
+    el.textContent = rounded + <span class="t-str">' '</span> + unit;
+  });
+}
+
+<span class="t-cm">// Expandable ingredient row — generic disclosure toggle</span>
+<span class="t-pr">function</span> toggleIngredientRow(trigger) {
+  <span class="t-pr">var</span> row = trigger.closest(<span class="t-str">'.ufs-ingredient-row'</span>);
+  <span class="t-pr">var</span> isOpen = row.classList.toggle(<span class="t-str">'is-open'</span>);
+  trigger.setAttribute(<span class="t-str">'aria-expanded'</span>, isOpen ? <span class="t-str">'true'</span> : <span class="t-str">'false'</span>);
+}</pre></div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="full-page-preview-v0.2.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    function showPanel(panelId, clickedBtn) {
+      var container = clickedBtn.closest('.ds-card, .usage-section');
+      container.querySelectorAll('.code-panel-tab').forEach(function(b) { b.classList.remove('active'); });
+      clickedBtn.classList.add('active');
+      container.querySelectorAll('.code-block-wrap').forEach(function(w) { w.style.display = 'none'; });
+      document.getElementById(panelId).style.display = 'block';
+    }
+
+    /* ── Servings stepper (scoped per-panel, so the 3 demo instances on
+       this page never cross-scale each other) ─────────────────────── */
+    function ingStepServings(btn, delta) {
+      var qtyEl = btn.closest('.fi-qty');
+      var valueEl = qtyEl.querySelector('.fi-qty-value');
+      var base = parseInt(qtyEl.dataset.baseServings, 10);
+      var current = parseInt(valueEl.textContent, 10);
+      var next = Math.max(1, current + delta);
+      if (next === current) return;
+      valueEl.textContent = next;
+      qtyEl.querySelectorAll('.fi-qty-btn')[0].disabled = (next <= 1);
+      qtyEl.closest('.ufs-recipe-ingredients').querySelectorAll('[data-base-qty]').forEach(function(el) {
+        var baseQty = parseFloat(el.dataset.baseQty);
+        var unit = el.dataset.unit;
+        var scaled = baseQty * next / base;
+        var rounded = scaled >= 10 ? Math.round(scaled) : Math.round(scaled * 10) / 10;
+        el.textContent = rounded + ' ' + unit;
+      });
+    }
+
+    /* ── Expandable ingredient row ──────────────────────────────────── */
+    function toggleIngredientRow(trigger) {
+      var row = trigger.closest('.ufs-ingredient-row');
+      var isOpen = row.classList.toggle('is-open');
+      trigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+
+    /* ── Tile favourite toggle ──────────────────────────────────────── */
+    function toggleTileFav(btn, event) {
+      if (event) event.stopPropagation();
+      var active = btn.classList.toggle('is-active');
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+    }
+  </script>
+</body>
+</html>

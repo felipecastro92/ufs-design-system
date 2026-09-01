@@ -2942,12 +2942,102 @@
     .ufs-catalog-sort__option { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-xs); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); cursor: pointer; }
     .ufs-catalog-sort__option:hover { background: var(--color-mushroom-100); }
 
+    /* Brand filter stripe — same circular-logo scroller as the header
+       megamenu's .mm-brands (see the MEGAMENU section above), duplicated
+       under its own class since it's a different context and, unlike
+       that one, each logo is now a clickable filter rather than a plain
+       link. Reads/writes the SAME filterState.brand array the "Brand"
+       quick dropdown and the "All filters" drawer accordion already
+       share — clicking a logo here checks the matching checkbox in both
+       surfaces, and vice versa (see togglePopularFilter/syncFilterUI,
+       reused as-is: it's already generic over data-filter-key/-value,
+       not scoped to Popular Filters specifically). */
+    .ufs-brand-filters { display: flex; align-items: center; justify-content: center; gap: var(--space-4); max-width: 1280px; margin: var(--space-4) auto; padding: 0 var(--space-4); }
+    .ufs-brand-filters__label { font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; flex-shrink: 0; }
+    /* flex:0 1 auto (not flex:1) — sized to its own content so the whole
+       label+logos group centers together via the parent's
+       justify-content:center, rather than stretching full-width and
+       leaving the logos flush-left with empty space to their right.
+       min-width:0 still lets it shrink below content width on narrow
+       viewports instead of forcing the row to overflow the page. */
+    .ufs-brand-filters__scroll-wrap { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; }
+    .ufs-brand-filters__list { display: flex; align-items: center; gap: var(--space-8); overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding: var(--space-2) var(--space-10); margin: 0; }
+    .ufs-brand-filters__list::-webkit-scrollbar { display: none; }
+    .ufs-brand-filters__scroll-btn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: var(--space-10); height: var(--space-10); border-radius: var(--radius-sm); background: var(--color-salt); border: 1px solid var(--color-accessible-orange); box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.2s; padding: 0; }
+    .ufs-brand-filters__scroll-btn--prev { left: 0; }
+    .ufs-brand-filters__scroll-btn--next { right: 0; }
+    [dir="rtl"] .ufs-brand-filters__scroll-btn--prev { left: auto; right: 0; }
+    [dir="rtl"] .ufs-brand-filters__scroll-btn--next { right: auto; left: 0; }
+    .ufs-brand-filters__scroll-btn.is-hidden { opacity: 0; pointer-events: none; }
+    .ufs-brand-filters__scroll-btn svg { width: 18px; height: 18px; stroke: var(--color-accessible-orange); }
+    [dir="rtl"] .ufs-brand-filters__scroll-btn svg { transform: scaleX(-1); }
+
+    /* Each item is a toggle button, not a link — default state is the
+       plain logo circle (same shadow/hover-scale as the megamenu's
+       .mm-brand-item); .is-active adds an accessible-orange ring, same
+       token used for every other active-filter surface on this page
+       (.ufs-popular-filters__pill.is-active, .ufs-active-filters__pill). */
+    .ufs-brand-filters__item { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); flex-shrink: 0; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-family); }
+    .ufs-brand-filters__item-logo { width: 80px; height: 80px; border-radius: var(--radius-full); box-shadow: 0 2px 4px rgba(0,0,0,0.1); outline: 1px solid transparent; outline-offset: 2px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease, outline-color 0.2s ease; }
+    .ufs-brand-filters__item-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ufs-brand-filters__item:hover .ufs-brand-filters__item-logo { transform: scale(1.06); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+    .ufs-brand-filters__item.is-active .ufs-brand-filters__item-logo { outline-color: var(--color-accessible-orange); }
+    .ufs-brand-filters__item-label { font-size: var(--text-badge-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); text-align: center; transition: color 0.15s; }
+    .ufs-brand-filters__item.is-active .ufs-brand-filters__item-label { color: var(--color-accessible-orange); }
+
+    @media (max-width: 768px) {
+      /* Label on its own line, left-aligned, brand stripe below it — same
+         column-stack + edge-bleed technique as Popular Filters/Active
+         Filters above: align-items:flex-start shrinks the scroll-wrap to
+         content width by default (column mode's cross-axis default), so
+         align-self:stretch caps it back to the row's full width, letting
+         its own overflow-x:auto scroll instead of the whole page; the
+         negative margin + matching padding then bleeds that scrollable
+         area to the true screen edge. */
+      .ufs-brand-filters { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--space-3); margin-bottom: var(--space-10); }
+      /* width:calc(100% + 2 * space-4), not just align-self:stretch +
+         negative margins alone — a stretched flex item's negative
+         margin-right doesn't feed back into its auto cross-size in every
+         browser's flexbox implementation, so margin-left bled to the true
+         edge but margin-right didn't (confirmed via getBoundingClientRect:
+         left landed at 0 as expected, right stopped 32px short instead of
+         reaching innerWidth). The explicit width removes that ambiguity. */
+      .ufs-brand-filters__scroll-wrap {
+        align-self: stretch;
+        width: calc(100% + 2 * var(--space-4));
+        max-width: none;
+        margin-left: calc(-1 * var(--space-4));
+        margin-right: calc(-1 * var(--space-4));
+        padding-left: 0;
+        padding-right: 0;
+      }
+      /* Arrows are a desktop-only affordance here too (same convention as
+         Product Hero's gallery, see product-hero-spec.html) — mobile is
+         native touch-swipe instead. Without this, the prev/next buttons
+         (which need padding reserved on the wrap/list to sit without
+         overlapping content) would cover the first/last logo the moment
+         they un-hide on scroll, since that reserved space is zeroed below
+         for a true edge-to-edge bleed — first/last logo's own pixels
+         reach x:0 / x:innerWidth, not just the scroll-wrap's box. */
+      .ufs-brand-filters__scroll-btn { display: none; }
+      /* padding-left here (not on .ufs-brand-filters__scroll-wrap) is
+         deliberate — this is the actual scrolling element, so the padding
+         scrolls away with the content as soon as the user swipes, instead
+         of sitting as a fixed gap that never goes away (that was the bug
+         in the previous attempt, which put the padding on the wrap). */
+      .ufs-brand-filters__list { padding-left: var(--space-4); padding-right: var(--space-4); gap: var(--space-6); }
+      .ufs-brand-filters__item-logo { width: 64px; height: 64px; }
+    }
+
     /* Popular filters — a shortcut row of pill toggles for a handful of
        filter values, sitting directly below the filters bar. Each pill
        reads/writes the SAME filterState the quick dropdowns and the "All
        filters" drawer accordion already share (see FILTER_CATEGORIES /
        togglePopularFilter / syncFilterUI) — activating a pill checks the
-       matching checkbox in both surfaces, and vice versa. */
+       matching checkbox in both surfaces, and vice versa.
+       Hidden for now (product owner request) — the brand filter stripe
+       above covers the same "quick shortcut" need for launch; kept in
+       the DOM/JS as-is (not deleted) so it's a one-line revert away. */
     .ufs-popular-filters { display: flex; align-items: center; justify-content: center; gap: var(--space-3); max-width: 1280px; margin: var(--space-4) auto var(--space-4); }
     .ufs-popular-filters[hidden] { display: none; }
     .ufs-popular-filters__label { font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; margin: 0; flex-shrink: 0; }
@@ -3825,7 +3915,51 @@
       </button>
     </div>
 
-    <div class="ufs-popular-filters" id="popular-filters-row">
+    <!-- ================================================================
+         BRAND FILTER STRIPE — same circular-logo scroller as the header
+         megamenu's .mm-brands, repurposed here as filter toggles (see
+         .ufs-brand-filters CSS above for the full rationale). Each item
+         reads/writes filterState.brand, same as the Brand quick dropdown.
+    ================================================================ -->
+    <div class="ufs-brand-filters" id="brand-filters-row">
+      <p class="ufs-brand-filters__label">Filter by brand:</p>
+      <div class="ufs-brand-filters__scroll-wrap">
+        <button type="button" class="ufs-brand-filters__scroll-btn ufs-brand-filters__scroll-btn--prev is-hidden" id="brand-filters-prev" onclick="brandFiltersScroll(-1)" aria-label="Previous brands">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="ufs-brand-filters__list" id="brand-filters-list" onscroll="brandFiltersUpdateArrows()">
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Knorr" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="images/brands/knorr.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Knorr</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Hellmann's" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="images/brands/hellmanns.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Hellmann's</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Colman's" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="images/brands/colmans.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Colman's</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Carte d'Or" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="images/brands/carte-dor.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Carte d'Or</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Marmite" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="images/brands/marmite.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Marmite</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Pot Noodle" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="images/brands/potnoodle.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Pot Noodle</span>
+          </button>
+        </div>
+        <button type="button" class="ufs-brand-filters__scroll-btn ufs-brand-filters__scroll-btn--next" id="brand-filters-next" onclick="brandFiltersScroll(1)" aria-label="Next brands">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="ufs-popular-filters" id="popular-filters-row" hidden>
       <p class="ufs-popular-filters__label">Popular filters:</p>
       <div class="ufs-popular-filters__pills">
         <button type="button" class="ufs-popular-filters__pill" data-filter-key="brand" data-filter-value="Knorr" onclick="togglePopularFilter(this)">
@@ -5650,6 +5784,26 @@
     }
     mmBrandsUpdateArrows();
 
+    /* Brand filter stripe scroller — identical mechanics to
+       mmBrandsScroll/mmBrandsUpdateArrows above, duplicated under its own
+       function names since it targets a different element (#brand-filters-*
+       instead of #mm-brands-*), not the megamenu. */
+    function brandFiltersScroll(dir) {
+      var list = document.getElementById('brand-filters-list');
+      if (!list) return;
+      var target = dir > 0 ? list.scrollWidth - list.clientWidth : 0;
+      list.scrollTo({ left: target, behavior: 'smooth' });
+    }
+    function brandFiltersUpdateArrows() {
+      var list = document.getElementById('brand-filters-list');
+      var prev = document.getElementById('brand-filters-prev');
+      var next = document.getElementById('brand-filters-next');
+      if (!list || !prev || !next) return;
+      prev.classList.toggle('is-hidden', list.scrollLeft <= 0);
+      next.classList.toggle('is-hidden', list.scrollLeft >= list.scrollWidth - list.clientWidth - 1);
+    }
+    brandFiltersUpdateArrows();
+
     /* ================================================================
        REGISTRATION FLOW
     ================================================================ */
@@ -7070,9 +7224,11 @@
        other immediately.
     ================================================================ */
     var FILTER_CATEGORIES = [
-      { key: 'brand',      label: 'Brand',      options: ['Knorr', "Hellmann's", "Carte d'Or"] },
+      { key: 'brand',      label: 'Brand',      options: ['Knorr', "Hellmann's", "Colman's", "Carte d'Or", 'Marmite', 'Pot Noodle'] },
       { key: 'category',   label: 'Category',   options: ['Condiments', 'Sauces & Stocks', 'Seasoning', 'Soups & Bouillons', 'Desserts & Toppings'] },
-      { key: 'dietetics',  label: 'Dietetics',  options: ['Gluten-Free', 'Dairy-Free', 'Vegan', 'Vegetarian', 'Nut-Free', 'Halal'] }
+      { key: 'dietetics',  label: 'Dietetics',  options: ['Gluten-Free', 'Dairy-Free', 'Vegan', 'Vegetarian', 'Nut-Free', 'Halal'] },
+      { key: 'channel',    label: 'Channel',    options: ['Canteens', 'Catering', 'Deli', 'Restaurants', 'Hotel & Conferencing'] },
+      { key: 'size',       label: 'Size',       options: ['Blue', 'Portion Control', 'Pouch'] }
     ];
     var QUICK_DROPDOWN_KEYS = ['brand', 'category', 'dietetics'];
     var filterState = {};
@@ -7184,13 +7340,26 @@
         pill.classList.toggle('is-active', filterState[key].indexOf(val) !== -1);
       });
 
+      /* Brand filter stripe — same reflect-filterState pattern as the
+         Popular Filters pills above, kept as its own loop since it's a
+         different element/class (see .ufs-brand-filters). */
+      document.querySelectorAll('.ufs-brand-filters__item').forEach(function(item) {
+        var val = item.getAttribute('data-filter-value');
+        var active = filterState.brand.indexOf(val) !== -1;
+        item.classList.toggle('is-active', active);
+        item.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
       /* Active Filters replaces Popular Filters entirely the moment any
          filter is active — rebuilt fresh from filterState every call so it
          always reflects every active value across every category, not
-         just the 3 curated Popular Filters pills. */
+         just the 3 curated Popular Filters pills.
+         Popular Filters itself stays permanently hidden for now (see its
+         own CSS comment) — the brand filter stripe replaces its "quick
+         shortcut" role, so this only ever un-hides Active Filters. */
       var popularRow = document.getElementById('popular-filters-row');
       var activeRow = document.getElementById('active-filters-row');
-      if (popularRow) popularRow.hidden = hasAny;
+      if (popularRow) popularRow.hidden = true;
       if (activeRow) activeRow.hidden = !hasAny;
       if (hasAny) renderActiveFilters();
 
