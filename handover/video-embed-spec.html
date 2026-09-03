@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Embed — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: visible; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-pr  { color: #93c5fd; }
+    .t-kw  { color: #ff7b72; }
+    .t-id  { color: #d2a8ff; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       VIDEO EMBED — new component, no Figma source node yet. Rather than
+       inventing new visual language, its anatomy is built by combining two
+       patterns this DS already ships: Topic Tile's photo + bottom-gradient
+       + overlaid-content shell (tiles-spec.html, .ufs-tile--topic) for the
+       card itself, and Teaser's play trigger/icon + shared video lightbox
+       (teaser-spec.html, .ufs-teaser__play) for the video control — same
+       icon circle, same hover darken+scale, same lb-overlay modal opened
+       via [data-video-url]. Duration + timer icon has no DS precedent to
+       match (icons/timer.svg exists but was unused before this component),
+       so its format ("12 min", rounded) and placement (bottom, beside the
+       title) are this spec's own decision, not a sourced value.
+    ═══════════════════════════════════════ */
+    .ufs-video-embed {
+      position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+      width: 320px; aspect-ratio: 16 / 9;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    /* Same split as Topic Tile: the photo lives on its own layer
+       (.ufs-video-embed__photo) inside a dedicated clipping frame
+       (.ufs-video-embed__media), so the hover zoom can use a smoothly
+       animatable transform:scale without needing overflow:hidden on the
+       element that also carries the hover box-shadow. */
+    .ufs-video-embed__media { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
+    .ufs-video-embed__photo { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 0.35s ease; }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-video-embed:hover .ufs-video-embed__photo { transform: scale(1.06); }
+      .ufs-video-embed:hover { box-shadow: var(--shadow-lg); }
+    }
+    /* Bottom gradient — identical stops to Topic Tile's own ::before, reused
+       rather than re-derived so both components read as one family. */
+    .ufs-video-embed::before {
+      content: ''; position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-dark) 0%, transparent) 23.5%, var(--color-brand-dark) 74%);
+    }
+
+    /* Play trigger — byte-for-byte Teaser's .ufs-teaser__play pattern:
+       icon-sized hit area for touch (so a carousel swipe starting on the
+       card still reaches the track's native scroll), full-cover hit area
+       for mouse/trackpad (hover:hover), same data-video-url + shared
+       lightbox wiring. z-index:3 — one above .ufs-video-embed__body's 2 —
+       is load-bearing: unlike Teaser (plain image, nothing else absolutely
+       positioned over it), this card's bottom-pinned title/duration block
+       shares screen space with the button's full-cover desktop hit area.
+       Without outranking it, clicking the title/duration text (which
+       visually sits right where the icon is, on the compact base size) hit
+       the non-interactive body instead of opening the lightbox. The button
+       has no opaque background outside the icon circle, so raising it
+       doesn't hide the text underneath. */
+    .ufs-video-embed__play {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; padding: 0; cursor: pointer;
+      touch-action: pan-x;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-video-embed__play { inset: 0; top: auto; left: auto; transform: none; width: 100%; height: 100%; }
+    }
+    .ufs-video-embed__play-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: var(--space-16); height: var(--space-16); border-radius: var(--radius-full);
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.6);
+      transition: background 0.15s, transform 0.15s;
+    }
+    .ufs-video-embed__play-icon svg { width: 26px; height: 26px; fill: var(--color-salt); }
+    .ufs-video-embed__play:hover .ufs-video-embed__play-icon { background: rgba(0,0,0,0.4); transform: scale(1.08); }
+
+    .ufs-video-embed__body {
+      position: relative; z-index: 2;
+      display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+      padding: var(--space-5); text-align: center;
+    }
+    .ufs-video-embed__title { font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); color: var(--color-salt); margin: 0; }
+    .ufs-video-embed__meta { display: flex; align-items: center; justify-content: center; gap: var(--space-1); }
+    .ufs-video-embed__meta img { width: var(--space-4); height: var(--space-4); filter: brightness(0) invert(1); opacity: 0.75; }
+    .ufs-video-embed__meta span { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-300); }
+
+    /* Wide variant — same anatomy, wider carousel-only card (650px, same
+       width Topic Tile Wide uses), content left-anchored instead of
+       centred, bigger play icon and title. Logical padding-inline-
+       start/end + align-items:flex-start mirror to the correct edge under
+       RTL automatically; only the literal text-align needs an explicit
+       flip. Below 769px none of this applies — same rule Topic Tile Wide
+       follows: the wide card looks exactly like the base one on mobile. */
+    @media (min-width: 769px) {
+      .ufs-video-embed--wide { width: 650px; }
+      .ufs-video-embed--wide .ufs-video-embed__play-icon { width: var(--space-20); height: var(--space-20); }
+      .ufs-video-embed--wide .ufs-video-embed__play-icon svg { width: 32px; height: 32px; }
+      .ufs-video-embed--wide .ufs-video-embed__body { align-items: flex-start; text-align: left; padding: var(--space-8); }
+      .ufs-video-embed--wide .ufs-video-embed__title { font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); }
+      .ufs-video-embed--wide .ufs-video-embed__meta { justify-content: flex-start; }
+      [dir="rtl"] .ufs-video-embed--wide .ufs-video-embed__body { text-align: right; }
+    }
+
+    /* Mobile — same 32px play-icon drop as Teaser's own mobile override.
+       Card width/aspect-ratio stay fixed: like every other
+       .ufs-carousel-card tile in this DS, Video Embed is meant to live in
+       a horizontally-scrolling carousel track on small screens, not
+       reflow to full viewport width. */
+    @media (max-width: 768px) {
+      .ufs-video-embed__play-icon { width: 32px; height: 32px; }
+      .ufs-video-embed__play-icon svg { width: 14px; height: 14px; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Video Embed</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy &amp; Rules</a>
+      <a href="#lightbox" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Play Trigger &amp; Lightbox</a>
+      <a href="#sizes" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Sizes</a>
+      <div class="sidebar-group-label" style="margin-top:8px">States</div>
+      <a href="#hover" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Hover Behavior</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Example</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Developer</div>
+      <a href="#usage" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Usage</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New component — no Figma source node.<br/>Anatomy assembled from Topic Tile + Teaser, documented as-is.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Video Embed</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec — New Component</div>
+        <h1 class="doc-header-title">Video <span>Embed</span></h1>
+        <p class="doc-header-desc">A tile-like video thumbnail: full-bleed background image with a bottom gradient overlay, a centered play button, and a video title + duration pinned to the bottom. Two sizes — a fixed-width carousel card and a wider featured variant — both held to a true 16:9 video ratio. Clicking the play button opens the DS's existing shared video lightbox.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">No Figma node — new component</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">The live component, fully wired — click the play button to open the real video lightbox.</p>
+
+      <div class="pv-dark" style="padding: 48px; display:flex; justify-content:center;">
+        <div class="ufs-video-embed">
+          <div class="ufs-video-embed__media">
+            <div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div>
+          </div>
+          <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+            <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+          </button>
+          <div class="ufs-video-embed__body">
+            <p class="ufs-video-embed__title">Knife Skills: Basic Cuts Masterclass</p>
+            <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>12 min</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--info" style="margin-top:16px;">
+        <span class="notice-icon">ℹ️</span>
+        <div>This is a new component with no Figma source node — built by combining two patterns this DS already ships (Topic Tile's card shell, Teaser's play trigger) rather than inventing new visual language. See Anatomy &amp; Rules below for exactly what was reused vs. new.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY & RULES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Video Embed</div>
+      <h2 class="section-title">Anatomy &amp; Rules</h2>
+      <p class="section-desc">Four layers stacked in one card: a clipped photo frame, a bottom gradient scrim, a centered play trigger, and a content block (title + duration) pinned above the gradient.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Card &amp; photo</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Shape</span><span class="token-var">aspect-ratio: 16 / 9</span><span class="token-note">true video ratio — new to this component, Topic Tile uses a fixed min-height instead since it isn't video-specific</span></div>
+          <div class="token-row"><span class="token-prop">Width (base)</span><span class="token-var">320px</span><span class="token-note">matches the standard .ufs-carousel-card width used elsewhere in this DS</span></div>
+          <div class="token-row"><span class="token-prop">Radius</span><span class="token-var">var(--radius-lg)</span><span class="token-note">same as Topic Tile</span></div>
+          <div class="token-row"><span class="token-prop">Photo layer</span><span class="token-var">.ufs-video-embed__media / __photo</span><span class="token-note">absolute inset:0, background-size:cover — same photo/frame split as Topic Tile, so the hover zoom can animate cleanly</span></div>
+          <div class="token-row"><span class="token-prop">Gradient</span><span class="token-var">linear-gradient(...) 23.5% → 74%</span><span class="token-note">var(--color-brand-dark), identical stops to Topic Tile's own ::before</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Play button</div>
+        <div class="card-desc">Reused byte-for-byte from Teaser's .ufs-teaser__play — see Play Trigger &amp; Lightbox below for the full behavior.</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Icon (base)</span><span class="token-var">var(--space-16)</span><span class="token-note">64px circle, dark translucent fill, light border</span></div>
+          <div class="token-row"><span class="token-prop">Icon (wide)</span><span class="token-var">var(--space-20)</span><span class="token-note">80px, desktop only (≥769px)</span></div>
+          <div class="token-row"><span class="token-prop">Icon (mobile)</span><span class="token-var">32px</span><span class="token-note">below 768px, both sizes</span></div>
+          <div class="token-row"><span class="token-prop">Glyph</span><span class="token-var">inline SVG triangle</span><span class="token-note">same path as every other DS play icon (Teaser, Teaser LG, Training Hero)</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Title &amp; duration</div>
+        <div class="card-desc">New to this component — no prior DS pattern for a video duration to match, so this format/placement is this spec's own decision.</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">var(--text-h6-size)</span><span class="token-note">18px/600, var(--color-salt) — bumps to var(--text-h5-size) on the wide variant</span></div>
+          <div class="token-row"><span class="token-prop">Duration format</span><span class="token-var">"12 min"</span><span class="token-note">rounded minutes, not mm:ss — reads faster at a glance than a timecode</span></div>
+          <div class="token-row"><span class="token-prop">Duration icon</span><span class="token-var">icons/timer.svg</span><span class="token-note">brightness(0) invert(1) to render white, 75% opacity, var(--space-4) 16px</span></div>
+          <div class="token-row"><span class="token-prop">Duration text</span><span class="token-var">var(--text-body-xs-size)</span><span class="token-note">color var(--color-mushroom-300) — sits directly under the title, same row group</span></div>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__media"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__photo"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('…')"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__play"</span> <span class="t-at">data-video-url</span>=<span class="t-str">"…"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Play video"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__play-icon"</span><span class="t-tag">&gt;&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 24 24"</span><span class="t-tag">&gt;&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M8 5v14l11-7z"</span><span class="t-tag">/&gt;&lt;/svg&gt;&lt;/span&gt;</span>
+  <span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__body"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__title"</span><span class="t-tag">&gt;</span>Knife Skills: Basic Cuts Masterclass<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__meta"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/timer.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;&lt;span&gt;</span>12 min<span class="t-tag">&lt;/span&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ PLAY TRIGGER & LIGHTBOX ═══════════════════════════════════════ -->
+    <section class="doc-section" id="lightbox">
+      <div class="section-breadcrumb">Video Embed</div>
+      <h2 class="section-title">Play Trigger &amp; Lightbox</h2>
+      <p class="section-desc">Clicking the play button opens the same shared video lightbox modal already used by Teaser and Training Hero — not a new modal. The button carries the video URL via <code>data-video-url</code>; a single shared script (see Usage) reads it and opens <code>.lb-overlay</code>.</p>
+
+      <div class="ds-card">
+        <div class="card-desc" style="margin-bottom:16px;">Only the play button is the click target, not the whole card — same touch-vs-mouse distinction as Teaser: on mouse/trackpad the hit area covers the full photo (easy to click anywhere), but on touch it's scoped to just the icon, via a <code>touch-action: pan-x</code> fallback, so a swipe starting on the card still reaches the carousel track's native horizontal scroll instead of being swallowed by the button.</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Trigger</span><span class="token-var">.ufs-video-embed__play</span><span class="token-note">&lt;button&gt;, absolutely positioned</span></div>
+          <div class="token-row"><span class="token-prop">Modal</span><span class="token-var">.lb-overlay / .lb-panel</span><span class="token-note">shared with Teaser &amp; Training Hero — one instance per page, not duplicated per card</span></div>
+          <div class="token-row"><span class="token-prop">Video URL</span><span class="token-var">[data-video-url]</span><span class="token-note">read by the shared lightbox script's click listener</span></div>
+          <div class="token-row"><span class="token-prop">Close</span><span class="token-var">Esc, backdrop click, × button</span><span class="token-note">same three dismiss paths as every other DS lightbox</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ SIZES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="sizes">
+      <div class="section-breadcrumb">Video Embed</div>
+      <h2 class="section-title">Sizes</h2>
+      <p class="section-desc">Base is a fixed-width carousel card (320px); <code>.ufs-video-embed--wide</code> is a wider featured variant (650px, desktop only) with a bigger play icon, bigger title, and left-anchored content instead of centered.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Base — 320px, centered content</div>
+        <div class="pv-dark" style="padding: 40px; margin-bottom: 28px;">
+          <div class="ufs-video-embed">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Knife Skills: Basic Cuts Masterclass</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>12 min</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pv-label">Wide — 650px, left-anchored content</div>
+        <div class="pv-dark" style="padding: 40px;">
+          <div class="ufs-video-embed ufs-video-embed--wide">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Behind the Menu: Sourcing Seasonal Produce</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>24 min</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Height</span><span class="token-var">derived from aspect-ratio</span><span class="token-note">180px (base) / 366px (wide) — not set directly</span></div>
+          <div class="token-row"><span class="token-prop">Breakpoint</span><span class="token-var">min-width: 769px</span><span class="token-note">below it, --wide collapses to the base layout — same rule Topic Tile Wide follows</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ HOVER ═══════════════════════════════════════ -->
+    <section class="doc-section" id="hover">
+      <div class="section-breadcrumb">States</div>
+      <h2 class="section-title">Hover Behavior</h2>
+      <p class="section-desc">Two independent hover effects, layered: hovering <em>anywhere on the card</em> zooms the background photo 1.06× (Topic Tile's whole-card pattern) — hovering the play button itself additionally darkens its circle and scales it 1.08×. Mouse/trackpad only, gated behind <code>(hover: hover) and (pointer: fine)</code> so nothing sticks on touch.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Hover anywhere on the card to see both effects</div>
+        <div class="pv-dark" style="padding: 40px; display:flex; justify-content:center;">
+          <div class="ufs-video-embed">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Knife Skills: Basic Cuts Masterclass</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>12 min</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="token-list" style="margin-top:16px;">
+          <div class="token-row"><span class="token-prop">Card hover</span><span class="token-var">.ufs-video-embed:hover .ufs-video-embed__photo</span><span class="token-note">transform: scale(1.06), 0.35s ease</span></div>
+          <div class="token-row"><span class="token-prop">Card hover</span><span class="token-var">.ufs-video-embed:hover</span><span class="token-note">box-shadow: var(--shadow-lg)</span></div>
+          <div class="token-row"><span class="token-prop">Icon hover</span><span class="token-var">.ufs-video-embed__play:hover .ufs-video-embed__play-icon</span><span class="token-note">background rgba(0,0,0,0.4), scale(1.08), 0.15s</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Example</h2>
+      <p class="section-desc">Below 768px only the play icon shrinks (to 32px, matching Teaser's own mobile override). Card width and aspect-ratio stay fixed — like every other <code>.ufs-carousel-card</code> tile in this DS, Video Embed is meant to sit in a horizontally-scrolling carousel track on small screens, not reflow to full viewport width. This is a judgment call, not a sourced Figma value.</p>
+
+      <div class="pv-label">Mobile (play icon at 32px)</div>
+      <div class="pv-mobile" style="padding: 24px 16px;">
+        <div class="pv-dark" style="padding: 24px; display:flex; justify-content:center;">
+          <div class="ufs-video-embed">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Knife Skills: Basic Cuts Masterclass</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>12 min</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--warn" style="margin-top:16px;">
+        <span class="notice-icon">⚠️</span>
+        <div>The mobile play-icon override above is emulated with an inline style for this preview only (media queries can't be scoped to a container, only the real viewport) — in production, resize the actual browser window below 768px to see the real <code>@media</code> rule take effect.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The base (centered) variant needs no changes — it's already symmetric. The wide variant's left-anchored content uses logical <code>padding-inline-start/end</code> and <code>align-items:flex-start</code>, which already mirror to the correct edge under <code>dir="rtl"</code>; only the literal <code>text-align</code> needs an explicit flip.</p>
+
+      <div class="pv-label">RTL — wide variant</div>
+      <div class="pv-dark" style="padding: 40px; display:flex; justify-content:center;" dir="rtl">
+        <div class="ufs-video-embed ufs-video-embed--wide">
+          <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div></div>
+          <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="تشغيل الفيديو">
+            <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+          </button>
+          <div class="ufs-video-embed__body">
+            <p class="ufs-video-embed__title">وراء القائمة: توريد المنتجات الموسمية</p>
+            <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>24 دقيقة</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip" style="margin-top:16px;">
+        <span class="notice-icon">💡</span>
+        <div>The play button itself needs no RTL handling at all — it's centered via <code>top/left: 50%</code> + <code>translate(-50%,-50%)</code> on the base variant, and full-cover (<code>inset:0</code>) on desktop, neither of which reference a physical left/right edge.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ USAGE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="usage">
+      <div class="section-breadcrumb">Developer</div>
+      <h2 class="section-title">Usage</h2>
+      <p class="section-desc">Requires the shared <code>.lb-overlay</code> lightbox markup once per page (see bottom of this file) plus the click-listener script below — both are the exact same ones Teaser and Training Hero already ship, so if either is already on the page, Video Embed needs no new JS at all.</p>
+
+      <div class="ds-card usage-section" style="display:block;">
+        <div class="code-panel-tabs" style="display:flex; gap:8px; margin-bottom:4px;">
+          <button class="code-panel-tab active" onclick="showPanel('ve-html',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">HTML</button>
+          <button class="code-panel-tab" onclick="showPanel('ve-css',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">CSS</button>
+          <button class="code-panel-tab" onclick="showPanel('ve-js',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">JS</button>
+        </div>
+        <div class="code-block-wrap" id="ve-html" style="display:block"><pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__media"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__photo"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('images/tiles/training.jpg')"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__play"</span> <span class="t-at">data-video-url</span>=<span class="t-str">"https://player.vimeo.com/video/…"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Play video"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__play-icon"</span><span class="t-tag">&gt;&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 24 24"</span><span class="t-tag">&gt;&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M8 5v14l11-7z"</span><span class="t-tag">/&gt;&lt;/svg&gt;&lt;/span&gt;</span>
+  <span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__body"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__title"</span><span class="t-tag">&gt;</span>Knife Skills: Basic Cuts Masterclass<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__meta"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/timer.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;&lt;span&gt;</span>12 min<span class="t-tag">&lt;/span&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span>
+
+<span class="t-cm">&lt;!-- .ufs-video-embed--wide on the root swaps in the 650px desktop-only variant --&gt;</span>
+
+<span class="t-cm">&lt;!-- once per page — shared by every video trigger, Video Embed included --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"lb-overlay"</span> <span class="t-at">id</span>=<span class="t-str">"lb-overlay"</span> <span class="t-at">role</span>=<span class="t-str">"dialog"</span> <span class="t-at">aria-modal</span>=<span class="t-str">"true"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Video"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"lb-wrap"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"lb-close"</span> <span class="t-at">id</span>=<span class="t-str">"lb-close"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Close"</span><span class="t-tag">&gt;</span>&amp;times;<span class="t-tag">&lt;/button&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"lb-panel"</span><span class="t-tag">&gt;&lt;iframe</span> <span class="t-at">id</span>=<span class="t-str">"lb-iframe"</span> <span class="t-at">src</span>=<span class="t-str">""</span> <span class="t-at">allow</span>=<span class="t-str">"autoplay; fullscreen; picture-in-picture"</span> <span class="t-at">allowfullscreen</span><span class="t-tag">&gt;&lt;/iframe&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre></div>
+        <div class="code-block-wrap" id="ve-css" style="display:none"><pre class="code-body"><span class="t-pr">.ufs-video-embed</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">flex-end</span>;
+  <span class="t-pr">width</span>: <span class="t-vl">320px</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">16 / 9</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-pr">.ufs-video-embed__media</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-pr">.ufs-video-embed__photo</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background-size</span>: <span class="t-vl">cover</span>; <span class="t-pr">background-position</span>: <span class="t-vl">center</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform 0.35s ease</span>; }
+<span class="t-cm">@media (hover: hover) and (pointer: fine) {</span>
+  <span class="t-pr">.ufs-video-embed:hover .ufs-video-embed__photo</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.06)</span>; }
+<span class="t-cm">}</span>
+<span class="t-pr">.ufs-video-embed::before</span> { <span class="t-pr">content</span>: <span class="t-str">''</span>; <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-dark) 0%, transparent) 23.5%, var(--color-brand-dark) 74%)</span>; }
+<span class="t-pr">.ufs-video-embed__play</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-vl">50%</span>; <span class="t-pr">left</span>: <span class="t-vl">50%</span>; <span class="t-pr">transform</span>: <span class="t-vl">translate(-50%, -50%)</span>; <span class="t-pr">z-index</span>: <span class="t-vl">3</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">none</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">touch-action</span>: <span class="t-vl">pan-x</span>; }
+<span class="t-pr">.ufs-video-embed__play-icon</span> { <span class="t-pr">width</span>: <span class="t-va">var(--space-16)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-16)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.25)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid rgba(255,255,255,0.6)</span>; }
+<span class="t-pr">.ufs-video-embed__play:hover .ufs-video-embed__play-icon</span> { <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.4)</span>; <span class="t-pr">transform</span>: <span class="t-vl">scale(1.08)</span>; }
+<span class="t-pr">.ufs-video-embed__body</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">z-index</span>: <span class="t-vl">2</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-5)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-video-embed__title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h6-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-video-embed__meta img</span> { <span class="t-pr">filter</span>: <span class="t-vl">brightness(0) invert(1)</span>; <span class="t-pr">opacity</span>: <span class="t-vl">0.75</span>; }
+<span class="t-pr">.ufs-video-embed__meta span</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-300)</span>; }
+
+<span class="t-cm">@media (min-width: 769px) {</span>
+  <span class="t-pr">.ufs-video-embed--wide</span> { <span class="t-pr">width</span>: <span class="t-vl">650px</span>; }
+  <span class="t-pr">.ufs-video-embed--wide .ufs-video-embed__body</span> { <span class="t-pr">align-items</span>: <span class="t-vl">flex-start</span>; <span class="t-pr">text-align</span>: <span class="t-vl">left</span>; }
+<span class="t-cm">}</span>
+<span class="t-cm">@media (max-width: 768px) {</span>
+  <span class="t-pr">.ufs-video-embed__play-icon</span> { <span class="t-pr">width</span>: <span class="t-vl">32px</span>; <span class="t-pr">height</span>: <span class="t-vl">32px</span>; }
+<span class="t-cm">}</span></pre></div></div>
+        <div class="code-block-wrap" id="ve-js" style="display:none"><pre class="code-body"><span class="t-cm">// Same shared lightbox script every video trigger on the page reuses —</span>
+<span class="t-cm">// only needs to run once. Skip entirely if Teaser or Training Hero</span>
+<span class="t-cm">// already wire it up on this page.</span>
+(<span class="t-kw">function</span> () {
+  <span class="t-kw">var</span> <span class="t-id">lbOverlay</span> = <span class="t-id">document</span>.<span class="t-id">getElementById</span>(<span class="t-str">'lb-overlay'</span>);
+  <span class="t-kw">var</span> <span class="t-id">lbIframe</span>  = <span class="t-id">document</span>.<span class="t-id">getElementById</span>(<span class="t-str">'lb-iframe'</span>);
+  <span class="t-kw">var</span> <span class="t-id">lbClose</span>   = <span class="t-id">document</span>.<span class="t-id">getElementById</span>(<span class="t-str">'lb-close'</span>);
+  <span class="t-kw">if</span> (!<span class="t-id">lbOverlay</span>) <span class="t-kw">return</span>;
+
+  <span class="t-kw">function</span> <span class="t-id">openLB</span>(<span class="t-id">url</span>) {
+    <span class="t-id">lbIframe</span>.<span class="t-id">src</span> = <span class="t-id">url</span>;
+    <span class="t-id">lbOverlay</span>.<span class="t-id">classList</span>.<span class="t-id">add</span>(<span class="t-str">'open'</span>);
+    <span class="t-id">document</span>.<span class="t-id">body</span>.<span class="t-id">style</span>.<span class="t-id">overflow</span> = <span class="t-str">'hidden'</span>;
+  }
+  <span class="t-kw">function</span> <span class="t-id">closeLB</span>() {
+    <span class="t-id">lbOverlay</span>.<span class="t-id">classList</span>.<span class="t-id">remove</span>(<span class="t-str">'open'</span>);
+    <span class="t-id">lbIframe</span>.<span class="t-id">src</span> = <span class="t-str">''</span>;
+    <span class="t-id">document</span>.<span class="t-id">body</span>.<span class="t-id">style</span>.<span class="t-id">overflow</span> = <span class="t-str">''</span>;
+  }
+
+  <span class="t-id">document</span>.<span class="t-id">querySelectorAll</span>(<span class="t-str">'[data-video-url]'</span>).<span class="t-id">forEach</span>(<span class="t-kw">function</span> (<span class="t-id">trigger</span>) {
+    <span class="t-id">trigger</span>.<span class="t-id">addEventListener</span>(<span class="t-str">'click'</span>, <span class="t-kw">function</span> () { <span class="t-id">openLB</span>(<span class="t-id">trigger</span>.<span class="t-id">getAttribute</span>(<span class="t-str">'data-video-url'</span>)); });
+  });
+  <span class="t-id">lbClose</span>.<span class="t-id">addEventListener</span>(<span class="t-str">'click'</span>, <span class="t-id">closeLB</span>);
+  <span class="t-id">lbOverlay</span>.<span class="t-id">addEventListener</span>(<span class="t-str">'click'</span>, <span class="t-kw">function</span> (<span class="t-id">e</span>) { <span class="t-kw">if</span> (<span class="t-id">e</span>.<span class="t-id">target</span> === <span class="t-id">lbOverlay</span>) <span class="t-id">closeLB</span>(); });
+  <span class="t-id">document</span>.<span class="t-id">addEventListener</span>(<span class="t-str">'keydown'</span>, <span class="t-kw">function</span> (<span class="t-id">e</span>) { <span class="t-kw">if</span> (<span class="t-id">e</span>.<span class="t-id">key</span> === <span class="t-str">'Escape'</span> &amp;&amp; <span class="t-id">lbOverlay</span>.<span class="t-id">classList</span>.<span class="t-id">contains</span>(<span class="t-str">'open'</span>)) <span class="t-id">closeLB</span>(); });
+})();</pre></div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="full-page-preview-v0.2.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <!-- VIDEO LIGHTBOX — shared by every .ufs-video-embed__play trigger on this page -->
+  <div class="lb-overlay" id="lb-overlay" role="dialog" aria-modal="true" aria-label="Video">
+    <div class="lb-wrap">
+      <button class="lb-close" id="lb-close" aria-label="Close">&times;</button>
+      <div class="lb-panel">
+        <iframe id="lb-iframe" src="" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .lb-overlay {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.88);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .lb-overlay.open { opacity: 1; pointer-events: all; }
+    .lb-wrap { position: relative; width: min(900px, calc(100vw - 32px)); }
+    .lb-panel { aspect-ratio: 16 / 9; background: var(--color-brand-dark); border-radius: var(--radius-lg); overflow: hidden; transform: scale(0.95); transition: transform 0.25s; }
+    .lb-overlay.open .lb-panel { transform: scale(1); }
+    .lb-panel iframe { width: 100%; height: 100%; border: none; display: block; }
+    .lb-close { position: absolute; top: -44px; right: 0; background: none; border: none; color: var(--color-salt); font-size: 30px; line-height: 1; padding: 6px; cursor: pointer; opacity: 0.8; transition: opacity 0.15s; }
+    .lb-close:hover { opacity: 1; }
+  </style>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    function showPanel(panelId, clickedBtn) {
+      var container = clickedBtn.closest('.ds-card, .usage-section');
+      container.querySelectorAll('.code-panel-tab').forEach(function(b) { b.classList.remove('active'); });
+      clickedBtn.classList.add('active');
+      container.querySelectorAll('.code-block-wrap').forEach(function(w) { w.style.display = 'none'; });
+      document.getElementById(panelId).style.display = 'block';
+    }
+
+    /* ── Video lightbox ─────────────────────────────────────────── */
+    (function () {
+      var lbOverlay = document.getElementById('lb-overlay');
+      var lbIframe  = document.getElementById('lb-iframe');
+      var lbClose   = document.getElementById('lb-close');
+      if (!lbOverlay) return;
+
+      function openLB(url) {
+        lbIframe.src = url;
+        lbOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLB() {
+        lbOverlay.classList.remove('open');
+        lbIframe.src = '';
+        document.body.style.overflow = '';
+      }
+
+      document.querySelectorAll('[data-video-url]').forEach(function (trigger) {
+        trigger.addEventListener('click', function () {
+          openLB(trigger.getAttribute('data-video-url'));
+        });
+      });
+      lbClose.addEventListener('click', closeLB);
+      lbOverlay.addEventListener('click', function (e) { if (e.target === lbOverlay) closeLB(); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lbOverlay.classList.contains('open')) closeLB();
+      });
+    })();
+  </script>
+</body>
+</html>

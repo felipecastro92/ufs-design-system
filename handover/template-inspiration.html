@@ -1750,6 +1750,7 @@
     .signin-close svg { width: 12px; height: 12px; }
     .signin-panel-body { flex: 1; overflow-y: auto; padding: var(--space-7); }
     .fi-wrap { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; }
+    .fi-wrap[hidden] { display: none; }
     .fi-label { font-size: var(--text-btn-size); line-height: 22px; font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
     .fi-field {
       width: 100%; height: var(--space-12);
@@ -1763,19 +1764,34 @@
     .fi-field:focus { border-color: var(--color-brand-dark); }
     .fi-field:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
     .fi-field.is-invalid { border-color: var(--color-error); }
-    .fi-contact-wrap { position: relative; }
-    .fi-contact-wrap .fi-field { transition: padding-left 0.15s, border-color 0.15s; }
-    .fi-contact-wrap.has-icon .fi-field { padding-left: var(--space-10); }
-    .fi-contact-icon {
-      position: absolute; left: var(--space-4); top: 50%; transform: translateY(-50%);
-      width: 18px; height: 18px; opacity: 0; pointer-events: none; transition: opacity 0.15s;
+    /* Locked state — Address/City/Postal/Business phone number after
+       picking an existing business from the suggestion dropdown (see
+       regSelectBusiness()). Loaded as-is, not editable, until Business
+       name is cleared (regBusinessNameInput() unlocks them again) or a
+       different business is picked. */
+    .fi-field[readonly], .fi-field:disabled {
+      background: var(--color-mushroom-300); color: var(--color-mushroom-900);
+      cursor: not-allowed;
     }
-    .fi-contact-icon.is-provisional { opacity: 0.35; }
-    .fi-contact-icon.is-resolved { opacity: 0.85; }
-    [dir="rtl"] .fi-contact-wrap.has-icon .fi-field { padding-left: var(--space-4); padding-right: var(--space-10); }
-    [dir="rtl"] .fi-contact-icon { left: auto; right: var(--space-4); }
-    .fi-contact-hint { font-size: var(--text-body-xs-size); color: var(--color-mushroom-700); line-height: var(--text-body-xs-lh); margin-top: var(--space-1); min-height: 16px; }
-    .fi-contact-hint:empty { margin-top: 0; min-height: 0; }
+    /* Email/Phone tabs — replaces the old single unified field that
+       auto-detected which one you were typing. .reg-contact-field wraps
+       the tabs + whichever panel (.fi-wrap) is active + the shared hint
+       below both, so switching tabs never touches the other panel's own
+       input value (state is preserved across switches, only the visible
+       validation hint/is-invalid styling resets — see
+       regSwitchContactTab()). */
+    .reg-contact-field { display: flex; flex-direction: column; gap: var(--space-3); }
+    .reg-contact-tabs { display: flex; gap: var(--space-5); border-bottom: 1px solid var(--color-mushroom-300); }
+    .reg-contact-tab {
+      position: relative; padding: 0 0 var(--space-2); background: none; border: none; cursor: pointer;
+      font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: 600;
+      color: var(--color-mushroom-700); transition: color 0.15s;
+    }
+    .reg-contact-tab.is-active { color: var(--color-brand-dark); }
+    .reg-contact-tab.is-active::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--color-brand-primary); }
+    .reg-contact-tab:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+    .fi-contact-hint { font-size: var(--text-body-xs-size); color: var(--color-mushroom-700); line-height: var(--text-body-xs-lh); min-height: 16px; }
+    .fi-contact-hint:empty { min-height: 0; }
     .fi-contact-hint.is-error { color: var(--color-error); }
     .signin-panel-title { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); margin-bottom: var(--space-3); }
     .signin-form-fields { display: flex; flex-direction: column; gap: var(--space-3); margin-bottom: var(--space-3); }
@@ -1828,7 +1844,6 @@
     .fi-row .fi-wrap { flex: 1; min-width: 0; }
     .fi-phone-row { display: flex; gap: var(--space-2); }
     .fi-phone-code { flex: 0 0 96px; padding-left: var(--space-3); padding-right: var(--space-6); }
-    [dir="rtl"] .fi-phone-code { padding-left: var(--space-6); padding-right: var(--space-3); }
     .fi-phone-number { flex: 1; min-width: 0; }
     .reg-extra-fields { display: none; flex-direction: column; gap: var(--space-4); animation: regExtraReveal 0.3s ease; }
     .reg-extra-fields.is-visible { display: flex; }
@@ -1847,6 +1862,57 @@
     .fi-checkbox input:checked + .fi-checkbox-box img { opacity: 1; }
     .fi-checkbox-label { font-size: var(--text-body-sm-size); color: var(--color-brand-dark); line-height: 1.4; padding-top: 1px; }
     .fi-checkbox-label a { color: var(--color-accessible-orange); text-decoration: underline; text-underline-offset: 2px; }
+
+    /* "Choose channel" — expandable Email/SMS/WhatsApp sub-list under the
+       marketing-consent checkbox. Indented to align under that checkbox's
+       own label (space-5 box + space-3 gap), not the checkbox square
+       itself. See regTermsToggle()/regConsentChannelChange() for the
+       parent<->children two-way sync. */
+    .reg-consent-group { display: flex; flex-direction: column; gap: var(--space-2); }
+    .reg-consent-toggle {
+      display: inline-flex; align-items: center; gap: var(--space-1); align-self: flex-start;
+      margin-left: calc(var(--space-5) + var(--space-3));
+      background: none; border: none; padding: 0; cursor: pointer;
+      font-family: var(--font-family); font-size: var(--text-body-xs-size); font-weight: 600;
+      color: var(--color-accessible-orange);
+    }
+    .reg-consent-toggle:hover { text-decoration: underline; }
+    .reg-consent-toggle svg { width: 12px; height: 12px; transition: transform 0.2s ease; }
+    .reg-consent-toggle.is-open svg { transform: rotate(180deg); }
+    .reg-consent-channels {
+      display: flex; flex-direction: column; gap: var(--space-2);
+      margin-left: calc(var(--space-5) + var(--space-3));
+      padding-left: var(--space-4); border-left: 2px solid var(--color-mushroom-300);
+    }
+    .reg-consent-channels[hidden] { display: none; }
+
+    /* ── File attach (Journey 5's document field) — native input hidden,
+       a styled label acts as the trigger so it matches .fi-field visually
+       instead of the browser's inconsistent default file-input chrome. ── */
+    .fi-file-wrap { position: relative; }
+    .fi-file-input { position: absolute; width: 0; height: 0; opacity: 0; overflow: hidden; }
+    .fi-file-trigger {
+      display: flex; align-items: center; gap: var(--space-2); box-sizing: border-box;
+      width: 100%; height: var(--space-12);
+      border: 1px dashed var(--color-mushroom-700); border-radius: var(--radius-sm);
+      padding: var(--space-3) var(--space-4);
+      font-size: var(--text-body-sm-size); font-family: var(--font-family); color: var(--color-mushroom-900);
+      background: var(--color-mushroom-100); cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .fi-file-trigger:hover { border-color: var(--color-brand-dark); }
+    .fi-file-icon { width: 18px; height: 18px; flex-shrink: 0; }
+    .fi-file-wrap.has-file .fi-file-trigger { color: var(--color-brand-dark); border-style: solid; padding-right: var(--space-10); }
+    .fi-file-remove {
+      position: absolute; right: var(--space-3); top: 50%; transform: translateY(-50%);
+      width: var(--space-6); height: var(--space-6); border: none; background: none; padding: 0;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.6; transition: opacity 0.15s;
+    }
+    .fi-file-remove:hover { opacity: 1; }
+    .fi-file-remove img { width: 12px; height: 12px; }
+    [dir="rtl"] .fi-file-wrap.has-file .fi-file-trigger { padding-right: var(--space-4); padding-left: var(--space-10); }
+    [dir="rtl"] .fi-file-remove { right: auto; left: var(--space-3); }
+
     .fi-pw-checklist { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-2); }
     .fi-pw-check-item { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-body-xs-size); color: var(--color-mushroom-700); transition: color 0.15s; }
     .fi-pw-check-dot {
@@ -1857,6 +1923,58 @@
     .fi-pw-check-item.is-met { color: var(--color-success); }
     .fi-pw-check-item.is-met .fi-pw-check-dot { background: var(--color-success); border-color: var(--color-success); }
     .fi-pw-check-item.is-met .fi-pw-check-dot img { opacity: 1; }
+
+    /* ── Password show/hide toggle — reused by Login and any other
+       password field that wants it. ── */
+    .fi-password-wrap { position: relative; }
+    .fi-password-wrap .fi-field { padding-right: var(--space-10); }
+    .fi-password-toggle {
+      position: absolute; right: var(--space-3); top: 50%; transform: translateY(-50%);
+      width: var(--space-6); height: var(--space-6); border: none; background: none; padding: 0;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      opacity: 0.6; transition: opacity 0.15s;
+    }
+    .fi-password-toggle:hover { opacity: 1; }
+    .fi-password-toggle img { width: 18px; height: 18px; }
+    [dir="rtl"] .fi-password-wrap .fi-field { padding-right: var(--space-4); padding-left: var(--space-10); }
+    [dir="rtl"] .fi-password-toggle { right: auto; left: var(--space-3); }
+
+    /* ── OTP verification module — adapted from the mobile-registration OTP
+       screen in Figma (node 5509:9791). Colours/spacing/type mapped to the
+       closest existing tokens: filled-box border = --color-orange-500
+       (exact hex match for #FF5A00), empty-box border = --color-mushroom-700
+       (#989495, closest to the design's #949494), info panel bg =
+       --color-mushroom-100 (closest to the design's #EEEFEF "Grey 4"),
+       digit size = --text-price-xl-mob-size (28px, exact match). Boxes are
+       flex:1 with an aspect-ratio (not the design's fixed 53×66px) because
+       this panel is only 420px wide minus space-7 padding — fixed widths
+       would overflow; scaling to fit fits the brief's own "mobile" framing. */
+    .reg-otp-subtitle { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin-bottom: var(--space-7); }
+    .reg-otp-boxes { display: flex; gap: var(--space-4); margin-bottom: var(--space-2); }
+    .reg-otp-box {
+      flex: 1; min-width: 0; aspect-ratio: 53 / 66;
+      border: 2px solid var(--color-mushroom-700); border-radius: var(--radius-sm);
+      background: var(--color-salt); color: var(--color-brand-dark);
+      font-family: var(--font-family); font-size: var(--text-price-xl-mob-size); font-weight: 400;
+      text-align: center; padding: 0; outline: none;
+      transition: border-color 0.15s;
+    }
+    .reg-otp-box:focus, .reg-otp-box.is-filled { border-color: var(--color-orange-500); }
+    .reg-otp-box.is-error { border-color: var(--color-error); }
+    .reg-otp-box:disabled { opacity: 0.6; }
+    .reg-otp-hint { font-size: var(--text-body-xs-size); color: var(--color-error); min-height: 16px; margin-bottom: var(--space-7); }
+    .reg-otp-resend { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin: 0 0 var(--space-9); }
+    .reg-otp-resend-link {
+      background: none; border: none; padding: 0; font-family: inherit; font-size: inherit; font-weight: 600;
+      color: var(--color-brand-dark); text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+    }
+    .reg-otp-resend-link:disabled { color: var(--color-mushroom-700); text-decoration: none; cursor: default; }
+    .reg-otp-info { display: flex; flex-direction: column; gap: var(--space-2); background: var(--color-mushroom-100); border-radius: var(--radius-xs); padding: var(--space-6) var(--space-6) var(--space-6) var(--space-5); }
+    [dir="rtl"] .reg-otp-info { padding: var(--space-6) var(--space-5) var(--space-6) var(--space-6); }
+    .reg-otp-info-icon { width: 30px; height: 30px; }
+    .reg-otp-info-title { font-size: var(--text-body-sm-size); font-weight: 600; line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin-bottom: var(--space-1); }
+    .reg-otp-info-desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); }
+
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .reg-submit-btn { position: relative; overflow: hidden; }
     .reg-submit-btn.is-loading { opacity: 1; cursor: default; }
@@ -1866,6 +1984,11 @@
       background: rgba(255,255,255,0.32);
       transition: width 1s linear;
     }
+    .reg-submit-btn img { position: relative; z-index: 1; }
+    /* Downloaded state — button stays on screen (doesn't disappear/close
+       the panel) so the user can still dismiss via the panel's own X once
+       they're done, per the journey's "download, then close" sequence. */
+    #reg-download-btn.is-done { background: var(--color-success); border-color: var(--color-success); cursor: default; }
     .reg-success { text-align: center; padding: var(--space-8) 0; }
     .reg-success-icon { margin: 0 auto var(--space-6); }
     .reg-success .signin-panel-title { margin-bottom: var(--space-7); }
@@ -4511,11 +4634,27 @@
       <div id="reg-step-email">
         <h2 class="signin-panel-title" data-i18n="si-merged-title">Sign in or Create an Account</h2>
         <div class="signin-form-fields">
-          <div class="fi-wrap">
-            <label class="fi-label" data-i18n="si-contact-label">Enter your email or mobile number</label>
-            <div class="fi-contact-wrap" id="reg-contact-wrap">
-              <img class="fi-contact-icon" id="reg-contact-icon" src="icons/email.svg" alt=""/>
-              <input class="fi-field" type="text" id="reg-email-input" placeholder="you@example.com" dir="ltr" autocomplete="email" oninput="regContactDetect()" onblur="regContactCommit()" onkeydown="if(event.key==='Enter'){event.preventDefault();regSubmitEmail();}"/>
+          <div class="reg-contact-field">
+            <div class="reg-contact-tabs" role="tablist" aria-label="Sign in with">
+              <button type="button" class="reg-contact-tab is-active" id="reg-contact-tab-email" role="tab" aria-selected="true" aria-controls="reg-contact-panel-email" onclick="regSwitchContactTab('email')" data-i18n="si-email-tab">Email</button>
+              <button type="button" class="reg-contact-tab" id="reg-contact-tab-phone" role="tab" aria-selected="false" tabindex="-1" aria-controls="reg-contact-panel-phone" onclick="regSwitchContactTab('phone')" data-i18n="si-phone-tab">Mobile number</button>
+            </div>
+            <div class="fi-wrap" id="reg-contact-panel-email" role="tabpanel" aria-labelledby="reg-contact-tab-email">
+              <input class="fi-field" type="email" id="reg-email-input" placeholder="you@example.com" dir="ltr" autocomplete="email" aria-label="Email" onkeydown="if(event.key==='Enter'){event.preventDefault();regSubmitEmail();}"/>
+            </div>
+            <div class="fi-wrap" id="reg-contact-panel-phone" role="tabpanel" aria-labelledby="reg-contact-tab-phone" hidden>
+              <div class="fi-phone-row">
+                <select class="fi-field fi-select fi-phone-code" id="reg-contact-phone-code" aria-label="Country code">
+                  <option value="+1" selected>+1</option>
+                  <option value="+44">+44</option>
+                  <option value="+39">+39</option>
+                  <option value="+33">+33</option>
+                  <option value="+34">+34</option>
+                  <option value="+49">+49</option>
+                  <option value="+55">+55</option>
+                </select>
+                <input class="fi-field fi-phone-number" type="tel" id="reg-contact-phone-input" placeholder="e.g. 555 123 4567" autocomplete="tel-national" aria-label="Mobile number" onkeydown="if(event.key==='Enter'){event.preventDefault();regSubmitEmail();}"/>
+              </div>
             </div>
             <div class="fi-contact-hint" id="reg-contact-hint" aria-live="polite"></div>
           </div>
@@ -4555,6 +4694,66 @@
         </div>
       </div>
 
+      <!-- JOURNEY 2 — Log in (existing@user.com) -->
+      <div id="reg-step-login" style="display:none">
+        <h2 class="signin-panel-title">Login to your account</h2>
+        <div class="reg-email-chip">
+          <span id="reg-login-email-display">email@email.com</span>
+          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
+        </div>
+        <div class="signin-form-fields">
+          <div class="fi-wrap">
+            <label class="fi-label">Password</label>
+            <div class="fi-password-wrap">
+              <input class="fi-field" type="password" id="reg-login-password-input" placeholder="Enter your password" dir="ltr" autocomplete="current-password" oninput="regCheckLoginPassword()" onkeydown="regLoginPasswordEnter(event)"/>
+              <button type="button" class="fi-password-toggle" id="reg-login-password-toggle" aria-label="Show password" onclick="regToggleLoginPassword()">
+                <img src="icons/reveal.svg" alt=""/>
+              </button>
+            </div>
+          </div>
+        </div>
+        <button class="signin-help-link" style="margin-top:0">Forgot password?</button>
+        <button class="btn btn-primary reg-submit-btn" style="width:100%" id="reg-login-btn" disabled onclick="regSubmitLogin()">
+          <span class="reg-submit-btn-label">Log in</span>
+          <span class="reg-submit-btn-bar" id="reg-login-submit-btn-bar"></span>
+        </button>
+      </div>
+
+      <!-- JOURNEY 3a — Create an account, email-verification variant (verification@user.com) -->
+      <div id="reg-step-verify-email" style="display:none">
+        <h2 class="signin-panel-title">Create an account</h2>
+        <div class="reg-email-chip">
+          <span id="reg-verify-email-display">email@email.com</span>
+          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="regGoToOtp()">Verify your email</button>
+      </div>
+
+      <!-- JOURNEY 3b — OTP verification. Adapted from Figma node 5509:9791
+           (mobile-registration OTP screen) — copy changed from phone to
+           email, see CSS block above for the full token-mapping rationale. -->
+      <div id="reg-step-otp" style="display:none">
+        <h2 class="signin-panel-title">Check your email</h2>
+        <p class="reg-otp-subtitle">We have sent a 6-digit code to <strong id="reg-otp-email-display">email@email.com</strong> - enter it below to verify your email</p>
+        <div class="reg-otp-boxes" id="reg-otp-boxes">
+          <input class="reg-otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" dir="ltr" aria-label="Digit 1" data-otp-index="0" oninput="regOtpDigitInput(event,0)" onkeydown="regOtpKeydown(event,0)" onpaste="regOtpPaste(event)"/>
+          <input class="reg-otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" dir="ltr" aria-label="Digit 2" data-otp-index="1" oninput="regOtpDigitInput(event,1)" onkeydown="regOtpKeydown(event,1)"/>
+          <input class="reg-otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" dir="ltr" aria-label="Digit 3" data-otp-index="2" oninput="regOtpDigitInput(event,2)" onkeydown="regOtpKeydown(event,2)"/>
+          <input class="reg-otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" dir="ltr" aria-label="Digit 4" data-otp-index="3" oninput="regOtpDigitInput(event,3)" onkeydown="regOtpKeydown(event,3)"/>
+          <input class="reg-otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" dir="ltr" aria-label="Digit 5" data-otp-index="4" oninput="regOtpDigitInput(event,4)" onkeydown="regOtpKeydown(event,4)"/>
+          <input class="reg-otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" dir="ltr" aria-label="Digit 6" data-otp-index="5" oninput="regOtpDigitInput(event,5)" onkeydown="regOtpKeydown(event,5)"/>
+        </div>
+        <div class="reg-otp-hint" id="reg-otp-hint" aria-live="polite"></div>
+        <p class="reg-otp-resend">Can&rsquo;t find it? <button type="button" class="reg-otp-resend-link" id="reg-otp-resend-btn" disabled onclick="regResendOtp()">Resend code</button><span id="reg-otp-timer"></span></p>
+        <div class="reg-otp-info">
+          <img class="reg-otp-info-icon" src="icons/info.svg" alt=""/>
+          <div>
+            <div class="reg-otp-info-title">Why are we asking for this?</div>
+            <div class="reg-otp-info-desc">Verifying your email helps us keep your account secure and makes sure you never miss important order and account updates.</div>
+          </div>
+        </div>
+      </div>
+
       <!-- STEP 2 — business / account details -->
       <div id="reg-step-account" style="display:none">
         <h2 class="signin-panel-title">Create an account</h2>
@@ -4566,6 +4765,32 @@
         <div class="signin-form-fields">
           <div class="fi-wrap"><label class="fi-label">Name</label><input class="fi-field" type="text" id="reg-name" placeholder="Please enter your name(s)" autocomplete="given-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
           <div class="fi-wrap"><label class="fi-label">Lastname</label><input class="fi-field" type="text" id="reg-lastname" placeholder="Please enter your last name(s)" autocomplete="family-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+          <!-- Collects whichever of email/mobile the person DIDN'T give in
+               Step 1 — regUpdateAccountContactField() shows exactly one of
+               these two based on regActiveContactTab, every time this step
+               is (re)entered. Required (unlike most of this step's other
+               fields, which are optional) — see regValidateStep2(). -->
+          <div class="fi-wrap" id="reg-account-mobile-wrap" hidden>
+            <label class="fi-label" for="reg-account-mobile">Mobile number</label>
+            <div class="fi-phone-row">
+              <select class="fi-field fi-select fi-phone-code" id="reg-account-mobile-code" aria-label="Country code">
+                <option value="+1" selected>+1</option>
+                <option value="+44">+44</option>
+                <option value="+39">+39</option>
+                <option value="+33">+33</option>
+                <option value="+34">+34</option>
+                <option value="+49">+49</option>
+                <option value="+55">+55</option>
+              </select>
+              <input class="fi-field fi-phone-number" type="tel" id="reg-account-mobile" placeholder="e.g. 555 123 4567" autocomplete="tel-national" oninput="regClearAccountContactError(); regValidateStep2()" onblur="regValidateAccountContactFormat()" onkeydown="regStepEnter(event,'reg-account-btn')"/>
+            </div>
+            <div class="fi-contact-hint" id="reg-account-mobile-hint" aria-live="polite"></div>
+          </div>
+          <div class="fi-wrap" id="reg-account-email-wrap" hidden>
+            <label class="fi-label" for="reg-account-email">Email</label>
+            <input class="fi-field" type="email" id="reg-account-email" placeholder="you@example.com" autocomplete="email" oninput="regClearAccountContactError(); regValidateStep2()" onblur="regValidateAccountContactFormat()" onkeydown="regStepEnter(event,'reg-account-btn')"/>
+            <div class="fi-contact-hint" id="reg-account-email-hint" aria-live="polite"></div>
+          </div>
           <div class="fi-wrap" style="position:relative">
             <label class="fi-label">Business name</label>
             <input class="fi-field" type="text" id="reg-business" placeholder="Please enter your business name" autocomplete="off" oninput="regBusinessNameInput(this.value)" onfocus="regBusinessNameInput(this.value)" onblur="regBusinessNameBlur()" onkeydown="regBusinessNameEnter(event)"/>
@@ -4579,7 +4804,7 @@
               <div class="fi-wrap"><label class="fi-label">Postal code</label><input class="fi-field" type="text" id="reg-postal" placeholder="e.g. 20121" autocomplete="postal-code" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
             </div>
             <div class="fi-wrap">
-              <label class="fi-label">Phone</label>
+              <label class="fi-label">Business phone number</label>
               <div class="fi-phone-row">
                 <select class="fi-field fi-select fi-phone-code" id="reg-phone-code">
                   <option value="+39">+39</option>
@@ -4609,11 +4834,34 @@
         </div>
 
         <div class="fi-checkbox-row">
-          <label class="fi-checkbox">
-            <input type="checkbox" id="reg-terms" onchange="regValidateStep2()"/>
-            <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
-            <span class="fi-checkbox-label">I want to receive offers and updates related to my profession from trusted Unilever brands including culinary inspirations, promotions and other relevant industry information.</span>
-          </label>
+          <div class="reg-consent-group">
+            <label class="fi-checkbox">
+              <input type="checkbox" id="reg-terms" onchange="regTermsToggle()"/>
+              <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+              <span class="fi-checkbox-label">I want to receive offers and updates related to my profession from trusted Unilever brands including culinary inspirations, promotions and other relevant industry information.</span>
+            </label>
+            <button type="button" class="reg-consent-toggle" id="reg-consent-toggle" onclick="regToggleConsentChannels()" aria-expanded="false" aria-controls="reg-consent-channels">
+              Choose channel
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>
+            </button>
+            <div class="reg-consent-channels" id="reg-consent-channels" hidden>
+              <label class="fi-checkbox">
+                <input type="checkbox" class="reg-consent-channel" id="reg-consent-email" onchange="regConsentChannelChange()"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Email</span>
+              </label>
+              <label class="fi-checkbox">
+                <input type="checkbox" class="reg-consent-channel" id="reg-consent-sms" onchange="regConsentChannelChange()"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">SMS</span>
+              </label>
+              <label class="fi-checkbox">
+                <input type="checkbox" class="reg-consent-channel" id="reg-consent-whatsapp" onchange="regConsentChannelChange()"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">WhatsApp</span>
+              </label>
+            </div>
+          </div>
           <label class="fi-checkbox">
             <input type="checkbox" id="reg-age" onchange="regValidateStep2()"/>
             <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
@@ -4654,6 +4902,66 @@
         </button>
       </div>
 
+      <!-- JOURNEY 5 — flexible@user.com. Inserted between password and
+           success; every field here is optional, Continue is always
+           enabled (this module is purely supplementary). -->
+      <div id="reg-step-extra" style="display:none">
+        <h2 class="signin-panel-title">A few more things before finishing</h2>
+        <div class="signin-form-fields">
+          <div class="fi-wrap">
+            <label class="fi-label">Role</label>
+            <select class="fi-field fi-select" id="reg-extra-role">
+              <option value="" disabled selected>Select your role</option>
+              <option value="head-chef">Head Chef</option>
+              <option value="sous-chef">Sous Chef</option>
+              <option value="fb-manager">F&amp;B Manager</option>
+              <option value="owner-operator">Owner/Operator</option>
+              <option value="purchasing-manager">Purchasing Manager</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="fi-wrap">
+            <label class="fi-label">How did you hear about us?</label>
+            <div class="fi-checkbox-row">
+              <label class="fi-checkbox">
+                <input type="checkbox" id="reg-extra-heard-online"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Online</span>
+              </label>
+              <label class="fi-checkbox">
+                <input type="checkbox" id="reg-extra-heard-colleagues"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Colleagues</span>
+              </label>
+              <label class="fi-checkbox">
+                <input type="checkbox" id="reg-extra-heard-newsletter"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Newsletter</span>
+              </label>
+              <label class="fi-checkbox">
+                <input type="checkbox" id="reg-extra-heard-other"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Other</span>
+              </label>
+            </div>
+          </div>
+          <div class="fi-wrap">
+            <label class="fi-label">Attach a document</label>
+            <div class="fi-file-wrap">
+              <input type="file" id="reg-extra-file-input" class="fi-file-input" onchange="regExtraFileChange(this)"/>
+              <label for="reg-extra-file-input" class="fi-file-trigger">
+                <img class="fi-file-icon" src="icons/upload.svg" alt=""/>
+                <span id="reg-extra-file-label">Choose a file</span>
+              </label>
+              <button type="button" class="fi-file-remove" id="reg-extra-file-remove" style="display:none" onclick="regExtraFileRemove()" aria-label="Remove file">
+                <img src="icons/close.svg" alt=""/>
+              </button>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="regExtraContinue()">Continue</button>
+      </div>
+
       <!-- STEP 4 — success -->
       <div id="reg-step-success" style="display:none">
         <div class="reg-success">
@@ -4664,7 +4972,20 @@
             </div>
           </div>
           <h2 class="signin-panel-title" id="reg-success-title">Your account is ready, Giuseppe!</h2>
-          <button class="btn btn-primary" style="width:100%" onclick="regFinish()">Continue</button>
+          <button class="btn btn-primary" style="width:100%" id="reg-success-continue-btn" onclick="regFinish()">Continue</button>
+
+          <!-- JOURNEY 4 — download@user.com. Replaces the Continue button
+               above with a download CTA; account creation already happened
+               identically to Journey 1, this only changes what the success
+               step offers next. -->
+          <div id="reg-success-download" style="display:none">
+            <p class="reg-success-sub">You can download your brochure now</p>
+            <button type="button" class="btn btn-primary btn-icon-left reg-submit-btn" style="width:100%" id="reg-download-btn" onclick="regDownloadBrochure()">
+              <img class="ufs-icon ufs-icon--20" src="icons/dowload.svg" alt="" style="filter:brightness(0) invert(1)"/>
+              <span class="reg-submit-btn-label" id="reg-download-btn-label">Download &ldquo;The Art of Plating&rdquo;</span>
+              <span class="reg-submit-btn-bar" id="reg-download-btn-bar"></span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -5496,52 +5817,36 @@
     ================================================================ */
     var regFullName          = 'Giuseppe Buscicchio';
     var regInitialsText      = 'GB';
+    // Demo-only journey router — maps the 3 "magic" emails to which panel
+    // steps regSubmitEmail() advances to. See regSubmitEmail() below.
+    var REG_JOURNEY_EMAILS = { 'new@user.com': 'create', 'existing@user.com': 'login', 'verification@user.com': 'verify', 'download@user.com': 'download', 'flexible@user.com': 'flexible' };
+    var regJourney = null;
 
     // ================================================================
-    // Unified email/phone sign-in field — live detection + demo phone parsing.
-    // This is an illustrative subset (7 countries, simplified NSN-length checks
-    // and trunk-prefix rules) standing in for a real parser. A production build
-    // should replace REG_PHONE_COUNTRIES/regParsePhone with a proper library
-    // (e.g. libphonenumber-js) rather than extending this by hand.
+    // Email / Phone tabs — replaces the old single field that auto-detected
+    // which one you were typing. regActiveContactTab tracks which tab is
+    // active; phone validation is an illustrative subset (7 countries,
+    // simplified NSN-length checks and trunk-prefix rules) standing in for
+    // a real parser — a production build should replace REG_PHONE_COUNTRIES/
+    // regValidatePhone with a proper library (e.g. libphonenumber-js).
     // ================================================================
-    var regContactMode = null; // 'email' | 'phone' | null, set by regContactDetect()
+    var regActiveContactTab = 'email'; // 'email' | 'phone' — email is the default active tab
 
     var REG_PHONE_COUNTRIES = [
-      { iso: 'US', dial: '+1',  nsnLen: [10],    trunkZero: false, locales: ['en-US', 'en-CA'] },
-      { iso: 'GB', dial: '+44', nsnLen: [10],    trunkZero: true,  locales: ['en-GB'] },
-      { iso: 'IT', dial: '+39', nsnLen: [9, 10], trunkZero: false, locales: ['it', 'it-IT'] },
-      { iso: 'FR', dial: '+33', nsnLen: [9],     trunkZero: true,  locales: ['fr', 'fr-FR'] },
-      { iso: 'ES', dial: '+34', nsnLen: [9],     trunkZero: false, locales: ['es', 'es-ES'] },
-      { iso: 'DE', dial: '+49', nsnLen: [10, 11],trunkZero: true,  locales: ['de', 'de-DE'] },
-      { iso: 'BR', dial: '+55', nsnLen: [10, 11],trunkZero: false, locales: ['pt-BR'] }
+      { iso: 'US', dial: '+1',  nsnLen: [10],     trunkZero: false },
+      { iso: 'GB', dial: '+44', nsnLen: [10],     trunkZero: true  },
+      { iso: 'IT', dial: '+39', nsnLen: [9, 10],  trunkZero: false },
+      { iso: 'FR', dial: '+33', nsnLen: [9],      trunkZero: true  },
+      { iso: 'ES', dial: '+34', nsnLen: [9],      trunkZero: false },
+      { iso: 'DE', dial: '+49', nsnLen: [10, 11], trunkZero: true  },
+      { iso: 'BR', dial: '+55', nsnLen: [10, 11], trunkZero: false }
     ];
 
-    // Best-guess default country from the browser locale — a real build would
-    // likely also weigh IP geolocation. Always overridable by typing an explicit '+'.
-    function regDefaultCountry() {
-      var lang = navigator.language || 'en-US';
-      var short = lang.split('-')[0];
+    function regFindCountryByDial(dial) {
       for (var i = 0; i < REG_PHONE_COUNTRIES.length; i++) {
-        if (REG_PHONE_COUNTRIES[i].locales.indexOf(lang) !== -1) return REG_PHONE_COUNTRIES[i];
-      }
-      for (var j = 0; j < REG_PHONE_COUNTRIES.length; j++) {
-        if (REG_PHONE_COUNTRIES[j].locales.indexOf(short) !== -1) return REG_PHONE_COUNTRIES[j];
+        if (REG_PHONE_COUNTRIES[i].dial === dial) return REG_PHONE_COUNTRIES[i];
       }
       return REG_PHONE_COUNTRIES[0]; // fallback: US
-    }
-
-    // Strips spaces/dashes/parens and normalizes a leading '00' to '+', regardless
-    // of whether the text was typed or pasted.
-    function regCleanPhoneChars(raw) {
-      var s = raw.trim().replace(/[\s\-().]/g, '');
-      if (s.slice(0, 2) === '00') s = '+' + s.slice(2);
-      return s;
-    }
-
-    function regLooksLikePhone(raw) {
-      var s = raw.trim();
-      if (!s || s.indexOf('@') !== -1) return false;
-      return /^[+0]?[\d\s\-().]{1,}$/.test(s) && /\d/.test(s);
     }
 
     function regGroupDigits(digits) {
@@ -5557,132 +5862,189 @@
       return out.join(' ');
     }
 
-    // Resolves raw input against either an explicit '+countrycode' the user typed,
-    // or defaultCountry (inferred from locale) if none was given.
-    function regParsePhone(raw, defaultCountry) {
-      var cleaned = regCleanPhoneChars(raw);
-      var country, nsn;
-
-      if (cleaned.charAt(0) === '+') {
-        var byLongestDial = REG_PHONE_COUNTRIES.slice().sort(function (a, b) { return b.dial.length - a.dial.length; });
-        country = null;
-        for (var i = 0; i < byLongestDial.length; i++) {
-          if (cleaned.indexOf(byLongestDial[i].dial) === 0) { country = byLongestDial[i]; nsn = cleaned.slice(country.dial.length); break; }
-        }
-        if (!country) return { valid: false, reason: 'unknown-country-code' };
-      } else {
-        country = defaultCountry;
-        nsn = (country.trunkZero && cleaned.charAt(0) === '0') ? cleaned.slice(1) : cleaned;
-      }
-
-      if (!nsn || !/^\d+$/.test(nsn)) return { valid: false, reason: 'non-digit' };
-      if (country.nsnLen.indexOf(nsn.length) === -1) return { valid: false, reason: 'length', country: country };
-
-      return { valid: true, country: country, formatted: country.dial + ' ' + regGroupDigits(nsn) };
+    // Validates the digits typed in the phone tab against whichever country
+    // is selected in the dropdown — no more guessing from locale or a typed
+    // '+', since the dropdown now makes that choice explicit.
+    function regValidatePhone(raw, country) {
+      var cleaned = raw.trim().replace(/[\s\-().]/g, '');
+      var nsn = (country.trunkZero && cleaned.charAt(0) === '0') ? cleaned.slice(1) : cleaned;
+      if (!nsn || !/^\d+$/.test(nsn)) return { valid: false };
+      if (country.nsnLen.indexOf(nsn.length) === -1) return { valid: false };
+      return { valid: true, formatted: country.dial + ' ' + regGroupDigits(nsn) };
     }
 
-    // Runs on every keystroke: picks email/phone/neutral, updates the leading icon
-    // (dim while still-typing/unresolved, solid once parsed successfully) and the
-    // assumed-country hint. Deliberately does NOT reformat the text live — only
-    // the icon/hint update per keystroke — to avoid the caret jumping mid-type.
-    function regContactDetect() {
-      var input = document.getElementById('reg-email-input');
-      var wrap  = document.getElementById('reg-contact-wrap');
-      var icon  = document.getElementById('reg-contact-icon');
-      var hint  = document.getElementById('reg-contact-hint');
-      var val   = input.value;
+    // Switches the active tab. Both panels' values are left untouched —
+    // only the visible validation state (is-invalid, the shared hint)
+    // resets, so whatever the user already typed on either tab is still
+    // there if they switch back.
+    function regSwitchContactTab(tab, focusInput) {
+      regActiveContactTab = tab;
+      var isEmail = tab === 'email';
 
+      var emailTab = document.getElementById('reg-contact-tab-email');
+      var phoneTab = document.getElementById('reg-contact-tab-phone');
+      emailTab.classList.toggle('is-active', isEmail);
+      emailTab.setAttribute('aria-selected', isEmail ? 'true' : 'false');
+      emailTab.tabIndex = isEmail ? 0 : -1;
+      phoneTab.classList.toggle('is-active', !isEmail);
+      phoneTab.setAttribute('aria-selected', !isEmail ? 'true' : 'false');
+      phoneTab.tabIndex = !isEmail ? 0 : -1;
+
+      document.getElementById('reg-contact-panel-email').hidden = !isEmail;
+      document.getElementById('reg-contact-panel-phone').hidden = isEmail;
+
+      document.getElementById('reg-email-input').classList.remove('is-invalid');
+      document.getElementById('reg-contact-phone-input').classList.remove('is-invalid');
+      var hint = document.getElementById('reg-contact-hint');
+      hint.classList.remove('is-error');
+      hint.textContent = '';
+
+      if (focusInput !== false) {
+        (isEmail ? document.getElementById('reg-email-input') : document.getElementById('reg-contact-phone-input')).focus();
+      }
+    }
+
+    // We collect both an email and a mobile number regardless of which one
+    // was used to start the journey — this shows whichever of the two the
+    // person DIDN'T already give in Step 1. Called every time Step 2 is
+    // (re)entered, since regActiveContactTab reflects Step 1's tab choice
+    // for the rest of this session.
+    function regUpdateAccountContactField() {
+      var startedWithEmail = regActiveContactTab === 'email';
+      document.getElementById('reg-account-mobile-wrap').hidden = !startedWithEmail;
+      document.getElementById('reg-account-email-wrap').hidden = startedWithEmail;
+      regClearAccountContactError();
+      regValidateStep2();
+    }
+
+    // Clears the inline format error (if any) on whichever of the two
+    // fields is currently shown — used both while typing (the error
+    // shouldn't linger once they start correcting it) and whenever the
+    // visible field itself switches.
+    function regClearAccountContactError() {
+      var usingMobile = !document.getElementById('reg-account-mobile-wrap').hidden;
+      var input = document.getElementById(usingMobile ? 'reg-account-mobile' : 'reg-account-email');
+      var hint  = document.getElementById(usingMobile ? 'reg-account-mobile-hint' : 'reg-account-email-hint');
       input.classList.remove('is-invalid');
       hint.classList.remove('is-error');
-
-      if (!val.trim()) {
-        regContactMode = null;
-        wrap.classList.remove('has-icon');
-        icon.classList.remove('is-provisional', 'is-resolved');
-        hint.textContent = '';
-        return;
-      }
-
-      if (val.indexOf('@') !== -1) {
-        regContactMode = 'email';
-        wrap.classList.add('has-icon');
-        icon.src = 'icons/email.svg';
-        icon.classList.remove('is-provisional');
-        icon.classList.add('is-resolved');
-        hint.textContent = '';
-        return;
-      }
-
-      if (regLooksLikePhone(val)) {
-        regContactMode = 'phone';
-        wrap.classList.add('has-icon');
-        icon.src = 'icons/phone.svg';
-        var result = regParsePhone(val, regDefaultCountry());
-        if (result.valid) {
-          icon.classList.remove('is-provisional');
-          icon.classList.add('is-resolved');
-          hint.textContent = val.charAt(0) === '+' ? '' :
-            'Assuming ' + result.country.iso + ' (' + result.country.dial + ') based on your device — include a ‘+’ and country code if that’s not right.';
-        } else {
-          icon.classList.remove('is-resolved');
-          icon.classList.add('is-provisional');
-          hint.textContent = '';
-        }
-        return;
-      }
-
-      regContactMode = null;
-      wrap.classList.remove('has-icon');
-      icon.classList.remove('is-provisional', 'is-resolved');
       hint.textContent = '';
     }
 
-    // Commits the canonical, reformatted value once the user leaves the field —
-    // this is where the visible "cleaned result" (+39 345 123 4567) actually appears.
-    function regContactCommit() {
-      var input = document.getElementById('reg-email-input');
+    // On blur: shows an inline format error for a genuinely malformed
+    // value. An empty field (it's required, but untouched) stays silent
+    // here — Continue just stays disabled — the error is reserved for
+    // "you typed something, and it doesn't match the expected format".
+    function regValidateAccountContactFormat() {
+      var usingMobile = !document.getElementById('reg-account-mobile-wrap').hidden;
+      var input = document.getElementById(usingMobile ? 'reg-account-mobile' : 'reg-account-email');
+      var hint  = document.getElementById(usingMobile ? 'reg-account-mobile-hint' : 'reg-account-email-hint');
       var val = input.value.trim();
-      if (!val || regContactMode !== 'phone') return;
 
-      var result = regParsePhone(val, regDefaultCountry());
-      if (result.valid) {
-        input.value = result.formatted;
-        // Stand-in for the canonical E.164 string a real backend would store/match on.
-        input.dataset.canonical = result.formatted.replace(/\s/g, '');
-        document.getElementById('reg-contact-icon').classList.remove('is-provisional');
-        document.getElementById('reg-contact-icon').classList.add('is-resolved');
+      if (!val) { input.classList.remove('is-invalid'); hint.classList.remove('is-error'); hint.textContent = ''; return; }
+
+      var valid;
+      if (usingMobile) {
+        var country = regFindCountryByDial(document.getElementById('reg-account-mobile-code').value);
+        valid = regValidatePhone(val, country).valid;
+      } else {
+        valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
       }
+
+      input.classList.toggle('is-invalid', !valid);
+      hint.classList.toggle('is-error', !valid);
+      hint.textContent = valid ? '' : (usingMobile ? 'Enter a valid mobile number for the selected country code.' : 'Enter a valid email address.');
     }
 
     function regSubmitEmail() {
-      var input = document.getElementById('reg-email-input');
-      var hint  = document.getElementById('reg-contact-hint');
+      var hint = document.getElementById('reg-contact-hint');
+      hint.classList.remove('is-error');
+      hint.textContent = '';
 
-      regContactCommit();
-      var email = input.value.trim();
-      if (!email) { input.focus(); return; }
+      // Holds whichever contact string (email, or formatted phone) goes
+      // downstream — the rest of this flow's "email" displays/variables
+      // are generic over both, unchanged from before this tab split.
+      var email;
 
-      var isValidEmail = regContactMode === 'email' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-      var isValidPhone = regContactMode === 'phone' && regParsePhone(email, regDefaultCountry()).valid;
+      if (regActiveContactTab === 'email') {
+        var emailInput = document.getElementById('reg-email-input');
+        email = emailInput.value.trim();
+        if (!email) { emailInput.focus(); return; }
 
-      if (!isValidEmail && !isValidPhone) {
-        input.classList.add('is-invalid');
-        hint.classList.add('is-error');
-        hint.textContent = 'Enter a valid email or mobile number, including your country code.';
-        input.focus();
-        return;
+        var isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (!isValidEmail) {
+          emailInput.classList.add('is-invalid');
+          hint.classList.add('is-error');
+          hint.textContent = 'Enter a valid email address.';
+          emailInput.focus();
+          return;
+        }
+        emailInput.classList.remove('is-invalid');
+      } else {
+        var phoneInput = document.getElementById('reg-contact-phone-input');
+        var country = regFindCountryByDial(document.getElementById('reg-contact-phone-code').value);
+        var raw = phoneInput.value.trim();
+        if (!raw) { phoneInput.focus(); return; }
+
+        var result = regValidatePhone(raw, country);
+        if (!result.valid) {
+          phoneInput.classList.add('is-invalid');
+          hint.classList.add('is-error');
+          hint.textContent = 'Enter a valid mobile number for the selected country code.';
+          phoneInput.focus();
+          return;
+        }
+        phoneInput.classList.remove('is-invalid');
+        phoneInput.value = result.formatted;
+        email = result.formatted;
       }
 
-      document.getElementById('reg-email-display').textContent   = email;
-      document.getElementById('reg-email-display-2').textContent = email;
+      // Demo-only journey routing: only the 5 exact "magic" emails are
+      // recognized — anything else (any other email) is blocked with an
+      // error, kept deliberately narrow to the scripted journeys this
+      // demo exists to show. Phone-number submissions are untouched and
+      // keep going straight to Account Creation, exactly as before this
+      // routing existed — phone verification isn't part of this demo.
+      var journey = regActiveContactTab === 'email' ? REG_JOURNEY_EMAILS[email.toLowerCase()] : 'create';
+      if (regActiveContactTab === 'email' && !journey) {
+        document.getElementById('reg-email-input').classList.add('is-invalid');
+        hint.classList.add('is-error');
+        hint.textContent = 'This demo only recognizes new@user.com, existing@user.com, verification@user.com, download@user.com, or flexible@user.com.';
+        document.getElementById('reg-email-input').focus();
+        return;
+      }
+      regJourney = journey;
+
+      document.getElementById('reg-email-display').textContent       = email;
+      document.getElementById('reg-email-display-2').textContent     = email;
+      document.getElementById('reg-login-email-display').textContent = email;
+      document.getElementById('reg-verify-email-display').textContent = email;
+      document.getElementById('reg-otp-email-display').textContent   = email;
       document.getElementById('reg-step-email').style.display   = 'none';
-      document.getElementById('reg-step-account').style.display = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
+
+      if (journey === 'login') {
+        document.getElementById('reg-step-login').style.display = '';
+        document.getElementById('reg-login-password-input').focus();
+      } else if (regActiveContactTab === 'email' && (journey === 'verify' || journey === 'create')) {
+        // 'create' (new@user.com) now goes through the same email-OTP
+        // verification as 'verify' — OTP is part of the standard create-
+        // account journey, not a demo-only side path. Phone submissions
+        // stay excluded (see comment above): they're forced to 'create'
+        // too, but phone verification isn't part of this demo.
+        document.getElementById('reg-step-verify-email').style.display = '';
+      } else {
+        document.getElementById('reg-step-account').style.display = '';
+        regUpdateAccountContactField();
+      }
     }
 
     function regEditEmail() {
-      document.getElementById('reg-step-account').style.display  = 'none';
-      document.getElementById('reg-step-password').style.display = 'none';
+      document.getElementById('reg-step-account').style.display      = 'none';
+      document.getElementById('reg-step-password').style.display     = 'none';
+      document.getElementById('reg-step-login').style.display        = 'none';
+      document.getElementById('reg-step-verify-email').style.display = 'none';
+      document.getElementById('reg-step-otp').style.display          = 'none';
+      if (regOtpTimer) { clearInterval(regOtpTimer); regOtpTimer = null; }
       document.getElementById('reg-step-email').style.display    = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
     }
@@ -5691,6 +6053,139 @@
       document.getElementById('reg-step-password').style.display = 'none';
       document.getElementById('reg-step-account').style.display  = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
+    }
+
+    /* ── JOURNEY 2 — Log in ── */
+    function regCheckLoginPassword() {
+      var v = document.getElementById('reg-login-password-input').value;
+      document.getElementById('reg-login-btn').disabled = !v;
+    }
+    function regLoginPasswordEnter(event) {
+      if (event.key !== 'Enter') return;
+      regStepEnter(event, 'reg-login-btn');
+    }
+    function regToggleLoginPassword() {
+      var input = document.getElementById('reg-login-password-input');
+      var btn   = document.getElementById('reg-login-password-toggle');
+      var show  = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.querySelector('img').src = show ? 'icons/hide.svg' : 'icons/reveal.svg';
+      btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    }
+    var regLoginSubmitTimeout = null;
+    function regSubmitLogin() {
+      var btn = document.getElementById('reg-login-btn');
+      if (btn.disabled || btn.classList.contains('is-loading')) return;
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+      document.getElementById('reg-login-password-input').disabled = true;
+      var bar = document.getElementById('reg-login-submit-btn-bar');
+      requestAnimationFrame(function() { bar.style.width = '100%'; });
+      regLoginSubmitTimeout = setTimeout(function() {
+        regLoginSubmitTimeout = null;
+        // Demo-only: no real backend, any non-empty password succeeds.
+        closeSignIn();
+        setAuth(true);
+      }, 1000);
+    }
+
+    /* ── JOURNEY 3 — Create an account via email verification ── */
+    function regGoToOtp() {
+      document.getElementById('reg-step-verify-email').style.display = 'none';
+      document.getElementById('reg-step-otp').style.display = '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+      regOtpStart();
+      var first = document.querySelector('.reg-otp-box[data-otp-index="0"]');
+      if (first) first.focus();
+    }
+
+    var regOtpTimer = null;
+    var regOtpSecondsLeft = 0;
+
+    function regOtpStart() {
+      document.querySelectorAll('.reg-otp-box').forEach(function(b) {
+        b.value = ''; b.disabled = false;
+        b.classList.remove('is-filled', 'is-error');
+      });
+      document.getElementById('reg-otp-hint').textContent = '';
+      regOtpSecondsLeft = 59;
+      regOtpUpdateTimer();
+      if (regOtpTimer) clearInterval(regOtpTimer);
+      regOtpTimer = setInterval(function() {
+        regOtpSecondsLeft--;
+        regOtpUpdateTimer();
+        if (regOtpSecondsLeft <= 0) { clearInterval(regOtpTimer); regOtpTimer = null; }
+      }, 1000);
+    }
+
+    function regOtpUpdateTimer() {
+      var resendBtn = document.getElementById('reg-otp-resend-btn');
+      var timerEl   = document.getElementById('reg-otp-timer');
+      if (regOtpSecondsLeft > 0) {
+        resendBtn.disabled = true;
+        var m = Math.floor(regOtpSecondsLeft / 60), s = regOtpSecondsLeft % 60;
+        timerEl.textContent = ' in ' + (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+      } else {
+        resendBtn.disabled = false;
+        timerEl.textContent = '';
+      }
+    }
+
+    function regResendOtp() {
+      if (document.getElementById('reg-otp-resend-btn').disabled) return;
+      regOtpStart();
+      var first = document.querySelector('.reg-otp-box[data-otp-index="0"]');
+      if (first) first.focus();
+    }
+
+    function regOtpDigitInput(event, index) {
+      var el = event.target;
+      el.value = el.value.replace(/[^0-9]/g, '').slice(-1);
+      el.classList.toggle('is-filled', !!el.value);
+      el.classList.remove('is-error');
+      document.getElementById('reg-otp-hint').textContent = '';
+      var boxes = document.querySelectorAll('.reg-otp-box');
+      if (el.value && index < boxes.length - 1) boxes[index + 1].focus();
+      regOtpCheckComplete();
+    }
+
+    function regOtpKeydown(event, index) {
+      if (event.key !== 'Backspace' || event.target.value) return;
+      var boxes = document.querySelectorAll('.reg-otp-box');
+      if (index > 0) boxes[index - 1].focus();
+    }
+
+    function regOtpPaste(event) {
+      var text = (event.clipboardData || window.clipboardData).getData('text').replace(/[^0-9]/g, '');
+      if (!text) return;
+      event.preventDefault();
+      var boxes = document.querySelectorAll('.reg-otp-box');
+      for (var i = 0; i < boxes.length; i++) {
+        boxes[i].value = text[i] || '';
+        boxes[i].classList.toggle('is-filled', !!boxes[i].value);
+      }
+      var lastFilled = Math.min(text.length, boxes.length) - 1;
+      if (lastFilled >= 0) boxes[lastFilled].focus();
+      regOtpCheckComplete();
+    }
+
+    function regOtpCheckComplete() {
+      var boxes = [].slice.call(document.querySelectorAll('.reg-otp-box'));
+      var code = boxes.map(function(b) { return b.value; }).join('');
+      if (code.length === 6) regSubmitOtp();
+    }
+
+    function regSubmitOtp() {
+      if (regOtpTimer) { clearInterval(regOtpTimer); regOtpTimer = null; }
+      document.querySelectorAll('.reg-otp-box').forEach(function(b) { b.disabled = true; });
+      // Demo-only: no real backend, any 6-digit code succeeds. Rejoins the
+      // normal Account Creation flow at Step 2 (name/business/consent).
+      setTimeout(function() {
+        document.getElementById('reg-step-otp').style.display     = 'none';
+        document.getElementById('reg-step-account').style.display = '';
+        regUpdateAccountContactField();
+        document.getElementById('signin-panel-body').scrollTop = 0;
+      }, 400);
     }
 
     var regBusinessSuggestions = [
@@ -5705,11 +6200,34 @@
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
+    // Address/City/Postal/Business phone number: readonly+disabled once
+    // populated from an existing business record (regSelectBusiness), so
+    // they load as-is but aren't editable. regAddCustomBusiness() and
+    // clearing Business name both unlock them again for manual entry.
+    function regSetBusinessFieldsLocked(locked) {
+      ['reg-address', 'reg-city', 'reg-postal', 'reg-phone'].forEach(function(id) {
+        document.getElementById(id).readOnly = locked;
+      });
+      document.getElementById('reg-phone-code').disabled = locked;
+    }
+
     function regBusinessNameInput(value) {
       var typed = value.trim();
       var q = typed.toLowerCase();
       var box = document.getElementById('reg-biz-suggest');
-      if (!q) { box.classList.remove('is-open'); box.innerHTML = ''; return; }
+      if (!q) {
+        box.classList.remove('is-open'); box.innerHTML = '';
+        // Cleared entirely — reset to a blank, editable, hidden state so
+        // there's a clean way back from a locked selection.
+        regSetBusinessFieldsLocked(false);
+        document.getElementById('reg-extra-fields').classList.remove('is-visible');
+        document.getElementById('reg-address').value    = '';
+        document.getElementById('reg-city').value       = '';
+        document.getElementById('reg-postal').value     = '';
+        document.getElementById('reg-phone-code').value = '+39';
+        document.getElementById('reg-phone').value      = '';
+        return;
+      }
       var matches = regBusinessSuggestions.filter(function(b) { return b.name.toLowerCase().indexOf(q) !== -1; });
       var html = matches.map(function(b) {
         return '<div class="reg-biz-suggest-item" onmousedown="regSelectBusiness(\'' + b.name.replace(/'/g, "\\'") + '\')">' + b.name + '</div>';
@@ -5742,6 +6260,7 @@
       document.getElementById('reg-postal').value     = biz.postal;
       document.getElementById('reg-phone-code').value = biz.dialCode;
       document.getElementById('reg-phone').value      = biz.phone;
+      regSetBusinessFieldsLocked(true);
       document.getElementById('reg-business-type').focus();
     }
 
@@ -5749,6 +6268,7 @@
       document.getElementById('reg-biz-suggest').classList.remove('is-open');
       document.getElementById('reg-biz-suggest').innerHTML = '';
       document.getElementById('reg-extra-fields').classList.add('is-visible');
+      regSetBusinessFieldsLocked(false);
       document.getElementById('reg-address').value    = '';
       document.getElementById('reg-city').value       = '';
       document.getElementById('reg-postal').value     = '';
@@ -5757,8 +6277,46 @@
       document.getElementById('reg-address').focus();
     }
 
+    // "Choose channel" — Email/SMS/WhatsApp under the marketing-consent
+    // checkbox. Two-way sync: checking/unchecking the parent sets all 3
+    // channels to match; checking/unchecking any channel recomputes the
+    // parent (checked only once all 3 are checked).
+    function regTermsToggle() {
+      var checked = document.getElementById('reg-terms').checked;
+      document.querySelectorAll('.reg-consent-channel').forEach(function(cb) { cb.checked = checked; });
+      regValidateStep2();
+    }
+
+    function regConsentChannelChange() {
+      var boxes = document.querySelectorAll('.reg-consent-channel');
+      var allChecked = Array.prototype.every.call(boxes, function(cb) { return cb.checked; });
+      document.getElementById('reg-terms').checked = allChecked;
+      regValidateStep2();
+    }
+
+    function regToggleConsentChannels() {
+      var btn = document.getElementById('reg-consent-toggle');
+      var panel = document.getElementById('reg-consent-channels');
+      var opening = panel.hidden;
+      panel.hidden = !opening;
+      btn.classList.toggle('is-open', opening);
+      btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    }
+
     function regValidateStep2() {
-      var ok = document.getElementById('reg-terms').checked && document.getElementById('reg-age').checked;
+      // reg-terms (marketing consent, with its Email/SMS/WhatsApp channels)
+      // is optional — only age confirmation gates Continue here.
+      var ok = document.getElementById('reg-age').checked;
+
+      // Whichever of email/mobile wasn't given in Step 1 is required here
+      // — unlike most of this step's other fields, which stay optional.
+      if (!document.getElementById('reg-account-mobile-wrap').hidden) {
+        var country = regFindCountryByDial(document.getElementById('reg-account-mobile-code').value);
+        ok = ok && regValidatePhone(document.getElementById('reg-account-mobile').value.trim(), country).valid;
+      } else {
+        ok = ok && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('reg-account-email').value.trim());
+      }
+
       document.getElementById('reg-account-btn').disabled = !ok;
     }
 
@@ -5854,8 +6412,57 @@
       regApplyIdentity((name + ' ' + last).trim() || 'Giuseppe Buscicchio');
       document.getElementById('reg-step-account').style.display  = 'none';
       document.getElementById('reg-step-password').style.display = 'none';
-      document.getElementById('reg-step-success').style.display  = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
+
+      // JOURNEY 5 — flexible@user.com inserts an extra optional-fields
+      // module between password and success. Every other journey goes
+      // straight to success.
+      if (regJourney === 'flexible') {
+        document.getElementById('reg-step-extra').style.display = '';
+      } else {
+        regShowSuccess();
+      }
+    }
+
+    function regShowSuccess() {
+      document.getElementById('reg-step-success').style.display = '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+
+      // JOURNEY 4 — download@user.com swaps the Continue button for the
+      // download CTA; every other journey keeps the normal Continue button.
+      var isDownload = regJourney === 'download';
+      document.getElementById('reg-success-continue-btn').style.display = isDownload ? 'none' : '';
+      document.getElementById('reg-success-download').style.display     = isDownload ? '' : 'none';
+
+      // JOURNEY 5 — flexible@user.com overrides the standard "Your account
+      // is ready" title with competition-specific copy. Avatar/checkmark
+      // (set by regApplyIdentity(), already run in regCreateAccount()) stay
+      // exactly as-is — only this title text changes.
+      if (regJourney === 'flexible') {
+        document.getElementById('reg-success-title').textContent = 'You are registered for this competition';
+      }
+    }
+
+    function regExtraContinue() {
+      document.getElementById('reg-step-extra').style.display = 'none';
+      regShowSuccess();
+    }
+
+    function regExtraFileChange(input) {
+      var wrap  = input.closest('.fi-file-wrap');
+      var label = document.getElementById('reg-extra-file-label');
+      if (!input.files || !input.files[0]) return;
+      label.textContent = input.files[0].name;
+      wrap.classList.add('has-file');
+      document.getElementById('reg-extra-file-remove').style.display = 'flex';
+    }
+
+    function regExtraFileRemove() {
+      var input = document.getElementById('reg-extra-file-input');
+      input.value = '';
+      input.closest('.fi-file-wrap').classList.remove('has-file');
+      document.getElementById('reg-extra-file-label').textContent = 'Choose a file';
+      document.getElementById('reg-extra-file-remove').style.display = 'none';
     }
 
     function regFinish() {
@@ -5863,14 +6470,61 @@
       setAuth(true);
     }
 
-    function regResetFlow() {
-      document.getElementById('reg-step-email').style.display    = '';
-      document.getElementById('reg-step-account').style.display  = 'none';
-      document.getElementById('reg-step-password').style.display = 'none';
-      document.getElementById('reg-step-success').style.display  = 'none';
+    var regDownloadTimeout = null;
+    function regDownloadBrochure() {
+      var btn = document.getElementById('reg-download-btn');
+      if (btn.classList.contains('is-loading') || btn.classList.contains('is-done')) return;
+      btn.classList.add('is-loading');
+      var bar = document.getElementById('reg-download-btn-bar');
+      requestAnimationFrame(function() { bar.style.width = '100%'; });
+      regDownloadTimeout = setTimeout(function() {
+        regDownloadTimeout = null;
+        btn.classList.remove('is-loading');
+        btn.classList.add('is-done');
+        document.getElementById('reg-download-btn-label').textContent = 'Downloaded';
+        // Demo-only: no real backend/file — this is where a real download
+        // would be triggered. The panel stays open (closing it is a
+        // separate, explicit action via the existing X button) but the
+        // user is authenticated the moment the download completes.
+        setAuth(true);
+      }, 900);
+    }
 
-      document.getElementById('reg-email-input').value    = '';
-      regContactDetect();
+    function regResetFlow() {
+      document.getElementById('reg-step-email').style.display        = '';
+      document.getElementById('reg-step-account').style.display      = 'none';
+      document.getElementById('reg-step-password').style.display     = 'none';
+      document.getElementById('reg-step-success').style.display      = 'none';
+      document.getElementById('reg-step-login').style.display        = 'none';
+      document.getElementById('reg-step-verify-email').style.display = 'none';
+      document.getElementById('reg-step-otp').style.display          = 'none';
+      document.getElementById('reg-step-extra').style.display        = 'none';
+      regJourney = null;
+
+      document.getElementById('reg-email-input').value        = '';
+      document.getElementById('reg-contact-phone-input').value = '';
+      document.getElementById('reg-contact-phone-code').value  = '+1';
+      regSwitchContactTab('email', false);
+
+      // Journey 2 — Log in
+      if (regLoginSubmitTimeout) { clearTimeout(regLoginSubmitTimeout); regLoginSubmitTimeout = null; }
+      document.getElementById('reg-login-password-input').value    = '';
+      document.getElementById('reg-login-password-input').type     = 'password';
+      document.getElementById('reg-login-password-input').disabled = false;
+      document.getElementById('reg-login-password-toggle').querySelector('img').src = 'icons/reveal.svg';
+      document.getElementById('reg-login-btn').disabled = true;
+      document.getElementById('reg-login-btn').classList.remove('is-loading');
+      document.getElementById('reg-login-submit-btn-bar').style.width = '0%';
+
+      // Journey 3 — Email verification / OTP
+      if (regOtpTimer) { clearInterval(regOtpTimer); regOtpTimer = null; }
+      document.querySelectorAll('.reg-otp-box').forEach(function(b) {
+        b.value = ''; b.disabled = false;
+        b.classList.remove('is-filled', 'is-error');
+      });
+      document.getElementById('reg-otp-hint').textContent = '';
+      document.getElementById('reg-otp-timer').textContent = '';
+      document.getElementById('reg-otp-resend-btn').disabled = true;
       document.getElementById('reg-business-display').textContent = '';
       document.getElementById('reg-name').value           = '';
       document.getElementById('reg-lastname').value       = '';
@@ -5881,7 +6535,19 @@
       document.getElementById('reg-postal').value         = '';
       document.getElementById('reg-phone-code').value     = '+39';
       document.getElementById('reg-phone').value          = '';
+      regSetBusinessFieldsLocked(false);
+      document.getElementById('reg-account-mobile-code').value = '+1';
+      document.getElementById('reg-account-mobile').value       = '';
+      document.getElementById('reg-account-email').value        = '';
+      document.getElementById('reg-account-mobile').classList.remove('is-invalid');
+      document.getElementById('reg-account-email').classList.remove('is-invalid');
+      document.getElementById('reg-account-mobile-hint').textContent = '';
+      document.getElementById('reg-account-email-hint').textContent  = '';
       document.getElementById('reg-terms').checked        = false;
+      document.querySelectorAll('.reg-consent-channel').forEach(function(cb) { cb.checked = false; });
+      document.getElementById('reg-consent-channels').hidden = true;
+      document.getElementById('reg-consent-toggle').classList.remove('is-open');
+      document.getElementById('reg-consent-toggle').setAttribute('aria-expanded', 'false');
       document.getElementById('reg-age').checked          = false;
       document.getElementById('reg-extra-fields').classList.remove('is-visible');
       document.getElementById('reg-biz-suggest').classList.remove('is-open');
@@ -5892,7 +6558,25 @@
 
       document.getElementById('reg-account-btn').disabled = true;
       document.getElementById('reg-password-btn').disabled = true;
+
+      // Journey 4 — Download brochure
+      if (regDownloadTimeout) { clearTimeout(regDownloadTimeout); regDownloadTimeout = null; }
+      document.getElementById('reg-success-continue-btn').style.display = '';
+      document.getElementById('reg-success-download').style.display     = 'none';
+      var downloadBtn = document.getElementById('reg-download-btn');
+      downloadBtn.classList.remove('is-loading', 'is-done');
+      document.getElementById('reg-download-btn-label').textContent = 'Download “The Art of Plating”';
+      document.getElementById('reg-download-btn-bar').style.width = '0%';
+
+      // Journey 5 — Extra optional fields
+      document.getElementById('reg-extra-role').value = '';
+      document.getElementById('reg-extra-heard-online').checked     = false;
+      document.getElementById('reg-extra-heard-colleagues').checked = false;
+      document.getElementById('reg-extra-heard-newsletter').checked = false;
+      document.getElementById('reg-extra-heard-other').checked      = false;
+      regExtraFileRemove();
     }
+
 
     /* ================================================================
        NEWSLETTER FLOW
@@ -6004,7 +6688,6 @@
       openSignIn();
 
       document.getElementById('reg-email-input').value           = email;
-      regContactDetect();
       document.getElementById('reg-email-display').textContent   = email;
       document.getElementById('reg-email-display-2').textContent = email;
       document.getElementById('reg-name').value          = name;
