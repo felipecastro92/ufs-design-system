@@ -2353,6 +2353,10 @@
     .reg-biz-card-icon { width: var(--space-6); height: var(--space-6); flex-shrink: 0; margin-top: 1px; color: var(--color-brand-dark); }
     .reg-biz-card-name { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600; color: var(--color-brand-dark); }
     .reg-biz-card-address, .reg-biz-card-phone { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-squid-500); }
+    /* Flags a field missing from the picked record (e.g. Pizzeria Napoli
+       has no address on file) — sits in the card, pointing at the
+       reg-conditional-field revealed right below it. */
+    .reg-biz-card-missing-note { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-accessible-orange); font-weight: 600; margin-top: var(--space-1); }
     /* Checkmark "draw" — sequential with the card reveal (0.3s), not
        simultaneous: the 0.35s delay lets regExtraReveal settle first, then
        stroke-dashoffset animates the polyline's ~22px length down to 0.
@@ -5507,8 +5511,28 @@
         </div>
 
         <div class="signin-form-fields">
-          <div class="fi-wrap"><label class="fi-label">Name</label><input class="fi-field" type="text" id="reg-name" placeholder="Please enter your name(s)" autocomplete="given-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
-          <div class="fi-wrap"><label class="fi-label">Lastname</label><input class="fi-field" type="text" id="reg-lastname" placeholder="Please enter your last name(s)" autocomplete="family-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+          <!-- Read-only summary of Name/Lastname/Business type/Job title —
+               shown instead of those four fields when they're already
+               known (currently only the newsletter → "Finish my account"
+               path, see nlFinishAccount() / regSetAccountSummaryMode()).
+               Mobile number and Business name are the two fields
+               genuinely still missing, so they stay editable below — same
+               idea as reg-biz-card's own missing-address handling above
+               in the business flow. Same visual language as reg-biz-card,
+               reused here as plain styling classes (not the JS-targeted
+               #reg-biz-card-* ids, to avoid colliding with that card's own
+               checkmark-redraw selector). -->
+          <div class="reg-biz-card" id="reg-account-summary-card">
+            <svg class="reg-biz-card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <polyline points="5 13 10 18 19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="reg-biz-card-body">
+              <div class="reg-biz-card-name" id="reg-account-summary-name"></div>
+              <div class="reg-biz-card-address" id="reg-account-summary-business"></div>
+            </div>
+          </div>
+          <div class="fi-wrap" id="reg-name-wrap"><label class="fi-label">First Name</label><input class="fi-field" type="text" id="reg-name" placeholder="Please enter your name(s)" autocomplete="given-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+          <div class="fi-wrap" id="reg-lastname-wrap"><label class="fi-label">Lastname</label><input class="fi-field" type="text" id="reg-lastname" placeholder="Please enter your last name(s)" autocomplete="family-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
           <!-- Collects whichever of email/mobile the person DIDN'T give in
                Step 1 — regUpdateAccountContactField() shows exactly one of
                these two based on regActiveContactTab, every time this step
@@ -5539,13 +5563,13 @@
             <input class="fi-field" type="email" id="reg-account-email" placeholder="you@example.com" autocomplete="email" oninput="regClearAccountContactError(); regValidateStep2()" onblur="regValidateAccountContactFormat()" onkeydown="regStepEnter(event,'reg-account-btn')"/>
             <div class="fi-contact-hint" id="reg-account-email-hint" aria-live="polite"></div>
           </div>
-          <!-- Business type drives two conditional reveals below it:
-               Job Title (any real business type) and, one level further,
-               Business name + its existing address/phone chain (any Job
-               Title except Foodie). "I don't have/work in a business"
-               skips both. All three (business type, and job title when
-               visible) are required — see regValidateStep2(). -->
-          <div class="fi-wrap">
+          <!-- Business type drives two conditional reveals below it, both
+               at once, not chained: Job Title and Business name + its
+               existing address/phone chain. "I don't have/work in a
+               business" skips both. Business type and Business name (once
+               visible) are required; Job Title is optional — see
+               regValidateStep2(). -->
+          <div class="fi-wrap" id="reg-business-type-wrap">
             <label class="fi-label" for="reg-business-type">Business type</label>
             <select class="fi-field fi-select" id="reg-business-type" onchange="regBusinessTypeChange()">
               <option value="" disabled selected>Select business type</option>
@@ -5567,7 +5591,6 @@
               <option value="purchasing-manager">Purchasing Manager</option>
               <option value="fb-director">F&amp;B Director</option>
               <option value="other">Other</option>
-              <option value="foodie">Foodie</option>
             </select>
           </div>
 
@@ -5581,7 +5604,13 @@
                FROM THE LIST (regSelectBusiness) — read-only summary, not
                editable fields. Adding a new business not in the list
                (regAddCustomBusiness) shows reg-extra-fields instead, same
-               as before this card existed. Figma node 2321:6516. -->
+               as before this card existed. Figma node 2321:6516.
+               A record picked from the list can still be missing an
+               individual field (e.g. Pizzeria Napoli has no address on
+               file) — reg-biz-card-missing-note flags it inline and
+               reg-address-wrap (below) reveals just that one field as
+               editable, instead of falling back to the fully-editable
+               reg-extra-fields block. See regShowBizCard(). -->
           <div class="reg-biz-card" id="reg-biz-card">
             <svg class="reg-biz-card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <polyline class="reg-biz-card-check" points="5 13 10 18 19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -5590,11 +5619,21 @@
               <div class="reg-biz-card-name" id="reg-biz-card-name"></div>
               <div class="reg-biz-card-address" id="reg-biz-card-address"></div>
               <div class="reg-biz-card-phone" id="reg-biz-card-phone"></div>
+              <div class="reg-biz-card-missing-note" id="reg-biz-card-missing-note" hidden>Address not on file — please add it below</div>
             </div>
           </div>
 
+          <!-- Individually-revealed Address field — same reveal recipe as
+               Job Title/Business name above (.reg-conditional-field), used
+               instead of the full reg-extra-fields block so picking a
+               business with a missing address doesn't also re-expose its
+               already-known city/postal/phone as editable. Shown either on
+               its own (business picked from list, address missing) or
+               together with reg-extra-fields (regAddCustomBusiness, where
+               nothing is known yet). -->
+          <div class="fi-wrap reg-conditional-field" id="reg-address-wrap"><label class="fi-label">Business Address</label><input class="fi-field" type="text" id="reg-address" placeholder="Please enter your address" autocomplete="address-line1" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+
           <div class="reg-extra-fields" id="reg-extra-fields">
-            <div class="fi-wrap"><label class="fi-label">Address</label><input class="fi-field" type="text" id="reg-address" placeholder="Please enter your address" autocomplete="address-line1" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
             <div class="fi-row">
               <div class="fi-wrap"><label class="fi-label">City</label><input class="fi-field" type="text" id="reg-city" placeholder="Enter your city" autocomplete="address-level2" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
               <div class="fi-wrap"><label class="fi-label">Postal code</label><input class="fi-field" type="text" id="reg-postal" placeholder="e.g. 20121" autocomplete="postal-code" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
@@ -5622,7 +5661,7 @@
         </div>
 
         <div class="fi-checkbox-row">
-          <div class="reg-consent-group">
+          <div class="reg-consent-group" id="reg-consent-group">
             <label class="fi-checkbox">
               <input type="checkbox" id="reg-terms" onchange="regTermsToggle()"/>
               <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
@@ -5642,11 +5681,6 @@
                 <input type="checkbox" class="reg-consent-channel" id="reg-consent-mobile" onchange="regConsentChannelChange()"/>
                 <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
                 <span class="fi-checkbox-label">Mobile</span>
-              </label>
-              <label class="fi-checkbox">
-                <input type="checkbox" class="reg-consent-channel" id="reg-consent-thirdparty" onchange="regConsentChannelChange()"/>
-                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
-                <span class="fi-checkbox-label">Third Party</span>
               </label>
             </div>
           </div>
@@ -5889,7 +5923,6 @@
               <option value="purchasing-manager">Purchasing Manager</option>
               <option value="fb-director">F&amp;B Director</option>
               <option value="other">Other</option>
-              <option value="foodie">Foodie</option>
             </select>
           </div>
         </div>
@@ -7134,7 +7167,7 @@
     var regBusinessSuggestions = [
       { name: 'My restaurant',      address: 'Via Roma 12',       city: 'Milano',   postal: '20121', dialCode: '+39', phone: '345 678 9012' },
       { name: 'La Trattoria Bella', address: 'Via Dante 8',       city: 'Torino',   postal: '10121', dialCode: '+39', phone: '347 221 5566' },
-      { name: 'Pizzeria Napoli',    address: 'Corso Umberto 45',  city: 'Napoli',   postal: '80122', dialCode: '+39', phone: '333 998 4471' },
+      { name: 'Pizzeria Napoli',    address: '',                  city: 'Napoli',   postal: '80122', dialCode: '+39', phone: '333 998 4471' }, // address missing on file — see regShowBizCard()
       { name: 'Osteria del Chef',   address: 'Piazza Garibaldi 3', city: 'Firenze', postal: '50123', dialCode: '+39', phone: '328 674 1290' },
       { name: 'Ristorante Milano',  address: 'Via Torino 21',     city: 'Milano',   postal: '20123', dialCode: '+39', phone: '351 887 3345' }
     ];
@@ -7147,13 +7180,23 @@
     // populated from an existing business record (regSelectBusiness), so
     // they load as-is but aren't editable. regAddCustomBusiness() and
     // clearing Business name both unlock them again for manual entry.
+    //
+    // A record can still be missing an individual field even when picked
+    // from the list (e.g. Pizzeria Napoli has no address on file) — the
+    // card still loads with whatever it does have, plus a note pointing at
+    // reg-address-wrap, revealed here as the one editable field instead of
+    // falling back to the fully-editable reg-extra-fields block.
     function regShowBizCard(name, biz) {
       document.getElementById('reg-extra-fields').classList.remove('is-visible');
       document.getElementById('reg-biz-card-name').textContent    = name;
-      document.getElementById('reg-biz-card-address').textContent = biz.address + ', ' + biz.city + ', ' + biz.postal;
+      document.getElementById('reg-biz-card-address').textContent = [biz.address, biz.city, biz.postal].filter(Boolean).join(', ');
       document.getElementById('reg-biz-card-phone').textContent   = biz.dialCode + ' ' + biz.phone;
       document.getElementById('reg-biz-card').classList.add('is-visible');
       regReplayCheckDraw();
+
+      var missingAddress = !biz.address;
+      document.getElementById('reg-biz-card-missing-note').hidden = !missingAddress;
+      document.getElementById('reg-address-wrap').classList.toggle('is-visible', missingAddress);
     }
 
     // Restarts the checkmark's draw animation every time it's called, even
@@ -7173,6 +7216,8 @@
       document.getElementById('reg-biz-card-name').textContent    = '';
       document.getElementById('reg-biz-card-address').textContent = '';
       document.getElementById('reg-biz-card-phone').textContent   = '';
+      document.getElementById('reg-biz-card-missing-note').hidden = true;
+      document.getElementById('reg-address-wrap').classList.remove('is-visible');
     }
 
     function regBusinessNameInput(value) {
@@ -7234,6 +7279,7 @@
       document.getElementById('reg-biz-suggest').innerHTML = '';
       // Not in the list — editable fields, same as before the card existed.
       regHideBizCard();
+      document.getElementById('reg-address-wrap').classList.add('is-visible');
       document.getElementById('reg-extra-fields').classList.add('is-visible');
       document.getElementById('reg-address').value    = '';
       document.getElementById('reg-city').value       = '';
@@ -7244,10 +7290,10 @@
       regValidateStep2();
     }
 
-    // "Choose channel" — Email/SMS/WhatsApp under the marketing-consent
-    // checkbox. Two-way sync: checking/unchecking the parent sets all 3
-    // channels to match; checking/unchecking any channel recomputes the
-    // parent (checked only once all 3 are checked).
+    // "Choose channel" — Email/Mobile under the marketing-consent
+    // checkbox. Two-way sync: checking/unchecking the parent sets both
+    // channels to match; checking/unchecking either channel recomputes
+    // the parent (checked only once both are checked).
     function regTermsToggle() {
       var checked = document.getElementById('reg-terms').checked;
       document.querySelectorAll('.reg-consent-channel').forEach(function(cb) { cb.checked = checked; });
@@ -7271,8 +7317,8 @@
     }
 
     function regValidateStep2() {
-      // reg-terms (marketing consent, with its Email/Mobile/Third Party
-      // channels) is optional — only age confirmation gates Continue here.
+      // reg-terms (marketing consent, with its Email/Mobile channels) is
+      // optional — only age confirmation gates Continue here.
       var ok = document.getElementById('reg-age').checked;
 
       // Whichever of email/mobile wasn't given in Step 1 is required here
@@ -7284,18 +7330,14 @@
         ok = ok && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('reg-account-email').value.trim());
       }
 
-      // Business type is required; Job Title is required too, but only
-      // once it's actually showing (i.e. business type isn't "none").
+      // Business type is required; Job Title is optional.
       var bizType = document.getElementById('reg-business-type').value;
       ok = ok && bizType !== '';
-      if (bizType !== '' && bizType !== 'none') {
-        ok = ok && document.getElementById('reg-job-title').value !== '';
-      }
 
       // Business name is required too, but only while its field is
-      // actually showing (real job title, not Foodie) — check the wrap's
-      // visibility directly rather than re-deriving it from business
-      // type/job title, since that's the single source of truth already
+      // actually showing (real business type selected) — check the
+      // wrap's visibility directly rather than re-deriving it from
+      // business type, since that's the single source of truth already
       // driving what the user sees.
       if (document.getElementById('reg-business-wrap').classList.contains('is-visible')) {
         ok = ok && document.getElementById('reg-business').value.trim() !== '';
@@ -7304,12 +7346,13 @@
       document.getElementById('reg-account-btn').disabled = !ok;
     }
 
-    // Business type → reveals Job Title (any real business type) → reveals
-    // Business name + its existing address/phone chain (any job title
-    // except Foodie). Switching a selector back to a value that hides a
-    // later field never clears that field's contents — only visibility
-    // changes, so re-selecting a real business type/job title brings back
-    // whatever was already typed.
+    // Business type reveals Job Title and Business name (+ its existing
+    // address/phone chain) together, both gated on business type alone —
+    // any real business type reveals both at once, "I don't have/work in
+    // a business" hides both. Switching the selector back to a value that
+    // hides a later field never clears that field's contents — only
+    // visibility changes, so re-selecting a real business type brings
+    // back whatever was already typed.
     function regBusinessTypeChange() {
       var type = document.getElementById('reg-business-type').value;
       var showJobTitle = (type !== '' && type !== 'none');
@@ -7324,10 +7367,8 @@
     }
 
     function regUpdateBusinessNameVisibility() {
-      var bizType   = document.getElementById('reg-business-type').value;
-      var jobTitle  = document.getElementById('reg-job-title').value;
-      var showJobTitle = (bizType !== '' && bizType !== 'none');
-      var show = showJobTitle && jobTitle !== '' && jobTitle !== 'foodie';
+      var bizType = document.getElementById('reg-business-type').value;
+      var show = (bizType !== '' && bizType !== 'none');
       document.getElementById('reg-business-wrap').classList.toggle('is-visible', show);
     }
 
@@ -7551,6 +7592,7 @@
       regPhoneCodeSetValue('reg-phone-code', '+39');
       document.getElementById('reg-phone').value          = '';
       regHideBizCard();
+      regSetAccountSummaryMode(false);
       regPhoneCodeSetValue('reg-account-mobile-code', '+1');
       document.getElementById('reg-account-mobile').value       = '';
       document.getElementById('reg-account-email').value        = '';
@@ -7644,15 +7686,12 @@
 
     function nlValidate() {
       var bizType = document.getElementById('nl-business-type').value;
+      // Job Title is optional — same rule as reg-job-title in the sign-up
+      // journey.
       var ok = document.getElementById('nl-name').value.trim()
         && document.getElementById('nl-lastname').value.trim()
         && bizType
         && document.getElementById('nl-consent').checked;
-      // Job Title is required too, but only once it's actually showing —
-      // same rule as reg-job-title in the sign-up journey.
-      if (bizType && bizType !== 'none') {
-        ok = ok && document.getElementById('nl-job-title').value;
-      }
       document.getElementById('nl-subscribe-btn').disabled = !ok;
     }
 
@@ -7707,12 +7746,46 @@
       document.getElementById('newsletter-panel-body').scrollTop = 0;
     }
 
+    // Toggles Step 2 between its normal fully-editable form and the
+    // read-only summary used when Name/Lastname/Business type/Job title
+    // are already known (see nlFinishAccount()). Name/Lastname/Business
+    // type are plain fi-wraps with no other visibility logic, so a simple
+    // inline-style hide is enough; Job Title also carries its own
+    // business-type-driven .reg-conditional-field/.is-visible toggle
+    // (regUpdateBusinessNameVisibility()), so it needs the same
+    // higher-specificity inline-style override to stay hidden regardless
+    // of that class state. Setting style.display back to '' (rather than
+    // 'flex') hands control back to whichever class-based rule normally
+    // applies once summary mode is off.
+    function regSetAccountSummaryMode(on) {
+      ['reg-name-wrap', 'reg-lastname-wrap', 'reg-business-type-wrap', 'reg-job-title-wrap'].forEach(function(id) {
+        document.getElementById(id).style.display = on ? 'none' : '';
+      });
+      document.getElementById('reg-account-summary-card').classList.toggle('is-visible', on);
+      // Marketing consent isn't asked again here — it was already offered
+      // on the newsletter form. Age confirmation (outside this group)
+      // still applies to every path and stays visible.
+      document.getElementById('reg-consent-group').style.display = on ? 'none' : '';
+    }
+
+    function regPopulateAccountSummary(name, lastname, bizTypeLabel, jobTitleLabel) {
+      document.getElementById('reg-account-summary-name').textContent = (name + ' ' + lastname).trim();
+      document.getElementById('reg-account-summary-business').textContent = [bizTypeLabel, jobTitleLabel].filter(Boolean).join(' · ');
+    }
+
     function nlFinishAccount() {
       var email    = document.getElementById('nl-email-display').textContent;
       var name     = document.getElementById('nl-name').value.trim();
       var lastname = document.getElementById('nl-lastname').value.trim();
-      var bizType  = document.getElementById('nl-business-type').value;
-      var jobTitle = document.getElementById('nl-job-title').value;
+      var bizTypeSelect  = document.getElementById('nl-business-type');
+      var jobTitleSelect = document.getElementById('nl-job-title');
+      var bizType  = bizTypeSelect.value;
+      var jobTitle = jobTitleSelect.value;
+      // Human-readable labels for the summary card, straight from the
+      // newsletter form's own selected <option>s — read before any of
+      // this data gets copied over below.
+      var bizTypeLabel  = bizTypeSelect.selectedIndex  >= 0 ? bizTypeSelect.options[bizTypeSelect.selectedIndex].text   : '';
+      var jobTitleLabel = jobTitleSelect.selectedIndex >= 0 ? jobTitleSelect.options[jobTitleSelect.selectedIndex].text : '';
       var consent  = document.getElementById('nl-consent').checked;
 
       closeNewsletter();
@@ -7731,7 +7804,14 @@
       // reveal Business name too (regBusinessTypeChange() re-checks both
       // fields' current values on every call, not just the one that
       // triggered it), same as picking them by hand in the sign-up form.
+      // Business name stays genuinely editable — nothing here pre-fills
+      // it — same as Mobile number below.
       regBusinessTypeChange();
+
+      // Already known from the newsletter form — no need to re-ask.
+      // Mobile number and Business name are the two fields still missing.
+      regPopulateAccountSummary(name, lastname, bizTypeLabel, jobTitleLabel);
+      regSetAccountSummaryMode(true);
 
       document.getElementById('reg-step-email').style.display   = 'none';
       document.getElementById('reg-step-account').style.display = '';
