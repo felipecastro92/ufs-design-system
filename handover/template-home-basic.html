@@ -1533,7 +1533,7 @@
       .ufs-fw-banner .ufs-carousel-arrow--next { display: none; }
       .ufs-fw-banner__title, .ufs-fw-banner__desc { max-width: none; }
       .ufs-fw-banner__title {
-        font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w);
+        font-size: var(--text-h4-size); line-height: var(--text-h4-lh); letter-spacing: var(--text-h4-ls); font-weight: var(--text-h4-w);
         letter-spacing: normal; /* h4 has no dedicated -ls token like h1–h3; reset the h2 class's -1px */
       }
       .ufs-fw-banner__desc {
@@ -1830,7 +1830,7 @@
       .ufs-teaser-wrapper--4 .ufs-teaser__heading { gap: var(--space-2); }
     }
     .ufs-teaser__title { margin: 0; color: var(--color-brand-dark); width: 100%; }
-    .ufs-teaser-wrapper--2 .ufs-teaser__title { font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w); }
+    .ufs-teaser-wrapper--2 .ufs-teaser__title { font-size: var(--text-h4-size); line-height: var(--text-h4-lh); letter-spacing: var(--text-h4-ls); font-weight: var(--text-h4-w); }
     .ufs-teaser-wrapper--3 .ufs-teaser__title,
     .ufs-teaser-wrapper--4 .ufs-teaser__title { font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); }
     .ufs-teaser__desc { margin: 0; color: var(--color-brand-dark); width: 100%; }
@@ -2296,6 +2296,34 @@
     .reg-extra-fields { display: none; flex-direction: column; gap: var(--space-4); animation: regExtraReveal 0.3s ease; }
     .reg-extra-fields.is-visible { display: flex; }
     @keyframes regExtraReveal { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    /* Job Title (revealed by Business type) and Business name (revealed by
+       Job Title) — same reveal recipe as .reg-extra-fields above, generic
+       enough to reuse on any single .fi-wrap instead of a whole block. */
+    .reg-conditional-field { display: none; }
+    .reg-conditional-field.is-visible { display: flex; animation: regExtraReveal 0.3s ease; }
+    /* Business summary card — shown instead of reg-extra-fields when a
+       suggestion is picked from the list. Figma node 2321:6516: checkmark
+       + name (bold) + "street, city, postal" + "+code phone", on a
+       mushroom-100 card. Same reveal animation as reg-extra-fields. */
+    .reg-biz-card { display: none; align-items: flex-start; gap: var(--space-3); background: var(--color-mushroom-100); border-radius: var(--radius-xs); padding: var(--space-4) var(--space-5); }
+    .reg-biz-card.is-visible { display: flex; animation: regExtraReveal 0.3s ease; }
+    .reg-biz-card-icon { width: var(--space-6); height: var(--space-6); flex-shrink: 0; margin-top: 1px; color: var(--color-brand-dark); }
+    .reg-biz-card-name { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600; color: var(--color-brand-dark); }
+    .reg-biz-card-address, .reg-biz-card-phone { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-squid-500); }
+    /* Checkmark "draw" — sequential with the card reveal (0.3s), not
+       simultaneous: the 0.35s delay lets regExtraReveal settle first, then
+       stroke-dashoffset animates the polyline's ~22px length down to 0.
+       .reg-biz-card-check.is-drawing is toggled by JS on every
+       regShowBizCard() call (not just the class going from hidden→visible)
+       so re-selecting a different business replays the draw each time —
+       see regReplayCheckDraw(). */
+    .reg-biz-card-check { stroke-dasharray: 22; stroke-dashoffset: 22; }
+    .reg-biz-card-check.is-drawing { animation: regBizCardCheckDraw 0.35s ease-out 0.3s forwards; }
+    @keyframes regBizCardCheckDraw { to { stroke-dashoffset: 0; } }
+    @media (prefers-reduced-motion: reduce) {
+      .reg-biz-card-check { stroke-dashoffset: 0; }
+      .reg-biz-card-check.is-drawing { animation: none; }
+    }
     .fi-checkbox-row { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-5) 0; }
     .fi-checkbox { display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer; }
     .fi-checkbox input { position: absolute; opacity: 0; width: 0; height: 0; }
@@ -5460,10 +5488,58 @@
             <input class="fi-field" type="email" id="reg-account-email" placeholder="you@example.com" autocomplete="email" oninput="regClearAccountContactError(); regValidateStep2()" onblur="regValidateAccountContactFormat()" onkeydown="regStepEnter(event,'reg-account-btn')"/>
             <div class="fi-contact-hint" id="reg-account-email-hint" aria-live="polite"></div>
           </div>
-          <div class="fi-wrap" style="position:relative">
+          <!-- Business type drives two conditional reveals below it:
+               Job Title (any real business type) and, one level further,
+               Business name + its existing address/phone chain (any Job
+               Title except Foodie). "I don't have/work in a business"
+               skips both. All three (business type, and job title when
+               visible) are required — see regValidateStep2(). -->
+          <div class="fi-wrap">
+            <label class="fi-label" for="reg-business-type">Business type</label>
+            <select class="fi-field fi-select" id="reg-business-type" onchange="regBusinessTypeChange()">
+              <option value="" disabled selected>Select business type</option>
+              <option value="hotel">Hotel</option>
+              <option value="restaurant">Restaurant</option>
+              <option value="school-canteen">School canteen</option>
+              <option value="catering">Catering</option>
+              <option value="other">Other</option>
+              <option value="none">I don't have/work in a business</option>
+            </select>
+          </div>
+
+          <div class="fi-wrap reg-conditional-field" id="reg-job-title-wrap">
+            <label class="fi-label" for="reg-job-title">Job title</label>
+            <select class="fi-field fi-select" id="reg-job-title" onchange="regJobTitleChange()">
+              <option value="" disabled selected>Select job title</option>
+              <option value="chef">Chef</option>
+              <option value="owner-manager">Owner/Manager</option>
+              <option value="purchasing-manager">Purchasing Manager</option>
+              <option value="fb-director">F&amp;B Director</option>
+              <option value="other">Other</option>
+              <option value="foodie">Foodie</option>
+            </select>
+          </div>
+
+          <div class="fi-wrap reg-conditional-field" id="reg-business-wrap" style="position:relative">
             <label class="fi-label">Business name</label>
             <input class="fi-field" type="text" id="reg-business" placeholder="Please enter your business name" autocomplete="off" oninput="regBusinessNameInput(this.value)" onfocus="regBusinessNameInput(this.value)" onblur="regBusinessNameBlur()" onkeydown="regBusinessNameEnter(event)"/>
             <div class="reg-biz-suggest" id="reg-biz-suggest"></div>
+          </div>
+
+          <!-- Shown instead of reg-extra-fields when a business is picked
+               FROM THE LIST (regSelectBusiness) — read-only summary, not
+               editable fields. Adding a new business not in the list
+               (regAddCustomBusiness) shows reg-extra-fields instead, same
+               as before this card existed. Figma node 2321:6516. -->
+          <div class="reg-biz-card" id="reg-biz-card">
+            <svg class="reg-biz-card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <polyline class="reg-biz-card-check" points="5 13 10 18 19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="reg-biz-card-body">
+              <div class="reg-biz-card-name" id="reg-biz-card-name"></div>
+              <div class="reg-biz-card-address" id="reg-biz-card-address"></div>
+              <div class="reg-biz-card-phone" id="reg-biz-card-phone"></div>
+            </div>
           </div>
 
           <div class="reg-extra-fields" id="reg-extra-fields">
@@ -5487,18 +5563,6 @@
                 <input class="fi-field fi-phone-number" type="tel" id="reg-phone" placeholder="e.g. 345 678 9012" autocomplete="tel-national" onkeydown="regStepEnter(event,'reg-account-btn')"/>
               </div>
             </div>
-          </div>
-
-          <div class="fi-wrap">
-            <label class="fi-label" for="reg-business-type">Business type</label>
-            <select class="fi-field fi-select" id="reg-business-type">
-              <option value="" disabled selected>Select business type</option>
-              <option value="hotel">Hotel</option>
-              <option value="restaurant">Restaurant</option>
-              <option value="school-canteen">School canteen</option>
-              <option value="catering">Catering</option>
-              <option value="other">Other</option>
-            </select>
           </div>
         </div>
 
@@ -5737,15 +5801,34 @@
         <div class="signin-form-fields">
           <div class="fi-wrap"><label class="fi-label">Name</label><input class="fi-field" type="text" id="nl-name" placeholder="Please enter your name(s)" autocomplete="given-name" oninput="nlValidate()" onkeydown="regStepEnter(event,'nl-subscribe-btn')"/></div>
           <div class="fi-wrap"><label class="fi-label">Lastname</label><input class="fi-field" type="text" id="nl-lastname" placeholder="Please enter your last name(s)" autocomplete="family-name" oninput="nlValidate()" onkeydown="regStepEnter(event,'nl-subscribe-btn')"/></div>
+          <!-- Business type / Job Title: same cascade + validation logic as
+               the sign-up journey's reg-business-type/reg-job-title (see
+               regBusinessTypeChange()) — "I don't have/work in a business"
+               skips Job Title; Job Title is required whenever it's shown.
+               This form stops at Job Title — no Business name field here. -->
           <div class="fi-wrap">
             <label class="fi-label" for="nl-business-type">Business type</label>
-            <select class="fi-field fi-select" id="nl-business-type" onchange="nlValidate()">
+            <select class="fi-field fi-select" id="nl-business-type" onchange="nlBusinessTypeChange()">
               <option value="" disabled selected>Select business type</option>
               <option value="hotel">Hotel</option>
               <option value="restaurant">Restaurant</option>
               <option value="school-canteen">School canteen</option>
               <option value="catering">Catering</option>
               <option value="other">Other</option>
+              <option value="none">I don't have/work in a business</option>
+            </select>
+          </div>
+
+          <div class="fi-wrap reg-conditional-field" id="nl-job-title-wrap">
+            <label class="fi-label" for="nl-job-title">Job title</label>
+            <select class="fi-field fi-select" id="nl-job-title" onchange="nlValidate()">
+              <option value="" disabled selected>Select job title</option>
+              <option value="chef">Chef</option>
+              <option value="owner-manager">Owner/Manager</option>
+              <option value="purchasing-manager">Purchasing Manager</option>
+              <option value="fb-director">F&amp;B Director</option>
+              <option value="other">Other</option>
+              <option value="foodie">Foodie</option>
             </select>
           </div>
         </div>
@@ -6909,11 +6992,32 @@
     // populated from an existing business record (regSelectBusiness), so
     // they load as-is but aren't editable. regAddCustomBusiness() and
     // clearing Business name both unlock them again for manual entry.
-    function regSetBusinessFieldsLocked(locked) {
-      ['reg-address', 'reg-city', 'reg-postal', 'reg-phone'].forEach(function(id) {
-        document.getElementById(id).readOnly = locked;
-      });
-      document.getElementById('reg-phone-code').disabled = locked;
+    function regShowBizCard(name, biz) {
+      document.getElementById('reg-extra-fields').classList.remove('is-visible');
+      document.getElementById('reg-biz-card-name').textContent    = name;
+      document.getElementById('reg-biz-card-address').textContent = biz.address + ', ' + biz.city + ', ' + biz.postal;
+      document.getElementById('reg-biz-card-phone').textContent   = biz.dialCode + ' ' + biz.phone;
+      document.getElementById('reg-biz-card').classList.add('is-visible');
+      regReplayCheckDraw();
+    }
+
+    // Restarts the checkmark's draw animation every time it's called, even
+    // if the card (and its .is-drawing class) is already showing — toggling
+    // a class that's already present is a no-op in CSS, so re-selecting a
+    // different business without this would leave the checkmark static.
+    function regReplayCheckDraw() {
+      var check = document.querySelector('.reg-biz-card-check');
+      check.classList.remove('is-drawing');
+      void check.getBoundingClientRect(); // force reflow so the next add() re-triggers the animation
+      check.classList.add('is-drawing');
+    }
+
+    function regHideBizCard() {
+      document.getElementById('reg-biz-card').classList.remove('is-visible');
+      document.querySelector('.reg-biz-card-check').classList.remove('is-drawing');
+      document.getElementById('reg-biz-card-name').textContent    = '';
+      document.getElementById('reg-biz-card-address').textContent = '';
+      document.getElementById('reg-biz-card-phone').textContent   = '';
     }
 
     function regBusinessNameInput(value) {
@@ -6923,9 +7027,9 @@
       if (!q) {
         box.classList.remove('is-open'); box.innerHTML = '';
         // Cleared entirely — reset to a blank, editable, hidden state so
-        // there's a clean way back from a locked selection.
-        regSetBusinessFieldsLocked(false);
+        // there's a clean way back from a selection (from-list or custom).
         document.getElementById('reg-extra-fields').classList.remove('is-visible');
+        regHideBizCard();
         document.getElementById('reg-address').value    = '';
         document.getElementById('reg-city').value       = '';
         document.getElementById('reg-postal').value     = '';
@@ -6959,21 +7063,22 @@
       document.getElementById('reg-biz-suggest').classList.remove('is-open');
       document.getElementById('reg-biz-suggest').innerHTML = '';
       if (!biz) return;
-      document.getElementById('reg-extra-fields').classList.add('is-visible');
+      // Picked from the list — read-only summary card, not editable fields.
       document.getElementById('reg-address').value    = biz.address;
       document.getElementById('reg-city').value       = biz.city;
       document.getElementById('reg-postal').value     = biz.postal;
       document.getElementById('reg-phone-code').value = biz.dialCode;
       document.getElementById('reg-phone').value      = biz.phone;
-      regSetBusinessFieldsLocked(true);
+      regShowBizCard(name, biz);
       document.getElementById('reg-business-type').focus();
     }
 
     function regAddCustomBusiness() {
       document.getElementById('reg-biz-suggest').classList.remove('is-open');
       document.getElementById('reg-biz-suggest').innerHTML = '';
+      // Not in the list — editable fields, same as before the card existed.
+      regHideBizCard();
       document.getElementById('reg-extra-fields').classList.add('is-visible');
-      regSetBusinessFieldsLocked(false);
       document.getElementById('reg-address').value    = '';
       document.getElementById('reg-city').value       = '';
       document.getElementById('reg-postal').value     = '';
@@ -7022,7 +7127,42 @@
         ok = ok && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('reg-account-email').value.trim());
       }
 
+      // Business type is required; Job Title is required too, but only
+      // once it's actually showing (i.e. business type isn't "none").
+      var bizType = document.getElementById('reg-business-type').value;
+      ok = ok && bizType !== '';
+      if (bizType !== '' && bizType !== 'none') {
+        ok = ok && document.getElementById('reg-job-title').value !== '';
+      }
+
       document.getElementById('reg-account-btn').disabled = !ok;
+    }
+
+    // Business type → reveals Job Title (any real business type) → reveals
+    // Business name + its existing address/phone chain (any job title
+    // except Foodie). Switching a selector back to a value that hides a
+    // later field never clears that field's contents — only visibility
+    // changes, so re-selecting a real business type/job title brings back
+    // whatever was already typed.
+    function regBusinessTypeChange() {
+      var type = document.getElementById('reg-business-type').value;
+      var showJobTitle = (type !== '' && type !== 'none');
+      document.getElementById('reg-job-title-wrap').classList.toggle('is-visible', showJobTitle);
+      regUpdateBusinessNameVisibility();
+      regValidateStep2();
+    }
+
+    function regJobTitleChange() {
+      regUpdateBusinessNameVisibility();
+      regValidateStep2();
+    }
+
+    function regUpdateBusinessNameVisibility() {
+      var bizType   = document.getElementById('reg-business-type').value;
+      var jobTitle  = document.getElementById('reg-job-title').value;
+      var showJobTitle = (bizType !== '' && bizType !== 'none');
+      var show = showJobTitle && jobTitle !== '' && jobTitle !== 'foodie';
+      document.getElementById('reg-business-wrap').classList.toggle('is-visible', show);
     }
 
     function regCheckPassword() {
@@ -7235,12 +7375,15 @@
       document.getElementById('reg-lastname').value       = '';
       document.getElementById('reg-business').value       = '';
       document.getElementById('reg-business-type').value  = '';
+      document.getElementById('reg-job-title').value      = '';
+      document.getElementById('reg-job-title-wrap').classList.remove('is-visible');
+      document.getElementById('reg-business-wrap').classList.remove('is-visible');
       document.getElementById('reg-address').value        = '';
       document.getElementById('reg-city').value           = '';
       document.getElementById('reg-postal').value         = '';
       document.getElementById('reg-phone-code').value     = '+39';
       document.getElementById('reg-phone').value          = '';
-      regSetBusinessFieldsLocked(false);
+      regHideBizCard();
       document.getElementById('reg-account-mobile-code').value = '+1';
       document.getElementById('reg-account-mobile').value       = '';
       document.getElementById('reg-account-email').value        = '';
@@ -7333,11 +7476,27 @@
     }
 
     function nlValidate() {
+      var bizType = document.getElementById('nl-business-type').value;
       var ok = document.getElementById('nl-name').value.trim()
         && document.getElementById('nl-lastname').value.trim()
-        && document.getElementById('nl-business-type').value
+        && bizType
         && document.getElementById('nl-consent').checked;
+      // Job Title is required too, but only once it's actually showing —
+      // same rule as reg-job-title in the sign-up journey.
+      if (bizType && bizType !== 'none') {
+        ok = ok && document.getElementById('nl-job-title').value;
+      }
       document.getElementById('nl-subscribe-btn').disabled = !ok;
+    }
+
+    // Business type → reveals Job Title (any real business type, same as
+    // regBusinessTypeChange()). This form stops here — no Business name
+    // field to chain into.
+    function nlBusinessTypeChange() {
+      var type = document.getElementById('nl-business-type').value;
+      var showJobTitle = (type !== '' && type !== 'none');
+      document.getElementById('nl-job-title-wrap').classList.toggle('is-visible', showJobTitle);
+      nlValidate();
     }
 
     var nlSubmitTimeout = null;
@@ -7354,7 +7513,7 @@
     }
 
     function nlSetFieldsDisabled(v) {
-      ['nl-name', 'nl-lastname', 'nl-business-type', 'nl-consent'].forEach(function(id) {
+      ['nl-name', 'nl-lastname', 'nl-business-type', 'nl-job-title', 'nl-consent'].forEach(function(id) {
         document.getElementById(id).disabled = v;
       });
     }
@@ -7386,6 +7545,7 @@
       var name     = document.getElementById('nl-name').value.trim();
       var lastname = document.getElementById('nl-lastname').value.trim();
       var bizType  = document.getElementById('nl-business-type').value;
+      var jobTitle = document.getElementById('nl-job-title').value;
       var consent  = document.getElementById('nl-consent').checked;
 
       closeNewsletter();
@@ -7397,7 +7557,14 @@
       document.getElementById('reg-name').value          = name;
       document.getElementById('reg-lastname').value      = lastname;
       document.getElementById('reg-business-type').value = bizType;
+      document.getElementById('reg-job-title').value     = jobTitle;
       document.getElementById('reg-terms').checked       = consent;
+      // Reveals Job Title for the pre-filled business type, and — since
+      // reg-job-title is already set above — cascades straight through to
+      // reveal Business name too (regBusinessTypeChange() re-checks both
+      // fields' current values on every call, not just the one that
+      // triggered it), same as picking them by hand in the sign-up form.
+      regBusinessTypeChange();
 
       document.getElementById('reg-step-email').style.display   = 'none';
       document.getElementById('reg-step-account').style.display = '';
@@ -7413,6 +7580,8 @@
       document.getElementById('nl-name').value          = '';
       document.getElementById('nl-lastname').value      = '';
       document.getElementById('nl-business-type').value = '';
+      document.getElementById('nl-job-title').value      = '';
+      document.getElementById('nl-job-title-wrap').classList.remove('is-visible');
       document.getElementById('nl-consent').checked     = false;
       nlSetFieldsDisabled(false);
       nlResetSubmitButton();
