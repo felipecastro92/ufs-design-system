@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pathways — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: visible; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-pr  { color: #93c5fd; }
+    .t-kw  { color: #ff7b72; }
+    .t-id  { color: #d2a8ff; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PATHWAYS — Figma "Rosana 2.0" nodes 2296:6238 (desktop, 3 cards),
+       2296:6403 (desktop, 4 cards), 2296:6180 (mobile). A heading over a
+       row of colour-coded shortcut cards (icon + label, desktop also gets
+       a trailing chevron). Desktop: fixed-width cards (250px), centred as
+       a group on the page — width/gap read straight off the two desktop
+       frames (814px/3 cards, 1096px/4 cards, both at a 32px gap, proving
+       the per-card width and gap are constant regardless of count).
+       Mobile: the layout changes shape, not just size — cards go
+       horizontal (icon beside label, not above it), left-aligned, no
+       chevron, and the whole row becomes a horizontally-scrolling track
+       — that's this spec's own addition (see below), not shown natively
+       in the Figma frame itself, which only renders the row assuming it
+       fits.
+    ═══════════════════════════════════════ */
+    .ufs-pathways {
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--space-6); /* 24px, both breakpoints */
+      padding: var(--space-10) var(--space-6); /* 40px vertical, matches both Figma frames — 106px horizontal in Figma is that specific artboard's own canvas padding, not a token; real usage relies on the page's own gutters */
+      background: var(--color-salt);
+    }
+    .ufs-pathways__heading {
+      font-family: var(--font-family);
+      font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w);
+      color: var(--color-brand-dark);
+      text-align: center;
+      max-width: 814px;
+    }
+    /* Card row — desktop default: fixed-width cards, wraps to content
+       width (never wider than the widest Figma frame, 1096px for 4
+       cards), centred via the parent's align-items:center. */
+    .ufs-pathways__list {
+      display: flex; align-items: center; justify-content: center;
+      gap: var(--space-8); /* 32px */
+      width: 100%;
+    }
+    .ufs-pathways__card {
+      position: relative;
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: var(--space-2); /* 8px */
+      width: 250px; flex-shrink: 0;
+      padding: var(--space-6) var(--space-4); /* 24px vertical, 16px horizontal */
+      border-radius: var(--radius-lg); /* 16px */
+      text-decoration: none;
+      transition: transform 0.15s ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-pathways__card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    }
+    .ufs-pathways__icon { width: 30px; height: 30px; flex-shrink: 0; }
+    .ufs-pathways__icon img { width: 100%; height: 100%; display: block; }
+    .ufs-pathways__label {
+      font-family: var(--font-family);
+      font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w);
+    }
+    /* Chevron — desktop only (absent from the mobile Figma frame
+       entirely, not just visually hidden there — the whole row scrolling
+       already signals "more this way", so a per-card affordance is
+       redundant at that size). Vertically centred, inset from the trailing
+       edge. inset-inline-end (not right) + the RTL-flipped glyph below mean
+       this mirrors automatically under dir="rtl". */
+    .ufs-pathways__chevron {
+      display: none;
+      position: absolute; top: 50%; transform: translateY(-50%);
+      inset-inline-end: var(--space-4); /* ~16px, close to Figma's 21-23px which varied slightly per card in the source file */
+    }
+    .ufs-pathways__chevron svg { display: block; width: 7px; height: 14px; }
+    [dir="rtl"] .ufs-pathways__chevron svg { transform: scaleX(-1); }
+
+    /* Colour variants — hex values straight from Figma; aubergine and
+       accessible-orange already exist byte-for-byte as DS tokens
+       (--color-aubergine, --color-accessible-orange). Figma's "squid-ink"
+       (#221d37) is this DS's --color-brand-dark, not --color-squid-900
+       (#0f0d19, a different/darker step of the squid scale) — same value,
+       this DS just doesn't file it under the squid-* scale when it's used
+       as a solid dark surface (see .ufs-flex-carousel--squid for the same
+       substitution). Figma's "shades/mid-smoke" (#c9c3ce) turns out to be
+       --color-smoke (#94889d) at 50% opacity over a white surface — mixing
+       it live via color-mix() lands within a rounding point of #c9c3ce on
+       every channel, so this is the token itself, not an approximation. */
+    .ufs-pathways__card--aubergine { background: var(--color-aubergine); }
+    .ufs-pathways__card--aubergine .ufs-pathways__label { color: var(--color-salt); }
+    .ufs-pathways__card--aubergine .ufs-pathways__icon img,
+    .ufs-pathways__card--aubergine .ufs-pathways__chevron svg { filter: brightness(0) invert(1); }
+
+    .ufs-pathways__card--squid { background: var(--color-brand-dark); }
+    .ufs-pathways__card--squid .ufs-pathways__label { color: var(--color-salt); }
+    .ufs-pathways__card--squid .ufs-pathways__icon img,
+    .ufs-pathways__card--squid .ufs-pathways__chevron svg { filter: brightness(0) invert(1); }
+
+    .ufs-pathways__card--orange { background: var(--color-accessible-orange); }
+    .ufs-pathways__card--orange .ufs-pathways__label { color: var(--color-salt); }
+    .ufs-pathways__card--orange .ufs-pathways__icon img,
+    .ufs-pathways__card--orange .ufs-pathways__chevron svg { filter: brightness(0) invert(1); }
+
+    .ufs-pathways__card--smoke { background: color-mix(in srgb, var(--color-smoke) 50%, transparent); }
+    .ufs-pathways__card--smoke .ufs-pathways__label { color: var(--color-brand-dark); }
+    /* icon/chevron already render black by default — no filter needed on the light card */
+
+    /* Desktop chevron reveal — gated behind the same 769px breakpoint
+       every other dual-layout component in this DS treats as "desktop". */
+    @media (min-width: 769px) {
+      .ufs-pathways__chevron { display: block; }
+    }
+
+    /* Mobile — layout genuinely changes shape, not just scale, so this is
+       a real breakpoint rewrite rather than a handful of size overrides:
+       heading and row both go left-aligned (no more centring), cards flip
+       to a horizontal icon+label row (padding/radius/gap taken from
+       Figma's own mobile card, all one step down from desktop's), the
+       chevron disappears (display:none above already handles it), and the
+       row becomes a horizontally-scrolling track — .ufs-pathways__list
+       switches from wrap-and-centre to nowrap-and-scroll, with a spacer
+       at each end so the first/last card doesn't sit flush against the
+       viewport edge mid-scroll. None of the scroll-track mechanics are
+       shown in the source Figma frame (it only renders the row assuming
+       everything fits) — this is this spec's own addition, built to the
+       same "carousel of fixed-width cards" pattern already established by
+       Video Embed/Recipe Tile/Brand Tile elsewhere in this DS, not a
+       sourced Figma value. */
+    @media (max-width: 768px) {
+      .ufs-pathways { align-items: flex-start; padding: var(--space-6) 0; }
+      .ufs-pathways__heading { text-align: left; padding: 0 var(--space-4); max-width: none; }
+      [dir="rtl"] .ufs-pathways__heading { text-align: right; }
+      .ufs-pathways__heading { font-size: var(--text-h4-mob-size); }
+      .ufs-pathways__list {
+        justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto;
+        gap: var(--space-4); /* 16px */
+        padding: 0 var(--space-4);
+        -webkit-overflow-scrolling: touch; scrollbar-width: none;
+      }
+      .ufs-pathways__list::-webkit-scrollbar { display: none; }
+      .ufs-pathways__card {
+        flex-direction: row; align-items: center;
+        width: auto; white-space: nowrap;
+        gap: var(--space-3); /* 8px */
+        padding: var(--space-3) var(--space-4); /* 12px vertical, 16px horizontal */
+        border-radius: var(--radius-sm); /* 8px */
+      }
+      .ufs-pathways__icon { width: 24px; height: 24px; }
+      .ufs-pathways__label { font-size: var(--text-h6-mob-size); }
+    }
+
+    /* Doc-only emulation of the block above, since a real @media query
+       responds to the actual browser viewport, not a container's width —
+       .pv-mobile capping a box at 390px does NOT make max-width:768px
+       start matching on a wide desktop window. Mirrors the real mobile
+       rules with !important, scoped to .pv-mobile, same pattern chef-tip-
+       spec.html / video-embed-spec.html use for their own mobile previews. */
+    .pv-mobile .ufs-pathways { align-items: flex-start !important; padding: var(--space-6) 0 !important; }
+    .pv-mobile .ufs-pathways__heading { text-align: left !important; padding: 0 var(--space-4) !important; max-width: none !important; font-size: var(--text-h4-mob-size) !important; }
+    .pv-mobile [dir="rtl"] .ufs-pathways__heading { text-align: right !important; }
+    .pv-mobile .ufs-pathways__list {
+      justify-content: flex-start !important; flex-wrap: nowrap !important; overflow-x: auto !important;
+      gap: var(--space-4) !important;
+      padding: 0 var(--space-4) !important;
+    }
+    .pv-mobile .ufs-pathways__card {
+      flex-direction: row !important; align-items: center !important;
+      width: auto !important; white-space: nowrap !important;
+      gap: var(--space-3) !important;
+      padding: var(--space-3) var(--space-4) !important;
+      border-radius: var(--radius-sm) !important;
+    }
+    .pv-mobile .ufs-pathways__chevron { display: none !important; }
+    .pv-mobile .ufs-pathways__icon { width: 24px !important; height: 24px !important; }
+    .pv-mobile .ufs-pathways__label { font-size: var(--text-h6-mob-size) !important; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Pathways</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy &amp; Rules</a>
+      <a href="#colours" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Colour Variants</a>
+      <a href="#sizes" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> 3 vs 4 Cards</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Example</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Developer</div>
+      <a href="#usage" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Usage</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Figma "Rosana 2.0" nodes 2296:6238 (desktop 3), 2296:6403 (desktop 4) &amp; 2296:6180 (mobile).<br/>Mobile scroll-track mechanics are this spec's own addition — see Mobile Example.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Pathways</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Path<span>ways</span></h1>
+        <p class="doc-header-desc">A heading over a row of colour-coded shortcut cards — icon, label, and (desktop only) a trailing chevron. Desktop: fixed-width cards centred as a group, 3 or 4 up. Mobile: left-aligned, horizontal icon+label cards, no chevron, scrolling horizontally as one track.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">Figma 2296:6238 / 2296:6403 / 2296:6180</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">The live component, exactly as it ships — resize the window below 768px (or see Mobile Example) to see it switch to the horizontal-scroll layout.</p>
+
+      <div class="pv-light">
+        <div class="ufs-pathways">
+          <h2 class="ufs-pathways__heading">Dein schneller Zugriff: Kontakt, Gesamtsortiment &amp; mehr</h2>
+          <div class="ufs-pathways__list">
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--aubergine">
+              <div class="ufs-pathways__icon"><img src="icons/products.svg" alt=""/></div>
+              <span class="ufs-pathways__label">Kontakt aufnehmen</span>
+              <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--squid">
+              <div class="ufs-pathways__icon"><img src="icons/flame.svg" alt=""/></div>
+              <span class="ufs-pathways__label">Gesamtsortiment</span>
+              <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--orange">
+              <div class="ufs-pathways__icon"><img src="icons/chef.svg" alt=""/></div>
+              <span class="ufs-pathways__label">Newsletter Anmeldung</span>
+              <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--smoke">
+              <div class="ufs-pathways__icon"><img src="icons/whatsapp.svg" alt=""/></div>
+              <span class="ufs-pathways__label">WhatsApp-News</span>
+              <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--info" style="margin-top:16px;">
+        <span class="notice-icon">ℹ️</span>
+        <div>Icons are reused as-is from this DS's existing set (<code>icons/products.svg</code>, <code>flame.svg</code>, <code>chef.svg</code>, <code>whatsapp.svg</code>) rather than importing Figma's own exports — same glyphs, already tinted white/black elsewhere in this codebase the same way this component needs them.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY & RULES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Pathways</div>
+      <h2 class="section-title">Anatomy &amp; Rules</h2>
+      <p class="section-desc">A heading, then a row of cards. Each card is icon + label + (desktop only) chevron — the chevron isn't hidden on mobile, it's genuinely absent from that Figma frame; the horizontal-scroll row itself already signals "more this way" at that size.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Heading &amp; row</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Heading</span><span class="token-var">.text-h4 / .text-h4--mobile</span><span class="token-note">24px desktop → 20px mobile, both weight 600 — exact match to this DS's existing h4 utility, no custom sizing needed</span></div>
+          <div class="token-row"><span class="token-prop">Row gap (desktop)</span><span class="token-var">var(--space-8)</span><span class="token-note">32px between cards, constant whether it's the 3-card or 4-card frame</span></div>
+          <div class="token-row"><span class="token-prop">Row gap (mobile)</span><span class="token-var">var(--space-4)</span><span class="token-note">16px</span></div>
+          <div class="token-row"><span class="token-prop">Vertical rhythm</span><span class="token-var">var(--space-6) / var(--space-10)</span><span class="token-note">gap between heading/row: 24px. Component's own top/bottom padding: 40px</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Card (desktop)</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Width</span><span class="token-var">250px</span><span class="token-note">fixed, literal Figma value — not on the space scale</span></div>
+          <div class="token-row"><span class="token-prop">Padding</span><span class="token-var">var(--space-6) var(--space-4)</span><span class="token-note">24px vertical, 16px horizontal</span></div>
+          <div class="token-row"><span class="token-prop">Radius</span><span class="token-var">var(--radius-lg)</span><span class="token-note">16px</span></div>
+          <div class="token-row"><span class="token-prop">Internal gap</span><span class="token-var">var(--space-2)</span><span class="token-note">8px, between icon/label</span></div>
+          <div class="token-row"><span class="token-prop">Icon</span><span class="token-var">30px</span><span class="token-note">literal, square, top of the card</span></div>
+          <div class="token-row"><span class="token-prop">Label</span><span class="token-var">.text-h6</span><span class="token-note">18px/600 — exact match to this DS's existing h6 utility</span></div>
+          <div class="token-row"><span class="token-prop">Chevron</span><span class="token-var">7×14px</span><span class="token-note">absolute, vertically centred, inset-inline-end: var(--space-4)</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-desc" style="margin-bottom:0;">Mobile card anatomy — see Mobile Example for the full breakpoint rewrite (layout genuinely changes shape, not just scale).</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Layout</span><span class="token-var">row, not column</span><span class="token-note">icon beside label, vertically centred — not stacked like desktop</span></div>
+          <div class="token-row"><span class="token-prop">Padding</span><span class="token-var">var(--space-3) var(--space-4)</span><span class="token-note">12px vertical, 16px horizontal</span></div>
+          <div class="token-row"><span class="token-prop">Radius</span><span class="token-var">var(--radius-sm)</span><span class="token-note">8px</span></div>
+          <div class="token-row"><span class="token-prop">Icon</span><span class="token-var">24px</span><span class="token-note">smaller than desktop's 30px</span></div>
+          <div class="token-row"><span class="token-prop">Label</span><span class="token-var">.text-h6--mobile</span><span class="token-note">16px, nowrap</span></div>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__heading"</span><span class="t-tag">&gt;</span>Dein schneller Zugriff: Kontakt, Gesamtsortiment &amp;amp; mehr<span class="t-tag">&lt;/h2&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__list"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__card ufs-pathways__card--aubergine"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__icon"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/products.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;&lt;/div&gt;</span>
+      <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__label"</span><span class="t-tag">&gt;</span>Kontakt aufnehmen<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__chevron"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 7 14"</span><span class="t-tag">&gt;&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M1 1l5 6-5 6"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span><span class="t-tag">/&gt;&lt;/svg&gt;&lt;/span&gt;</span>
+    <span class="t-tag">&lt;/a&gt;</span>
+    <span class="t-cm">&lt;!-- repeat .ufs-pathways__card, one per pathway, --aubergine / --squid / --orange / --smoke --&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ COLOUR VARIANTS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="colours">
+      <div class="section-breadcrumb">Pathways</div>
+      <h2 class="section-title">Colour Variants</h2>
+      <p class="section-desc">Four fixed card colours, each with its own icon/chevron tint for contrast — not a generic single card style. All four resolve to exact DS tokens (see notes).</p>
+
+      <div class="ds-card">
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">--aubergine</span><span class="token-var">var(--color-aubergine)</span><span class="token-note">#5C3657 — exact match, white icon/label</span></div>
+          <div class="token-row"><span class="token-prop">--squid</span><span class="token-var">var(--color-brand-dark)</span><span class="token-note">#221D37 — Figma's "squid-ink" is this DS's brand-dark, not --color-squid-900 (a different, darker step) — same substitution .ufs-flex-carousel--squid already makes. White icon/label</span></div>
+          <div class="token-row"><span class="token-prop">--orange</span><span class="token-var">var(--color-accessible-orange)</span><span class="token-note">#D14900 — exact match, white icon/label</span></div>
+          <div class="token-row"><span class="token-prop">--smoke</span><span class="token-var">color-mix(in srgb, var(--color-smoke) 50%, transparent)</span><span class="token-note">--color-smoke (#94889D) at 50% opacity — lands within a rounding point of Figma's #C9C3CE on a white surface. Dark icon/label (no filter)</span></div>
+        </div>
+      </div>
+
+      <div class="pv-light" style="padding: 40px; display:flex; gap:24px; flex-wrap:wrap;">
+        <a href="#" class="ufs-pathways__card ufs-pathways__card--aubergine" style="position:static;">
+          <div class="ufs-pathways__icon"><img src="icons/products.svg" alt=""/></div>
+          <span class="ufs-pathways__label">Aubergine</span>
+        </a>
+        <a href="#" class="ufs-pathways__card ufs-pathways__card--squid" style="position:static;">
+          <div class="ufs-pathways__icon"><img src="icons/flame.svg" alt=""/></div>
+          <span class="ufs-pathways__label">Squid (brand-dark)</span>
+        </a>
+        <a href="#" class="ufs-pathways__card ufs-pathways__card--orange" style="position:static;">
+          <div class="ufs-pathways__icon"><img src="icons/chef.svg" alt=""/></div>
+          <span class="ufs-pathways__label">Accessible Orange</span>
+        </a>
+        <a href="#" class="ufs-pathways__card ufs-pathways__card--smoke" style="position:static;">
+          <div class="ufs-pathways__icon"><img src="icons/whatsapp.svg" alt=""/></div>
+          <span class="ufs-pathways__label">Smoke</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ SIZES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="sizes">
+      <div class="section-breadcrumb">Pathways</div>
+      <h2 class="section-title">3 vs 4 Cards</h2>
+      <p class="section-desc">No separate size variant — card width (250px) and row gap (32px) are constant. The row's total width, and how it centres, is simply a function of card count: 3 cards is 814px (3×250 + 2×32), 4 cards is 1096px (4×250 + 3×32), both from the real Figma frames.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">3 cards — "What do you want to do today?"</div>
+        <div class="pv-light" style="margin-bottom: 28px;">
+          <div class="ufs-pathways">
+            <h2 class="ufs-pathways__heading">What do you want to do today?</h2>
+            <div class="ufs-pathways__list">
+              <a href="#" class="ufs-pathways__card ufs-pathways__card--aubergine">
+                <div class="ufs-pathways__icon"><img src="icons/products.svg" alt=""/></div>
+                <span class="ufs-pathways__label">Products</span>
+                <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </a>
+              <a href="#" class="ufs-pathways__card ufs-pathways__card--squid">
+                <div class="ufs-pathways__icon"><img src="icons/flame.svg" alt=""/></div>
+                <span class="ufs-pathways__label">Inspiration</span>
+                <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </a>
+              <a href="#" class="ufs-pathways__card ufs-pathways__card--orange">
+                <div class="ufs-pathways__icon"><img src="icons/chef.svg" alt=""/></div>
+                <span class="ufs-pathways__label">Trainings</span>
+                <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="pv-label">4 cards — "Dein schneller Zugriff…"</div>
+        <div class="pv-light">
+          <div class="ufs-pathways">
+            <h2 class="ufs-pathways__heading">Dein schneller Zugriff: Kontakt, Gesamtsortiment &amp; mehr</h2>
+            <div class="ufs-pathways__list">
+              <a href="#" class="ufs-pathways__card ufs-pathways__card--aubergine">
+                <div class="ufs-pathways__icon"><img src="icons/products.svg" alt=""/></div>
+                <span class="ufs-pathways__label">Kontakt aufnehmen</span>
+                <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </a>
+              <a href="#" class="ufs-pathways__card ufs-pathways__card--squid">
+                <div class="ufs-pathways__icon"><img src="icons/flame.svg" alt=""/></div>
+                <span class="ufs-pathways__label">Gesamtsortiment</span>
+                <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </a>
+              <a href="#" class="ufs-pathways__card ufs-pathways__card--orange">
+                <div class="ufs-pathways__icon"><img src="icons/chef.svg" alt=""/></div>
+                <span class="ufs-pathways__label">Newsletter Anmeldung</span>
+                <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </a>
+              <a href="#" class="ufs-pathways__card ufs-pathways__card--smoke">
+                <div class="ufs-pathways__icon"><img src="icons/whatsapp.svg" alt=""/></div>
+                <span class="ufs-pathways__label">WhatsApp-News</span>
+                <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip" style="margin-top:16px;">
+        <span class="notice-icon">💡</span>
+        <div>Nothing stops a 2-card or 5-card row — the layout is just centred flex with a fixed card width, it doesn't hard-code a card count. 3 and 4 are simply the two counts the source Figma frames happen to show.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Example</h2>
+      <p class="section-desc">Below 768px: heading and row both go left-aligned, cards flip to a horizontal icon+label row with no chevron, and the row becomes a horizontally-scrolling track — swipe to see the rest. This scroll-track behavior isn't in the source Figma frame (it only shows the row assuming it fits); it's this spec's own addition, built the same way every other fixed-width-card carousel in this DS already works.</p>
+
+      <div class="pv-label">Mobile — swipe the row</div>
+      <div class="pv-mobile" style="padding: 24px 0;">
+        <div class="ufs-pathways">
+          <h2 class="ufs-pathways__heading">Dein schneller Zugriff: Kontakt, Gesamtsortiment &amp; mehr</h2>
+          <div class="ufs-pathways__list">
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--aubergine">
+              <div class="ufs-pathways__icon"><img src="icons/products.svg" alt=""/></div>
+              <span class="ufs-pathways__label">Kontakt aufnehmen</span>
+            </a>
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--squid">
+              <div class="ufs-pathways__icon"><img src="icons/flame.svg" alt=""/></div>
+              <span class="ufs-pathways__label">Gesamtsortiment</span>
+            </a>
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--orange">
+              <div class="ufs-pathways__icon"><img src="icons/chef.svg" alt=""/></div>
+              <span class="ufs-pathways__label">Newsletter Anmeldung</span>
+            </a>
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--smoke">
+              <div class="ufs-pathways__icon"><img src="icons/whatsapp.svg" alt=""/></div>
+              <span class="ufs-pathways__label">WhatsApp-News</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--warn" style="margin-top:16px;">
+        <span class="notice-icon">⚠️</span>
+        <div>The layout above is emulated with <code>!important</code> overrides scoped to <code>.pv-mobile</code> — a real <code>@media</code> query responds to the actual browser viewport, not a container's width, so constraining this box to 390px on its own wouldn't be enough to trigger it on a wide desktop window. In production, resize the browser window below 768px to see the real <code>@media (max-width: 768px)</code> rule take effect.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The chevron uses <code>inset-inline-end</code> (not <code>right</code>) and gets an explicit <code>scaleX(-1)</code> flip under <code>dir="rtl"</code>, so it still points toward the reading-direction "next" edge. The mobile heading's <code>text-align:left</code> needs the same explicit flip real spec files in this DS always give literal text-align values. The horizontally-scrolling row needs no JS changes — native <code>overflow-x:auto</code> already starts scrolled to the trailing edge under RTL.</p>
+
+      <div class="pv-label">RTL — desktop</div>
+      <div class="pv-light" style="padding: 40px;" dir="rtl">
+        <div class="ufs-pathways" style="padding: 0;">
+          <h2 class="ufs-pathways__heading">ما الذي تريد فعله اليوم؟</h2>
+          <div class="ufs-pathways__list">
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--aubergine">
+              <div class="ufs-pathways__icon"><img src="icons/products.svg" alt=""/></div>
+              <span class="ufs-pathways__label">المنتجات</span>
+              <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--squid">
+              <div class="ufs-pathways__icon"><img src="icons/flame.svg" alt=""/></div>
+              <span class="ufs-pathways__label">الإلهام</span>
+              <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+            <a href="#" class="ufs-pathways__card ufs-pathways__card--orange">
+              <div class="ufs-pathways__icon"><img src="icons/chef.svg" alt=""/></div>
+              <span class="ufs-pathways__label">التدريبات</span>
+              <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip" style="margin-top:16px;">
+        <span class="notice-icon">💡</span>
+        <div>Card content itself (icon, label) needs no changes at all — <code>flex-direction:column; align-items:flex-start</code> already mirrors to the correct edge under RTL with no override, same as every other logical-property layout in this DS.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ USAGE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="usage">
+      <div class="section-breadcrumb">Developer</div>
+      <h2 class="section-title">Usage</h2>
+      <p class="section-desc">Pure HTML + CSS — no JS. Cards are real <code>&lt;a&gt;</code> links, not buttons, since a Pathway is always a navigation shortcut.</p>
+
+      <div class="ds-card usage-section" style="display:block;">
+        <div class="code-panel-tabs" style="display:flex; gap:8px; margin-bottom:4px;">
+          <button class="code-panel-tab active" onclick="showPanel('pw-html',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">HTML</button>
+          <button class="code-panel-tab" onclick="showPanel('pw-css',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">CSS</button>
+        </div>
+        <div class="code-block-wrap" id="pw-html" style="display:block"><pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__heading"</span><span class="t-tag">&gt;</span>Heading text<span class="t-tag">&lt;/h2&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__list"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"…"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__card ufs-pathways__card--aubergine"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__icon"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/products.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;&lt;/div&gt;</span>
+      <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__label"</span><span class="t-tag">&gt;</span>Label<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pathways__chevron"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 7 14"</span><span class="t-tag">&gt;&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M1 1l5 6-5 6"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span><span class="t-tag">/&gt;&lt;/svg&gt;&lt;/span&gt;</span>
+    <span class="t-tag">&lt;/a&gt;</span>
+    <span class="t-cm">&lt;!-- 2 to 5+ cards, --aubergine / --squid / --orange / --smoke --&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre></div>
+        <div class="code-block-wrap" id="pw-css" style="display:none"><pre class="code-body"><span class="t-pr">.ufs-pathways</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-10)</span> <span class="t-va">var(--space-6)</span>; }
+<span class="t-pr">.ufs-pathways__heading</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h4-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h4-lh)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h4-w)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-pathways__list</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-8)</span>; }
+<span class="t-pr">.ufs-pathways__card</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">flex-start</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>;
+  <span class="t-pr">width</span>: <span class="t-vl">250px</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-6)</span> <span class="t-va">var(--space-4)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-pathways__icon</span> { <span class="t-pr">width</span>: <span class="t-vl">30px</span>; <span class="t-pr">height</span>: <span class="t-vl">30px</span>; }
+<span class="t-pr">.ufs-pathways__label</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h6-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h6-lh)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h6-w)</span>; }
+<span class="t-pr">.ufs-pathways__chevron</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-vl">50%</span>; <span class="t-pr">transform</span>: <span class="t-vl">translateY(-50%)</span>; <span class="t-pr">inset-inline-end</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">[dir="rtl"] .ufs-pathways__chevron svg</span> { <span class="t-pr">transform</span>: <span class="t-vl">scaleX(-1)</span>; }
+
+<span class="t-pr">.ufs-pathways__card--aubergine</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-aubergine)</span>; }
+<span class="t-pr">.ufs-pathways__card--squid</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-pathways__card--orange</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-accessible-orange)</span>; }
+<span class="t-pr">.ufs-pathways__card--smoke</span> { <span class="t-pr">background</span>: <span class="t-va">color-mix(in srgb, var(--color-smoke) 50%, transparent)</span>; }
+<span class="t-cm">/* --aubergine/--squid/--orange also need: .ufs-pathways__label{color:var(--color-salt)} +
+   filter:brightness(0) invert(1) on the icon img and chevron svg */</span>
+
+<span class="t-cm">@media (min-width: 769px) {</span>
+  <span class="t-pr">.ufs-pathways__chevron</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+<span class="t-cm">}</span>
+<span class="t-cm">@media (max-width: 768px) {</span>
+  <span class="t-pr">.ufs-pathways</span> { <span class="t-pr">align-items</span>: <span class="t-vl">flex-start</span>; }
+  <span class="t-pr">.ufs-pathways__heading</span> { <span class="t-pr">text-align</span>: <span class="t-vl">left</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h4-mob-size)</span>; }
+  <span class="t-pr">.ufs-pathways__list</span> { <span class="t-pr">justify-content</span>: <span class="t-vl">flex-start</span>; <span class="t-pr">flex-wrap</span>: <span class="t-vl">nowrap</span>; <span class="t-pr">overflow-x</span>: <span class="t-vl">auto</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+  <span class="t-pr">.ufs-pathways__card</span> { <span class="t-pr">flex-direction</span>: <span class="t-vl">row</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">width</span>: <span class="t-vl">auto</span>; <span class="t-pr">white-space</span>: <span class="t-vl">nowrap</span>;
+    <span class="t-pr">padding</span>: <span class="t-va">var(--space-3)</span> <span class="t-va">var(--space-4)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; }
+  <span class="t-pr">.ufs-pathways__icon</span> { <span class="t-pr">width</span>: <span class="t-vl">24px</span>; <span class="t-pr">height</span>: <span class="t-vl">24px</span>; }
+  <span class="t-pr">.ufs-pathways__label</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h6-mob-size)</span>; }
+<span class="t-cm">}</span></pre></div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="full-page-preview-v0.2.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    function showPanel(panelId, clickedBtn) {
+      var container = clickedBtn.closest('.ds-card, .usage-section');
+      container.querySelectorAll('.code-panel-tab').forEach(function(b) { b.classList.remove('active'); });
+      clickedBtn.classList.add('active');
+      container.querySelectorAll('.code-block-wrap').forEach(function(w) { w.style.display = 'none'; });
+      document.getElementById(panelId).style.display = 'block';
+    }
+  </script>
+</body>
+</html>

@@ -1002,6 +1002,79 @@
     }
 
     /* ==========================================================================
+       VIDEO EMBED — new component, no Figma source node. Anatomy combines
+       two patterns already in this file rather than inventing new visual
+       language: Topic Tile's photo + bottom-gradient + overlaid-content
+       shell (above) for the card itself, and Teaser's play trigger/icon +
+       shared video lightbox for the video control — same icon circle, same
+       hover darken+scale, same lb-overlay modal opened via [data-video-url]
+       (see the lightbox markup/CSS/JS near the end of this file). Full
+       documentation, including the mobile standalone-vs-in-carousel width
+       split below, lives in video-embed-spec.html — this is that same CSS,
+       shipped as-is.
+    ========================================================================== */
+    .ufs-video-embed {
+      position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .ufs-video-embed--tile { width: 350px; aspect-ratio: 4 / 3; }
+    .ufs-video-embed--wide { width: 350px; aspect-ratio: 4 / 3; }
+    .ufs-video-embed__media { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
+    .ufs-video-embed__photo { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 0.35s ease; }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-video-embed:hover .ufs-video-embed__photo { transform: scale(1.06); }
+      .ufs-video-embed:hover { box-shadow: var(--shadow-lg); }
+    }
+    .ufs-video-embed::before {
+      content: ''; position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-dark) 0%, transparent) 23.5%, var(--color-brand-dark) 74%);
+    }
+    .ufs-video-embed__play {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; padding: 0; cursor: pointer;
+      touch-action: pan-x;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-video-embed__play { inset: 0; top: auto; left: auto; transform: none; width: 100%; height: 100%; }
+    }
+    .ufs-video-embed__play-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: var(--space-16); height: var(--space-16); border-radius: var(--radius-full);
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.6);
+      transition: background 0.15s, transform 0.15s;
+      margin-top: -32px;
+    }
+    .ufs-video-embed__play-icon svg { width: 26px; height: 26px; fill: var(--color-salt); }
+    .ufs-video-embed__play:hover .ufs-video-embed__play-icon { background: rgba(0,0,0,0.4); transform: scale(1.08); }
+    .ufs-video-embed__body {
+      position: relative; z-index: 2;
+      display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+      padding: var(--space-5); text-align: center;
+    }
+    .ufs-video-embed__title { font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); color: var(--color-salt); margin: 0; }
+    .ufs-video-embed__meta { display: flex; align-items: center; justify-content: center; gap: var(--space-1); }
+    .ufs-video-embed__meta img { width: var(--space-4); height: var(--space-4); filter: brightness(0) invert(1); opacity: 0.75; }
+    .ufs-video-embed__meta span { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-300); }
+    @media (min-width: 769px) {
+      .ufs-video-embed--wide { width: 650px; aspect-ratio: 16 / 9; }
+      .ufs-video-embed--wide .ufs-video-embed__play-icon { width: var(--space-20); height: var(--space-20); }
+      .ufs-video-embed--wide .ufs-video-embed__play-icon svg { width: 32px; height: 32px; }
+      .ufs-video-embed--wide .ufs-video-embed__body { padding: var(--space-8); }
+      .ufs-video-embed--wide .ufs-video-embed__title { font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); }
+    }
+    @media (max-width: 768px) {
+      .ufs-video-embed--tile,
+      .ufs-video-embed--wide { width: 100%; aspect-ratio: 4 / 3; }
+      .ufs-flex-carousel .ufs-carousel-card.ufs-video-embed--tile,
+      .ufs-flex-carousel .ufs-carousel-card.ufs-video-embed--wide { width: 320px; }
+      .ufs-video-embed__play-icon { width: var(--space-12); height: var(--space-12); }
+      .ufs-video-embed__play-icon svg { width: 14px; height: 14px; }
+    }
+
+    /* ==========================================================================
        BRAND TILE — carousel-only, fixed 350×152px horizontal card: a
        120×120 logo tile beside a title/description column. No fav, no
        badge, no CTA — the whole card is the click target (see Recipe
@@ -3934,6 +4007,103 @@
     /* Keep the dev state-badge clear of the sticky CTA on desktop (mobile
        already hides .state-badge below 768px, so no clash there) */
     body.sticky-cta-visible .state-badge { bottom: 130px; }
+
+    /* ═══════════════════════════════════════
+       PATHWAYS — mirrored 1:1 from handover/pathways-spec.html. Heading
+       over a row of colour-coded shortcut cards (icon + label, desktop
+       also gets a trailing chevron). Desktop: fixed-width 250px cards,
+       centred as a group. Mobile: cards flip to a horizontal icon+label
+       row, left-aligned, no chevron, horizontally-scrolling track.
+    ═══════════════════════════════════════ */
+    .ufs-pathways {
+      display: flex; flex-direction: column; align-items: center;
+      gap: var(--space-6);
+      padding: var(--space-10) var(--space-6);
+      background: var(--color-salt);
+    }
+    .ufs-pathways__heading {
+      font-family: var(--font-family);
+      font-size: var(--text-h4-size); line-height: var(--text-h4-lh); font-weight: var(--text-h4-w);
+      color: var(--color-brand-dark);
+      text-align: center;
+      max-width: 814px;
+    }
+    .ufs-pathways__list {
+      display: flex; align-items: center; justify-content: center;
+      gap: var(--space-8);
+      width: 100%;
+    }
+    .ufs-pathways__card {
+      position: relative;
+      display: flex; flex-direction: column; align-items: flex-start;
+      gap: var(--space-2);
+      width: 250px; flex-shrink: 0;
+      padding: var(--space-6) var(--space-4);
+      border-radius: var(--radius-lg);
+      text-decoration: none;
+      transition: transform 0.15s ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-pathways__card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+    }
+    .ufs-pathways__icon { width: 30px; height: 30px; flex-shrink: 0; }
+    .ufs-pathways__icon img { width: 100%; height: 100%; display: block; }
+    .ufs-pathways__label {
+      font-family: var(--font-family);
+      font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w);
+    }
+    .ufs-pathways__chevron {
+      display: none;
+      position: absolute; top: 50%; transform: translateY(-50%);
+      inset-inline-end: var(--space-4);
+    }
+    .ufs-pathways__chevron svg { display: block; width: 7px; height: 14px; }
+    [dir="rtl"] .ufs-pathways__chevron svg { transform: scaleX(-1); }
+
+    .ufs-pathways__card--aubergine { background: var(--color-aubergine); }
+    .ufs-pathways__card--aubergine .ufs-pathways__label { color: var(--color-salt); }
+    .ufs-pathways__card--aubergine .ufs-pathways__icon img,
+    .ufs-pathways__card--aubergine .ufs-pathways__chevron svg { filter: brightness(0) invert(1); }
+
+    .ufs-pathways__card--squid { background: var(--color-brand-dark); }
+    .ufs-pathways__card--squid .ufs-pathways__label { color: var(--color-salt); }
+    .ufs-pathways__card--squid .ufs-pathways__icon img,
+    .ufs-pathways__card--squid .ufs-pathways__chevron svg { filter: brightness(0) invert(1); }
+
+    .ufs-pathways__card--orange { background: var(--color-accessible-orange); }
+    .ufs-pathways__card--orange .ufs-pathways__label { color: var(--color-salt); }
+    .ufs-pathways__card--orange .ufs-pathways__icon img,
+    .ufs-pathways__card--orange .ufs-pathways__chevron svg { filter: brightness(0) invert(1); }
+
+    .ufs-pathways__card--smoke { background: color-mix(in srgb, var(--color-smoke) 50%, transparent); }
+    .ufs-pathways__card--smoke .ufs-pathways__label { color: var(--color-brand-dark); }
+
+    @media (min-width: 769px) {
+      .ufs-pathways__chevron { display: block; }
+    }
+
+    @media (max-width: 768px) {
+      .ufs-pathways { align-items: flex-start; padding: var(--space-6) 0; }
+      .ufs-pathways__heading { text-align: left; padding: 0 var(--space-4); max-width: none; }
+      [dir="rtl"] .ufs-pathways__heading { text-align: right; }
+      .ufs-pathways__heading { font-size: var(--text-h4-mob-size); }
+      .ufs-pathways__list {
+        justify-content: flex-start; flex-wrap: nowrap; overflow-x: auto;
+        gap: var(--space-4);
+        padding: 0 var(--space-4);
+        -webkit-overflow-scrolling: touch; scrollbar-width: none;
+      }
+      .ufs-pathways__list::-webkit-scrollbar { display: none; }
+      .ufs-pathways__card {
+        flex-direction: row; align-items: center;
+        width: auto; white-space: nowrap;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-sm);
+      }
+      .ufs-pathways__icon { width: 24px; height: 24px; }
+      .ufs-pathways__label { font-size: var(--text-h6-mob-size); }
+    }
   </style>
 </head>
 <body class="color-light">
@@ -4672,6 +4842,37 @@
       <div class="ufs-fw-banner__scrim"></div>
       <div class="ufs-carousel-dots"></div>
       <div class="ufs-fw-banner__sr-status" aria-live="polite" data-fw-status></div>
+    </section>
+
+    <!-- ================================================================
+         PATHWAYS — demo instance, 4 cards. See handover/pathways-spec.html
+         for the full component spec (colour variants, mobile scroll-track,
+         RTL).
+    ================================================================ -->
+    <section class="ufs-pathways">
+      <h2 class="ufs-pathways__heading">Where would you like to go next?</h2>
+      <div class="ufs-pathways__list">
+        <a href="#" class="ufs-pathways__card ufs-pathways__card--aubergine">
+          <div class="ufs-pathways__icon"><img src="icons/products.svg" alt=""/></div>
+          <span class="ufs-pathways__label">Browse Products</span>
+          <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+        <a href="#" class="ufs-pathways__card ufs-pathways__card--squid">
+          <div class="ufs-pathways__icon"><img src="icons/flame.svg" alt=""/></div>
+          <span class="ufs-pathways__label">Find Recipes</span>
+          <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+        <a href="#" class="ufs-pathways__card ufs-pathways__card--orange">
+          <div class="ufs-pathways__icon"><img src="icons/chef.svg" alt=""/></div>
+          <span class="ufs-pathways__label">Explore Training</span>
+          <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+        <a href="#" class="ufs-pathways__card ufs-pathways__card--smoke">
+          <div class="ufs-pathways__icon"><img src="icons/whatsapp.svg" alt=""/></div>
+          <span class="ufs-pathways__label">WhatsApp News</span>
+          <span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </a>
+      </div>
     </section>
 
     <!-- ================================================================
@@ -5524,6 +5725,138 @@
 
       <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
     </section>
+
+    <!-- Flex Carousel — Video Embed tiles, on mushroom-100 background -->
+    <section class="ufs-flex-carousel ufs-flex-carousel--mushroom">
+      <div class="ufs-flex-carousel__head">
+        <div class="ufs-flex-carousel__intro">
+          <h2 class="ufs-flex-carousel__title text-h3">UFS Academy Video Library</h2>
+          <p class="ufs-flex-carousel__desc">Short training videos from professional chefs, ready to watch on any device.</p>
+        </div>
+        <button class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+      </div>
+
+      <div class="ufs-flex-carousel__track-wrap">
+        <div class="ufs-carousel-track">
+          <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Knife Skills: Basic Cuts Masterclass</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>12 min</span></div>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Behind the Menu: Sourcing Seasonal Produce</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>24 min</span></div>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/recipe.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Plating Techniques for Modern Service</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>9 min</span></div>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/article.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Sauce Fundamentals: The Five Mother Sauces</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>18 min</span></div>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/product.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Knife Care &amp; Sharpening Basics</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>7 min</span></div>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/reward.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Menu Costing for Chefs</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>15 min</span></div>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/lime-scale.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Sustainable Kitchen Practices</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>11 min</span></div>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Front-of-House Service Standards</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>14 min</span></div>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/hero/recipe.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Stock &amp; Broth: Building Flavour From Scratch</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>21 min</span></div>
+            </div>
+          </div>
+          <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+            <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/hero/packshot.jpg')"></div></div>
+            <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+              <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+            </button>
+            <div class="ufs-video-embed__body">
+              <p class="ufs-video-embed__title">Portion Control &amp; Food Cost Discipline</p>
+              <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>10 min</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ufs-flex-carousel__foot">
+        <div class="ufs-carousel-dots"></div>
+        <div class="ufs-flex-carousel__arrows">
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+          <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+    </section>
+
 
 
     <!-- Flex Carousel — Squid Ink variant -->
@@ -6786,8 +7119,7 @@
       </div>
     </section>
 
-    <!-- TITLE — dark/squid-ink modifier, h3 variant, placeholder copy.
-         Previewing it directly above the squid-ink teaser section below. -->
+    <!-- TITLE — dark/squid-ink modifier, h3 variant, placeholder copy. -->
     <section class="ufs-title-section ufs-title-section--dark">
       <div class="ufs-title-section__inner">
         <p class="ufs-title-section__eyebrow">Eyebrow Text</p>
@@ -6796,10 +7128,8 @@
       </div>
     </section>
 
-    <!-- TEASER — 4-up, squid-ink background. The text-link CTA switches to
-         --color-brand-primary here (see .pg-teaser-section--squidink
-         .ufs-teaser__link). -->
-    <section class="pg-teaser-section pg-teaser-section--squidink">
+    <!-- TEASER — 4-up, white background. -->
+    <section class="pg-teaser-section">
       <div class="ufs-teaser-wrapper ufs-teaser-wrapper--4">
         <div class="ufs-teaser">
           <div class="ufs-teaser__image"><img src="images/carousel/slide3.jpg" alt=""/></div>
@@ -10889,5 +11219,63 @@
       <span class="ufs-bottom-nav__label">Products</span>
     </button>
   </nav>
+
+  <!-- VIDEO LIGHTBOX — shared by every .ufs-video-embed__play trigger on this page. Same lb-overlay/lb-panel pattern documented in video-embed-spec.html / teaser-spec.html. -->
+  <div class="lb-overlay" id="lb-overlay" role="dialog" aria-modal="true" aria-label="Video">
+    <div class="lb-wrap">
+      <button class="lb-close" id="lb-close" aria-label="Close">&times;</button>
+      <div class="lb-panel">
+        <iframe id="lb-iframe" src="" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .lb-overlay {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.88);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .lb-overlay.open { opacity: 1; pointer-events: all; }
+    .lb-wrap { position: relative; width: min(900px, calc(100vw - 32px)); }
+    .lb-panel { aspect-ratio: 16 / 9; background: var(--color-brand-dark); border-radius: var(--radius-lg); overflow: hidden; transform: scale(0.95); transition: transform 0.25s; }
+    .lb-overlay.open .lb-panel { transform: scale(1); }
+    .lb-panel iframe { width: 100%; height: 100%; border: none; display: block; }
+    .lb-close { position: absolute; top: -44px; right: 0; background: none; border: none; color: var(--color-salt); font-size: 30px; line-height: 1; padding: 6px; cursor: pointer; opacity: 0.8; transition: opacity 0.15s; }
+    .lb-close:hover { opacity: 1; }
+  </style>
+
+  <script>
+    /* ── Video lightbox ─────────────────────────────────────────── */
+    (function () {
+      var lbOverlay = document.getElementById('lb-overlay');
+      var lbIframe  = document.getElementById('lb-iframe');
+      var lbClose   = document.getElementById('lb-close');
+      if (!lbOverlay) return;
+
+      function openLB(url) {
+        lbIframe.src = url;
+        lbOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLB() {
+        lbOverlay.classList.remove('open');
+        lbIframe.src = '';
+        document.body.style.overflow = '';
+      }
+
+      document.querySelectorAll('[data-video-url]').forEach(function (trigger) {
+        trigger.addEventListener('click', function () {
+          openLB(trigger.getAttribute('data-video-url'));
+        });
+      });
+      lbClose.addEventListener('click', closeLB);
+      lbOverlay.addEventListener('click', function (e) { if (e.target === lbOverlay) closeLB(); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lbOverlay.classList.contains('open')) closeLB();
+      });
+    })();
+  </script>
 </body>
 </html>

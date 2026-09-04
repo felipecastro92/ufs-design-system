@@ -159,11 +159,18 @@
     ═══════════════════════════════════════ */
     .ufs-video-embed {
       position: relative; display: flex; flex-direction: column; justify-content: flex-end;
-      width: 320px; aspect-ratio: 16 / 9;
       border-radius: var(--radius-lg);
       overflow: hidden;
       flex-shrink: 0;
     }
+    /* Two explicit, required size modifiers — .ufs-video-embed alone has no
+       width/aspect-ratio of its own, unlike Topic Tile's bare-default +
+       --wide pattern. --wide restates --tile's own 350px/4:3 as its own
+       mobile-safe baseline (rather than relying on a shared bare-class
+       fallback that no longer exists) so it still renders correctly below
+       the 769px breakpoint where its desktop-only overrides don't apply. */
+    .ufs-video-embed--tile { width: 350px; aspect-ratio: 4 / 3; }
+    .ufs-video-embed--wide { width: 350px; aspect-ratio: 4 / 3; }
     /* Same split as Topic Tile: the photo lives on its own layer
        (.ufs-video-embed__photo) inside a dedicated clipping frame
        (.ufs-video-embed__media), so the hover zoom can use a smoothly
@@ -191,7 +198,7 @@
        positioned over it), this card's bottom-pinned title/duration block
        shares screen space with the button's full-cover desktop hit area.
        Without outranking it, clicking the title/duration text (which
-       visually sits right where the icon is, on the compact base size) hit
+       visually sits right where the icon is, on the compact --tile size) hit
        the non-interactive body instead of opening the lightbox. The button
        has no opaque background outside the icon circle, so raising it
        doesn't hide the text underneath. */
@@ -209,6 +216,7 @@
       width: var(--space-16); height: var(--space-16); border-radius: var(--radius-full);
       background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.6);
       transition: background 0.15s, transform 0.15s;
+      margin-top: -32px;
     }
     .ufs-video-embed__play-icon svg { width: 26px; height: 26px; fill: var(--color-salt); }
     .ufs-video-embed__play:hover .ufs-video-embed__play-icon { background: rgba(0,0,0,0.4); transform: scale(1.08); }
@@ -224,31 +232,56 @@
     .ufs-video-embed__meta span { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-300); }
 
     /* Wide variant — same anatomy, wider carousel-only card (650px, same
-       width Topic Tile Wide uses), content left-anchored instead of
-       centred, bigger play icon and title. Logical padding-inline-
-       start/end + align-items:flex-start mirror to the correct edge under
-       RTL automatically; only the literal text-align needs an explicit
-       flip. Below 769px none of this applies — same rule Topic Tile Wide
-       follows: the wide card looks exactly like the base one on mobile. */
+       width Topic Tile Wide uses), a true 16:9 ratio instead of --tile's
+       4:3, bigger play icon and title. Content stays centred, same as
+       --tile — no alignment override needed, so no RTL handling is needed
+       either (a centred layout has no physical edge to mirror). Below
+       769px none of this applies — --wide falls back to its own --tile-
+       matching baseline above, so the card looks exactly like the tile
+       version on mobile. */
     @media (min-width: 769px) {
-      .ufs-video-embed--wide { width: 650px; }
+      .ufs-video-embed--wide { width: 650px; aspect-ratio: 16 / 9; }
       .ufs-video-embed--wide .ufs-video-embed__play-icon { width: var(--space-20); height: var(--space-20); }
       .ufs-video-embed--wide .ufs-video-embed__play-icon svg { width: 32px; height: 32px; }
-      .ufs-video-embed--wide .ufs-video-embed__body { align-items: flex-start; text-align: left; padding: var(--space-8); }
+      .ufs-video-embed--wide .ufs-video-embed__body { padding: var(--space-8); }
       .ufs-video-embed--wide .ufs-video-embed__title { font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); }
-      .ufs-video-embed--wide .ufs-video-embed__meta { justify-content: flex-start; }
-      [dir="rtl"] .ufs-video-embed--wide .ufs-video-embed__body { text-align: right; }
     }
 
-    /* Mobile — same 32px play-icon drop as Teaser's own mobile override.
-       Card width/aspect-ratio stay fixed: like every other
-       .ufs-carousel-card tile in this DS, Video Embed is meant to live in
-       a horizontally-scrolling carousel track on small screens, not
-       reflow to full viewport width. */
+    /* Mobile — play icon drops to var(--space-12) (48px) on both variants,
+       still smaller than desktop's 64px/80px but bigger than the 32px
+       Teaser itself uses at this breakpoint — a deliberate divergence,
+       kept easier to tap at thumb size on a touch screen. Width/ratio
+       depend on context: standalone (not inside
+       a real flex-carousel) goes fluid — 100% width, still 4:3 — so a lone
+       Video Embed dropped into an article or a single-column layout fills
+       it properly instead of floating at a fixed width. Inside an actual
+       .ufs-flex-carousel .ufs-carousel-card, that's overridden to a fixed
+       320px — the standard .ufs-carousel-card width used elsewhere in this
+       DS (Recipe Tile, Brand Tile, etc.), narrower than --tile's own 350px
+       desktop width so more of the next card peeks in on a small screen —
+       so the horizontal-scroll track still works. Same 3-class ancestor-
+       selector specificity Topic Tile Wide uses to scope its own carousel-
+       only width — no extra modifier class needed on Video Embed itself. */
     @media (max-width: 768px) {
-      .ufs-video-embed__play-icon { width: 32px; height: 32px; }
+      .ufs-video-embed--tile,
+      .ufs-video-embed--wide { width: 100%; aspect-ratio: 4 / 3; }
+      .ufs-flex-carousel .ufs-carousel-card.ufs-video-embed--tile,
+      .ufs-flex-carousel .ufs-carousel-card.ufs-video-embed--wide { width: 320px; }
+      .ufs-video-embed__play-icon { width: var(--space-12); height: var(--space-12); }
       .ufs-video-embed__play-icon svg { width: 14px; height: 14px; }
     }
+
+    /* Doc-only emulation of the two mobile scenarios above, since a real
+       @media query can't be scoped to a preview container — only the
+       actual viewport. Mirrors this component's own max-width:768px rules
+       with !important, scoped to .pv-mobile. Same pattern chef-tip-spec.html
+       and utility-bar-spec.html use for their own .pv-mobile previews. */
+    .pv-mobile .ufs-video-embed--tile,
+    .pv-mobile .ufs-video-embed--wide { width: 100% !important; aspect-ratio: 4 / 3 !important; }
+    .pv-mobile .ufs-flex-carousel .ufs-carousel-card.ufs-video-embed--tile,
+    .pv-mobile .ufs-flex-carousel .ufs-carousel-card.ufs-video-embed--wide { width: 320px !important; }
+    .pv-mobile .ufs-video-embed__play-icon { width: var(--space-12) !important; height: var(--space-12) !important; }
+    .pv-mobile .ufs-video-embed__play-icon svg { width: 14px !important; height: 14px !important; }
 
   </style>
 </head>
@@ -312,7 +345,7 @@
       <div class="doc-header-body">
         <div class="doc-header-eyebrow">Handover Spec — New Component</div>
         <h1 class="doc-header-title">Video <span>Embed</span></h1>
-        <p class="doc-header-desc">A tile-like video thumbnail: full-bleed background image with a bottom gradient overlay, a centered play button, and a video title + duration pinned to the bottom. Two sizes — a fixed-width carousel card and a wider featured variant — both held to a true 16:9 video ratio. Clicking the play button opens the DS's existing shared video lightbox.</p>
+        <p class="doc-header-desc">A tile-like video thumbnail: full-bleed background image with a bottom gradient overlay, a centered play button, and a video title + duration pinned to the bottom. Two required size modifiers — <code>--tile</code>, a 350px 4:3 carousel card, and <code>--wide</code>, a 650px 16:9 featured variant — both with centered content. Clicking the play button opens the DS's existing shared video lightbox.</p>
       </div>
       <div class="doc-header-meta">
         <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
@@ -330,8 +363,8 @@
       <h2 class="section-title">Full Component Preview</h2>
       <p class="section-desc">The live component, fully wired — click the play button to open the real video lightbox.</p>
 
-      <div class="pv-dark" style="padding: 48px; display:flex; justify-content:center;">
-        <div class="ufs-video-embed">
+      <div class="pv-light" style="padding: 48px; display:flex; justify-content:center;">
+        <div class="ufs-video-embed ufs-video-embed--tile">
           <div class="ufs-video-embed__media">
             <div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div>
           </div>
@@ -360,8 +393,8 @@
       <div class="ds-card">
         <div class="card-title">Card &amp; photo</div>
         <div class="token-list">
-          <div class="token-row"><span class="token-prop">Shape</span><span class="token-var">aspect-ratio: 16 / 9</span><span class="token-note">true video ratio — new to this component, Topic Tile uses a fixed min-height instead since it isn't video-specific</span></div>
-          <div class="token-row"><span class="token-prop">Width (base)</span><span class="token-var">320px</span><span class="token-note">matches the standard .ufs-carousel-card width used elsewhere in this DS</span></div>
+          <div class="token-row"><span class="token-prop">Shape</span><span class="token-var">--tile 4/3, --wide 16/9</span><span class="token-note">new to this component, Topic Tile uses a fixed min-height instead since it isn't video-specific</span></div>
+          <div class="token-row"><span class="token-prop">Width</span><span class="token-var">--tile 350px</span><span class="token-note">sized for a standard flex-carousel card</span></div>
           <div class="token-row"><span class="token-prop">Radius</span><span class="token-var">var(--radius-lg)</span><span class="token-note">same as Topic Tile</span></div>
           <div class="token-row"><span class="token-prop">Photo layer</span><span class="token-var">.ufs-video-embed__media / __photo</span><span class="token-note">absolute inset:0, background-size:cover — same photo/frame split as Topic Tile, so the hover zoom can animate cleanly</span></div>
           <div class="token-row"><span class="token-prop">Gradient</span><span class="token-var">linear-gradient(...) 23.5% → 74%</span><span class="token-note">var(--color-brand-dark), identical stops to Topic Tile's own ::before</span></div>
@@ -372,10 +405,11 @@
         <div class="card-title">Play button</div>
         <div class="card-desc">Reused byte-for-byte from Teaser's .ufs-teaser__play — see Play Trigger &amp; Lightbox below for the full behavior.</div>
         <div class="token-list">
-          <div class="token-row"><span class="token-prop">Icon (base)</span><span class="token-var">var(--space-16)</span><span class="token-note">64px circle, dark translucent fill, light border</span></div>
-          <div class="token-row"><span class="token-prop">Icon (wide)</span><span class="token-var">var(--space-20)</span><span class="token-note">80px, desktop only (≥769px)</span></div>
-          <div class="token-row"><span class="token-prop">Icon (mobile)</span><span class="token-var">32px</span><span class="token-note">below 768px, both sizes</span></div>
+          <div class="token-row"><span class="token-prop">Icon (--tile)</span><span class="token-var">var(--space-16)</span><span class="token-note">64px circle, dark translucent fill, light border</span></div>
+          <div class="token-row"><span class="token-prop">Icon (--wide)</span><span class="token-var">var(--space-20)</span><span class="token-note">80px, desktop only (≥769px) — falls back to --tile's 64px below it</span></div>
+          <div class="token-row"><span class="token-prop">Icon (mobile)</span><span class="token-var">var(--space-12)</span><span class="token-note">48px, below 768px, both variants — bigger than Teaser's own 32px mobile icon, deliberately, for an easier touch target</span></div>
           <div class="token-row"><span class="token-prop">Glyph</span><span class="token-var">inline SVG triangle</span><span class="token-note">same path as every other DS play icon (Teaser, Teaser LG, Training Hero)</span></div>
+          <div class="token-row"><span class="token-prop">Vertical offset</span><span class="token-var">.ufs-video-embed__play-icon</span><span class="token-note">margin-top: -32px shifts the icon up from true centre — deliberately on the icon, not the button, since the button's own full-cover desktop hit area is height:100% + inset:0, an over-constrained box where a margin on the button itself gets silently cancelled by the browser</span></div>
         </div>
       </div>
 
@@ -383,7 +417,7 @@
         <div class="card-title">Title &amp; duration</div>
         <div class="card-desc">New to this component — no prior DS pattern for a video duration to match, so this format/placement is this spec's own decision.</div>
         <div class="token-list">
-          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">var(--text-h6-size)</span><span class="token-note">18px/600, var(--color-salt) — bumps to var(--text-h5-size) on the wide variant</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">var(--text-h6-size)</span><span class="token-note">18px/600, var(--color-salt) — bumps to var(--text-h5-size) on --wide (desktop only)</span></div>
           <div class="token-row"><span class="token-prop">Duration format</span><span class="token-var">"12 min"</span><span class="token-note">rounded minutes, not mm:ss — reads faster at a glance than a timecode</span></div>
           <div class="token-row"><span class="token-prop">Duration icon</span><span class="token-var">icons/timer.svg</span><span class="token-note">brightness(0) invert(1) to render white, 75% opacity, var(--space-4) 16px</span></div>
           <div class="token-row"><span class="token-prop">Duration text</span><span class="token-var">var(--text-body-xs-size)</span><span class="token-note">color var(--color-mushroom-300) — sits directly under the title, same row group</span></div>
@@ -392,7 +426,7 @@
 
       <div class="code-block-wrap">
         <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
-<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed"</span><span class="t-tag">&gt;</span>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed ufs-video-embed--tile"</span><span class="t-tag">&gt;</span>
   <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__media"</span><span class="t-tag">&gt;</span>
     <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__photo"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('…')"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
   <span class="t-tag">&lt;/div&gt;</span>
@@ -403,7 +437,9 @@
     <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__title"</span><span class="t-tag">&gt;</span>Knife Skills: Basic Cuts Masterclass<span class="t-tag">&lt;/p&gt;</span>
     <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__meta"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/timer.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;&lt;span&gt;</span>12 min<span class="t-tag">&lt;/span&gt;&lt;/div&gt;</span>
   <span class="t-tag">&lt;/div&gt;</span>
-<span class="t-tag">&lt;/div&gt;</span></pre>
+<span class="t-tag">&lt;/div&gt;</span>
+
+<span class="t-cm">&lt;!-- swap --tile for --wide for the 650px, 16:9 featured variant --&gt;</span></pre>
       </div>
     </section>
 
@@ -428,12 +464,12 @@
     <section class="doc-section" id="sizes">
       <div class="section-breadcrumb">Video Embed</div>
       <h2 class="section-title">Sizes</h2>
-      <p class="section-desc">Base is a fixed-width carousel card (320px); <code>.ufs-video-embed--wide</code> is a wider featured variant (650px, desktop only) with a bigger play icon, bigger title, and left-anchored content instead of centered.</p>
+      <p class="section-desc">Two required modifiers — every instance needs one or the other, there's no bare unmodified default. <code>.ufs-video-embed--tile</code> is a fixed-width flex-carousel card (350px, 4:3); <code>.ufs-video-embed--wide</code> is a wider featured variant (650px, 16:9, desktop only) with a bigger play icon and title. Content stays centered on both.</p>
 
       <div class="ds-card">
-        <div class="pv-label">Base — 320px, centered content</div>
-        <div class="pv-dark" style="padding: 40px; margin-bottom: 28px;">
-          <div class="ufs-video-embed">
+        <div class="pv-label">Tile — 350px, 4:3, centered content</div>
+        <div class="pv-light" style="padding: 40px; margin-bottom: 28px;">
+          <div class="ufs-video-embed ufs-video-embed--tile">
             <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div></div>
             <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
               <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
@@ -445,8 +481,8 @@
           </div>
         </div>
 
-        <div class="pv-label">Wide — 650px, left-anchored content</div>
-        <div class="pv-dark" style="padding: 40px;">
+        <div class="pv-label">Wide — 650px, 16:9, centered content</div>
+        <div class="pv-light" style="padding: 40px;">
           <div class="ufs-video-embed ufs-video-embed--wide">
             <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div></div>
             <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
@@ -461,8 +497,10 @@
 
         <div class="card-subtitle">Key Tokens</div>
         <div class="token-list">
-          <div class="token-row"><span class="token-prop">Height</span><span class="token-var">derived from aspect-ratio</span><span class="token-note">180px (base) / 366px (wide) — not set directly</span></div>
-          <div class="token-row"><span class="token-prop">Breakpoint</span><span class="token-var">min-width: 769px</span><span class="token-note">below it, --wide collapses to the base layout — same rule Topic Tile Wide follows</span></div>
+          <div class="token-row"><span class="token-prop">Height</span><span class="token-var">derived from aspect-ratio</span><span class="token-note">263px (--tile, 350×4/3) / 366px (--wide, 650×16/9) — not set directly</span></div>
+          <div class="token-row"><span class="token-prop">Breakpoint</span><span class="token-var">min-width: 769px</span><span class="token-note">below it, --wide falls back to --tile's own 350px/4:3 baseline — same rule Topic Tile Wide follows</span></div>
+          <div class="token-row"><span class="token-prop">Mobile, in a carousel</span><span class="token-var">320px</span><span class="token-note">below 768px, inside .ufs-flex-carousel .ufs-carousel-card only — see Mobile Example</span></div>
+          <div class="token-row"><span class="token-prop">Mobile, standalone</span><span class="token-var">100% width</span><span class="token-note">below 768px, everywhere else — see Mobile Example</span></div>
         </div>
       </div>
     </section>
@@ -475,8 +513,8 @@
 
       <div class="ds-card">
         <div class="pv-label">Hover anywhere on the card to see both effects</div>
-        <div class="pv-dark" style="padding: 40px; display:flex; justify-content:center;">
-          <div class="ufs-video-embed">
+        <div class="pv-light" style="padding: 40px; display:flex; justify-content:center;">
+          <div class="ufs-video-embed ufs-video-embed--tile">
             <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div></div>
             <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
               <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
@@ -499,12 +537,12 @@
     <section class="doc-section" id="mobile">
       <div class="section-breadcrumb">Responsive</div>
       <h2 class="section-title">Mobile Example</h2>
-      <p class="section-desc">Below 768px only the play icon shrinks (to 32px, matching Teaser's own mobile override). Card width and aspect-ratio stay fixed — like every other <code>.ufs-carousel-card</code> tile in this DS, Video Embed is meant to sit in a horizontally-scrolling carousel track on small screens, not reflow to full viewport width. This is a judgment call, not a sourced Figma value.</p>
+      <p class="section-desc">Below 768px the play icon always drops to 48px, on both the standalone and in-carousel cases — bigger than Teaser's own 32px mobile icon, deliberately, for an easier touch target. Width and aspect-ratio depend on context — this is a judgment call, not a sourced Figma value.</p>
 
-      <div class="pv-label">Mobile (play icon at 32px)</div>
-      <div class="pv-mobile" style="padding: 24px 16px;">
-        <div class="pv-dark" style="padding: 24px; display:flex; justify-content:center;">
-          <div class="ufs-video-embed">
+      <div class="pv-label">Standalone — not inside a carousel: fluid 100% width, 4:3</div>
+      <div class="pv-mobile" style="padding: 24px 16px; margin-bottom: 28px;">
+        <div class="pv-light" style="padding: 24px;">
+          <div class="ufs-video-embed ufs-video-embed--tile">
             <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div></div>
             <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
               <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
@@ -517,9 +555,97 @@
         </div>
       </div>
 
+      <div class="pv-label">In a flex-carousel — fixed 320px, same standard width as every other carousel tile in this DS. 8 tiles, scroll horizontally to see the rest.</div>
+      <div class="pv-mobile" style="padding: 24px 16px;">
+        <div class="pv-light" style="padding: 24px; overflow-x: auto;">
+          <div class="ufs-flex-carousel" style="display:flex; gap:16px;">
+            <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+              <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/training.jpg')"></div></div>
+              <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
+                <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+              <div class="ufs-video-embed__body">
+                <p class="ufs-video-embed__title">Knife Skills: Basic Cuts Masterclass</p>
+                <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>12 min</span></div>
+              </div>
+            </div>
+            <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+              <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div></div>
+              <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
+                <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+              <div class="ufs-video-embed__body">
+                <p class="ufs-video-embed__title">Behind the Menu: Sourcing Seasonal Produce</p>
+                <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>24 min</span></div>
+              </div>
+            </div>
+            <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+              <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/recipe.jpg')"></div></div>
+              <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
+                <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+              <div class="ufs-video-embed__body">
+                <p class="ufs-video-embed__title">Plating Techniques for Modern Service</p>
+                <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>9 min</span></div>
+              </div>
+            </div>
+            <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+              <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/article.jpg')"></div></div>
+              <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
+                <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+              <div class="ufs-video-embed__body">
+                <p class="ufs-video-embed__title">Sauce Fundamentals: The Five Mother Sauces</p>
+                <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>18 min</span></div>
+              </div>
+            </div>
+            <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+              <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/product.jpg')"></div></div>
+              <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
+                <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+              <div class="ufs-video-embed__body">
+                <p class="ufs-video-embed__title">Knife Care &amp; Sharpening Basics</p>
+                <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>7 min</span></div>
+              </div>
+            </div>
+            <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+              <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/reward.jpg')"></div></div>
+              <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
+                <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+              <div class="ufs-video-embed__body">
+                <p class="ufs-video-embed__title">Menu Costing for Chefs</p>
+                <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>15 min</span></div>
+              </div>
+            </div>
+            <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+              <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/lime-scale.jpg')"></div></div>
+              <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
+                <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+              <div class="ufs-video-embed__body">
+                <p class="ufs-video-embed__title">Sustainable Kitchen Practices</p>
+                <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>11 min</span></div>
+              </div>
+            </div>
+            <div class="ufs-carousel-card ufs-video-embed ufs-video-embed--tile">
+              <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic.jpg')"></div></div>
+              <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="Play video">
+                <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+              <div class="ufs-video-embed__body">
+                <p class="ufs-video-embed__title">Front-of-House Service Standards</p>
+                <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>14 min</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="notice notice--warn" style="margin-top:16px;">
         <span class="notice-icon">⚠️</span>
-        <div>The mobile play-icon override above is emulated with an inline style for this preview only (media queries can't be scoped to a container, only the real viewport) — in production, resize the actual browser window below 768px to see the real <code>@media</code> rule take effect.</div>
+        <div>Both mobile behaviors above are emulated with <code>!important</code> overrides scoped to <code>.pv-mobile</code>, since a real <code>@media</code> query can't be scoped to a preview container — only the actual viewport. In production, resize the browser window below 768px to see the real rules take effect; the width difference only shows up when one instance genuinely sits inside <code>.ufs-flex-carousel .ufs-carousel-card</code> and the other doesn't.</div>
       </div>
     </section>
 
@@ -527,10 +653,10 @@
     <section class="doc-section" id="rtl">
       <div class="section-breadcrumb">Internationalisation</div>
       <h2 class="section-title">i18n &amp; RTL</h2>
-      <p class="section-desc">The base (centered) variant needs no changes — it's already symmetric. The wide variant's left-anchored content uses logical <code>padding-inline-start/end</code> and <code>align-items:flex-start</code>, which already mirror to the correct edge under <code>dir="rtl"</code>; only the literal <code>text-align</code> needs an explicit flip.</p>
+      <p class="section-desc">Both variants need no RTL-specific handling at all — content is centered on <code>--tile</code> and <code>--wide</code> alike, so there's no physical left/right edge to mirror under <code>dir="rtl"</code>.</p>
 
       <div class="pv-label">RTL — wide variant</div>
-      <div class="pv-dark" style="padding: 40px; display:flex; justify-content:center;" dir="rtl">
+      <div class="pv-light" style="padding: 40px; display:flex; justify-content:center;" dir="rtl">
         <div class="ufs-video-embed ufs-video-embed--wide">
           <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div></div>
           <button type="button" class="ufs-video-embed__play" tabindex="-1" aria-label="تشغيل الفيديو">
@@ -545,7 +671,7 @@
 
       <div class="notice notice--tip" style="margin-top:16px;">
         <span class="notice-icon">💡</span>
-        <div>The play button itself needs no RTL handling at all — it's centered via <code>top/left: 50%</code> + <code>translate(-50%,-50%)</code> on the base variant, and full-cover (<code>inset:0</code>) on desktop, neither of which reference a physical left/right edge.</div>
+        <div>The play button itself needs no RTL handling either — it's centered via <code>top/left: 50%</code> + <code>translate(-50%,-50%)</code>, and full-cover (<code>inset:0</code>) on desktop, neither of which reference a physical left/right edge. The icon's own <code>margin-top</code> is a vertical (block-direction) offset, so it's unaffected by RTL too — only inline-direction values (left/right, padding-inline-*) need a mirroring check.</div>
       </div>
     </section>
 
@@ -561,7 +687,7 @@
           <button class="code-panel-tab" onclick="showPanel('ve-css',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">CSS</button>
           <button class="code-panel-tab" onclick="showPanel('ve-js',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">JS</button>
         </div>
-        <div class="code-block-wrap" id="ve-html" style="display:block"><pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed"</span><span class="t-tag">&gt;</span>
+        <div class="code-block-wrap" id="ve-html" style="display:block"><pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed ufs-video-embed--tile"</span><span class="t-tag">&gt;</span>
   <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__media"</span><span class="t-tag">&gt;</span>
     <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-video-embed__photo"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('images/tiles/training.jpg')"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
   <span class="t-tag">&lt;/div&gt;</span>
@@ -574,7 +700,7 @@
   <span class="t-tag">&lt;/div&gt;</span>
 <span class="t-tag">&lt;/div&gt;</span>
 
-<span class="t-cm">&lt;!-- .ufs-video-embed--wide on the root swaps in the 650px desktop-only variant --&gt;</span>
+<span class="t-cm">&lt;!-- swap --tile for --wide for the 650px, 16:9 featured variant — one of the two is required, there's no bare default --&gt;</span>
 
 <span class="t-cm">&lt;!-- once per page — shared by every video trigger, Video Embed included --&gt;</span>
 <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"lb-overlay"</span> <span class="t-at">id</span>=<span class="t-str">"lb-overlay"</span> <span class="t-at">role</span>=<span class="t-str">"dialog"</span> <span class="t-at">aria-modal</span>=<span class="t-str">"true"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Video"</span><span class="t-tag">&gt;</span>
@@ -584,7 +710,10 @@
   <span class="t-tag">&lt;/div&gt;</span>
 <span class="t-tag">&lt;/div&gt;</span></pre></div>
         <div class="code-block-wrap" id="ve-css" style="display:none"><pre class="code-body"><span class="t-pr">.ufs-video-embed</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">flex-end</span>;
-  <span class="t-pr">width</span>: <span class="t-vl">320px</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">16 / 9</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+  <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-cm">/* two required size modifiers — no bare default */</span>
+<span class="t-pr">.ufs-video-embed--tile</span> { <span class="t-pr">width</span>: <span class="t-vl">350px</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">4 / 3</span>; }
+<span class="t-pr">.ufs-video-embed--wide</span> { <span class="t-pr">width</span>: <span class="t-vl">350px</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">4 / 3</span>; } <span class="t-cm">/* mobile-safe baseline, overridden below */</span>
 <span class="t-pr">.ufs-video-embed__media</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
 <span class="t-pr">.ufs-video-embed__photo</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background-size</span>: <span class="t-vl">cover</span>; <span class="t-pr">background-position</span>: <span class="t-vl">center</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform 0.35s ease</span>; }
 <span class="t-cm">@media (hover: hover) and (pointer: fine) {</span>
@@ -595,7 +724,7 @@
 <span class="t-pr">.ufs-video-embed__play</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-vl">50%</span>; <span class="t-pr">left</span>: <span class="t-vl">50%</span>; <span class="t-pr">transform</span>: <span class="t-vl">translate(-50%, -50%)</span>; <span class="t-pr">z-index</span>: <span class="t-vl">3</span>;
   <span class="t-pr">background</span>: <span class="t-vl">none</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">touch-action</span>: <span class="t-vl">pan-x</span>; }
 <span class="t-pr">.ufs-video-embed__play-icon</span> { <span class="t-pr">width</span>: <span class="t-va">var(--space-16)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-16)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>;
-  <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.25)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid rgba(255,255,255,0.6)</span>; }
+  <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.25)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid rgba(255,255,255,0.6)</span>; <span class="t-pr">margin-top</span>: <span class="t-vl">-32px</span>; }
 <span class="t-pr">.ufs-video-embed__play:hover .ufs-video-embed__play-icon</span> { <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.4)</span>; <span class="t-pr">transform</span>: <span class="t-vl">scale(1.08)</span>; }
 <span class="t-pr">.ufs-video-embed__body</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">z-index</span>: <span class="t-vl">2</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-5)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; }
 <span class="t-pr">.ufs-video-embed__title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h6-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; }
@@ -603,11 +732,17 @@
 <span class="t-pr">.ufs-video-embed__meta span</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-300)</span>; }
 
 <span class="t-cm">@media (min-width: 769px) {</span>
-  <span class="t-pr">.ufs-video-embed--wide</span> { <span class="t-pr">width</span>: <span class="t-vl">650px</span>; }
-  <span class="t-pr">.ufs-video-embed--wide .ufs-video-embed__body</span> { <span class="t-pr">align-items</span>: <span class="t-vl">flex-start</span>; <span class="t-pr">text-align</span>: <span class="t-vl">left</span>; }
+  <span class="t-pr">.ufs-video-embed--wide</span> { <span class="t-pr">width</span>: <span class="t-vl">650px</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">16 / 9</span>; }
+  <span class="t-pr">.ufs-video-embed--wide .ufs-video-embed__play-icon</span> { <span class="t-pr">width</span>: <span class="t-va">var(--space-20)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-20)</span>; }
+  <span class="t-pr">.ufs-video-embed--wide .ufs-video-embed__body</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-8)</span>; }
+  <span class="t-pr">.ufs-video-embed--wide .ufs-video-embed__title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h5-size)</span>; }
 <span class="t-cm">}</span>
 <span class="t-cm">@media (max-width: 768px) {</span>
-  <span class="t-pr">.ufs-video-embed__play-icon</span> { <span class="t-pr">width</span>: <span class="t-vl">32px</span>; <span class="t-pr">height</span>: <span class="t-vl">32px</span>; }
+  <span class="t-pr">.ufs-video-embed--tile,
+  .ufs-video-embed--wide</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">4 / 3</span>; }
+  <span class="t-pr">.ufs-flex-carousel .ufs-carousel-card.ufs-video-embed--tile,
+  .ufs-flex-carousel .ufs-carousel-card.ufs-video-embed--wide</span> { <span class="t-pr">width</span>: <span class="t-vl">320px</span>; }
+  <span class="t-pr">.ufs-video-embed__play-icon</span> { <span class="t-pr">width</span>: <span class="t-va">var(--space-12)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-12)</span>; }
 <span class="t-cm">}</span></pre></div></div>
         <div class="code-block-wrap" id="ve-js" style="display:none"><pre class="code-body"><span class="t-cm">// Same shared lightbox script every video trigger on the page reuses —</span>
 <span class="t-cm">// only needs to run once. Skip entirely if Teaser or Training Hero</span>

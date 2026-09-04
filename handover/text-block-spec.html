@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Text Block — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .demo-fab { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: inline-flex; align-items: center; gap: 8px; padding: 0 20px; height: 44px; background: var(--color-squid-900); color: #fff; font-family: var(--font-family); font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 100px; box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.15s, box-shadow 0.15s, background 0.15s; white-space: nowrap; }
+    .demo-fab:hover { background: var(--color-squid-700); transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.2); }
+    .demo-fab:active { transform: translateY(0); }
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: visible; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-cls { color: #ffa657; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-pr  { color: #93c5fd; }
+    .t-kw  { color: #ff7b72; }
+    .t-id  { color: #d2a8ff; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       TEXT BLOCK — flexible text/media block for article & inspiration
+       templates. Figma "Rosana 2.0" node 2292:5474. One shared BEM shape
+       (__content wraps __eyebrow/__heading/__body/__link, __media holds
+       an image or a .ufs-video-embed) with layout entirely controlled by
+       root modifier classes — see Anatomy for what's required vs
+       optional. Gaps, radii and the breakpoint below were measured
+       directly against the Figma frame's child x/y/width/height deltas.
+       Duplicated here per this handover's no-shared-stylesheet
+       convention (only tokens.css is genuinely shared).
+    ═══════════════════════════════════════ */
+    .ufs-text-block {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 var(--space-4);
+      box-sizing: border-box;
+    }
+
+    /* Text side. Each part is a plain sibling of .ufs-text-block__content —
+       removing one just removes its own margin, same optional-sibling
+       pattern as .ufs-title-section__inner's eyebrow/desc. */
+    .ufs-text-block__eyebrow {
+      margin: 0 0 var(--space-3);
+      font-size: var(--text-overline-size); line-height: var(--text-overline-lh);
+      font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls);
+      text-transform: uppercase; color: var(--color-accessible-orange);
+    }
+    .ufs-text-block__heading {
+      margin: 0 0 var(--space-3);
+      font-size: var(--text-h3-size); line-height: var(--text-h3-lh); letter-spacing: var(--text-h3-ls); font-weight: var(--text-h3-w);
+      color: var(--color-brand-dark);
+    }
+    /* Lead heading — larger visual size for an opening/intro configuration.
+       Deliberately independent of the h2/h3/h4 tag used in markup: this
+       class only controls visual size. The tag is the page author's own
+       heading-order choice — see the notice in Anatomy. */
+    .ufs-text-block__heading--lead {
+      font-size: var(--text-h2-size); line-height: var(--text-h2-lh);
+      letter-spacing: var(--text-h2-ls); font-weight: var(--text-h2-w);
+    }
+    .ufs-text-block__body p {
+      margin: 0;
+      font-size: var(--text-body-size); line-height: var(--text-body-lh);
+      color: var(--color-squid-500);
+    }
+    .ufs-text-block__body p + p { margin-top: var(--space-4); }
+    .ufs-text-block__body p strong { font-weight: 700; color: var(--color-brand-dark); }
+    .ufs-text-block__body p a { color: var(--color-accessible-orange); text-decoration: underline; text-underline-offset: 2px; }
+    /* Lead body — paired with the lead heading in the intro configuration. */
+    .ufs-text-block__body--lead p {
+      font-size: var(--text-body-lg-size); line-height: var(--text-body-lg-lh);
+    }
+    /* Trailing CTA/link — optional on every variant, not tied to one
+       layout. Same recipe as .ufs-teaser__link (teaser-spec.html),
+       reused byte-for-byte for cross-DS visual consistency. */
+    .ufs-text-block__link {
+      display: inline-block; margin-top: var(--space-3);
+      font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      color: var(--color-accessible-orange);
+      text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+    }
+
+    /* Media side — image or .ufs-video-embed. Images size freely at their
+       natural aspect ratio (no forced crop, no locked aspect-ratio) —
+       they just fill whatever slot/column they're given. */
+    .ufs-text-block__media { min-width: 0; }
+    .ufs-text-block__media img { display: block; width: 100%; height: auto; }
+    .ufs-text-block__media > img,
+    .ufs-text-block__media-link {
+      border-radius: var(--radius-lg); /* 16px desktop → 8px mobile, see breakpoint below */
+      overflow: hidden;
+    }
+    /* Optional per-instance configuration: wrap the image in <a> to make
+       the whole image a link. Hover/focus recipe matches
+       .ufs-video-embed__photo's own hover-zoom (video-embed-spec.html)
+       so both media types this component can hold feel like one family. */
+    .ufs-text-block__media-link { display: block; position: relative; }
+    .ufs-text-block__media-link img { transition: transform 0.35s ease; }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-text-block__media-link:hover img { transform: scale(1.06); }
+    }
+    .ufs-text-block__media-link:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    /* .ufs-video-embed already carries its own var(--radius-lg) — only the
+       768px mobile radius drop needs restating here. */
+    @media (max-width: 768px) {
+      .ufs-text-block__media .ufs-video-embed { border-radius: var(--radius-sm); }
+    }
+
+    /* ── Stacked variants: image-bottom (default DOM order) / image-top /
+       video-full. DOM order is ALWAYS (content, media) across every
+       variant in this component — image-top's swap, image-left's flip
+       and mobile's media-first stacking are all done in CSS (order /
+       flex-direction), never by reordering markup. ── */
+    .ufs-text-block--image-bottom,
+    .ufs-text-block--image-top,
+    .ufs-text-block--video-full {
+      display: flex; flex-direction: column; gap: var(--space-6);
+    }
+    .ufs-text-block--image-top .ufs-text-block__media,
+    .ufs-text-block--video-full.ufs-text-block--image-top .ufs-text-block__media {
+      order: -1;
+    }
+
+    /* .ufs-video-embed--wide ships elsewhere (video-embed-spec.html) as a
+       fixed-width card — 350px below 769px, 650px above — neither of its
+       own two modifiers (--tile/--wide) is fluid-width. Text-block needs
+       it fluid at 16:9 in all three video placements (both split columns
+       below, plus this full-bleed one), so that's overridden locally here
+       rather than upstream. If this fluid/16:9 need shows up a third time
+       outside text-block, it should become a real --full modifier on
+       .ufs-video-embed itself instead of a third copy of this override.
+       Scoped to min-width:769px only — below that, video-embed's own
+       mobile rule already makes it fluid (4:3), which is exactly what
+       this component wants on mobile too, so no override is needed there. */
+    @media (min-width: 769px) {
+      .ufs-text-block--video-left .ufs-video-embed--wide,
+      .ufs-text-block--video-right .ufs-video-embed--wide,
+      .ufs-text-block--video-full .ufs-video-embed--wide {
+        width: 100%; aspect-ratio: 16 / 9;
+      }
+    }
+
+    /* ── Split variants: image/video left or right, ~50/50 columns, gap
+       measured at 40px in Figma across every split example. Markup order
+       is always (content, media) — --left variants flip it visually with
+       row-reverse rather than reordering the DOM, so the same mobile
+       column-reverse rule below puts media first regardless of which side
+       it's on at desktop. Same technique as .ufs-teaser-lg.
+       align-items is flex-start (top-aligned), not center: a true "center
+       when text is shorter than the media, top-align when it overflows"
+       rule needs to compare two elements' rendered heights, which CSS
+       can't express (no selector for "is my sibling taller than me") —
+       especially here, since media has no fixed height (natural aspect
+       ratio) and body copy length is author-controlled. Top-aligning
+       always is the deliberate CSS-only fallback, chosen over
+       always-centered, when a JS-measured toggle was ruled out. ── */
+    .ufs-text-block--image-left,
+    .ufs-text-block--image-right,
+    .ufs-text-block--video-left,
+    .ufs-text-block--video-right {
+      display: flex; align-items: flex-start; gap: var(--space-10); padding-top: var(--space-8);
+    }
+    .ufs-text-block--image-left,
+    .ufs-text-block--video-left { flex-direction: row-reverse; }
+    .ufs-text-block--image-left .ufs-text-block__content,
+    .ufs-text-block--image-right .ufs-text-block__content,
+    .ufs-text-block--video-left .ufs-text-block__content,
+    .ufs-text-block--video-right .ufs-text-block__content,
+    .ufs-text-block--image-left .ufs-text-block__media,
+    .ufs-text-block--image-right .ufs-text-block__media,
+    .ufs-text-block--video-left .ufs-text-block__media,
+    .ufs-text-block--video-right .ufs-text-block__media {
+      flex: 1; min-width: 0;
+    }
+
+    @media (max-width: 768px) {
+      .ufs-text-block__heading { font-size: var(--text-h3-mob-size); }
+      .ufs-text-block__heading--lead { font-size: var(--text-h2-mob-size); }
+      .ufs-text-block__body p { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-text-block__body--lead p { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-text-block__media > img,
+      .ufs-text-block__media-link { border-radius: var(--radius-sm); }
+
+      .ufs-text-block--image-bottom,
+      .ufs-text-block--image-top,
+      .ufs-text-block--video-full { gap: var(--space-4); }
+
+      .ufs-text-block--image-left,
+      .ufs-text-block--image-right,
+      .ufs-text-block--video-left,
+      .ufs-text-block--video-right {
+        flex-direction: column-reverse; align-items: stretch; gap: var(--space-4);
+      }
+    }
+
+    /* Doc-only .pv-mobile emulation — mirrors the @media(max-width:768px)
+       rules above with !important, scoped to the preview wrapper, since a
+       real media query can't target a container's width. Same pattern as
+       chef-tip-spec.html / video-embed-spec.html. */
+    .pv-mobile .ufs-text-block__heading { font-size: var(--text-h3-mob-size) !important; }
+    .pv-mobile .ufs-text-block__heading--lead { font-size: var(--text-h2-mob-size) !important; }
+    .pv-mobile .ufs-text-block__body p { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mobile .ufs-text-block__media > img,
+    .pv-mobile .ufs-text-block__media-link { border-radius: var(--radius-sm) !important; }
+    .pv-mobile .ufs-text-block__media .ufs-video-embed { border-radius: var(--radius-sm) !important; }
+    .pv-mobile .ufs-text-block--image-bottom,
+    .pv-mobile .ufs-text-block--image-top,
+    .pv-mobile .ufs-text-block--video-full { gap: var(--space-4) !important; }
+    .pv-mobile .ufs-text-block--image-left,
+    .pv-mobile .ufs-text-block--image-right,
+    .pv-mobile .ufs-text-block--video-left,
+    .pv-mobile .ufs-text-block--video-right {
+      flex-direction: column-reverse !important; align-items: stretch !important; gap: var(--space-4) !important;
+    }
+
+    /* ═══════════════════════════════════════
+       VIDEO EMBED — duplicated verbatim from video-embed-spec.html so the
+       video-left/right/full-width examples on this page actually render
+       and play, per this handover's no-shared-stylesheet convention. Not
+       owned by this file — see video-embed-spec.html for its own spec.
+       Only the fluid/16:9 override above is text-block's own addition.
+    ═══════════════════════════════════════ */
+    .ufs-video-embed {
+      position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .ufs-video-embed--tile { width: 350px; aspect-ratio: 4 / 3; }
+    .ufs-video-embed--wide { width: 350px; aspect-ratio: 4 / 3; }
+    .ufs-video-embed__media { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
+    .ufs-video-embed__photo { position: absolute; inset: 0; background-size: cover; background-position: center; transition: transform 0.35s ease; }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-video-embed:hover .ufs-video-embed__photo { transform: scale(1.06); }
+      .ufs-video-embed:hover { box-shadow: var(--shadow-lg); }
+    }
+    .ufs-video-embed::before {
+      content: ''; position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-dark) 0%, transparent) 23.5%, var(--color-brand-dark) 74%);
+    }
+    .ufs-video-embed__play {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; padding: 0; cursor: pointer;
+      touch-action: pan-x;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-video-embed__play { inset: 0; top: auto; left: auto; transform: none; width: 100%; height: 100%; }
+    }
+    .ufs-video-embed__play-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: var(--space-16); height: var(--space-16); border-radius: var(--radius-full);
+      background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.6);
+      transition: background 0.15s, transform 0.15s;
+      margin-top: -32px;
+    }
+    .ufs-video-embed__play-icon svg { width: 26px; height: 26px; fill: var(--color-salt); }
+    .ufs-video-embed__play:hover .ufs-video-embed__play-icon { background: rgba(0,0,0,0.4); transform: scale(1.08); }
+    .ufs-video-embed__body {
+      position: relative; z-index: 2;
+      display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+      padding: var(--space-5); text-align: center;
+    }
+    .ufs-video-embed__title { font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); color: var(--color-salt); margin: 0; }
+    .ufs-video-embed__meta { display: flex; align-items: center; justify-content: center; gap: var(--space-1); }
+    .ufs-video-embed__meta img { width: var(--space-4); height: var(--space-4); filter: brightness(0) invert(1); opacity: 0.75; }
+    .ufs-video-embed__meta span { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-300); }
+    @media (min-width: 769px) {
+      .ufs-video-embed--wide { width: 650px; aspect-ratio: 16 / 9; }
+      .ufs-video-embed--wide .ufs-video-embed__play-icon { width: var(--space-20); height: var(--space-20); }
+      .ufs-video-embed--wide .ufs-video-embed__play-icon svg { width: 32px; height: 32px; }
+      .ufs-video-embed--wide .ufs-video-embed__body { padding: var(--space-8); }
+      .ufs-video-embed--wide .ufs-video-embed__title { font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); }
+    }
+    @media (max-width: 768px) {
+      .ufs-video-embed--tile,
+      .ufs-video-embed--wide { width: 100%; aspect-ratio: 4 / 3; }
+      .ufs-video-embed__play-icon { width: var(--space-12); height: var(--space-12); }
+      .ufs-video-embed__play-icon svg { width: 14px; height: 14px; }
+    }
+    .pv-mobile .ufs-video-embed--tile,
+    .pv-mobile .ufs-video-embed--wide { width: 100% !important; aspect-ratio: 4 / 3 !important; }
+    .pv-mobile .ufs-video-embed__play-icon { width: var(--space-12) !important; height: var(--space-12) !important; }
+    .pv-mobile .ufs-video-embed__play-icon svg { width: 14px !important; height: 14px !important; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Text Block</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy &amp; Rules</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#layouts" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Layout Variants</a>
+      <a href="#cta" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> CTA / Link</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Developer</div>
+      <a href="#usage" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Usage</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Figma node 2292:5474, file "Rosana 2.0".<br/>One flexible component — layout is controlled entirely by root modifier classes.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Text Block</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Text <span>Block</span></h1>
+        <p class="doc-header-desc">A flexible text/media block for article and inspiration templates. One shared markup shape — eyebrow, heading, rich body copy, optional CTA link, optional media — with eight layout configurations (text-only, image top/bottom/left/right, video left/right/full-width) controlled entirely by a root modifier class.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">Figma 2292:5474 — "Rosana 2.0"</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">The richest configuration of the component — an eyebrow, a lead-sized heading, and two lead-sized paragraphs, with no media. This is the base <code>.ufs-text-block</code> shape with no layout modifier at all; every other configuration on this page reuses the exact same markup shape, just with different modifiers and content. See Anatomy below for what's required vs. optional.</p>
+
+      <div class="pv-light" style="padding: 48px 24px;">
+        <div class="ufs-text-block">
+          <div class="ufs-text-block__content">
+            <p class="ufs-text-block__eyebrow">Guest 365 for Hotels &amp; Conferencing</p>
+            <h2 class="ufs-text-block__heading ufs-text-block__heading--lead">The Best For Your Guest: Modern Comfort Food with a Twist!</h2>
+            <div class="ufs-text-block__body ufs-text-block__body--lead">
+              <p>Your guests crave the nostalgia of familiar dishes yet expect the excitement of new flavours. This is where the art of modern comfort food comes in to give your guests the best of both!</p>
+              <p>With modern spins on comfort classics, transform traditional favourites into a unique guest experience that makes your hotel dining a culinary destination – one plate at a time!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--info" style="margin-top:16px;">
+        <span class="notice-icon">ℹ️</span>
+        <div>Sourced from Figma node 2292:5474, sub-frame <code>text-block-intro</code> — the opening block of an article/inspiration page. It's not a separate structural variant: it's the base <code>.ufs-text-block</code> markup with an eyebrow plus the <code>--lead</code> heading/body modifiers, and nothing stops any other layout below from using the same eyebrow/lead combination too.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY & RULES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Text Block</div>
+      <h2 class="section-title">Anatomy &amp; Rules</h2>
+      <p class="section-desc">Two top-level children: <code>.ufs-text-block__content</code> (eyebrow, heading, body, link) and, on every variant except the base text-only one, <code>.ufs-text-block__media</code> (an image or a <code>.ufs-video-embed</code>). Only the heading is required — eyebrow, extra paragraphs, the link and the media block are all optional, each a plain sibling that can be omitted with no other markup changes.</p>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>The container is deliberately <strong>not</strong> the 96px-desktop / 16px-mobile outer gutter that <code>.ufs-title-section</code> and <code>.ufs-teaser-lg</code> use elsewhere in this handover. Text Block is an article-body component, not a marketing section — its own container is just <code>max-width: 960px; margin: 0 auto; padding: 0 var(--space-4)</code> (16px), full width below that. Don't "fix" this to match the other section components without knowing this was intentional.</div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>The heading's semantic tag and its visual size are independent, same pattern as <code>.ufs-title-section__heading</code>. <code>.ufs-text-block__heading</code> alone renders at the smaller (30px/h3) size; add <code>--lead</code> for the larger (40px/h2) size. Which HTML tag (<code>&lt;h2&gt;</code>/<code>&lt;h3&gt;</code>/<code>&lt;h4&gt;</code>) to use is the page author's own document-outline decision — as a starting default, an intro-style opening block (eyebrow + <code>--lead</code>) reads well as an <code>&lt;h2&gt;</code>, and the smaller recurring body blocks further down a page read well as <code>&lt;h3&gt;</code>, but the CSS never enforces either.</div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>DOM order inside <code>.ufs-text-block</code> is always <code>(.ufs-text-block__content, .ufs-text-block__media)</code> — on every one of the eight configurations below, media always comes second in the markup. Every visual reordering (image-top's swap above the text, image-left's flip to the other side, mobile's media-first stacking on the split variants) is done purely in CSS via <code>order</code> or <code>flex-direction</code>, never by moving markup around.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Content side</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Container</span><span class="token-var">max-width: 960px</span><span class="token-note">margin: 0 auto; padding: 0 var(--space-4) — full width minus 16px below 960px+32px</span></div>
+          <div class="token-row"><span class="token-prop">Eyebrow</span><span class="token-var">--text-overline-*</span><span class="token-note">uppercase, var(--color-accessible-orange), same recipe as .ufs-title-section__eyebrow</span></div>
+          <div class="token-row"><span class="token-prop">Eyebrow → heading gap</span><span class="token-var">var(--space-3)</span><span class="token-note">12px</span></div>
+          <div class="token-row"><span class="token-prop">Heading (default)</span><span class="token-var">--text-h3-size / --text-h3-mob-size</span><span class="token-note">30px desktop / 24px mobile, weight 900, var(--color-brand-dark)</span></div>
+          <div class="token-row"><span class="token-prop">Heading --lead</span><span class="token-var">--text-h2-size / --text-h2-mob-size</span><span class="token-note">40px desktop / 28px mobile, weight 900</span></div>
+          <div class="token-row"><span class="token-prop">Heading → body gap</span><span class="token-var">var(--space-3)</span><span class="token-note">12px</span></div>
+          <div class="token-row"><span class="token-prop">Body (default)</span><span class="token-var">--text-body-size / --text-body-sm-size</span><span class="token-note">16px desktop / 14px mobile, var(--color-squid-500)</span></div>
+          <div class="token-row"><span class="token-prop">Body --lead</span><span class="token-var">--text-body-lg-size</span><span class="token-note">18px desktop → drops to --text-body-sm-size on mobile, same as .ufs-teaser-lg__desc</span></div>
+          <div class="token-row"><span class="token-prop">Paragraph → paragraph gap</span><span class="token-var">var(--space-4)</span><span class="token-note">16px, via p + p</span></div>
+          <div class="token-row"><span class="token-prop">Inline rich text</span><span class="token-var">strong / em / a</span><span class="token-note">bold, italic and inline links all supported inside body paragraphs</span></div>
+          <div class="token-row"><span class="token-prop">CTA link</span><span class="token-var">.ufs-text-block__link</span><span class="token-note">optional, every variant — see CTA / Link section</span></div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Media side</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Image sizing</span><span class="token-var">width: 100%; height: auto</span><span class="token-note">natural aspect ratio, no forced crop/object-fit</span></div>
+          <div class="token-row"><span class="token-prop">Image radius</span><span class="token-var">var(--radius-lg) → var(--radius-sm)</span><span class="token-note">16px desktop, 8px mobile (below 768px)</span></div>
+          <div class="token-row"><span class="token-prop">Image link (optional)</span><span class="token-var">.ufs-text-block__media-link</span><span class="token-note">wraps the image in &lt;a&gt;; hover zoom 1.06 / 0.35s, matches .ufs-video-embed__photo</span></div>
+          <div class="token-row"><span class="token-prop">Video</span><span class="token-var">.ufs-video-embed--wide</span><span class="token-note">the existing component from video-embed-spec.html — not reinvented here</span></div>
+          <div class="token-row"><span class="token-prop">Stacked gap (image-top/bottom, video-full)</span><span class="token-var">var(--space-6)</span><span class="token-note">24px desktop → var(--space-4) 16px mobile</span></div>
+          <div class="token-row"><span class="token-prop">Split-column gap (left/right)</span><span class="token-var">var(--space-10)</span><span class="token-note">40px desktop → var(--space-4) 16px mobile (stacked)</span></div>
+          <div class="token-row"><span class="token-prop">Split-layout top padding (left/right)</span><span class="token-var">var(--space-8)</span><span class="token-note">32px, image-left/image-right/video-left/video-right only</span></div>
+          <div class="token-row"><span class="token-prop">Breakpoint</span><span class="token-var">768px</span><span class="token-note">same as every other component in this handover</span></div>
+        </div>
+      </div>
+
+      <div class="code-block-wrap">
+        <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block"</span><span class="t-tag">&gt;</span>  <span class="t-cm">&lt;!-- add a --modifier for a media layout, see Layout Variants --&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__content"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__eyebrow"</span><span class="t-tag">&gt;</span>Optional eyebrow<span class="t-tag">&lt;/p&gt;</span>  <span class="t-cm">&lt;!-- optional --&gt;</span>
+    <span class="t-tag">&lt;h3</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__heading"</span><span class="t-tag">&gt;</span>Heading<span class="t-tag">&lt;/h3&gt;</span>  <span class="t-cm">&lt;!-- required — tag is your call, class controls size --&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__body"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p&gt;</span>One or more paragraphs — supports <span class="t-tag">&lt;strong&gt;</span>, <span class="t-tag">&lt;em&gt;</span> and inline <span class="t-tag">&lt;a&gt;</span>.<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__link"</span><span class="t-tag">&gt;</span>Optional CTA link<span class="t-tag">&lt;/a&gt;</span>  <span class="t-cm">&lt;!-- optional, any variant --&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__media"</span><span class="t-tag">&gt;</span>  <span class="t-cm">&lt;!-- omitted entirely on the base text-only variant --&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"…"</span> <span class="t-at">alt</span>=<span class="t-str">"…"</span><span class="t-tag">/&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ LAYOUT VARIANTS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="layouts">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Layout Variants</h2>
+      <p class="section-desc">One root modifier class per layout. Five are sourced directly from the Figma reference (base, <code>--image-bottom</code>, <code>--image-left</code>, <code>--image-right</code>, <code>--video-left</code>); three extend the same pattern to fill gaps the Figma file didn't cover (<code>--image-top</code> mirrors <code>--image-bottom</code>, <code>--video-right</code> mirrors <code>--video-left</code>, and <code>--video-full</code> is a new full-bleed 16:9 configuration).</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Base — text only (no modifier class)</div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">Modern Comfort Food is Key on Your Menu</h3>
+              <div class="ufs-text-block__body">
+                <p><strong>MODERNISED COMFORT FOOD</strong> is all about elevating familiar comfort dishes with modern touches to provide a sense of nostalgia. With your culinary expertise and quality ingredients, blend traditional comfort classics with local flavours to wow guests from different destinations.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notice notice--tip" style="margin-top:16px; margin-bottom:0;">
+          <span class="notice-icon">💡</span>
+          <div>This variant's content runs the full 960px measure — still wider than a typical 65–75ch optimal reading line, though narrower than the 1080px in the Figma reference. Worth a gut-check if it's ever used for long, dense paragraphs rather than the short 1–3 sentence blocks shown throughout this page.</div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label"><code>--image-bottom</code></div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block ufs-text-block--image-bottom">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">Modern Comfort Food is Key on Your Menu</h3>
+              <div class="ufs-text-block__body">
+                <p><strong>MODERNISED COMFORT FOOD</strong> is all about elevating familiar comfort dishes with modern touches to provide a sense of nostalgia. With your culinary expertise and quality ingredients, blend traditional comfort classics with local flavours to wow guests from different destinations.</p>
+              </div>
+            </div>
+            <div class="ufs-text-block__media"><img src="images/tiles/article.jpg" alt="" style="aspect-ratio:16/9; object-fit:cover;"/></div>
+          </div>
+        </div>
+        <div class="notice notice--tip" style="margin-top:16px;">
+          <span class="notice-icon">💡</span>
+          <div>This example's <code>aspect-ratio:16/9; object-fit:cover</code> is a per-instance inline style on the source image, not a component rule — <code>.ufs-text-block__media img</code> still sizes freely at its natural ratio by default (see Anatomy). Apply this same inline treatment whenever a page wants a consistent widescreen crop for image-top/image-bottom instances specifically.</div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label"><code>--image-top</code></div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block ufs-text-block--image-top">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">Modern Comfort Food is Key on Your Menu</h3>
+              <div class="ufs-text-block__body">
+                <p><strong>MODERNISED COMFORT FOOD</strong> is all about elevating familiar comfort dishes with modern touches to provide a sense of nostalgia. With your culinary expertise and quality ingredients, blend traditional comfort classics with local flavours to wow guests from different destinations.</p>
+              </div>
+            </div>
+            <div class="ufs-text-block__media"><img src="images/tiles/article.jpg" alt="" style="aspect-ratio:16/9; object-fit:cover;"/></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label"><code>--image-left</code> — with an optional linked image</div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block ufs-text-block--image-left">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">250 of us wear whites.</h3>
+              <div class="ufs-text-block__body">
+                <p>Only a Chef knows what it takes to run a successful kitchen. That's why our business is full of Chefs. Our global network of 250 Chefs help source the best ingredients, develop quality products, create inspiring on-trend recipes, and provide training and support. Thus ensuring that our sales team is equipped with all the knowledge they need in order to better serve you.</p>
+              </div>
+              <a href="#" class="ufs-text-block__link">Find your local sales representative</a>
+            </div>
+            <div class="ufs-text-block__media">
+              <a href="#" class="ufs-text-block__media-link"><img src="images/hero/recipe.jpg" alt=""/></a>
+            </div>
+          </div>
+        </div>
+        <div class="notice notice--info" style="margin-top:16px; margin-bottom:0;">
+          <span class="notice-icon">ℹ️</span>
+          <div>The image above is wrapped in <code>&lt;a class="ufs-text-block__media-link"&gt;</code> — hover it to see the zoom affordance. See the plain, unlinked form on <code>--image-right</code> below.</div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label"><code>--image-right</code> — plain, unlinked image</div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block ufs-text-block--image-right">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">Modern Comfort Food is Key on Your Menu</h3>
+              <div class="ufs-text-block__body">
+                <p><strong>MODERNISED COMFORT FOOD</strong> is all about elevating familiar comfort dishes with modern touches to provide a sense of nostalgia. With your culinary expertise and quality ingredients, blend traditional comfort classics with local flavours to wow guests from different destinations.</p>
+              </div>
+            </div>
+            <div class="ufs-text-block__media"><img src="images/tiles/article.jpg" alt=""/></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label"><code>--video-left</code></div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block ufs-text-block--video-left">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">We are Chefs supporting Chefs.</h3>
+              <div class="ufs-text-block__body">
+                <p>We're a business built by Chefs, so we know what you face every day in the kitchen. Everything we do is focused on making your life a little easier. Drawing from their extensive experience in professional food services, our team of over 250 professional Chefs create solutions that balance great taste, convenience and nutrition with a consistently high standard.</p>
+              </div>
+            </div>
+            <div class="ufs-text-block__media">
+              <div class="ufs-video-embed ufs-video-embed--wide">
+                <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div></div>
+                <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+                  <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                </button>
+                <div class="ufs-video-embed__body">
+                  <p class="ufs-video-embed__title">The Best For Your Guest: Modern Comfort Food with a Twist!</p>
+                  <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>5 min</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label"><code>--video-right</code> <span style="font-weight:400;color:var(--color-mushroom-900);">(new — mirrors --video-left, not in the Figma reference)</span></div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block ufs-text-block--video-right">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">250 of us wear whites.</h3>
+              <div class="ufs-text-block__body">
+                <p>Only a Chef knows what it takes to run a successful kitchen. Our global network of 250 Chefs help source the best ingredients, develop quality products, create inspiring on-trend recipes, and provide training and support to kitchens everywhere.</p>
+              </div>
+            </div>
+            <div class="ufs-text-block__media">
+              <div class="ufs-video-embed ufs-video-embed--wide">
+                <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic.jpg')"></div></div>
+                <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+                  <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                </button>
+                <div class="ufs-video-embed__body">
+                  <p class="ufs-video-embed__title">Knife Skills: Basic Cuts Masterclass</p>
+                  <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>12 min</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label"><code>--video-full</code> <span style="font-weight:400;color:var(--color-mushroom-900);">(new — full-bleed 16:9, not in the Figma reference)</span></div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block ufs-text-block--video-full">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">The Best For Your Guest: Modern Comfort Food with a Twist!</h3>
+              <div class="ufs-text-block__body">
+                <p>Your guests crave the nostalgia of familiar dishes yet expect the excitement of new flavours — watch how modern spins on comfort classics turn traditional favourites into a unique guest experience.</p>
+              </div>
+            </div>
+            <div class="ufs-text-block__media">
+              <div class="ufs-video-embed ufs-video-embed--wide">
+                <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic-wide.jpg')"></div></div>
+                <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+                  <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+                </button>
+                <div class="ufs-video-embed__body">
+                  <p class="ufs-video-embed__title">The Best For Your Guest: Modern Comfort Food with a Twist!</p>
+                  <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>5 min</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="notice notice--warn" style="margin-top:16px; margin-bottom:0;">
+          <span class="notice-icon">⚠️</span>
+          <div>This variant's full-bleed 16:9 sizing is a <strong>local override</strong> (scoped to <code>.ufs-text-block--video-full .ufs-video-embed--wide</code>, and shared with the two split video variants above) — <code>.ufs-video-embed</code> itself ships no fluid-width modifier, only fixed 350px/650px cards. If this fluid/16:9 treatment turns out to be needed a third time outside Text Block, it should be upstreamed into <code>video-embed-spec.html</code> as a real <code>--full</code> modifier rather than copied again.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CTA / LINK ═══════════════════════════════════════ -->
+    <section class="doc-section" id="cta">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">CTA / Link</h2>
+      <p class="section-desc"><code>.ufs-text-block__link</code> is a universal optional slot — available at the end of <code>.ufs-text-block__content</code> on <strong>every</strong> layout variant, not just the split ones. Two different variants below both carry it to make that explicit.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">On the base text-only variant</div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">Browse our recipe library</h3>
+              <div class="ufs-text-block__body">
+                <p>500+ chef-tested recipes built around UFS pantry staples, scaled and costed for foodservice kitchens.</p>
+              </div>
+              <a href="template-recipes-catalog.html" class="ufs-text-block__link">Browse all recipes</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="pv-label">On <code>--image-bottom</code></div>
+        <div class="pv-light" style="padding: 40px 24px;">
+          <div class="ufs-text-block ufs-text-block--image-bottom">
+            <div class="ufs-text-block__content">
+              <h3 class="ufs-text-block__heading">Modern Comfort Food is Key on Your Menu</h3>
+              <div class="ufs-text-block__body">
+                <p><strong>MODERNISED COMFORT FOOD</strong> is all about elevating familiar comfort dishes with modern touches to provide a sense of nostalgia.</p>
+              </div>
+              <a href="#" class="ufs-text-block__link">Download the full guide</a>
+            </div>
+            <div class="ufs-text-block__media"><img src="images/banners/promo-1.jpg" alt=""/></div>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Recipe</span><span class="token-var">.ufs-teaser__link</span><span class="token-note">byte-for-byte reuse of Teaser's text-link CTA, teaser-spec.html</span></div>
+          <div class="token-row"><span class="token-prop">Typography</span><span class="token-var">--text-btn-size / --text-btn-w</span><span class="token-note">14px / 600</span></div>
+          <div class="token-row"><span class="token-prop">Colour</span><span class="token-var">var(--color-accessible-orange)</span><span class="token-note">underlined, 2px offset</span></div>
+          <div class="token-row"><span class="token-prop">Placement</span><span class="token-var">margin-top: var(--space-3)</span><span class="token-note">trailing element inside .ufs-text-block__content, after __body</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">Below 768px, every split variant stacks to a single column with <strong>media always first</strong>, regardless of whether it was left or right at desktop — <code>--image-left</code> and <code>--image-right</code> render identically on mobile, and so do <code>--video-left</code>/<code>--video-right</code>. Heading drops to its mobile size, body copy drops to <code>--text-body-sm-size</code>, and image radius drops from 16px to 8px.</p>
+
+      <div class="pv-label"><code>--image-left</code> on mobile</div>
+      <div class="pv-mobile" style="padding: 24px 16px; margin-bottom: 24px;">
+        <div class="ufs-text-block ufs-text-block--image-left" style="max-width:none;padding:0;">
+          <div class="ufs-text-block__content">
+            <h3 class="ufs-text-block__heading">250 of us wear whites.</h3>
+            <div class="ufs-text-block__body">
+              <p>Only a Chef knows what it takes to run a successful kitchen. Our global network of 250 Chefs help source the best ingredients and provide training and support.</p>
+            </div>
+            <a href="#" class="ufs-text-block__link">Find your local sales representative</a>
+          </div>
+          <div class="ufs-text-block__media"><img src="images/hero/recipe.jpg" alt=""/></div>
+        </div>
+      </div>
+
+      <div class="pv-label"><code>--image-right</code> on mobile — same stacking as --image-left above</div>
+      <div class="pv-mobile" style="padding: 24px 16px; margin-bottom: 24px;">
+        <div class="ufs-text-block ufs-text-block--image-right" style="max-width:none;padding:0;">
+          <div class="ufs-text-block__content">
+            <h3 class="ufs-text-block__heading">Modern Comfort Food is Key on Your Menu</h3>
+            <div class="ufs-text-block__body">
+              <p><strong>MODERNISED COMFORT FOOD</strong> is all about elevating familiar comfort dishes with modern touches to provide a sense of nostalgia.</p>
+            </div>
+          </div>
+          <div class="ufs-text-block__media"><img src="images/tiles/article.jpg" alt=""/></div>
+        </div>
+      </div>
+
+      <div class="pv-label"><code>--video-right</code> on mobile — video falls back to 4:3, per .ufs-video-embed's own mobile rule</div>
+      <div class="pv-mobile" style="padding: 24px 16px;">
+        <div class="ufs-text-block ufs-text-block--video-right" style="max-width:none;padding:0;">
+          <div class="ufs-text-block__content">
+            <h3 class="ufs-text-block__heading">250 of us wear whites.</h3>
+            <div class="ufs-text-block__body">
+              <p>Only a Chef knows what it takes to run a successful kitchen. Our global network of 250 Chefs help source the best ingredients.</p>
+            </div>
+          </div>
+          <div class="ufs-text-block__media">
+            <div class="ufs-video-embed ufs-video-embed--wide">
+              <div class="ufs-video-embed__media"><div class="ufs-video-embed__photo" style="background-image:url('images/tiles/topic.jpg')"></div></div>
+              <button type="button" class="ufs-video-embed__play" data-video-url="https://player.vimeo.com/video/336809853?autoplay=1&amp;title=0&amp;byline=0&amp;portrait=0" aria-label="Play video">
+                <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+              </button>
+              <div class="ufs-video-embed__body">
+                <p class="ufs-video-embed__title">Knife Skills: Basic Cuts Masterclass</p>
+                <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""/><span>12 min</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--info" style="margin-top:16px;">
+        <span class="notice-icon">ℹ️</span>
+        <div>The video's own responsive rules (defined in <code>video-embed-spec.html</code>, not here) switch it to a fluid 4:3 card below 769px, on all three video placements. Text-block's desktop-only fluid/16:9 override (see Layout Variants) is scoped to <code>min-width: 769px</code> specifically so it doesn't fight that — no extra mobile handling was needed here.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Every layout in this component is plain flex with no literal <code>left</code>/<code>right</code> or <code>text-align: left</code> anywhere — <code>row</code>/<code>row-reverse</code> both auto-mirror under <code>dir="rtl"</code>, the same way <code>.ufs-teaser-lg</code>'s <code>--image-left</code> modifier does. No <code>[dir="rtl"]</code> overrides exist in this component's CSS.</p>
+
+      <div class="pv-label"><code>--image-right</code>, in Arabic, <code>dir="rtl"</code></div>
+      <div class="pv-light" style="padding: 40px 24px;" dir="rtl">
+        <div class="ufs-text-block ufs-text-block--image-right">
+          <div class="ufs-text-block__content">
+            <h3 class="ufs-text-block__heading">الطعام المريح الحديث هو مفتاح قائمتك</h3>
+            <div class="ufs-text-block__body">
+              <p><strong>الطعام المريح الحديث</strong> يدور حول الارتقاء بالأطباق المريحة المألوفة بلمسات عصرية لمنح شعورًا بالحنين. بخبرتك الطهوية ومكوناتك عالية الجودة، امزج الأطباق المريحة التقليدية بالنكهات المحلية لإبهار ضيوفك.</p>
+            </div>
+            <a href="#" class="ufs-text-block__link">اعثر على ممثل المبيعات المحلي</a>
+          </div>
+          <div class="ufs-text-block__media"><img src="images/tiles/article.jpg" alt=""/></div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip" style="margin-top:16px;">
+        <span class="notice-icon">💡</span>
+        <div>Nothing in this component's CSS is RTL-specific — column order, alignment and the CTA link's underline all mirror for free. If a future variant ever needs a physical <code>left</code>/<code>right</code> value, that's the point an explicit <code>[dir="rtl"]</code> override becomes necessary — see Promo Banner's spec for a worked example of that case.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ USAGE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="usage">
+      <div class="section-breadcrumb">Developer</div>
+      <h2 class="section-title">Usage</h2>
+      <p class="section-desc">No JS required for the text/image variants. The video variants (<code>--video-left</code>, <code>--video-right</code>, <code>--video-full</code>) reuse <code>.ufs-video-embed</code> as-is — if it's already on the page (e.g. from a Flex Carousel or Training Hero), no new CSS/JS is needed for text-block's video slot beyond the small fluid-width override below; otherwise pull in <code>.ufs-video-embed</code>'s own CSS, the shared <code>.lb-overlay</code> lightbox markup and its click-listener script from <code>video-embed-spec.html</code> unchanged.</p>
+
+      <div class="ds-card usage-section" style="display:block;">
+        <div class="code-panel-tabs" style="display:flex; gap:8px; margin-bottom:4px;">
+          <button class="code-panel-tab active" onclick="showPanel('tb-html',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">HTML</button>
+          <button class="code-panel-tab" onclick="showPanel('tb-css',this)" style="font-family:var(--font-family);font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;border:1px solid var(--color-mushroom-300);background:var(--color-mushroom-100);cursor:pointer;">CSS</button>
+        </div>
+        <div class="code-block-wrap" id="tb-html" style="display:block"><pre class="code-body"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block ufs-text-block--image-right"</span><span class="t-tag">&gt;</span>  <span class="t-cm">&lt;!-- swap to --image-left / --image-top / --image-bottom / --video-left / --video-right / --video-full, or drop the modifier entirely for text-only --&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__content"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__eyebrow"</span><span class="t-tag">&gt;</span>Guest 365 for Hotels &amp; Conferencing<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__heading ufs-text-block__heading--lead"</span><span class="t-tag">&gt;</span>The Best For Your Guest<span class="t-tag">&lt;/h2&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__body ufs-text-block__body--lead"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p&gt;</span>Your guests crave the nostalgia of familiar dishes yet expect the excitement of new flavours.<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;p&gt;</span>With modern spins on comfort classics, transform traditional favourites into a unique guest experience.<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__link"</span><span class="t-tag">&gt;</span>Find your local sales representative<span class="t-tag">&lt;/a&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__media"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-text-block__media-link"</span><span class="t-tag">&gt;</span>  <span class="t-cm">&lt;!-- optional: drop the &lt;a&gt; for a plain, unlinked image --&gt;</span>
+      <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"images/hero/recipe.jpg"</span> <span class="t-at">alt</span>=<span class="t-str">"Chefs preparing a plate"</span><span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;/a&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre></div>
+        <div class="code-block-wrap" id="tb-css" style="display:none"><pre class="code-body"><span class="t-pr">.ufs-text-block</span> { <span class="t-pr">max-width</span>: <span class="t-vl">960px</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 auto</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-4)</span>; <span class="t-pr">box-sizing</span>: <span class="t-vl">border-box</span>; }
+
+<span class="t-pr">.ufs-text-block__eyebrow</span> { <span class="t-pr">margin</span>: <span class="t-vl">0 0</span> <span class="t-va">var(--space-3)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-overline-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-overline-lh)</span>;
+  <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-overline-w)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-overline-ls)</span>; <span class="t-pr">text-transform</span>: <span class="t-vl">uppercase</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-accessible-orange)</span>; }
+<span class="t-pr">.ufs-text-block__heading</span> { <span class="t-pr">margin</span>: <span class="t-vl">0 0</span> <span class="t-va">var(--space-3)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h3-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h3-lh)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-h3-ls)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h3-w)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-text-block__heading--lead</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h2-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h2-lh)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-h2-ls)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h2-w)</span>; }
+<span class="t-pr">.ufs-text-block__body p</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-squid-500)</span>; }
+<span class="t-pr">.ufs-text-block__body p + p</span> { <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-text-block__body--lead p</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-lg-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lg-lh)</span>; }
+<span class="t-pr">.ufs-text-block__link</span> { <span class="t-pr">display</span>: <span class="t-vl">inline-block</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-btn-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>;
+  <span class="t-pr">color</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">underline</span>; <span class="t-pr">text-underline-offset</span>: <span class="t-vl">2px</span>; }
+
+<span class="t-pr">.ufs-text-block__media img</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">auto</span>; }
+<span class="t-pr">.ufs-text-block__media > img</span>,
+<span class="t-pr">.ufs-text-block__media-link</span> { <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-pr">.ufs-text-block__media-link img</span> { <span class="t-pr">transition</span>: <span class="t-vl">transform 0.35s ease</span>; }
+<span class="t-cm">@media (hover: hover) and (pointer: fine) {</span> <span class="t-pr">.ufs-text-block__media-link:hover img</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.06)</span>; } <span class="t-cm">}</span>
+
+<span class="t-cm">/* Stacked: --image-bottom / --image-top / --video-full */</span>
+<span class="t-pr">.ufs-text-block--image-bottom</span>,
+<span class="t-pr">.ufs-text-block--image-top</span>,
+<span class="t-pr">.ufs-text-block--video-full</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; }
+<span class="t-pr">.ufs-text-block--image-top .ufs-text-block__media</span> { <span class="t-pr">order</span>: <span class="t-vl">-1</span>; }
+
+<span class="t-cm">/* Split: --image-left / --image-right / --video-left / --video-right */</span>
+<span class="t-pr">.ufs-text-block--image-left</span>, <span class="t-pr">.ufs-text-block--image-right</span>,
+<span class="t-pr">.ufs-text-block--video-left</span>, <span class="t-pr">.ufs-text-block--video-right</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">flex-start</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">padding-top</span>: <span class="t-va">var(--space-8)</span>; }
+<span class="t-pr">.ufs-text-block--image-left</span>, <span class="t-pr">.ufs-text-block--video-left</span> { <span class="t-pr">flex-direction</span>: <span class="t-vl">row-reverse</span>; }
+<span class="t-pr">.ufs-text-block--image-left .ufs-text-block__content, …__media</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; } <span class="t-cm">/* on all 4 split modifiers' content + media */</span>
+
+<span class="t-cm">/* Full-bleed video — local override, see notice in Layout Variants */</span>
+<span class="t-cm">@media (min-width: 769px) {</span>
+  <span class="t-pr">.ufs-text-block--video-left .ufs-video-embed--wide</span>,
+  <span class="t-pr">.ufs-text-block--video-right .ufs-video-embed--wide</span>,
+  <span class="t-pr">.ufs-text-block--video-full .ufs-video-embed--wide</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">16 / 9</span>; }
+<span class="t-cm">}</span>
+
+<span class="t-cm">@media (max-width: 768px) {</span>
+  <span class="t-pr">.ufs-text-block__heading</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h3-mob-size)</span>; }
+  <span class="t-pr">.ufs-text-block__heading--lead</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h2-mob-size)</span>; }
+  <span class="t-pr">.ufs-text-block__body p</span>, <span class="t-pr">.ufs-text-block__body--lead p</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; }
+  <span class="t-pr">.ufs-text-block__media > img</span>, <span class="t-pr">.ufs-text-block__media-link</span> { <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; }
+  <span class="t-pr">.ufs-text-block--image-bottom</span>, <span class="t-pr">.ufs-text-block--image-top</span>, <span class="t-pr">.ufs-text-block--video-full</span> { <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+  <span class="t-pr">.ufs-text-block--image-left</span>, <span class="t-pr">.ufs-text-block--image-right</span>,
+  <span class="t-pr">.ufs-text-block--video-left</span>, <span class="t-pr">.ufs-text-block--video-right</span> { <span class="t-pr">flex-direction</span>: <span class="t-vl">column-reverse</span>; <span class="t-pr">align-items</span>: <span class="t-vl">stretch</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-cm">}</span></pre></div>
+      </div>
+    </section>
+
+  </div>
+
+  <a href="full-page-preview-v0.2.html" class="demo-fab" target="_blank">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8h12M9 3l5 5-5 5"/></svg>
+    View live demo
+  </a>
+
+  <!-- VIDEO LIGHTBOX — shared by every .ufs-video-embed__play trigger on this page. Verbatim from video-embed-spec.html. -->
+  <div class="lb-overlay" id="lb-overlay" role="dialog" aria-modal="true" aria-label="Video">
+    <div class="lb-wrap">
+      <button class="lb-close" id="lb-close" aria-label="Close">&times;</button>
+      <div class="lb-panel">
+        <iframe id="lb-iframe" src="" frameborder="0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .lb-overlay {
+      position: fixed; inset: 0; z-index: 10000;
+      background: rgba(0,0,0,0.88);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .lb-overlay.open { opacity: 1; pointer-events: all; }
+    .lb-wrap { position: relative; width: min(900px, calc(100vw - 32px)); }
+    .lb-panel { aspect-ratio: 16 / 9; background: var(--color-brand-dark); border-radius: var(--radius-lg); overflow: hidden; transform: scale(0.95); transition: transform 0.25s; }
+    .lb-overlay.open .lb-panel { transform: scale(1); }
+    .lb-panel iframe { width: 100%; height: 100%; border: none; display: block; }
+    .lb-close { position: absolute; top: -44px; right: 0; background: none; border: none; color: var(--color-salt); font-size: 30px; line-height: 1; padding: 6px; cursor: pointer; opacity: 0.8; transition: opacity 0.15s; }
+    .lb-close:hover { opacity: 1; }
+  </style>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    function showPanel(panelId, clickedBtn) {
+      var container = clickedBtn.closest('.ds-card, .usage-section');
+      container.querySelectorAll('.code-panel-tab').forEach(function(b) { b.classList.remove('active'); });
+      clickedBtn.classList.add('active');
+      container.querySelectorAll('.code-block-wrap').forEach(function(w) { w.style.display = 'none'; });
+      document.getElementById(panelId).style.display = 'block';
+    }
+
+    /* ── Video lightbox ─────────────────────────────────────────── */
+    (function () {
+      var lbOverlay = document.getElementById('lb-overlay');
+      var lbIframe  = document.getElementById('lb-iframe');
+      var lbClose   = document.getElementById('lb-close');
+      if (!lbOverlay) return;
+
+      function openLB(url) {
+        lbIframe.src = url;
+        lbOverlay.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLB() {
+        lbOverlay.classList.remove('open');
+        lbIframe.src = '';
+        document.body.style.overflow = '';
+      }
+
+      document.querySelectorAll('[data-video-url]').forEach(function (trigger) {
+        trigger.addEventListener('click', function () {
+          openLB(trigger.getAttribute('data-video-url'));
+        });
+      });
+      lbClose.addEventListener('click', closeLB);
+      lbOverlay.addEventListener('click', function (e) { if (e.target === lbOverlay) closeLB(); });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && lbOverlay.classList.contains('open')) closeLB();
+      });
+    })();
+  </script>
+</body>
+</html>
