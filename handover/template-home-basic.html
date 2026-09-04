@@ -2269,6 +2269,12 @@
       font-size: var(--text-body-sm-size); color: var(--color-accessible-orange);
       text-decoration: underline; text-underline-offset: 2px; font-weight: var(--text-btn-w);
     }
+    .reg-legal-links { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-brand-dark); margin: 0 0 var(--space-5); }
+    .reg-legal-link {
+      color: var(--color-accessible-orange);
+      text-decoration: underline; text-underline-offset: 2px;
+    }
+    .reg-legal-link:hover { color: var(--color-orange-700); }
     .reg-biz-suggest {
       position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20;
       background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
@@ -2292,6 +2298,43 @@
     .fi-row .fi-wrap { flex: 1; min-width: 0; }
     .fi-phone-row { display: flex; gap: var(--space-2); }
     .fi-phone-code { flex: 0 0 96px; padding-left: var(--space-3); padding-right: var(--space-6); }
+
+    /* Country-code dropdown + search — replaces the plain <select> that
+       used to carry these ids. Each instance keeps a hidden input on the
+       SAME id (reg-contact-phone-code / reg-account-mobile-code /
+       reg-phone-code) so every existing .value read/write elsewhere in
+       this file (regFindCountryByDial, regValidatePhone, regResetFlow,
+       etc.) keeps working untouched — only the visible trigger label is a
+       separate element, kept in sync via regPhoneCodeSetValue(). */
+    .reg-phone-code-wrap { position: relative; flex: 0 0 96px; }
+    .fi-phone-code-trigger {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding-left: var(--space-3); padding-right: var(--space-2); cursor: pointer;
+    }
+    .fi-phone-code-chevron { width: 12px; height: 12px; flex-shrink: 0; color: var(--color-mushroom-700); transition: transform 0.15s; }
+    .fi-phone-code-trigger[aria-expanded="true"] .fi-phone-code-chevron { transform: rotate(180deg); }
+    .reg-phone-code-panel {
+      position: absolute; top: calc(100% + 4px); left: 0; z-index: 30; min-width: 240px;
+      background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-lg); overflow: hidden;
+    }
+    [dir="rtl"] .reg-phone-code-panel { left: auto; right: 0; }
+    .reg-phone-code-search-wrap { padding: var(--space-2); border-bottom: 1px solid var(--color-mushroom-100); }
+    .reg-phone-code-search {
+      width: 100%; height: var(--space-9); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-xs);
+      padding: 0 var(--space-3); font-size: var(--text-body-sm-size); font-family: var(--font-family);
+      color: var(--color-brand-dark); outline: none; box-sizing: border-box;
+    }
+    .reg-phone-code-search:focus { border-color: var(--color-brand-dark); }
+    .reg-phone-code-list { max-height: 220px; overflow-y: auto; padding: var(--space-1) 0; }
+    .reg-phone-code-item {
+      display: flex; align-items: center; justify-content: space-between; gap: var(--space-3);
+      padding: var(--space-2) var(--space-4); font-size: var(--text-body-sm-size); color: var(--color-brand-dark);
+      cursor: pointer; transition: background 0.12s;
+    }
+    .reg-phone-code-item:hover { background: var(--color-mushroom-100); }
+    .reg-phone-code-item-dial { color: var(--color-mushroom-700); flex-shrink: 0; }
+    .reg-phone-code-empty { padding: var(--space-4); font-size: var(--text-body-sm-size); color: var(--color-mushroom-700); text-align: center; }
     .fi-phone-number { flex: 1; min-width: 0; }
     .reg-extra-fields { display: none; flex-direction: column; gap: var(--space-4); animation: regExtraReveal 0.3s ease; }
     .reg-extra-fields.is-visible { display: flex; }
@@ -5341,15 +5384,19 @@
             </div>
             <div class="fi-wrap" id="reg-contact-panel-phone" role="tabpanel" aria-labelledby="reg-contact-tab-phone" hidden>
               <div class="fi-phone-row">
-                <select class="fi-field fi-select fi-phone-code" id="reg-contact-phone-code" aria-label="Country code">
-                  <option value="+1" selected>+1</option>
-                  <option value="+44">+44</option>
-                  <option value="+39">+39</option>
-                  <option value="+33">+33</option>
-                  <option value="+34">+34</option>
-                  <option value="+49">+49</option>
-                  <option value="+55">+55</option>
-                </select>
+                <div class="reg-phone-code-wrap">
+                  <button type="button" class="fi-field fi-phone-code-trigger" id="reg-contact-phone-code-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code" onclick="regPhoneCodeToggle('reg-contact-phone-code')">
+                    <span id="reg-contact-phone-code-label">+1</span>
+                    <svg class="fi-phone-code-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg>
+                  </button>
+                  <div class="reg-phone-code-panel" id="reg-contact-phone-code-panel" hidden>
+                    <div class="reg-phone-code-search-wrap">
+                      <input type="text" class="reg-phone-code-search" id="reg-contact-phone-code-search" placeholder="Search country or code" aria-label="Search country or code" oninput="regPhoneCodeFilter('reg-contact-phone-code', this.value)" onkeydown="regPhoneCodeSearchKeydown(event,'reg-contact-phone-code')"/>
+                    </div>
+                    <ul class="reg-phone-code-list" id="reg-contact-phone-code-list" role="listbox" aria-label="Country code"></ul>
+                  </div>
+                  <input type="hidden" id="reg-contact-phone-code" value="+1"/>
+                </div>
                 <input class="fi-field fi-phone-number" type="tel" id="reg-contact-phone-input" placeholder="e.g. 555 123 4567" autocomplete="tel-national" aria-label="Mobile number" onkeydown="if(event.key==='Enter'){event.preventDefault();regSubmitEmail();}"/>
               </div>
             </div>
@@ -5470,15 +5517,19 @@
           <div class="fi-wrap" id="reg-account-mobile-wrap" hidden>
             <label class="fi-label" for="reg-account-mobile">Mobile number</label>
             <div class="fi-phone-row">
-              <select class="fi-field fi-select fi-phone-code" id="reg-account-mobile-code" aria-label="Country code">
-                <option value="+1" selected>+1</option>
-                <option value="+44">+44</option>
-                <option value="+39">+39</option>
-                <option value="+33">+33</option>
-                <option value="+34">+34</option>
-                <option value="+49">+49</option>
-                <option value="+55">+55</option>
-              </select>
+              <div class="reg-phone-code-wrap">
+                <button type="button" class="fi-field fi-phone-code-trigger" id="reg-account-mobile-code-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code" onclick="regPhoneCodeToggle('reg-account-mobile-code')">
+                  <span id="reg-account-mobile-code-label">+1</span>
+                  <svg class="fi-phone-code-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg>
+                </button>
+                <div class="reg-phone-code-panel" id="reg-account-mobile-code-panel" hidden>
+                  <div class="reg-phone-code-search-wrap">
+                    <input type="text" class="reg-phone-code-search" id="reg-account-mobile-code-search" placeholder="Search country or code" aria-label="Search country or code" oninput="regPhoneCodeFilter('reg-account-mobile-code', this.value)" onkeydown="regPhoneCodeSearchKeydown(event,'reg-account-mobile-code')"/>
+                  </div>
+                  <ul class="reg-phone-code-list" id="reg-account-mobile-code-list" role="listbox" aria-label="Country code"></ul>
+                </div>
+                <input type="hidden" id="reg-account-mobile-code" value="+1"/>
+              </div>
               <input class="fi-field fi-phone-number" type="tel" id="reg-account-mobile" placeholder="e.g. 555 123 4567" autocomplete="tel-national" oninput="regClearAccountContactError(); regValidateStep2()" onblur="regValidateAccountContactFormat()" onkeydown="regStepEnter(event,'reg-account-btn')"/>
             </div>
             <div class="fi-contact-hint" id="reg-account-mobile-hint" aria-live="polite"></div>
@@ -5522,7 +5573,7 @@
 
           <div class="fi-wrap reg-conditional-field" id="reg-business-wrap" style="position:relative">
             <label class="fi-label">Business name</label>
-            <input class="fi-field" type="text" id="reg-business" placeholder="Please enter your business name" autocomplete="off" oninput="regBusinessNameInput(this.value)" onfocus="regBusinessNameInput(this.value)" onblur="regBusinessNameBlur()" onkeydown="regBusinessNameEnter(event)"/>
+            <input class="fi-field" type="text" id="reg-business" placeholder="Please enter your business name" autocomplete="off" oninput="regBusinessNameInput(this.value); regValidateStep2()" onfocus="regBusinessNameInput(this.value)" onblur="regBusinessNameBlur()" onkeydown="regBusinessNameEnter(event)"/>
             <div class="reg-biz-suggest" id="reg-biz-suggest"></div>
           </div>
 
@@ -5551,15 +5602,19 @@
             <div class="fi-wrap">
               <label class="fi-label">Business phone number</label>
               <div class="fi-phone-row">
-                <select class="fi-field fi-select fi-phone-code" id="reg-phone-code">
-                  <option value="+39">+39</option>
-                  <option value="+1">+1</option>
-                  <option value="+44">+44</option>
-                  <option value="+49">+49</option>
-                  <option value="+33">+33</option>
-                  <option value="+34">+34</option>
-                  <option value="+971">+971</option>
-                </select>
+                <div class="reg-phone-code-wrap">
+                  <button type="button" class="fi-field fi-phone-code-trigger" id="reg-phone-code-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code" onclick="regPhoneCodeToggle('reg-phone-code')">
+                    <span id="reg-phone-code-label">+39</span>
+                    <svg class="fi-phone-code-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg>
+                  </button>
+                  <div class="reg-phone-code-panel" id="reg-phone-code-panel" hidden>
+                    <div class="reg-phone-code-search-wrap">
+                      <input type="text" class="reg-phone-code-search" id="reg-phone-code-search" placeholder="Search country or code" aria-label="Search country or code" oninput="regPhoneCodeFilter('reg-phone-code', this.value)" onkeydown="regPhoneCodeSearchKeydown(event,'reg-phone-code')"/>
+                    </div>
+                    <ul class="reg-phone-code-list" id="reg-phone-code-list" role="listbox" aria-label="Country code"></ul>
+                  </div>
+                  <input type="hidden" id="reg-phone-code" value="+39"/>
+                </div>
                 <input class="fi-field fi-phone-number" type="tel" id="reg-phone" placeholder="e.g. 345 678 9012" autocomplete="tel-national" onkeydown="regStepEnter(event,'reg-account-btn')"/>
               </div>
             </div>
@@ -5584,14 +5639,14 @@
                 <span class="fi-checkbox-label">Email</span>
               </label>
               <label class="fi-checkbox">
-                <input type="checkbox" class="reg-consent-channel" id="reg-consent-sms" onchange="regConsentChannelChange()"/>
+                <input type="checkbox" class="reg-consent-channel" id="reg-consent-mobile" onchange="regConsentChannelChange()"/>
                 <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
-                <span class="fi-checkbox-label">SMS</span>
+                <span class="fi-checkbox-label">Mobile</span>
               </label>
               <label class="fi-checkbox">
-                <input type="checkbox" class="reg-consent-channel" id="reg-consent-whatsapp" onchange="regConsentChannelChange()"/>
+                <input type="checkbox" class="reg-consent-channel" id="reg-consent-thirdparty" onchange="regConsentChannelChange()"/>
                 <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
-                <span class="fi-checkbox-label">WhatsApp</span>
+                <span class="fi-checkbox-label">Third Party</span>
               </label>
             </div>
           </div>
@@ -5601,6 +5656,12 @@
             <span class="fi-checkbox-label">I confirm that I am 18 years or older*</span>
           </label>
         </div>
+
+        <!-- Informational only — no checkbox/consent tied to these, just
+             links out to the legal pages. Link copy matches the footer's
+             Legal column (footer-terms/footer-privacy); "Read"/"and" are
+             plain connecting text, not part of either link. -->
+        <p class="reg-legal-links">Read <a href="#" class="reg-legal-link">Terms and Conditions</a> and <a href="#" class="reg-legal-link">Privacy Policy</a></p>
 
         <button class="btn btn-primary" style="width:100%" id="reg-account-btn" disabled onclick="regAccountContinue()">Continue</button>
       </div>
@@ -6621,13 +6682,13 @@
     var regActiveContactTab = 'email'; // 'email' | 'phone' — email is the default active tab
 
     var REG_PHONE_COUNTRIES = [
-      { iso: 'US', dial: '+1',  nsnLen: [10],     trunkZero: false },
-      { iso: 'GB', dial: '+44', nsnLen: [10],     trunkZero: true  },
-      { iso: 'IT', dial: '+39', nsnLen: [9, 10],  trunkZero: false },
-      { iso: 'FR', dial: '+33', nsnLen: [9],      trunkZero: true  },
-      { iso: 'ES', dial: '+34', nsnLen: [9],      trunkZero: false },
-      { iso: 'DE', dial: '+49', nsnLen: [10, 11], trunkZero: true  },
-      { iso: 'BR', dial: '+55', nsnLen: [10, 11], trunkZero: false }
+      { iso: 'US', name: 'United States', dial: '+1',  nsnLen: [10],     trunkZero: false },
+      { iso: 'GB', name: 'United Kingdom', dial: '+44', nsnLen: [10],     trunkZero: true  },
+      { iso: 'IT', name: 'Italy',          dial: '+39', nsnLen: [9, 10],  trunkZero: false },
+      { iso: 'FR', name: 'France',         dial: '+33', nsnLen: [9],      trunkZero: true  },
+      { iso: 'ES', name: 'Spain',          dial: '+34', nsnLen: [9],      trunkZero: false },
+      { iso: 'DE', name: 'Germany',        dial: '+49', nsnLen: [10, 11], trunkZero: true  },
+      { iso: 'BR', name: 'Brazil',         dial: '+55', nsnLen: [10, 11], trunkZero: false }
     ];
 
     function regFindCountryByDial(dial) {
@@ -6636,6 +6697,100 @@
       }
       return REG_PHONE_COUNTRIES[0]; // fallback: US
     }
+
+    // ================================================================
+    // Country-code dropdown + search — one component, 3 instances
+    // (reg-contact-phone-code / reg-account-mobile-code / reg-phone-code).
+    // Each instance is id-prefix + a fixed set of suffixes: -trigger,
+    // -label, -panel, -search, -list, and the hidden input itself on the
+    // bare id (so every existing .value read elsewhere in this file —
+    // regFindCountryByDial, regValidatePhone, regResetFlow, etc. — keeps
+    // working untouched; only this component's own functions need to know
+    // about the trigger/panel/label on top of it).
+    // ================================================================
+    var regPhoneCodeOpenId = null;
+
+    function regPhoneCodeMatches(country, q) {
+      if (!q) return true;
+      return country.name.toLowerCase().indexOf(q) !== -1
+        || country.dial.indexOf(q) !== -1
+        || country.dial.replace('+', '').indexOf(q) !== -1;
+    }
+
+    function regPhoneCodeRenderList(id, query) {
+      var q = (query || '').trim().toLowerCase();
+      var matches = REG_PHONE_COUNTRIES.filter(function(c) { return regPhoneCodeMatches(c, q); });
+      var ul = document.getElementById(id + '-list');
+      if (!matches.length) {
+        ul.innerHTML = '<li class="reg-phone-code-empty">No matches</li>';
+        return;
+      }
+      ul.innerHTML = matches.map(function(c) {
+        return '<li class="reg-phone-code-item" role="option" onmousedown="regPhoneCodeSelect(\'' + id + '\',\'' + c.dial + '\')">' +
+          '<span class="reg-phone-code-item-name">' + regEscapeHtml(c.name) + '</span>' +
+          '<span class="reg-phone-code-item-dial">' + c.dial + '</span>' +
+        '</li>';
+      }).join('');
+    }
+
+    function regPhoneCodeCloseAll() {
+      document.querySelectorAll('.reg-phone-code-panel').forEach(function(p) { p.hidden = true; });
+      document.querySelectorAll('.fi-phone-code-trigger').forEach(function(t) { t.setAttribute('aria-expanded', 'false'); });
+      regPhoneCodeOpenId = null;
+    }
+
+    function regPhoneCodeToggle(id) {
+      var wasOpen = regPhoneCodeOpenId === id;
+      regPhoneCodeCloseAll();
+      if (wasOpen) return;
+      document.getElementById(id + '-panel').hidden = false;
+      document.getElementById(id + '-trigger').setAttribute('aria-expanded', 'true');
+      regPhoneCodeOpenId = id;
+      var search = document.getElementById(id + '-search');
+      search.value = '';
+      regPhoneCodeRenderList(id, '');
+      search.focus();
+    }
+
+    function regPhoneCodeFilter(id, value) {
+      regPhoneCodeRenderList(id, value);
+    }
+
+    function regPhoneCodeSetValue(id, dial) {
+      document.getElementById(id).value = dial;
+      var label = document.getElementById(id + '-label');
+      if (label) label.textContent = dial;
+    }
+
+    function regPhoneCodeSelect(id, dial) {
+      regPhoneCodeSetValue(id, dial);
+      regPhoneCodeCloseAll();
+      document.getElementById(id + '-trigger').focus();
+      // Re-validate whatever this field feeds — the phone number's
+      // validity depends on which country is selected, same as if the
+      // number input itself had just been edited.
+      if (id === 'reg-account-mobile-code') { regClearAccountContactError(); regValidateStep2(); }
+    }
+
+    function regPhoneCodeSearchKeydown(event, id) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        regPhoneCodeCloseAll();
+        document.getElementById(id + '-trigger').focus();
+        return;
+      }
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      var q = document.getElementById(id + '-search').value.trim().toLowerCase();
+      var match = REG_PHONE_COUNTRIES.filter(function(c) { return regPhoneCodeMatches(c, q); })[0];
+      if (match) regPhoneCodeSelect(id, match.dial);
+    }
+
+    document.addEventListener('click', function(e) {
+      if (regPhoneCodeOpenId && !e.target.closest('.reg-phone-code-wrap')) {
+        regPhoneCodeCloseAll();
+      }
+    });
 
     function regGroupDigits(digits) {
       // simple 3-3-(rest, up to 4) grouping for a readable demo format, not locale-accurate.
@@ -7033,7 +7188,7 @@
         document.getElementById('reg-address').value    = '';
         document.getElementById('reg-city').value       = '';
         document.getElementById('reg-postal').value     = '';
-        document.getElementById('reg-phone-code').value = '+39';
+        regPhoneCodeSetValue('reg-phone-code', '+39');
         document.getElementById('reg-phone').value      = '';
         return;
       }
@@ -7067,10 +7222,11 @@
       document.getElementById('reg-address').value    = biz.address;
       document.getElementById('reg-city').value       = biz.city;
       document.getElementById('reg-postal').value     = biz.postal;
-      document.getElementById('reg-phone-code').value = biz.dialCode;
+      regPhoneCodeSetValue('reg-phone-code', biz.dialCode);
       document.getElementById('reg-phone').value      = biz.phone;
       regShowBizCard(name, biz);
       document.getElementById('reg-business-type').focus();
+      regValidateStep2();
     }
 
     function regAddCustomBusiness() {
@@ -7082,9 +7238,10 @@
       document.getElementById('reg-address').value    = '';
       document.getElementById('reg-city').value       = '';
       document.getElementById('reg-postal').value     = '';
-      document.getElementById('reg-phone-code').value = '+39';
+      regPhoneCodeSetValue('reg-phone-code', '+39');
       document.getElementById('reg-phone').value      = '';
       document.getElementById('reg-address').focus();
+      regValidateStep2();
     }
 
     // "Choose channel" — Email/SMS/WhatsApp under the marketing-consent
@@ -7114,8 +7271,8 @@
     }
 
     function regValidateStep2() {
-      // reg-terms (marketing consent, with its Email/SMS/WhatsApp channels)
-      // is optional — only age confirmation gates Continue here.
+      // reg-terms (marketing consent, with its Email/Mobile/Third Party
+      // channels) is optional — only age confirmation gates Continue here.
       var ok = document.getElementById('reg-age').checked;
 
       // Whichever of email/mobile wasn't given in Step 1 is required here
@@ -7133,6 +7290,15 @@
       ok = ok && bizType !== '';
       if (bizType !== '' && bizType !== 'none') {
         ok = ok && document.getElementById('reg-job-title').value !== '';
+      }
+
+      // Business name is required too, but only while its field is
+      // actually showing (real job title, not Foodie) — check the wrap's
+      // visibility directly rather than re-deriving it from business
+      // type/job title, since that's the single source of truth already
+      // driving what the user sees.
+      if (document.getElementById('reg-business-wrap').classList.contains('is-visible')) {
+        ok = ok && document.getElementById('reg-business').value.trim() !== '';
       }
 
       document.getElementById('reg-account-btn').disabled = !ok;
@@ -7348,7 +7514,8 @@
 
       document.getElementById('reg-email-input').value        = '';
       document.getElementById('reg-contact-phone-input').value = '';
-      document.getElementById('reg-contact-phone-code').value  = '+1';
+      regPhoneCodeSetValue('reg-contact-phone-code', '+1');
+      regPhoneCodeCloseAll();
       regSwitchContactTab('email', false);
 
       // Journey 2 — Log in
@@ -7381,10 +7548,10 @@
       document.getElementById('reg-address').value        = '';
       document.getElementById('reg-city').value           = '';
       document.getElementById('reg-postal').value         = '';
-      document.getElementById('reg-phone-code').value     = '+39';
+      regPhoneCodeSetValue('reg-phone-code', '+39');
       document.getElementById('reg-phone').value          = '';
       regHideBizCard();
-      document.getElementById('reg-account-mobile-code').value = '+1';
+      regPhoneCodeSetValue('reg-account-mobile-code', '+1');
       document.getElementById('reg-account-mobile').value       = '';
       document.getElementById('reg-account-email').value        = '';
       document.getElementById('reg-account-mobile').classList.remove('is-invalid');
