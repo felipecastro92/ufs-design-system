@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Template — Profile Overview — UFS Design System</title>
+  <title>Template — Profile Orders — UFS Design System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -3579,33 +3579,40 @@
        already hides .state-badge below 768px, so no clash there) */
     body.sticky-cta-visible .state-badge { bottom: 130px; }
     /* ================================================================
-       PROFILE — OVERVIEW
-       Migrated from the pre-handover profile-overview.html prototype.
+       PROFILE — ORDERS
+       Migrated from the pre-handover profile-orders.html prototype.
        Structure/layout kept 1:1; every value below has been remapped
        from that page's own legacy (pre-Rosana 2.0) token snapshot onto
-       this handover's tokens.css. .btn/.av/.fi-wrap etc. are NOT
-       redefined here — the current definitions already ported into this
-       template's shared shell above are reused as-is.
+       this handover's tokens.css. .btn/.av/.fi-wrap/.loyalty-card etc.
+       are NOT redefined here — the current definitions already ported
+       into this template's shared shell above are reused as-is (the
+       "Chef Rewards" loyalty widget below reuses the shared .loyalty-card
+       component verbatim, no new CSS).
 
        Token remap notes (old → current, where not a direct rename):
-         old --text-h2  (25px/600) → --text-h4 (24px/600) — closest by px, same weight
-         old --text-h3  (20px/600) → --text-h5 (20px/600) — exact px + weight match
-         old --text-h4  (16px/600) → --text-h6 (18px/600) — sits exactly between
-             --text-btn-size (14px) and --text-h6 (18px); --text-h6 wins since it
-             ships a complete size+lh+weight kit and --text-btn has no lh token
-         old --text-h5  (14px/600) → --text-btn-size (14px/600) + literal 1.5 lh
-             (no --text-btn-lh token exists; 1.5 matches this DS's own body-text ratio)
-         old --text-caption-sm (12px/0.4px ls) → --text-body-xs (12px/0.4px ls) — exact
-         old --text-label (12px/400/0.5px ls)  → --text-body-xs size, literal 0.5px ls
-         old --text-overline (14px/0.3px ls)   → current --text-overline (12px/0.96px ls)
-         old --shadow-card (0 1px 4px)         → --shadow-xs (0 2px 4px, closest step)
-         #757575 (ad-hoc gray, not a token)    → --color-mushroom-900 (closest by distance)
-         #c9c3ce (.stat-tile--mid bg)          → color-mix(in srgb, var(--color-smoke) 50%,
-             transparent) — same "shades/mid-smoke" value resolved for Pathways elsewhere
-             in this handover (see pathways-spec.html); it's the token, not an approximation
-         --text-numeral-lg/-md, all --shadow-xs/-sm/-md/-raised, --color-gold,
-             --color-accessible-orange, and the full space/radius scales carried over
-             unchanged — this handover already ships identical values for those.
+         old --text-caption-sm (12px/0.4px ls) → --text-body-xs — exact,
+             same mapping already established in template-profile-overview.html
+         old --color-danger (#C0392B, Cancelled badge)  → --color-error
+             (#D0021B) — the "bright" variant, correct for a background
+             fill (not text-on-white), per this DS's success/error/info
+             usage rule
+         old --color-delivered (#669A19, Completed badge) → --color-success
+             (#81BC2A) — same bright-variant-for-fills rule
+         #E1E1E1 / #EBEBEB (ad-hoc borders, not tokens) → --color-mushroom-300
+             — closest existing token
+         #757575 (order-date, ad-hoc gray)   → --color-mushroom-900 — same
+             substitution already established in template-profile-overview.html
+         #333 (wishlist-empty text, ad-hoc)  → --color-brand-dark — closest
+         #6F6F6F (rewards-disclaimer, ad-hoc) → --color-mushroom-900
+         --shadow-sm, --color-gold, --color-aubergine, --color-brand-primary,
+             the full space/radius scales, and images/banners/promo-[1-4].jpg
+             carried over unchanged — this handover already ships identical
+             values/assets for those.
+         Order thumbnail and reward thumbnail photos were hotlinked to an
+             external site (webstaurantstore.com) in the source — swapped
+             for local assets already in handover/images/ (rotating through
+             a small pool since there's no 1:1 local equivalent per SKU;
+             reward thumbs all use images/tiles/reward.jpg, aptly named).
     ================================================================ */
 
     .icon-white { filter: invert(1); }
@@ -3687,7 +3694,9 @@
     .p-card-hdr {
       background: var(--color-mushroom-100);
       display: flex; align-items: center; justify-content: space-between;
+      width: 100%;
       padding: var(--space-4) var(--space-3);
+      border: none; text-align: left; font: inherit;
       text-decoration: none; color: inherit;
       cursor: pointer;
       transition: background 0.18s;
@@ -3705,192 +3714,93 @@
     .p-card-title img { width: 24px; height: 24px; display: block; }
     .p-card-body { padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
 
-    /* My Profile card body */
-    .pg-profile-user { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-1) 0 0; }
-    .pg-profile-user-name { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); }
-    .pg-profile-details { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-    .pg-profile-detail { flex: 1; min-width: 160px; display: flex; flex-direction: column; gap: 0; }
+    /* Accordion — one section open at a time, mobile only (≤1023px).
+       Desktop shows every card body statically; .p-card-hdr's
+       cursor:pointer/click-listener is harmless there since nothing
+       visually reacts to .p-card--open at that width (only .p-card-body's
+       max-height/padding are gated by the media query below). */
+    .p-card-chevron { display: none; align-items: center; flex-shrink: 0; transition: transform 0.25s; color: var(--color-brand-dark); }
     @media (max-width: 1023px) {
-      .pg-profile-details { flex-direction: column; }
-      .pg-profile-detail  { min-width: 0; flex: none; width: 100%; }
-      .pg-profile-user-name { font-size: var(--text-h5-mob-size); }
-      .pg-detail-value      { font-size: var(--text-h6-mob-size); }
-    }
-    .pg-detail-label { font-size: var(--text-body-sm-size); font-weight: 400; line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); }
-    .pg-detail-value { font-size: var(--text-h6-size); font-weight: var(--text-h6-w); line-height: var(--text-h6-lh); color: var(--color-brand-dark); }
-
-    /* Avatar photo-edit overlay — not part of the shared .av component */
-    .av-edit {
-      position: absolute; bottom: 0; right: 0;
-      background: var(--color-salt); border: none; cursor: pointer; padding: 0;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: var(--shadow-xs); z-index: 1;
-      width: 24px; height: 24px; border-radius: var(--radius-xs);
-    }
-    .av-edit input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
-    .av-edit img { display: block; pointer-events: none; }
-
-    /* My Orders card — loyalty + last order */
-    .pg-orders-top-row { display: flex; gap: var(--space-8); align-items: stretch; padding: var(--space-1) 0 0; }
-    .pg-loyalty-card {
-      flex: 1; position: relative; overflow: hidden; isolation: isolate;
-      background: var(--color-gold);
-      border: 1px solid #fff4da;
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-raised);
-      display: flex; flex-direction: column; align-items: center;
-      gap: var(--space-3); padding: var(--space-8) var(--space-4);
-    }
-    .pg-loyalty-card::before {
-      content: ''; position: absolute; top: 76px; left: 50%; transform: translateX(-50%);
-      width: 261px; height: 261px; border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.3);
-      box-shadow: 0 0 4px var(--color-gold);
-      opacity: 0.2; pointer-events: none;
-    }
-    .pg-loyalty-card::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(to top, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 41.045%);
-      mix-blend-mode: overlay; pointer-events: none;
-    }
-    .pg-loyalty-title { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); text-shadow: 0 1px 0 rgba(255,255,255,0.5); position: relative; z-index: 1; }
-    .pg-loyalty-pill {
-      background: var(--color-mushroom-100); border: 1px solid var(--color-gold);
-      border-radius: var(--radius-full); padding: var(--space-3);
-      display: flex; align-items: center; gap: var(--space-2);
-      box-shadow: 0 0 4px var(--color-gold); position: relative; z-index: 1;
-    }
-    .pg-loyalty-pill img { width: 33px; height: 33px; }
-    .pg-loyalty-num { font-size: var(--text-numeral-lg-size); font-weight: var(--text-numeral-lg-w); line-height: var(--text-numeral-lg-lh); color: var(--color-brand-dark); white-space: nowrap; }
-    .pg-loyalty-expiry { font-size: var(--text-body-sm-size); font-weight: 400; line-height: var(--text-body-sm-lh); color: var(--color-salt); text-shadow: 0 1px 0 rgba(0,0,0,0.1); position: relative; z-index: 1; text-align: center; }
-    .pg-orders-aside { flex: 1; display: flex; flex-direction: column; gap: 2px; justify-content: center; }
-    @media (max-width: 1023px) {
-      .pg-orders-top-row { flex-direction: column; gap: var(--space-4); align-items: stretch; }
-      .pg-loyalty-card { padding: var(--space-6) var(--space-4); }
-      .pg-loyalty-title { font-size: var(--text-h5-mob-size); }
-      .pg-loyalty-num  { font-size: var(--text-numeral-md-size); }
-      .pg-orders-aside { align-items: flex-start; }
+      .p-card { border-bottom: 1px solid var(--color-mushroom-300); }
+      .pg-profile-right .p-card:last-child { border-bottom: none; }
+      .p-card-chevron { display: flex; }
+      .p-card--open .p-card-chevron { transform: rotate(180deg); }
+      .p-card--open .p-card-title { color: var(--color-accessible-orange); }
+      .p-card-body { padding: 0; max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s 0.35s; }
+      .p-card--open .p-card-body { max-height: 3000px; padding: var(--space-4) var(--space-5) var(--space-5); transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s; }
     }
 
-    .pg-last-order-label { color: var(--color-mushroom-900); font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
-    .pg-order-card {
-      background: var(--color-mushroom-100);
-      border: 1px solid var(--color-salt);
-      border-radius: var(--radius-sm);
-      box-shadow: var(--shadow-xs);
-      padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4);
-      position: relative; cursor: pointer;
+    /* My Past Orders */
+    .orders-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+    @media (max-width: 1023px) { .orders-grid { grid-template-columns: 1fr; } }
+    .order-card {
+      background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
+      padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3);
+      position: relative; text-decoration: none; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
     }
-    .pg-order-card::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-sm); background: rgba(0,0,0,0.05); opacity: 0; transition: opacity 0.15s; pointer-events: none; }
-    .pg-order-card:hover::after { opacity: 1; }
-    .pg-order-card-top { display: flex; flex-direction: column; gap: var(--space-2); }
-    .pg-order-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
-    .pg-order-id   { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); }
-    .pg-order-date { font-size: var(--text-body-sm-size); font-weight: 400; color: var(--color-mushroom-900); line-height: var(--text-body-sm-lh); }
-    .pg-order-meta { font-size: var(--text-h6-size); font-weight: var(--text-h6-w); line-height: var(--text-h6-lh); color: var(--color-brand-dark); }
-    .pg-status-badge {
-      display: inline-flex; align-items: center; justify-content: center;
-      background: var(--color-aubergine); color: var(--color-salt);
+    .order-card:hover { box-shadow: var(--shadow-sm); transform: translateY(-4px); }
+    .order-card:hover .btn-secondary { background: var(--color-orange-100); }
+    .order-card .btn-secondary { pointer-events: none; }
+    .order-card-top { display: flex; flex-direction: column; gap: var(--space-2); }
+    .order-num { font-size: var(--text-body-size); font-weight: 600; line-height: var(--text-body-lh); color: var(--color-brand-dark); padding-right: 80px; }
+    .order-date { font-size: var(--text-body-xs-size); font-weight: 400; color: var(--color-mushroom-900); line-height: var(--text-body-xs-lh); }
+    .order-items-row { display: flex; justify-content: space-between; font-size: var(--text-body-sm-size); font-weight: 600; line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); }
+    .order-status {
+      position: absolute; top: var(--space-4); right: var(--space-4);
       font-size: var(--text-body-xs-size); font-weight: 400; line-height: var(--text-body-xs-lh);
-      padding: 1px 8px 3px; border-radius: var(--radius-full); white-space: nowrap;
+      color: var(--color-salt); padding: 1px var(--space-2) 2px; border-radius: var(--radius-full); white-space: nowrap;
     }
-    .pg-order-thumbnails { display: flex; gap: var(--space-3); flex-wrap: wrap; }
-    .pg-order-thumb { width: 90px; height: 90px; border-radius: var(--radius-sm); border: 1px solid var(--color-mushroom-300); overflow: hidden; flex-shrink: 0; background: var(--color-salt); }
-    .pg-order-thumb img { width: 100%; height: 100%; object-fit: cover; }
-    .pg-order-thumb-more { width: 90px; height: 90px; border-radius: var(--radius-sm); border: 1px solid var(--color-mushroom-300); overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: var(--text-h6-size); font-weight: var(--text-h6-w); color: var(--color-mushroom-900); }
-    .pg-order-reorder-desktop { display: flex; }
-    .pg-order-reorder-mobile  { display: none; }
-    /* Desktop shows 5 thumbnails + a "+2" overflow tile (7 items total);
-       mobile only has room for 3 + "+4" — same 7-item total, just a
-       narrower cutoff. Both counts are markup, not computed, so both
-       exist in the DOM and this toggles which is shown. */
-    .pg-order-thumb-more--mobile { display: none; }
-    @media (max-width: 1023px) {
-      .pg-order-id   { font-size: var(--text-h5-mob-size); }
-      .pg-order-meta { font-size: var(--text-h6-mob-size); }
-      .pg-order-thumb      { width: 57px; height: 57px; }
-      .pg-order-thumb-more { width: 57px; height: 57px; font-size: var(--text-btn-size); line-height: 1.5; }
-      .pg-order-thumb--desktop-only { display: none; }
-      .pg-order-thumb-more--desktop { display: none; }
-      .pg-order-thumb-more--mobile  { display: flex; }
-      .pg-order-reorder-desktop { display: none; }
-      .pg-order-reorder-mobile  { display: flex; width: 100%; }
-      .pg-order-reorder-mobile .btn { width: 100%; }
+    .status-dispatched { background: var(--color-error); }
+    .status-preparing  { background: var(--color-aubergine); }
+    .status-delivered  { background: var(--color-success); }
+    .order-thumbs { display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--space-2); }
+    .order-thumb { aspect-ratio: 1; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm); overflow: hidden; background: var(--color-mushroom-100); }
+    .order-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .order-thumb-overflow {
+      aspect-ratio: 1; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
+      display: flex; align-items: center; justify-content: center;
+      font-size: var(--text-body-sm-size); font-weight: 600; color: var(--color-brand-dark);
     }
 
-    /* My Favourites card — stats grid + recently saved tiles */
-    .pg-stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); }
-    .pg-stat-tile { border-radius: var(--radius-md); padding: var(--space-5) var(--space-4) var(--space-4); display: flex; flex-direction: column; gap: 4px; position: relative; cursor: pointer; }
-    .pg-stat-tile::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius-md); background: rgba(0,0,0,0.1); opacity: 0; transition: opacity 0.15s; pointer-events: none; will-change: opacity; }
-    .pg-stat-tile:hover::after { opacity: 1; }
-    .pg-stat-tile--dark   { background: var(--color-brand-dark); color: var(--color-salt); }
-    .pg-stat-tile--purple { background: var(--color-aubergine);  color: var(--color-salt); }
-    .pg-stat-tile--mid    { background: color-mix(in srgb, var(--color-smoke) 50%, transparent); color: var(--color-brand-dark); }
-    .pg-stat-tile--light  { background: var(--color-mushroom-500); color: var(--color-brand-dark); }
-    .pg-stat-num { font-size: var(--text-numeral-md-size); font-weight: var(--text-numeral-md-w); line-height: var(--text-numeral-md-lh); }
-    .pg-stat-lbl { font-size: var(--text-body-size); font-weight: var(--text-btn-w); line-height: var(--text-body-lh); }
-    .pg-stat-arrow { position: absolute; top: 0; bottom: 0; right: var(--space-4); display: flex; align-items: center; transition: transform 0.1s linear; will-change: transform; }
-    .pg-stat-tile:hover .pg-stat-arrow { transform: translateX(4px); }
-    .pg-stat-arrow img { width: 30px; height: 30px; }
-    @media (max-width: 1023px) {
-      .pg-stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .pg-stat-num   { font-size: 24px; font-weight: var(--text-numeral-md-w); }
-    }
+    /* Empty states (My Wishlist) */
+    .wishlist-empty { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding: var(--space-6) var(--space-4); text-align: center; position: relative; overflow: hidden; border-radius: var(--radius-sm); }
+    .wishlist-empty-illus { width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; opacity: 0.5; margin: 0 auto; }
+    .wishlist-empty-title { font-size: var(--text-body-size); font-weight: 600; color: var(--color-brand-dark); line-height: var(--text-body-lh); }
+    .wishlist-empty-desc { font-size: var(--text-body-sm-size); font-weight: 400; color: var(--color-brand-dark); line-height: var(--text-body-sm-lh); max-width: 300px; }
 
-    .pg-recently-saved-label { color: var(--color-mushroom-900); font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
-    /* Recently saved — real .ufs-tile cards (see tiles-spec.html), laid
-       out as a flexible grid (fills the column, like .ufs-catalog-grid at
-       desktop widths) rather than the fixed-width flex-carousel card
-       row — min-width:0 overrides .ufs-tile's own 320px minimum so it can
-       actually shrink to the grid column instead of forcing overflow. */
-    .pg-content-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
-    .pg-content-tiles .ufs-tile { min-width: 0; width: 100%; }
-    /* .ufs-tile__image normally uses a flat height:240px, fine at the DS's
-       own fixed 320px carousel-card width — but this grid's columns are
-       flexible, so a fixed height would crop the same photo differently
-       as the column width changes. aspect-ratio (4:3, the source 320:240
-       ratio) keeps the crop proportional instead. Scoped to ≥769px only —
-       mobile's .ufs-catalog-grid reflow already sets its own fixed
-       140x140 square thumbnail, which this must not fight (same
-       .ufs-tile__image selector, so source order would otherwise decide
-       the specificity tie). */
-    @media (min-width: 769px) {
-      .pg-content-tiles .ufs-tile__image { height: auto; aspect-ratio: 4 / 3; }
-    }
-    @media (max-width: 768px) {
-      .pg-content-tiles { grid-template-columns: 1fr; }
-      /* .p-card-body's own var(--space-5) horizontal padding + each
-         tile's own var(--space-4) row padding (from .ufs-catalog-grid's
-         mobile reflow) were stacking into a 36px inset instead of the
-         tile's intended 16px — cancel the card's padding here with a
-         matching negative margin so the tile's own padding is the only
-         inset left. Only this wrapper escapes; the "Recently saved"
-         label stays at the card's normal inset. */
-      .pg-content-tiles { margin-left: calc(-1 * var(--space-5)); margin-right: calc(-1 * var(--space-5)); }
-      /* .ufs-catalog-grid's own "140px 1fr" column track defaults that
-         1fr to minmax(auto,1fr) per the CSS Grid spec, so long titles/CTA
-         labels can force the row wider than its container at narrow
-         widths (the classic grid-blowout gotcha) — min-width:0 on the
-         content column lets it actually shrink to fit instead. Scoped to
-         this page's usage only, not the shared .ufs-catalog-grid rule
-         itself. */
-      .pg-content-tiles.ufs-catalog-grid .ufs-tile__content { min-width: 0; }
-    }
+    /* Orders & Promos */
+    .promo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+    @media (max-width: 1023px) { .promo-grid { grid-template-columns: 1fr; } }
+    .promo-tile { border-radius: var(--radius-sm); aspect-ratio: 409 / 196; overflow: hidden; position: relative; display: block; text-decoration: none; background-size: cover; background-position: center; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+    .promo-tile:hover { transform: translateY(-4px); box-shadow: var(--shadow-sm); }
+    .promo-tile:nth-child(1) { background-color: var(--color-orange-700); background-image: url('images/banners/promo-1.jpg'); }
+    .promo-tile:nth-child(2) { background-color: var(--color-brand-dark); background-image: url('images/banners/promo-2.jpg'); }
+    .promo-tile:nth-child(3) { background-color: var(--color-aubergine); background-image: url('images/banners/promo-3.jpg'); }
+    .promo-tile:nth-child(4) { background-color: var(--color-brand-primary); background-image: url('images/banners/promo-4.jpg'); }
+    .promo-tile::before { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.1) 55%, rgba(0,0,0,0) 100%); pointer-events: none; }
+    .promo-tile::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0); transition: background 0.2s; pointer-events: none; }
+    .promo-tile:hover::after { background: rgba(0,0,0,0.25); }
+    .promo-tile-body { position: absolute; bottom: 0; left: 0; right: 0; padding: var(--space-3); display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); z-index: 2; }
+    .promo-tile-title { font-size: var(--text-body-size); font-weight: 600; line-height: var(--text-body-lh); color: var(--color-salt); }
+    .promo-tile-btn { pointer-events: none; }
 
-    /* Image banner — real .ufs-promo-banner component (dark/squid-ink
-       variant), not a page-local reinvention; see promo-banner-spec.html.
-       CSS already ported into this shared shell above. */
-    .pg-image-banner-wrap { margin-bottom: var(--space-6); }
-
-    /* Preferences card */
-    .pg-pref-items { display: flex; flex-direction: column; gap: var(--space-2); }
-    .pg-pref-item { display: flex; flex-direction: column; gap: 2px; padding: var(--space-3) var(--space-2); border-radius: var(--radius-sm); cursor: pointer; transition: background 0.15s ease; text-decoration: none; }
-    .pg-pref-item:hover { background: var(--color-mushroom-300); }
-    .pg-pref-item-title { font-size: var(--text-h6-size); font-weight: var(--text-h6-w); line-height: var(--text-h6-lh); color: var(--color-brand-dark); }
-    .pg-pref-item-desc  { font-size: var(--text-body-sm-size); font-weight: 400; line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); }
-    @media (max-width: 1023px) {
-      .pg-pref-item-title { font-size: var(--text-h6-mob-size); }
-    }
+    /* Chef Rewards list (the loyalty-card itself reuses the shared shell's
+       own .loyalty-card component as-is, no new CSS needed for that) */
+    .rewards-hdr { font-size: var(--text-body-size); font-weight: 600; color: var(--color-brand-dark); line-height: var(--text-body-lh); padding: 0 0 var(--space-3); }
+    .rewards-list { border: 1px solid var(--color-mushroom-500); border-radius: var(--radius-md); overflow: hidden; }
+    .reward-item { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-mushroom-300); cursor: pointer; transition: background 0.15s; }
+    .reward-item:hover { background: var(--color-mushroom-100); }
+    .reward-item:first-child { border-top: none; }
+    .reward-thumb { width: 80px; height: 80px; flex-shrink: 0; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm); overflow: hidden; background: var(--color-mushroom-100); }
+    .reward-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .reward-info { flex: 1; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+    .reward-name { font-size: var(--text-body-size); font-weight: 600; line-height: var(--text-body-lh); color: var(--color-brand-dark); }
+    .reward-pts { display: inline-flex; align-items: center; gap: 2px; background: var(--color-salt); border: 1px solid var(--color-gold); border-radius: var(--radius-md); padding: var(--space-1); font-size: var(--text-body-xs-size); line-height: 1; font-weight: 400; color: var(--color-brand-dark); align-self: flex-start; }
+    .reward-pts-coin { width: 11px; height: 11px; flex-shrink: 0; display: block; }
+    .icon-gold { filter: brightness(0) saturate(100%) invert(65%) sepia(89%) saturate(800%) hue-rotate(1deg) brightness(1.05); }
+    .rewards-view-all { display: flex; align-items: center; justify-content: center; padding: var(--space-4); border-top: 1px solid var(--color-mushroom-300); font-size: var(--text-body-sm-size); font-weight: 400; color: var(--color-accessible-orange); text-decoration: underline; text-align: center; cursor: pointer; background: none; border-bottom: none; width: 100%; }
+    .rewards-disclaimer { font-size: var(--text-body-xs-size); font-weight: 400; color: var(--color-mushroom-900); line-height: var(--text-body-xs-lh); text-align: center; }
 
   </style>
 </head>
@@ -4563,16 +4473,15 @@
         <li class="ufs-breadcrumb__item is-current"><span class="ufs-breadcrumb__current" aria-current="page">My Account</span></li>
       </ol>
     </nav>
-
     <!-- ================================================================
          PROFILE TABS BAR — real .ufs-tabs component, same fixed 4-tab
          set on every profile-*.html page.
     ================================================================ -->
     <div class="pg-tabs-bar">
       <div class="ufs-tabs" role="tablist" aria-label="Profile sections">
-        <span class="ufs-tabs__btn is-active" role="tab" aria-selected="true">Overview</span>
+        <a href="template-profile-overview.html" class="ufs-tabs__btn" role="tab" aria-selected="false">Overview</a>
         <a href="template-profile-details.html" class="ufs-tabs__btn" role="tab" aria-selected="false">My profile</a>
-        <a href="template-profile-orders.html" class="ufs-tabs__btn" role="tab" aria-selected="false">My Orders</a>
+        <span class="ufs-tabs__btn is-active" role="tab" aria-selected="true">My Orders</span>
         <a href="template-profile-favourites.html" class="ufs-tabs__btn" role="tab" aria-selected="false">My Favourites</a>
       </div>
     </div>
@@ -4588,281 +4497,157 @@
         ============================================================= -->
         <div class="pg-profile-left">
 
-          <!-- MY PROFILE CARD -------------------------------------------->
-          <div class="p-card">
-            <a href="template-profile-details.html" class="p-card-hdr">
-              <div class="p-card-title">
-                <img src="icons/profile.svg" alt="" />
-                My Profile
-              </div>
-              <div class="p-card-arrow">
-                <img src="icons/arrow.svg" alt="" />
-              </div>
-            </a>
-            <div class="p-card-body">
-              <!-- User row -->
-              <div class="pg-profile-user">
-                <div class="av av--xl" id="profileAv">
-                  <div class="av-circle">
-                    <img class="av-img" src="images/profile-pic-example.png" alt="Profile photo" />
-                  </div>
-                  <button class="av-edit" aria-label="Change photo">
-                    <input type="file" accept="image/*" aria-label="Upload photo" />
-                    <img src="icons/edit.svg" alt="" style="width:14px;height:14px;" />
-                  </button>
-                </div>
-                <div>
-                  <div class="pg-profile-user-name">Giuseppe Buscicchio</div>
-                </div>
-              </div>
-              <!-- Details -->
-              <div class="pg-profile-details">
-                <div class="pg-profile-detail">
-                  <span class="pg-detail-label">Current role</span>
-                  <span class="pg-detail-value">Sous chef &middot; Le Cordon Bleu</span>
-                </div>
-                <div class="pg-profile-detail">
-                  <span class="pg-detail-label">Email address</span>
-                  <span class="pg-detail-value">giuseppe.buscicchio@email.com</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- MY ORDERS CARD ---------------------------------------------->
-          <div class="p-card">
-            <a href="template-profile-orders.html" class="p-card-hdr">
+          <!-- MY PAST ORDERS -->
+          <div class="p-card p-card--open">
+            <button class="p-card-hdr" type="button" aria-expanded="true">
               <div class="p-card-title">
                 <img src="icons/cart.svg" alt="" />
-                My Orders
+                My past orders
               </div>
-              <div class="p-card-arrow">
-                <img src="icons/arrow.svg" alt="" />
-              </div>
-            </a>
+              <span class="p-card-chevron" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
             <div class="p-card-body">
+              <div class="orders-grid">
 
-              <!-- Loyalty + orders count -->
-              <div class="pg-orders-top-row">
-                <div class="pg-loyalty-card">
-                  <div class="pg-loyalty-title">Loyalty Points</div>
-                  <div class="pg-loyalty-pill">
-                    <svg width="33" height="33" viewBox="0 0 45 45" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                      <path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/>
-                      <circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/>
-                    </svg>
-                    <span class="pg-loyalty-num">24.320</span>
-                  </div>
-                  <div class="pg-loyalty-expiry">Expiring: 31 Dec 2026</div>
-                </div>
-                <div class="pg-orders-aside">
-                  <span class="pg-detail-label">Orders this year</span>
-                  <span class="pg-detail-value">14 orders</span>
-                </div>
-              </div>
-
-              <!-- Last order -->
-              <div style="display:flex; flex-direction:column; gap:8px;">
-                <span class="pg-last-order-label">Last order</span>
-                <div class="pg-order-card">
-                  <div class="pg-order-card-top">
-                    <div class="pg-order-title-row">
-                      <div>
-                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                          <div class="pg-order-id">Order: UFS-84903-4</div>
-                          <span class="pg-status-badge">Preparing</span>
-                        </div>
-                        <div class="pg-order-date">Placed on 09 Sep 2025</div>
-                      </div>
-                      <button class="btn btn-primary btn-icon-left pg-order-reorder-desktop" type="button">
-                        <img src="icons/cart.svg" alt="" style="width:24px;height:24px;filter:invert(1);" />
-                        Reorder Now
-                      </button>
+                <!-- Order 1 — Processed (same order shown on Overview's
+                     "Last order" card — links through to Order Detail) -->
+                <a href="template-profile-order-detail.html" class="order-card">
+                  <span class="order-status status-preparing">Processed</span>
+                  <div class="order-card-top">
+                    <p class="order-num">UFS-84903-4</p>
+                    <p class="order-date">Placed on 09 Sep 2025</p>
+                    <div class="order-items-row">
+                      <span>7 items</span>
+                      <span>$350.300 COP</span>
                     </div>
-                    <div class="pg-order-meta">7 items &nbsp;&middot;&nbsp; $350.300 COP</div>
                   </div>
-                  <div class="pg-order-thumbnails">
-                    <div class="pg-order-thumb"><img src="https://www.webstaurantstore.com/images/products/medium/551252/2992575.jpg" alt="Knorr Chicken Bouillon" /></div>
-                    <div class="pg-order-thumb"><img src="https://www.webstaurantstore.com/images/products/medium/551268/2629213.jpg" alt="Knorr Hollandaise" /></div>
-                    <div class="pg-order-thumb"><img src="https://www.webstaurantstore.com/images/products/medium/551121/2628329.jpg" alt="Knorr Demi Glace" /></div>
-                    <div class="pg-order-thumb pg-order-thumb--desktop-only"><img src="https://www.webstaurantstore.com/images/products/medium/710184/2453493.jpg" alt="Knorr Chicken Base" /></div>
-                    <div class="pg-order-thumb pg-order-thumb--desktop-only"><img src="https://www.webstaurantstore.com/images/products/medium/552843/2992572.jpg" alt="Knorr Caldo de Tomate" /></div>
-                    <div class="pg-order-thumb-more pg-order-thumb-more--desktop">+2</div>
-                    <div class="pg-order-thumb-more pg-order-thumb-more--mobile">+4</div>
+                  <div class="order-thumbs">
+                    <div class="order-thumb"><img src="images/K_GPP_3996.jpg" alt="Knorr Chicken Base" /></div>
+                    <div class="order-thumb"><img src="images/M_GPP_6074.jpg" alt="Knorr Caldo de Tomate" /></div>
+                    <div class="order-thumb"><img src="images/tiles/product.jpg" alt="Knorr Chicken Bouillon" /></div>
+                    <div class="order-thumb"><img src="images/product-detail/image-1.jpg" alt="Knorr Hollandaise" /></div>
+                    <div class="order-thumb-overflow">+3</div>
                   </div>
-                  <div class="pg-order-reorder-mobile">
-                    <button class="btn btn-primary btn-icon-left" type="button" style="width:100%;">
-                      <img src="icons/cart.svg" alt="" style="width:24px;height:24px;filter:invert(1);" />
-                      Reorder Now
-                    </button>
-                  </div>
-                </div>
-              </div>
+                  <span class="btn btn-secondary btn-full">View details</span>
+                </a>
 
-            </div>
-          </div>
+                <!-- Order 2 — Completed -->
+                <a href="#" class="order-card">
+                  <span class="order-status status-delivered">Completed</span>
+                  <div class="order-card-top">
+                    <p class="order-num">UFS-73479-2</p>
+                    <p class="order-date">Placed on 04 Aug 2025</p>
+                    <div class="order-items-row">
+                      <span>12 items</span>
+                      <span>$1.450.900 COP</span>
+                    </div>
+                  </div>
+                  <div class="order-thumbs">
+                    <div class="order-thumb"><img src="images/tiles/product.jpg" alt="Knorr Demi Glace" /></div>
+                    <div class="order-thumb"><img src="images/product-detail/image-1.jpg" alt="Knorr Chicken Base" /></div>
+                    <div class="order-thumb"><img src="images/M_GPP_6074.jpg" alt="Knorr Caldo de Tomate" /></div>
+                    <div class="order-thumb"><img src="images/K_GPP_3996.jpg" alt="Knorr Hollandaise" /></div>
+                    <div class="order-thumb-overflow">+8</div>
+                  </div>
+                  <span class="btn btn-secondary btn-full">View details</span>
+                </a>
 
-          <!-- MY FAVOURITES CARD -------------------------------------------->
+                <!-- Order 3 — Cancelled -->
+                <a href="#" class="order-card">
+                  <span class="order-status status-dispatched">Cancelled</span>
+                  <div class="order-card-top">
+                    <p class="order-num">UFS-09904-3</p>
+                    <p class="order-date">Placed on 28 Aug 2025</p>
+                    <div class="order-items-row">
+                      <span>3 items</span>
+                      <span>$443.400 COP</span>
+                    </div>
+                  </div>
+                  <div class="order-thumbs">
+                    <div class="order-thumb"><img src="images/tiles/product.jpg" alt="Knorr Chicken Bouillon" /></div>
+                    <div class="order-thumb"><img src="images/product-detail/image-1.jpg" alt="Knorr Hollandaise" /></div>
+                    <div class="order-thumb"><img src="images/K_GPP_3996.jpg" alt="Knorr Demi Glace" /></div>
+                  </div>
+                  <span class="btn btn-secondary btn-full">View details</span>
+                </a>
+
+              </div><!-- /orders-grid -->
+            </div><!-- /p-card-body -->
+          </div><!-- /My Past Orders p-card -->
+
+          <!-- MY WISHLIST -->
           <div class="p-card">
-            <a href="template-profile-favourites.html" class="p-card-hdr">
+            <button class="p-card-hdr" type="button" aria-expanded="false">
               <div class="p-card-title">
                 <img src="icons/fav.svg" alt="" />
-                My Favourites
+                My Wishlist
               </div>
-              <div class="p-card-arrow">
-                <img src="icons/arrow.svg" alt="" />
-              </div>
-            </a>
+              <span class="p-card-chevron" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
             <div class="p-card-body">
-
-              <!-- Stats grid -->
-              <div style="display:flex; flex-direction:column; gap:8px;">
-                <span class="pg-detail-label">Overview</span>
-                <div class="pg-stats-grid">
-                  <div class="pg-stat-tile pg-stat-tile--dark">
-                    <span class="pg-stat-num">30</span>
-                    <span class="pg-stat-lbl">Recipes</span>
-                    <span class="pg-stat-arrow"><img src="icons/arrow.svg" alt="" class="icon-white" /></span>
-                  </div>
-                  <div class="pg-stat-tile pg-stat-tile--purple">
-                    <span class="pg-stat-num">45</span>
-                    <span class="pg-stat-lbl">Products</span>
-                    <span class="pg-stat-arrow"><img src="icons/arrow.svg" alt="" class="icon-white" /></span>
-                  </div>
-                  <div class="pg-stat-tile pg-stat-tile--mid">
-                    <span class="pg-stat-num">12</span>
-                    <span class="pg-stat-lbl">Trainings</span>
-                    <span class="pg-stat-arrow"><img src="icons/arrow.svg" alt="" /></span>
-                  </div>
-                  <div class="pg-stat-tile pg-stat-tile--light">
-                    <span class="pg-stat-num">1</span>
-                    <span class="pg-stat-lbl">Articles</span>
-                    <span class="pg-stat-arrow"><img src="icons/arrow.svg" alt="" /></span>
-                  </div>
+              <div class="wishlist-empty">
+                <div class="wishlist-empty-illus" aria-hidden="true">
+                  <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+                    <rect x="10" y="20" width="26" height="40" rx="3" fill="var(--color-mushroom-500)"/>
+                    <rect x="44" y="20" width="26" height="40" rx="3" fill="var(--color-mushroom-300)"/>
+                    <rect x="18" y="28" width="10" height="10" rx="2" fill="var(--color-mushroom-900)"/>
+                    <rect x="18" y="42" width="16" height="3" rx="1" fill="var(--color-mushroom-900)"/>
+                    <rect x="18" y="48" width="12" height="3" rx="1" fill="var(--color-mushroom-900)"/>
+                    <rect x="52" y="28" width="10" height="10" rx="2" fill="var(--color-mushroom-500)"/>
+                    <rect x="52" y="42" width="12" height="3" rx="1" fill="var(--color-mushroom-500)"/>
+                  </svg>
                 </div>
-              </div>
-
-              <!-- Recently saved — real .ufs-tile cards (Recipe Tile /
-                   Product Tile, see tiles-spec.html), reused as-is: same
-                   shared .ufs-tile classes, no page-specific CSS. -->
-              <div style="display:flex; flex-direction:column; gap:8px;">
-                <span class="pg-recently-saved-label">Recently saved</span>
-
-                <div class="pg-content-tiles ufs-catalog-grid">
-
-                  <div class="ufs-tile">
-                    <div class="ufs-tile__image">
-                      <div class="ufs-tile__image-media" style="background-image:url('images/G_DSC_6099.jpg')"></div>
-                      <button class="ufs-tile__fav is-active" aria-label="Remove from favourites" aria-pressed="true" onclick="toggleTileFav(this, event)">
-                        <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                      </button>
-                    </div>
-                    <div class="ufs-tile__content">
-                    <div class="ufs-tile__body">
-                      <h3 class="ufs-tile__title">Sour Cream and Bacon Deviled Eggs</h3>
-                      <div class="ufs-tile__rating">
-                        <span class="ufs-tile__stars">
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                        </span>
-                        <span>(12)</span>
-                      </div>
-                      <div class="ufs-tile__meta">
-                        <span class="ufs-tile__meta-item">Main dish</span><span class="ufs-tile__meta-sep">&middot;</span>
-                        <span class="ufs-tile__meta-item">Chicken</span><span class="ufs-tile__meta-sep">&middot;</span>
-                        <span class="ufs-tile__meta-item">Gluten Free</span>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-
-                  <div class="ufs-tile">
-                    <div class="ufs-tile__image">
-                      <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
-                      <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
-                        <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                      </button>
-                    </div>
-                    <span class="ufs-tile__badge">Popular</span>
-                    <div class="ufs-tile__content">
-                    <div class="ufs-tile__body">
-                      <h3 class="ufs-tile__title">Herb-Roasted Chicken with Pan Sauce</h3>
-                      <div class="ufs-tile__rating">
-                        <span class="ufs-tile__stars">
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                        </span>
-                        <span>(332)</span>
-                      </div>
-                      <div class="ufs-tile__meta">
-                        <span class="ufs-tile__meta-item">Chicken</span><span class="ufs-tile__meta-sep">&middot;</span>
-                        <span class="ufs-tile__meta-item">Main</span><span class="ufs-tile__meta-sep">&middot;</span>
-                        <span class="ufs-tile__meta-item">Gluten Free</span>
-                      </div>
-                    </div>
-                    </div>
-                  </div>
-
-                  <div class="ufs-tile">
-                    <div class="ufs-tile__image">
-                      <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
-                      <button class="ufs-tile__fav is-active" aria-label="Remove from favourites" aria-pressed="true" onclick="toggleTileFav(this, event)">
-                        <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-                      </button>
-                    </div>
-                    <span class="ufs-tile__badge">New</span>
-                    <div class="ufs-tile__content">
-                    <div class="ufs-tile__body">
-                      <div class="ufs-tile__eyebrow">Sauces</div>
-                      <h3 class="ufs-tile__title">Knorr Professional Bratenjus pastos 1,4 kg</h3>
-                      <div class="ufs-tile__rating">
-                        <span class="ufs-tile__stars">
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
-                        </span>
-                        <span>(332)</span>
-                      </div>
-                      <div class="ufs-tile__meta">
-                        <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
-                        <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
-                        <span class="ufs-tile__meta-item">No MSG</span>
-                      </div>
-                    </div>
-                    <div class="ufs-tile__cta"><button class="btn btn-primary">Buy it now</button></div>
-                    </div>
-                  </div>
-
-                </div><!-- /pg-content-tiles -->
-
+                <p class="wishlist-empty-title">You have no wishlists yet</p>
+                <p class="wishlist-empty-desc">Organize your favorite items into custom lists and save them for later purchases.</p>
+                <button class="btn btn-primary">Create your first wishlist</button>
               </div>
             </div>
-          </div>
+          </div><!-- /My Wishlist p-card -->
 
-          <!-- IMAGE BANNER — real .ufs-promo-banner component, dark/
-               squid-ink variant (see promo-banner-spec.html). -->
-          <div class="pg-image-banner-wrap">
-            <div class="ufs-promo-banner ufs-promo-banner--dark">
-              <div class="ufs-promo-banner__image" style="background-image:url('images/I_DSC_7220 2.jpg')" role="img" aria-label="Chef in kitchen"></div>
-              <div class="ufs-promo-banner__panel">
-                <div class="ufs-promo-banner__body">
-                  <h2 class="ufs-promo-banner__title text-h2">Personalise your kitchen experience</h2>
-                  <p class="ufs-promo-banner__desc text-body">Select topics that matter to your operation &mdash; view curated recipes, training, insights, and industry trends, tailored to your kitchen.</p>
-                </div>
-                <div class="ufs-promo-banner__ctas">
-                  <button type="button" class="btn btn-primary">Select interests</button>
-                </div>
+          <!-- ORDERS & PROMOS -->
+          <div class="p-card">
+            <button class="p-card-hdr" type="button" aria-expanded="false">
+              <div class="p-card-title">
+                <img src="icons/coin.svg" alt="" />
+                Order &amp; Promos
+              </div>
+              <span class="p-card-chevron" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
+            <div class="p-card-body">
+              <div class="promo-grid">
+                <a href="#" class="promo-tile">
+                  <div class="promo-tile-body">
+                    <p class="promo-tile-title">Earn Double Points This Month</p>
+                    <span class="btn btn-primary promo-tile-btn">Shop Now</span>
+                  </div>
+                </a>
+                <a href="#" class="promo-tile">
+                  <div class="promo-tile-body">
+                    <p class="promo-tile-title">Chef of the Year 2025</p>
+                    <span class="btn btn-primary promo-tile-btn">Enter Now</span>
+                  </div>
+                </a>
+                <a href="#" class="promo-tile">
+                  <div class="promo-tile-body">
+                    <p class="promo-tile-title">Exclusive Knorr Bundle Deals</p>
+                    <span class="btn btn-primary promo-tile-btn">View Offers</span>
+                  </div>
+                </a>
+                <a href="#" class="promo-tile">
+                  <div class="promo-tile-body">
+                    <p class="promo-tile-title">Free Gift with Every Order</p>
+                    <span class="btn btn-primary promo-tile-btn">Order Now</span>
+                  </div>
+                </a>
               </div>
             </div>
-          </div>
+          </div><!-- /Orders & Promos p-card -->
 
         </div><!-- /pg-profile-left -->
 
@@ -4871,34 +4656,90 @@
         ============================================================= -->
         <div class="pg-profile-right">
 
-          <!-- PREFERENCES CARD ---------------------------------------------->
-          <div class="p-card" style="margin-bottom:0;">
-            <a href="#" class="p-card-hdr">
+          <!-- CHEF REWARDS -->
+          <div class="p-card">
+            <button class="p-card-hdr" type="button" aria-expanded="false">
               <div class="p-card-title">
-                <img src="icons/settings.svg" alt="" />
-                Preferences
+                <img src="icons/coin.svg" alt="" />
+                Chef Rewards
               </div>
-              <div class="p-card-arrow">
-                <img src="icons/arrow.svg" alt="" />
-              </div>
-            </a>
+              <span class="p-card-chevron" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+              </span>
+            </button>
             <div class="p-card-body">
-              <div class="pg-pref-items">
-                <a href="#" class="pg-pref-item">
-                  <div class="pg-pref-item-title">Account settings</div>
-                  <div class="pg-pref-item-desc">Change your password, email or make changes to your account</div>
-                </a>
-                <a href="#" class="pg-pref-item">
-                  <div class="pg-pref-item-title">Contact Preferences</div>
-                  <div class="pg-pref-item-desc">Edit your notifications, newsletter and marketing preferences</div>
-                </a>
-                <a href="#" class="pg-pref-item">
-                  <div class="pg-pref-item-title">Help &amp; Support</div>
-                  <div class="pg-pref-item-desc">Can't find what you are looking for? Read the FAQs or contact Support</div>
-                </a>
+
+              <!-- Loyalty points — reuses the shared shell's own
+                   .loyalty-card component verbatim, no new CSS. -->
+              <div class="loyalty-card">
+                <p class="loyalty-title">Loyalty Points</p>
+                <div class="loyalty-pill">
+                  <svg width="33" height="33" viewBox="0 0 45 45" fill="none" aria-hidden="true">
+                    <path d="M22 8C30.2843 8 37 14.7157 37 23C37 31.2843 30.2843 38 22 38C13.7157 38 7 31.2843 7 23C7 14.7157 13.7157 8 22 8ZM22 12C15.9249 12 11 16.9249 11 23C11 29.0751 15.9249 34 22 34C28.0751 34 33 29.0751 33 23C33 16.9249 28.0751 12 22 12ZM9 22C8.44772 22 8 22.4477 8 23C8 23.5523 8.44772 24 9 24C9.55228 24 10 23.5523 10 23C10 22.4477 9.55228 22 9 22ZM35 22C34.4477 22 34 22.4477 34 23C34 23.5523 34.4477 24 35 24C35.5523 24 36 23.5523 36 23C36 22.4477 35.5523 22 35 22Z" fill="#ff9e00"/>
+                    <circle cx="22" cy="23" r="8.5" fill="#ff9e00" stroke="#ff9e00"/>
+                  </svg>
+                  <span class="loyalty-num">24.320</span>
+                </div>
+                <div class="loyalty-expiry">Expiring: 31 Dec 2026</div>
               </div>
-            </div>
-          </div>
+
+              <!-- Available rewards -->
+              <p class="rewards-hdr">8 Rewards available for you</p>
+              <div class="rewards-list">
+
+                <div class="reward-item">
+                  <div class="reward-thumb"><img src="images/tiles/reward.jpg" alt="Metal Tongs" /></div>
+                  <div class="reward-info">
+                    <p class="reward-name">Metal Tongs</p>
+                    <span class="reward-pts">
+                      <img src="icons/coin.svg" class="reward-pts-coin icon-gold" alt="" aria-hidden="true" />
+                      2.030
+                    </span>
+                  </div>
+                </div>
+
+                <div class="reward-item">
+                  <div class="reward-thumb"><img src="images/tiles/reward.jpg" alt="Disposable Piping Bag" /></div>
+                  <div class="reward-info">
+                    <p class="reward-name">Disposable Piping Bag - Ibill- 30cm (10pc)</p>
+                    <span class="reward-pts">
+                      <img src="icons/coin.svg" class="reward-pts-coin icon-gold" alt="" aria-hidden="true" />
+                      2.030
+                    </span>
+                  </div>
+                </div>
+
+                <div class="reward-item">
+                  <div class="reward-thumb"><img src="images/tiles/reward.jpg" alt="Terry Dishcloth" /></div>
+                  <div class="reward-info">
+                    <p class="reward-name">Terry Dishcloth</p>
+                    <span class="reward-pts">
+                      <img src="icons/coin.svg" class="reward-pts-coin icon-gold" alt="" aria-hidden="true" />
+                      2.030
+                    </span>
+                  </div>
+                </div>
+
+                <div class="reward-item">
+                  <div class="reward-thumb"><img src="images/tiles/reward.jpg" alt="Paring Knife" /></div>
+                  <div class="reward-info">
+                    <p class="reward-name">Tramontina 3&quot; (8cm) Paring Knife &mdash; GREY</p>
+                    <span class="reward-pts">
+                      <img src="icons/coin.svg" class="reward-pts-coin icon-gold" alt="" aria-hidden="true" />
+                      2.030
+                    </span>
+                  </div>
+                </div>
+
+                <button class="rewards-view-all">View all available rewards</button>
+
+              </div><!-- /rewards-list -->
+
+              <button class="btn btn-primary btn-full">Redeem your points</button>
+              <p class="rewards-disclaimer">*Rewards can only be redeemed by placing an order</p>
+
+            </div><!-- /p-card-body -->
+          </div><!-- /Chef Rewards p-card -->
 
         </div><!-- /pg-profile-right -->
 
@@ -4907,8 +4748,8 @@
   </main>
 
   <script>
-    // Profile tab switching (visual only — each tab besides Overview is a
-    // real link to its own template-profile-*.html page)
+    // Profile tab switching (visual only — each tab besides My Orders is
+    // a real link to its own template-profile-*.html page)
     document.querySelectorAll('.ufs-tabs__btn[role="tab"]').forEach(function(tab) {
       tab.addEventListener('click', function(e) {
         if (this.tagName === 'A') return; // real navigation, don't intercept
@@ -4918,24 +4759,24 @@
       });
     });
 
-    // Avatar photo picker
-    document.querySelectorAll('.av-edit input[type="file"]').forEach(function(input) {
-      input.addEventListener('change', function() {
-        var file = this.files[0];
-        if (!file) return;
-        var circle = this.closest('.av').querySelector('.av-circle');
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          circle.innerHTML = '<img class="av-img" src="' + e.target.result + '" alt="Profile photo">';
-        };
-        reader.readAsDataURL(file);
+    // Accordion — one section open at a time (mobile only; harmless no-op
+    // visually on desktop, where .p-card-body ignores .p-card--open)
+    document.querySelectorAll('.p-card-hdr').forEach(function(hdr) {
+      hdr.addEventListener('click', function() {
+        var card = this.closest('.p-card');
+        var isOpen = card.classList.contains('p-card--open');
+        document.querySelectorAll('.p-card').forEach(function(c) {
+          c.classList.remove('p-card--open');
+          c.querySelector('.p-card-hdr').setAttribute('aria-expanded', 'false');
+        });
+        if (!isOpen) {
+          card.classList.add('p-card--open');
+          this.setAttribute('aria-expanded', 'true');
+        }
       });
     });
-
-    // Recently saved's .ufs-tile favourite hearts use the shared
-    // toggleTileFav() (wired inline via onclick), same as every other
-    // tile on this page — no page-specific favourite/qty JS needed here.
   </script>
+
 
   <!-- ================================================================
        FLOATING BAR — v2 AI ask-row variant
