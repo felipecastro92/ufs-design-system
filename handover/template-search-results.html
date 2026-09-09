@@ -3384,7 +3384,6 @@
     .ufs-search-section:last-of-type { padding-bottom: var(--space-10); }
     .ufs-search-section__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-6); }
     .ufs-search-section__head h2 { font-size: var(--text-h4-size); font-weight: var(--text-h4-w); line-height: var(--text-h4-lh); color: var(--color-brand-dark); margin: 0; }
-    .ufs-search-show-all { white-space: nowrap; flex-shrink: 0; }
     @media (max-width: 768px) {
       .ufs-search-section { padding: var(--space-8) var(--space-4) 0; }
       .ufs-search-section__head { flex-direction: column; align-items: flex-start; gap: var(--space-3); }
@@ -4256,7 +4255,6 @@
       <div class="ufs-search-grid-view" hidden>
       <div class="ufs-search-section__head">
         <h2>Products</h2>
-        <button type="button" class="btn btn-secondary ufs-search-show-all" onclick="ufsSearchSelectCategory('products')">Show All Products (10)</button>
       </div>
       <div class="pg-catalog-grid ufs-catalog-grid">
         <div class="ufs-tile">
@@ -4720,7 +4718,6 @@
       <div class="ufs-search-grid-view" hidden>
       <div class="ufs-search-section__head">
         <h2>Recipes</h2>
-        <button type="button" class="btn btn-secondary ufs-search-show-all" onclick="ufsSearchSelectCategory('recipes')">Show All Recipes (231)</button>
       </div>
       <div class="pg-catalog-grid ufs-catalog-grid">
         <div class="ufs-tile">
@@ -5347,7 +5344,6 @@
       <div class="ufs-search-grid-view" hidden>
       <div class="ufs-search-section__head">
         <h2>Academy</h2>
-        <button type="button" class="btn btn-secondary ufs-search-show-all" onclick="ufsSearchSelectCategory('academy')">Show All Academy (4)</button>
       </div>
       <div class="pg-catalog-grid ufs-catalog-grid">
         <div class="ufs-tile">
@@ -5581,7 +5577,6 @@
       <div class="ufs-search-grid-view" hidden>
       <div class="ufs-search-section__head">
         <h2>Other</h2>
-        <button type="button" class="btn btn-secondary ufs-search-show-all" onclick="ufsSearchSelectCategory('other')">Show All Others (159)</button>
       </div>
       <div class="pg-catalog-grid ufs-catalog-grid">
         <div class="ufs-tile">
@@ -8128,6 +8123,24 @@
       document.querySelector('.ufs-search-results-heading p').textContent = ufsSearchActiveCategory
         ? 'Showing ' + UFS_SEARCH_COUNTS[ufsSearchActiveCategory] + ' results for "hellmanns"'
         : 'Showing 404 results for "hellmanns"';
+
+      // Selecting a category scrolls its grid's head (the "Products" /
+      // etc. title) into view, just below the sticky pills bar (not just
+      // under it). Deactivating a pill returns to the default carousel
+      // preview — no grid to focus, so no scroll. Offset is read from the
+      // bar's own declared sticky `top` + its rendered height, so it stays
+      // correct across the desktop/mobile breakpoint without duplicating
+      // --nav-h/--mnav-h here.
+      if (ufsSearchActiveCategory) {
+        var activeSection = document.getElementById(UFS_SEARCH_SECTIONS[ufsSearchActiveCategory]);
+        var sectionHead = activeSection.querySelector('.ufs-search-section__head');
+        var tabsBar = document.querySelector('.ufs-search-tabs');
+        if (sectionHead && tabsBar) {
+          var offset = parseFloat(getComputedStyle(tabsBar).top || 0) + tabsBar.offsetHeight + 16;
+          var targetY = sectionHead.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({ top: Math.max(0, targetY), behavior: 'smooth' });
+        }
+      }
     }
 
     function toggleTileFav(btn, event) {
