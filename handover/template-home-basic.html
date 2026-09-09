@@ -5368,7 +5368,7 @@
   <!-- ================================================================
        SIGN-IN PANEL
   ================================================================ -->
-  <div class="signin-backdrop" id="signin-backdrop" onclick="closeSignIn()"></div>
+  <div class="signin-backdrop" id="signin-backdrop"></div>
   <div class="signin-panel" id="signin-panel">
     <div class="signin-panel-hd">
       <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
@@ -5464,11 +5464,27 @@
             </div>
           </div>
         </div>
-        <button class="signin-help-link" style="margin-top:0">Forgot password?</button>
+        <button class="signin-help-link" style="margin-top:0" onclick="regGoToForgotPassword()">Forgot password?</button>
         <button class="btn btn-primary reg-submit-btn" style="width:100%" id="reg-login-btn" disabled onclick="regSubmitLogin()">
           <span class="reg-submit-btn-label">Log in</span>
           <span class="reg-submit-btn-bar" id="reg-login-submit-btn-bar"></span>
         </button>
+      </div>
+
+      <!-- JOURNEY 6 — Forgot password. Triggered from reg-step-login;
+           reuses reg-step-otp (email chip → send code → verify) and the
+           account-creation password step's strength-checklist pattern
+           (own ids below, since it needs independent state) rather than
+           inventing new UI for either. Ends by reusing reg-step-success
+           with its avatar hidden — this journey never collects a name. -->
+      <div id="reg-step-forgot" style="display:none">
+        <h2 class="signin-panel-title">Reset your password</h2>
+        <p class="reg-otp-subtitle">We will send a verification code to:</p>
+        <div class="reg-email-chip">
+          <span id="reg-forgot-email-display">email@email.com</span>
+          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="regSendForgotCode()">Send verification code</button>
       </div>
 
       <!-- JOURNEY 3a — Create an account, email-verification variant (verification@user.com) -->
@@ -5506,6 +5522,29 @@
             <div class="reg-otp-info-desc" id="reg-otp-info-desc">Verifying your email helps us keep your account secure and makes sure you never miss important order and account updates.</div>
           </div>
         </div>
+      </div>
+
+      <!-- JOURNEY 6 — Forgot password, continued: reached after OTP
+           verification. Same password-strength-checklist pattern as
+           reg-step-password, own ids since it's independent state (no
+           confirm-password field, matching that step's own convention). -->
+      <div id="reg-step-new-password" style="display:none">
+        <h2 class="signin-panel-title">Set a new password</h2>
+        <div class="reg-password-block" id="reg-newpw-block" style="margin-bottom:var(--space-5)">
+          <div class="fi-wrap">
+            <label class="fi-label">New password</label>
+            <input class="fi-field" type="password" id="reg-newpw-input" placeholder="Minimum 8 characters" dir="ltr" autocomplete="new-password" oninput="regCheckNewPassword()" onkeydown="regNewPasswordEnter(event)"/>
+          </div>
+          <div class="fi-pw-checklist">
+            <div class="fi-pw-check-item" id="reg-newpw-check-len"><span class="fi-pw-check-dot"><img src="icons/check.svg" alt=""/></span>At least 8 characters</div>
+            <div class="fi-pw-check-item" id="reg-newpw-check-upper"><span class="fi-pw-check-dot"><img src="icons/check.svg" alt=""/></span>At least 1 uppercase letter</div>
+            <div class="fi-pw-check-item" id="reg-newpw-check-num"><span class="fi-pw-check-dot"><img src="icons/check.svg" alt=""/></span>At least 1 number</div>
+          </div>
+        </div>
+        <button class="btn btn-primary reg-submit-btn" style="width:100%" id="reg-newpw-btn" disabled onclick="regSubmitNewPassword()">
+          <span class="reg-submit-btn-label">Reset password</span>
+          <span class="reg-submit-btn-bar" id="reg-newpw-submit-btn-bar"></span>
+        </button>
       </div>
 
       <!-- STEP 2 — business / account details -->
@@ -5637,7 +5676,7 @@
                its own (business picked from list, address missing) or
                together with reg-extra-fields (regAddCustomBusiness, where
                nothing is known yet). -->
-          <div class="fi-wrap reg-conditional-field" id="reg-address-wrap"><label class="fi-label">Business Address</label><input class="fi-field" type="text" id="reg-address" placeholder="Please enter your address" autocomplete="address-line1" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+          <div class="fi-wrap reg-conditional-field" id="reg-address-wrap"><label class="fi-label">Business Address</label><input class="fi-field" type="text" id="reg-address" placeholder="Please enter your address" autocomplete="address-line1" oninput="regValidateStep2()" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
 
           <div class="reg-extra-fields" id="reg-extra-fields">
             <div class="fi-row">
@@ -5878,7 +5917,7 @@
        NEWSLETTER PANEL — triggered from the footer "Stay in the loop"
        form, independent of the Account sign-in/registration panel.
   ================================================================ -->
-  <div class="signin-backdrop" id="newsletter-backdrop" onclick="closeNewsletter()"></div>
+  <div class="signin-backdrop" id="newsletter-backdrop"></div>
   <div class="signin-panel" id="newsletter-panel">
     <div class="signin-panel-hd">
       <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
@@ -7038,9 +7077,65 @@
       document.getElementById('reg-step-login').style.display        = 'none';
       document.getElementById('reg-step-verify-email').style.display = 'none';
       document.getElementById('reg-step-otp').style.display          = 'none';
+      document.getElementById('reg-step-forgot').style.display       = 'none';
+      document.getElementById('reg-step-new-password').style.display = 'none';
       if (regOtpTimer) { clearInterval(regOtpTimer); regOtpTimer = null; }
       document.getElementById('reg-step-email').style.display    = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
+    }
+
+    /* ── JOURNEY 6 — Forgot password ── */
+    function regGoToForgotPassword() {
+      var email = document.getElementById('reg-login-email-display').textContent;
+      document.getElementById('reg-forgot-email-display').textContent = email;
+      document.getElementById('reg-step-login').style.display  = 'none';
+      document.getElementById('reg-step-forgot').style.display = '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+    }
+
+    function regSendForgotCode() {
+      regJourney = 'forgot-password';
+      var email = document.getElementById('reg-forgot-email-display').textContent;
+      document.getElementById('reg-otp-email-display').textContent = email;
+      document.getElementById('reg-otp-title').textContent = 'Check your email';
+      document.getElementById('reg-otp-subtitle-suffix').textContent = ' - enter it below to reset your password';
+      document.getElementById('reg-otp-info-desc').textContent = 'Verifying your email helps us confirm it’s really you before resetting your password.';
+      document.getElementById('reg-step-forgot').style.display = 'none';
+      document.getElementById('reg-step-otp').style.display = '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+      regOtpStart();
+      var first = document.querySelector('.reg-otp-box[data-otp-index="0"]');
+      if (first) first.focus();
+    }
+
+    function regCheckNewPassword() {
+      var v = document.getElementById('reg-newpw-input').value;
+      var okLen = v.length >= 8, okUpper = /[A-Z]/.test(v), okNum = /[0-9]/.test(v);
+      document.getElementById('reg-newpw-check-len').classList.toggle('is-met', okLen);
+      document.getElementById('reg-newpw-check-upper').classList.toggle('is-met', okUpper);
+      document.getElementById('reg-newpw-check-num').classList.toggle('is-met', okNum);
+      document.getElementById('reg-newpw-btn').disabled = !(okLen && okUpper && okNum);
+    }
+
+    function regNewPasswordEnter(event) {
+      if (event.key !== 'Enter') return;
+      regStepEnter(event, 'reg-newpw-btn');
+    }
+
+    var regNewPwSubmitTimeout = null;
+    function regSubmitNewPassword() {
+      var btn = document.getElementById('reg-newpw-btn');
+      if (btn.disabled || btn.classList.contains('is-loading')) return;
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+      document.getElementById('reg-newpw-input').disabled = true;
+      var bar = document.getElementById('reg-newpw-submit-btn-bar');
+      requestAnimationFrame(function() { bar.style.width = '100%'; });
+      regNewPwSubmitTimeout = setTimeout(function() {
+        regNewPwSubmitTimeout = null;
+        document.getElementById('reg-step-new-password').style.display = 'none';
+        regShowSuccess();
+      }, 1000);
     }
 
     function regBackToAccount() {
@@ -7173,11 +7268,17 @@
       if (regOtpTimer) { clearInterval(regOtpTimer); regOtpTimer = null; }
       document.querySelectorAll('.reg-otp-box').forEach(function(b) { b.disabled = true; });
       // Demo-only: no real backend, any 6-digit code succeeds. Rejoins the
-      // normal Account Creation flow at Step 2 (name/business/consent).
+      // normal Account Creation flow at Step 2 (name/business/consent) —
+      // except JOURNEY 6 (forgot password), which has no account details
+      // to collect and goes straight to setting a new password instead.
       setTimeout(function() {
-        document.getElementById('reg-step-otp').style.display     = 'none';
-        document.getElementById('reg-step-account').style.display = '';
-        regUpdateAccountContactField();
+        document.getElementById('reg-step-otp').style.display = 'none';
+        if (regJourney === 'forgot-password') {
+          document.getElementById('reg-step-new-password').style.display = '';
+        } else {
+          document.getElementById('reg-step-account').style.display = '';
+          regUpdateAccountContactField();
+        }
         document.getElementById('signin-panel-body').scrollTop = 0;
       }, 400);
     }
@@ -7311,7 +7412,8 @@
     // "Choose channel" — Email/Mobile under the marketing-consent
     // checkbox. Two-way sync: checking/unchecking the parent sets both
     // channels to match; checking/unchecking either channel recomputes
-    // the parent (checked only once both are checked).
+    // the parent (checked as soon as either is checked, unchecked only
+    // once both are unchecked).
     function regTermsToggle() {
       var checked = document.getElementById('reg-terms').checked;
       document.querySelectorAll('.reg-consent-channel').forEach(function(cb) { cb.checked = checked; });
@@ -7320,8 +7422,8 @@
 
     function regConsentChannelChange() {
       var boxes = document.querySelectorAll('.reg-consent-channel');
-      var allChecked = Array.prototype.every.call(boxes, function(cb) { return cb.checked; });
-      document.getElementById('reg-terms').checked = allChecked;
+      var anyChecked = Array.prototype.some.call(boxes, function(cb) { return cb.checked; });
+      document.getElementById('reg-terms').checked = anyChecked;
       regValidateStep2();
     }
 
@@ -7359,6 +7461,14 @@
       // driving what the user sees.
       if (document.getElementById('reg-business-wrap').classList.contains('is-visible')) {
         ok = ok && document.getElementById('reg-business').value.trim() !== '';
+      }
+
+      // Business Address is revealed only when a selected business record
+      // is missing one on file (e.g. Pizzeria Napoli — see
+      // regShowBizCard()'s missingAddress check) — required once shown,
+      // same pattern as Business name above.
+      if (document.getElementById('reg-address-wrap').classList.contains('is-visible')) {
+        ok = ok && document.getElementById('reg-address').value.trim() !== '';
       }
 
       document.getElementById('reg-account-btn').disabled = !ok;
@@ -7511,6 +7621,15 @@
       if (regJourney === 'flexible') {
         document.getElementById('reg-success-title').textContent = 'You are registered for this competition';
       }
+
+      // JOURNEY 6 — forgot password never collects a name (only email +
+      // new password), so there's no identity for the avatar/initials to
+      // show — hidden here, restored by regResetFlow() for the next journey.
+      var isForgotPassword = regJourney === 'forgot-password';
+      document.querySelector('#reg-step-success .reg-success-icon').style.display = isForgotPassword ? 'none' : '';
+      if (isForgotPassword) {
+        document.getElementById('reg-success-title').textContent = 'Your password has been updated';
+      }
     }
 
     function regExtraContinue() {
@@ -7569,6 +7688,8 @@
       document.getElementById('reg-step-verify-email').style.display = 'none';
       document.getElementById('reg-step-otp').style.display          = 'none';
       document.getElementById('reg-step-extra').style.display        = 'none';
+      document.getElementById('reg-step-forgot').style.display       = 'none';
+      document.getElementById('reg-step-new-password').style.display = 'none';
       regJourney = null;
 
       document.getElementById('reg-email-input').value        = '';
@@ -7596,6 +7717,17 @@
       document.getElementById('reg-otp-hint').textContent = '';
       document.getElementById('reg-otp-timer').textContent = '';
       document.getElementById('reg-otp-resend-btn').disabled = true;
+
+      // Journey 6 — Forgot password
+      if (regNewPwSubmitTimeout) { clearTimeout(regNewPwSubmitTimeout); regNewPwSubmitTimeout = null; }
+      document.getElementById('reg-newpw-input').value    = '';
+      document.getElementById('reg-newpw-input').disabled = false;
+      document.getElementById('reg-newpw-btn').disabled = true;
+      document.getElementById('reg-newpw-btn').classList.remove('is-loading');
+      document.getElementById('reg-newpw-submit-btn-bar').style.width = '0%';
+      document.querySelectorAll('#reg-newpw-block .fi-pw-check-item').forEach(function(el) { el.classList.remove('is-met'); });
+      document.querySelector('#reg-step-success .reg-success-icon').style.display = '';
+
       document.getElementById('reg-business-display').textContent = '';
       document.getElementById('reg-name').value           = '';
       document.getElementById('reg-lastname').value       = '';
@@ -7828,13 +7960,27 @@
 
       // Already known from the newsletter form — no need to re-ask.
       // Mobile number and Business name are the two fields still missing.
+      // These fields aren't shown until reg-step-account, reached below
+      // only after verify-email/OTP — pre-filling them now is safe since
+      // nothing renders them before then.
       regPopulateAccountSummary(name, lastname, bizTypeLabel, jobTitleLabel);
       regSetAccountSummaryMode(true);
 
-      document.getElementById('reg-step-email').style.display   = 'none';
-      document.getElementById('reg-step-account').style.display = '';
+      // Same verify-email -> OTP steps as the regular create-account
+      // journey (regSubmitEmail()'s 'create' branch) instead of jumping
+      // straight to account details — the newsletter email still needs
+      // to be verified before the account is created.
+      regJourney = 'create';
+      document.getElementById('reg-verify-email-display').textContent = email;
+      document.getElementById('reg-otp-email-display').textContent    = email;
+      document.getElementById('reg-verify-cta-btn').textContent = 'Verify your email';
+      document.getElementById('reg-otp-title').textContent = 'Check your email';
+      document.getElementById('reg-otp-subtitle-suffix').textContent = ' - enter it below to verify your email';
+      document.getElementById('reg-otp-info-desc').textContent = 'Verifying your email helps us keep your account secure and makes sure you never miss important order and account updates.';
+
+      document.getElementById('reg-step-email').style.display        = 'none';
+      document.getElementById('reg-step-verify-email').style.display = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
-      regUpdateAccountContactField();
     }
 
     function nlResetFlow() {
@@ -7871,8 +8017,6 @@
     document.addEventListener('keydown', function(e) {
       if (e.key === 'Escape') {
         var openMegaTrigger = document.querySelector('#main-nav .ufs-nav__link.is-open');
-        closeSignIn();
-        closeNewsletter();
         closeAllMegamenus();
         closeLangDrop();
         closeMobileDrawer();
