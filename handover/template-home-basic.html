@@ -6043,7 +6043,6 @@
           </div>
           <h2 class="signin-panel-title" id="nl-success-title">You're subscribed, Giuseppe!</h2>
           <p class="reg-success-sub">Unlock the best inspiration, loyalty rewards and professional training by finalising your account.</p>
-          <button class="btn btn-primary" style="width:100%" onclick="nlFinishAccount()">Finish my account</button>
 
           <div class="signin-usps">
             <div class="signin-usps-title">Why create an account?</div>
@@ -6075,6 +6074,7 @@
                 <div class="signin-usp-item-desc">Free culinary training modules and certifications.</div>
               </div>
             </div>
+            <button class="btn btn-primary" style="width:100%; margin-top:var(--space-4)" onclick="nlFinishAccount()">Continue account creation</button>
           </div>
         </div>
       </div>
@@ -7521,6 +7521,10 @@
       document.getElementById('reg-city').disabled    = !!biz.city;
       document.getElementById('reg-postal').disabled  = !!biz.postal;
       document.getElementById('reg-phone').disabled   = !!biz.phone;
+      // Country code is part of the same phone field, on file just like
+      // the number itself — lock the trigger alongside reg-phone so it
+      // can't be reopened and changed independently of the locked number.
+      document.getElementById('reg-phone-code-trigger').disabled = !!biz.phone;
     }
 
     // Restarts the checkmark's draw animation every time it's called, even
@@ -7542,7 +7546,7 @@
       document.getElementById('reg-biz-card-phone').textContent   = '';
       document.getElementById('reg-address-wrap').classList.remove('is-visible');
       document.getElementById('reg-extra-fields').classList.remove('is-visible');
-      ['reg-address', 'reg-city', 'reg-postal', 'reg-phone'].forEach(function(id) {
+      ['reg-address', 'reg-city', 'reg-postal', 'reg-phone', 'reg-phone-code-trigger'].forEach(function(id) {
         document.getElementById(id).disabled = false;
       });
     }
@@ -8338,13 +8342,15 @@
       var bizType = document.getElementById('contact-business-type').value;
       // Job Title stays optional, same as everywhere else it appears.
       // Mobile is required (not merely "valid if given") — see the
-      // markup comment above contact-mobile-wrap.
+      // markup comment above contact-mobile-wrap. Marketing consent is
+      // optional here (unlike the newsletter form's nl-consent) — this is
+      // a callback request, not a newsletter subscription, so declining
+      // the marketing communications it's for doesn't block Continue.
       var ok = document.getElementById('contact-name').value.trim()
         && document.getElementById('contact-lastname').value.trim()
         && bizType
         && contactMobileIsValid()
-        && document.getElementById('contact-age').checked
-        && document.getElementById('contact-consent').checked;
+        && document.getElementById('contact-age').checked;
       document.getElementById('contact-continue-btn').disabled = !ok;
     }
 
