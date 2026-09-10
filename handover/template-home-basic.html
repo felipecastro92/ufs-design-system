@@ -2204,6 +2204,7 @@
     .fi-wrap { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; }
     .fi-wrap[hidden] { display: none; }
     .fi-label { font-size: var(--text-btn-size); line-height: 22px; font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    .fi-label-optional { font-weight: 400; color: var(--color-mushroom-900); }
     .fi-field {
       width: 100%; height: var(--space-12);
       border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm);
@@ -2291,7 +2292,7 @@
     }
     .reg-biz-suggest-item:hover { background: var(--color-mushroom-100); }
     .reg-biz-suggest-item + .reg-biz-suggest-item { border-top: 1px solid var(--color-mushroom-100); }
-    .reg-biz-suggest-item--add { color: var(--color-mushroom-700); font-style: italic; border-top: 1px solid var(--color-mushroom-300) !important; }
+    .reg-biz-suggest-item--add { color: var(--color-accessible-orange); font-style: italic; border-top: 1px solid var(--color-mushroom-300) !important; }
     .fi-select {
       appearance: none; -webkit-appearance: none;
       background-image: url('icons/arrow.svg'); background-repeat: no-repeat;
@@ -2360,14 +2361,13 @@
     /* Flags a field missing from the picked record (e.g. Pizzeria Napoli
        has no address on file) — sits in the card, pointing at the
        reg-conditional-field revealed right below it. */
-    .reg-biz-card-missing-note { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-accessible-orange); font-weight: 600; margin-top: var(--space-1); }
     /* Checkmark "draw" — sequential with the card reveal (0.3s), not
        simultaneous: the 0.35s delay lets regExtraReveal settle first, then
        stroke-dashoffset animates the polyline's ~22px length down to 0.
        .reg-biz-card-check.is-drawing is toggled by JS on every
-       regShowBizCard() call (not just the class going from hidden→visible)
-       so re-selecting a different business replays the draw each time —
-       see regReplayCheckDraw(). */
+       regApplyBusinessRecord() call (not just the class going from
+       hidden→visible) so re-selecting a different business replays the
+       draw each time — see regReplayCheckDraw(). */
     .reg-biz-card-check { stroke-dasharray: 22; stroke-dashoffset: 22; }
     .reg-biz-card-check.is-drawing { animation: regBizCardCheckDraw 0.35s ease-out 0.3s forwards; }
     @keyframes regBizCardCheckDraw { to { stroke-dashoffset: 0; } }
@@ -2476,7 +2476,8 @@
        flex:1 with an aspect-ratio (not the design's fixed 53×66px) because
        this panel is only 420px wide minus space-7 padding — fixed widths
        would overflow; scaling to fit fits the brief's own "mobile" framing. */
-    .reg-otp-subtitle { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin-bottom: var(--space-7); }
+    .reg-otp-subtitle { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin-bottom: var(--space-2); }
+    .reg-otp-change-line { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin-bottom: var(--space-7); }
     .reg-otp-boxes { display: flex; gap: var(--space-4); margin-bottom: var(--space-2); }
     .reg-otp-box {
       flex: 1; min-width: 0; aspect-ratio: 53 / 66;
@@ -4539,7 +4540,7 @@
             <p class="ufs-promo-banner__desc text-body" data-i18n="promo-desc">This series will show you how to take care of yourself and your team to make the kitchen a better working environment for everyone.</p>
           </div>
           <div class="ufs-promo-banner__ctas">
-            <button type="button" class="btn btn-primary" data-i18n="promo-cta-primary">Discover All Courses</button>
+            <button type="button" class="btn btn-primary" data-i18n="promo-cta-primary" onclick="openContact()">Contact Us</button>
           </div>
           <p class="ufs-promo-banner__disclaimer text-body-xs" data-i18n="promo-disclaimer">*Disclaimer text for specific use cases</p>
         </div>
@@ -5471,40 +5472,25 @@
         </button>
       </div>
 
-      <!-- JOURNEY 6 — Forgot password. Triggered from reg-step-login;
-           reuses reg-step-otp (email chip → send code → verify) and the
-           account-creation password step's strength-checklist pattern
-           (own ids below, since it needs independent state) rather than
-           inventing new UI for either. Ends by reusing reg-step-success
-           with its avatar hidden — this journey never collects a name. -->
-      <div id="reg-step-forgot" style="display:none">
-        <h2 class="signin-panel-title">Reset your password</h2>
-        <p class="reg-otp-subtitle">We will send a verification code to:</p>
-        <div class="reg-email-chip">
-          <span id="reg-forgot-email-display">email@email.com</span>
-          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
-        </div>
-        <button class="btn btn-primary" style="width:100%" onclick="regSendForgotCode()">Send verification code</button>
-      </div>
-
-      <!-- JOURNEY 3a — Create an account, email-verification variant (verification@user.com) -->
-      <div id="reg-step-verify-email" style="display:none">
-        <h2 class="signin-panel-title">Create an account</h2>
-        <div class="reg-email-chip">
-          <span id="reg-verify-email-display">email@email.com</span>
-          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
-        </div>
-        <button class="btn btn-primary" style="width:100%" id="reg-verify-cta-btn" onclick="regGoToOtp()">Verify your email</button>
-      </div>
-
-      <!-- JOURNEY 3b — OTP verification. Adapted from Figma node 5509:9791
-           (mobile-registration OTP screen). Copy is set dynamically by
-           regSubmitEmail() based on regActiveContactTab — email gets "sent
-           to your email" / SMS gets "sent via SMS to your mobile number",
-           see reg-otp-title / reg-otp-subtitle-suffix / reg-otp-info-desc. -->
+      <!-- JOURNEY 3b / JOURNEY 6 — OTP verification. Both the regular
+           email/phone submission (JOURNEY 3, 'create'/'verify') and
+           Forgot Password (JOURNEY 6) now land here directly — no more
+           separate "confirm, then send code" screens
+           (reg-step-verify-email / reg-step-forgot, both removed).
+           regSubmitEmail()/regGoToForgotPassword() populate this step's
+           copy and start the OTP timer immediately instead of waiting for
+           a button click. "Not your X? Change it" (reg-otp-change-line)
+           replaces the old chip's Edit affordance — same regEditEmail(),
+           full reset to reg-step-email either way.
+           Adapted from Figma node 5509:9791 (mobile-registration OTP
+           screen). Copy is set dynamically — email gets "sent to your
+           email" / SMS gets "sent via SMS to your mobile number", see
+           reg-otp-title / reg-otp-subtitle-suffix / reg-otp-info-desc /
+           reg-otp-change-label. -->
       <div id="reg-step-otp" style="display:none">
         <h2 class="signin-panel-title" id="reg-otp-title">Check your email</h2>
         <p class="reg-otp-subtitle">We have sent a 6-digit code to <strong id="reg-otp-email-display">email@email.com</strong><span id="reg-otp-subtitle-suffix"> - enter it below to verify your email</span></p>
+        <p class="reg-otp-change-line">Not your <span id="reg-otp-change-label">email</span>? <button type="button" class="reg-email-edit" onclick="regEditEmail()">Change it</button></p>
         <div class="reg-otp-boxes" id="reg-otp-boxes">
           <input class="reg-otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" dir="ltr" aria-label="Digit 1" data-otp-index="0" oninput="regOtpDigitInput(event,0)" onkeydown="regOtpKeydown(event,0)" onpaste="regOtpPaste(event)"/>
           <input class="reg-otp-box" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="off" dir="ltr" aria-label="Digit 2" data-otp-index="1" oninput="regOtpDigitInput(event,1)" onkeydown="regOtpKeydown(event,1)"/>
@@ -5550,7 +5536,7 @@
       <!-- STEP 2 — business / account details -->
       <div id="reg-step-account" style="display:none">
         <h2 class="signin-panel-title">Create an account</h2>
-        <div class="reg-email-chip">
+        <div class="reg-email-chip" id="reg-account-email-chip">
           <span id="reg-email-display">email@email.com</span>
           <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
         </div>
@@ -5560,11 +5546,14 @@
                shown instead of those four fields when they're already
                known (currently only the newsletter → "Finish my account"
                path, see nlFinishAccount() / regSetAccountSummaryMode()).
-               Mobile number and Business name are the two fields
-               genuinely still missing, so they stay editable below — same
-               idea as reg-biz-card's own missing-address handling above
-               in the business flow. Same visual language as reg-biz-card,
-               reused here as plain styling classes (not the JS-targeted
+               Email joins this card too (regSetAccountSummaryMode() hides
+               the reg-account-email-chip above in that case, since it'd
+               otherwise duplicate the same address shown here). Mobile
+               number and Business name are the two fields genuinely still
+               missing, so they stay editable below — same idea as
+               reg-biz-card's own missing-address handling above in the
+               business flow. Same visual language as reg-biz-card, reused
+               here as plain styling classes (not the JS-targeted
                #reg-biz-card-* ids, to avoid colliding with that card's own
                checkmark-redraw selector). -->
           <div class="reg-biz-card" id="reg-account-summary-card">
@@ -5573,7 +5562,8 @@
             </svg>
             <div class="reg-biz-card-body">
               <div class="reg-biz-card-name" id="reg-account-summary-name"></div>
-              <div class="reg-biz-card-address" id="reg-account-summary-business"></div>
+              <div class="reg-biz-card-address" id="reg-account-summary-email"></div>
+              <div class="reg-biz-card-phone" id="reg-account-summary-business"></div>
             </div>
           </div>
           <div class="fi-wrap" id="reg-name-wrap"><label class="fi-label">First Name</label><input class="fi-field" type="text" id="reg-name" placeholder="Please enter your name(s)" autocomplete="given-name" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
@@ -5628,7 +5618,7 @@
           </div>
 
           <div class="fi-wrap reg-conditional-field" id="reg-job-title-wrap">
-            <label class="fi-label" for="reg-job-title">Job title</label>
+            <label class="fi-label" for="reg-job-title">Job title <span class="fi-label-optional">(optional)</span></label>
             <select class="fi-field fi-select" id="reg-job-title" onchange="regJobTitleChange()">
               <option value="" disabled selected>Select job title</option>
               <option value="chef">Chef</option>
@@ -5645,17 +5635,18 @@
             <div class="reg-biz-suggest" id="reg-biz-suggest"></div>
           </div>
 
-          <!-- Shown instead of reg-extra-fields when a business is picked
-               FROM THE LIST (regSelectBusiness) — read-only summary, not
-               editable fields. Adding a new business not in the list
-               (regAddCustomBusiness) shows reg-extra-fields instead, same
-               as before this card existed. Figma node 2321:6516.
-               A record picked from the list can still be missing an
-               individual field (e.g. Pizzeria Napoli has no address on
-               file) — reg-biz-card-missing-note flags it inline and
-               reg-address-wrap (below) reveals just that one field as
-               editable, instead of falling back to the fully-editable
-               reg-extra-fields block. See regShowBizCard(). -->
+          <!-- Shown only when a business picked FROM THE LIST
+               (regSelectBusiness) has every field on file — read-only
+               summary, not editable fields, Figma node 2321:6516. A
+               record missing anything (e.g. Pizzeria Napoli has no
+               address) skips the card entirely instead — the checkmark
+               implies "everything's confirmed", which isn't true yet —
+               and falls back to reg-address-wrap + reg-extra-fields
+               below, pre-filled with whatever IS on file, each field
+               locked individually only if it actually has a value.
+               Adding a new business not in the list (regAddCustomBusiness)
+               also uses those same two blocks, fully editable since
+               nothing is known. See regApplyBusinessRecord(). -->
           <div class="reg-biz-card" id="reg-biz-card">
             <svg class="reg-biz-card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <polyline class="reg-biz-card-check" points="5 13 10 18 19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -5664,18 +5655,17 @@
               <div class="reg-biz-card-name" id="reg-biz-card-name"></div>
               <div class="reg-biz-card-address" id="reg-biz-card-address"></div>
               <div class="reg-biz-card-phone" id="reg-biz-card-phone"></div>
-              <div class="reg-biz-card-missing-note" id="reg-biz-card-missing-note" hidden>Address not on file — please add it below</div>
             </div>
           </div>
 
           <!-- Individually-revealed Address field — same reveal recipe as
-               Job Title/Business name above (.reg-conditional-field), used
-               instead of the full reg-extra-fields block so picking a
-               business with a missing address doesn't also re-expose its
-               already-known city/postal/phone as editable. Shown either on
-               its own (business picked from list, address missing) or
-               together with reg-extra-fields (regAddCustomBusiness, where
-               nothing is known yet). -->
+               Job Title/Business name above (.reg-conditional-field).
+               Now always shown together with reg-extra-fields whenever
+               either the picked record is incomplete or it's a custom
+               business (regAddCustomBusiness) — kept as its own element
+               (rather than folded into reg-extra-fields) only because
+               regValidateStep2()'s address-required check already keys
+               off this specific wrap's visibility. -->
           <div class="fi-wrap reg-conditional-field" id="reg-address-wrap"><label class="fi-label">Business Address</label><input class="fi-field" type="text" id="reg-address" placeholder="Please enter your address" autocomplete="address-line1" oninput="regValidateStep2()" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
 
           <div class="reg-extra-fields" id="reg-extra-fields">
@@ -5729,7 +5719,7 @@
               </label>
             </div>
           </div>
-          <label class="fi-checkbox">
+          <label class="fi-checkbox" id="reg-age-row">
             <input type="checkbox" id="reg-age" onchange="regValidateStep2()"/>
             <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
             <span class="fi-checkbox-label">I confirm that I am 18 years or older*</span>
@@ -5960,7 +5950,7 @@
           </div>
 
           <div class="fi-wrap reg-conditional-field" id="nl-job-title-wrap">
-            <label class="fi-label" for="nl-job-title">Job title</label>
+            <label class="fi-label" for="nl-job-title">Job title <span class="fi-label-optional">(optional)</span></label>
             <select class="fi-field fi-select" id="nl-job-title" onchange="nlValidate()">
               <option value="" disabled selected>Select job title</option>
               <option value="chef">Chef</option>
@@ -5970,15 +5960,72 @@
               <option value="other">Other</option>
             </select>
           </div>
+
+          <!-- Mobile number: same searchable country-code dropdown +
+               format validation as reg-account-mobile elsewhere in this
+               file (regPhoneCode*/regValidatePhone — both already generic
+               over element id, reused verbatim here). Optional, unlike
+               that field — empty stays valid (see nlMobileIsValid()),
+               only a genuinely malformed value blocks Subscribe. Revealed
+               together with Job Title (same business-type condition),
+               not on its own. -->
+          <div class="fi-wrap reg-conditional-field" id="nl-mobile-wrap">
+            <label class="fi-label" for="nl-mobile">Mobile number <span class="fi-label-optional">(optional)</span></label>
+            <div class="fi-phone-row">
+              <div class="reg-phone-code-wrap">
+                <button type="button" class="fi-field fi-phone-code-trigger" id="nl-mobile-code-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code" onclick="regPhoneCodeToggle('nl-mobile-code')">
+                  <span id="nl-mobile-code-label">+1</span>
+                  <svg class="fi-phone-code-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg>
+                </button>
+                <div class="reg-phone-code-panel" id="nl-mobile-code-panel" hidden>
+                  <div class="reg-phone-code-search-wrap">
+                    <input type="text" class="reg-phone-code-search" id="nl-mobile-code-search" placeholder="Search country or code" aria-label="Search country or code" oninput="regPhoneCodeFilter('nl-mobile-code', this.value)" onkeydown="regPhoneCodeSearchKeydown(event,'nl-mobile-code')"/>
+                  </div>
+                  <ul class="reg-phone-code-list" id="nl-mobile-code-list" role="listbox" aria-label="Country code"></ul>
+                </div>
+                <input type="hidden" id="nl-mobile-code" value="+1"/>
+              </div>
+              <input class="fi-field fi-phone-number" type="tel" id="nl-mobile" placeholder="e.g. 555 123 4567" autocomplete="tel-national" oninput="nlClearMobileError(); nlValidate()" onblur="nlValidateMobileFormat()" onkeydown="regStepEnter(event,'nl-subscribe-btn')"/>
+            </div>
+            <div class="fi-contact-hint" id="nl-mobile-hint" aria-live="polite"></div>
+          </div>
         </div>
 
         <div class="fi-checkbox-row">
+          <div class="reg-consent-group" id="nl-consent-group">
+            <label class="fi-checkbox">
+              <input type="checkbox" id="nl-consent" onchange="nlTermsToggle()"/>
+              <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+              <span class="fi-checkbox-label">I want to receive offers and updates related to my profession from trusted Unilever brands including culinary inspirations, promotions and other relevant industry information.</span>
+            </label>
+            <button type="button" class="reg-consent-toggle" id="nl-consent-toggle" onclick="nlToggleConsentChannels()" aria-expanded="false" aria-controls="nl-consent-channels">
+              Choose channel
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>
+            </button>
+            <div class="reg-consent-channels" id="nl-consent-channels" hidden>
+              <label class="fi-checkbox">
+                <input type="checkbox" class="nl-consent-channel" id="nl-consent-email" onchange="nlConsentChannelChange()"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Email</span>
+              </label>
+              <label class="fi-checkbox">
+                <input type="checkbox" class="nl-consent-channel" id="nl-consent-mobile" onchange="nlConsentChannelChange()"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Mobile</span>
+              </label>
+            </div>
+          </div>
           <label class="fi-checkbox">
-            <input type="checkbox" id="nl-consent" onchange="nlValidate()"/>
+            <input type="checkbox" id="nl-age" onchange="nlValidate()"/>
             <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
-            <span class="fi-checkbox-label">I want to receive offers and updates related to my profession from trusted Unilever brands including culinary inspirations, promotions and other relevant industry information.</span>
+            <span class="fi-checkbox-label">I confirm that I am 18 years or older*</span>
           </label>
         </div>
+
+        <!-- Informational only — no checkbox/consent tied to these, just
+             links out to the legal pages. Same copy/treatment as
+             reg-legal-links in the sign-up form. -->
+        <p class="reg-legal-links">I read <a href="#" class="reg-legal-link">Terms and Conditions</a> and <a href="#" class="reg-legal-link">Privacy Policy</a></p>
 
         <button class="btn btn-primary reg-submit-btn" style="width:100%" id="nl-subscribe-btn" disabled onclick="nlSubmit()">
           <span class="reg-submit-btn-label">Subscribe</span>
@@ -6029,6 +6076,154 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- CONTACT US — triggered from the promo banner CTA (openContact()),
+       built on the same modal/step pattern as the newsletter panel above
+       (openNewsletter()/nl-step-*) rather than the sign-up journey, since
+       it's a one-off callback request with no auth involved. Step 1 reuses
+       the newsletter form's own fields (Name/Lastname/Business type/Job
+       title/consent/age/legal) verbatim; Mobile number is promoted from
+       optional to a plain always-visible required field here (not tied to
+       Business type like nl-mobile-wrap) since it's the whole point of a
+       callback request — conditionally hiding it would dead-end anyone who
+       picks "I don't have/work in a business". Step 2 is the
+       Business name + Country module the newsletter form doesn't have. -->
+  <div class="signin-backdrop" id="contact-backdrop"></div>
+  <div class="signin-panel" id="contact-panel">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeContact()" aria-label="Close contact us">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="signin-panel-body" id="contact-panel-body">
+
+      <div id="contact-step-form">
+        <h2 class="signin-panel-title">Contact us</h2>
+        <p class="reg-success-sub" style="margin-bottom:var(--space-6)">Simply fill out your details below and we&rsquo;ll call you back. (8am &ndash; 4pm).</p>
+
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label">Name</label><input class="fi-field" type="text" id="contact-name" placeholder="Please enter your name(s)" autocomplete="given-name" oninput="contactValidate()" onkeydown="regStepEnter(event,'contact-continue-btn')"/></div>
+          <div class="fi-wrap"><label class="fi-label">Lastname</label><input class="fi-field" type="text" id="contact-lastname" placeholder="Please enter your last name(s)" autocomplete="family-name" oninput="contactValidate()" onkeydown="regStepEnter(event,'contact-continue-btn')"/></div>
+
+          <div class="fi-wrap" id="contact-mobile-wrap">
+            <label class="fi-label" for="contact-mobile">Mobile number</label>
+            <div class="fi-phone-row">
+              <div class="reg-phone-code-wrap">
+                <button type="button" class="fi-field fi-phone-code-trigger" id="contact-mobile-code-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code" onclick="regPhoneCodeToggle('contact-mobile-code')">
+                  <span id="contact-mobile-code-label">+1</span>
+                  <svg class="fi-phone-code-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg>
+                </button>
+                <div class="reg-phone-code-panel" id="contact-mobile-code-panel" hidden>
+                  <div class="reg-phone-code-search-wrap">
+                    <input type="text" class="reg-phone-code-search" id="contact-mobile-code-search" placeholder="Search country or code" aria-label="Search country or code" oninput="regPhoneCodeFilter('contact-mobile-code', this.value)" onkeydown="regPhoneCodeSearchKeydown(event,'contact-mobile-code')"/>
+                  </div>
+                  <ul class="reg-phone-code-list" id="contact-mobile-code-list" role="listbox" aria-label="Country code"></ul>
+                </div>
+                <input type="hidden" id="contact-mobile-code" value="+1"/>
+              </div>
+              <input class="fi-field fi-phone-number" type="tel" id="contact-mobile" placeholder="e.g. 555 123 4567" autocomplete="tel-national" oninput="contactClearMobileError(); contactValidate()" onblur="contactValidateMobileFormat()" onkeydown="regStepEnter(event,'contact-continue-btn')"/>
+            </div>
+            <div class="fi-contact-hint" id="contact-mobile-hint" aria-live="polite"></div>
+          </div>
+
+          <div class="fi-wrap">
+            <label class="fi-label" for="contact-business-type">Business type</label>
+            <select class="fi-field fi-select" id="contact-business-type" onchange="contactBusinessTypeChange()">
+              <option value="" disabled selected>Select business type</option>
+              <option value="hotel">Hotel</option>
+              <option value="restaurant">Restaurant</option>
+              <option value="school-canteen">School canteen</option>
+              <option value="catering">Catering</option>
+              <option value="other">Other</option>
+              <option value="none">I don't have/work in a business</option>
+            </select>
+          </div>
+
+          <div class="fi-wrap reg-conditional-field" id="contact-job-title-wrap">
+            <label class="fi-label" for="contact-job-title">Job title <span class="fi-label-optional">(optional)</span></label>
+            <select class="fi-field fi-select" id="contact-job-title" onchange="contactValidate()">
+              <option value="" disabled selected>Select job title</option>
+              <option value="chef">Chef</option>
+              <option value="owner-manager">Owner/Manager</option>
+              <option value="purchasing-manager">Purchasing Manager</option>
+              <option value="fb-director">F&amp;B Director</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fi-checkbox-row">
+          <div class="reg-consent-group" id="contact-consent-group">
+            <label class="fi-checkbox">
+              <input type="checkbox" id="contact-consent" onchange="contactTermsToggle()"/>
+              <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+              <span class="fi-checkbox-label">I want to receive offers and updates related to my profession from trusted Unilever brands including culinary inspirations, promotions and other relevant industry information.</span>
+            </label>
+            <button type="button" class="reg-consent-toggle" id="contact-consent-toggle" onclick="contactToggleConsentChannels()" aria-expanded="false" aria-controls="contact-consent-channels">
+              Choose channel
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>
+            </button>
+            <div class="reg-consent-channels" id="contact-consent-channels" hidden>
+              <label class="fi-checkbox">
+                <input type="checkbox" class="contact-consent-channel" id="contact-consent-email" onchange="contactConsentChannelChange()"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Email</span>
+              </label>
+              <label class="fi-checkbox">
+                <input type="checkbox" class="contact-consent-channel" id="contact-consent-mobile" onchange="contactConsentChannelChange()"/>
+                <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Mobile</span>
+              </label>
+            </div>
+          </div>
+          <label class="fi-checkbox">
+            <input type="checkbox" id="contact-age" onchange="contactValidate()"/>
+            <span class="fi-checkbox-box"><img src="icons/check.svg" alt=""/></span>
+            <span class="fi-checkbox-label">I confirm that I am 18 years or older*</span>
+          </label>
+        </div>
+
+        <p class="reg-legal-links">I read <a href="#" class="reg-legal-link">Terms and Conditions</a> and <a href="#" class="reg-legal-link">Privacy Policy</a></p>
+
+        <button class="btn btn-primary" style="width:100%" id="contact-continue-btn" disabled onclick="contactContinueStep1()">Continue</button>
+      </div>
+
+      <div id="contact-step-details" style="display:none">
+        <h2 class="signin-panel-title">Contact us</h2>
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label" for="contact-business-name">Business name</label><input class="fi-field" type="text" id="contact-business-name" placeholder="Please enter your business name" autocomplete="organization" oninput="contactValidateStep2()" onkeydown="regStepEnter(event,'contact-submit-btn')"/></div>
+          <div class="fi-wrap">
+            <label class="fi-label" for="contact-country">Country</label>
+            <select class="fi-field fi-select" id="contact-country" onchange="contactValidateStep2()">
+              <option value="" disabled selected>Select country</option>
+              <option value="maldives">Maldives</option>
+              <option value="seychelles">Seychelles</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary reg-submit-btn" style="width:100%" id="contact-submit-btn" disabled onclick="contactSubmit()">
+          <span class="reg-submit-btn-label">Submit</span>
+          <span class="reg-submit-btn-bar" id="contact-submit-btn-bar"></span>
+        </button>
+      </div>
+
+      <div id="contact-step-success" style="display:none">
+        <div class="reg-success">
+          <div class="reg-success-icon">
+            <div class="av av--xl">
+              <div class="av-circle"><img class="av-icon-mail" src="icons/email.svg" alt=""/></div>
+              <span class="av-check-badge"><img src="icons/check.svg" alt=""/></span>
+            </div>
+          </div>
+          <h2 class="signin-panel-title">Thanks for contacting us</h2>
+          <p class="reg-success-sub">We&rsquo;ll come back to you as soon as possible.</p>
+          <button class="btn btn-primary" style="width:100%" onclick="closeContact()">Continue</button>
         </div>
       </div>
 
@@ -6234,7 +6429,7 @@
       'fwb-badge-2':'Free Training','fwb-title-2':'Master Umami, on us','fwb-desc-2':'A free online module built for working chefs — practical techniques you can use on shift tonight.','fwb-cta-2':'Start Learning',
       'promo-title':'UFS Academy: Mental Health in Kitchens',
       'promo-desc':'This series will show you how to take care of yourself and your team to make the kitchen a better working environment for everyone.',
-      'promo-cta-primary':'Discover All Courses','promo-cta-secondary':'How Academy Works?',
+      'promo-cta-primary':'Contact Us','promo-cta-secondary':'How Academy Works?',
       'promo-disclaimer':'*Disclaimer text for specific use cases','promo-countdown-aria':'Offer countdown',
       'tile-fav':'Add to favourites','tile-buy-now':'Buy it now','tile-check-courses':'Check All the Courses',
       'badge-new':'New','badge-popular':'Popular','badge-trending':'Trending',
@@ -6344,7 +6539,7 @@
       'fwb-badge-2':'تدريب مجاني','fwb-title-2':'أتقن نكهة الأومامي، على حسابنا','fwb-desc-2':'وحدة تدريبية مجانية عبر الإنترنت مصممة للطهاة العاملين — تقنيات عملية يمكنك استخدامها في نوبتك الليلة.','fwb-cta-2':'ابدأ التعلم',
       'promo-title':'أكاديمية UFS: الصحة النفسية في المطابخ',
       'promo-desc':'توضح لك هذه السلسلة كيفية الاعتناء بنفسك وبفريقك لجعل المطبخ بيئة عمل أفضل للجميع.',
-      'promo-cta-primary':'استكشف جميع الدورات','promo-cta-secondary':'كيف تعمل الأكاديمية؟',
+      'promo-cta-primary':'اتصل بنا','promo-cta-secondary':'كيف تعمل الأكاديمية؟',
       'promo-disclaimer':'*نص إخلاء المسؤولية لحالات استخدام محددة','promo-countdown-aria':'العد التنازلي للعرض',
       'tile-fav':'إضافة إلى المفضلة','tile-buy-now':'اشترِ الآن','tile-check-courses':'تصفح جميع الدورات',
       'badge-new':'جديد','badge-popular':'الأكثر رواجًا','badge-trending':'رائج',
@@ -7039,20 +7234,19 @@
       document.getElementById('reg-email-display').textContent       = email;
       document.getElementById('reg-email-display-2').textContent     = email;
       document.getElementById('reg-login-email-display').textContent = email;
-      document.getElementById('reg-verify-email-display').textContent = email;
       document.getElementById('reg-otp-email-display').textContent   = email;
       document.getElementById('reg-step-email').style.display   = 'none';
       document.getElementById('signin-panel-body').scrollTop = 0;
 
-      // Verify/OTP copy — identical structure for both tabs, just swaps
-      // "email" for "mobile number" / "SMS" so a phone-initiated signup
-      // doesn't read like it's about to email a code to a phone number.
+      // OTP copy — identical structure for both tabs, just swaps "email"
+      // for "mobile number" / "SMS" so a phone-initiated signup doesn't
+      // read like it's about to email a code to a phone number.
       var isPhone = regActiveContactTab === 'phone';
-      document.getElementById('reg-verify-cta-btn').textContent = isPhone ? 'Verify your mobile number' : 'Verify your email';
       document.getElementById('reg-otp-title').textContent = isPhone ? 'Check your phone' : 'Check your email';
       document.getElementById('reg-otp-subtitle-suffix').textContent = isPhone
         ? ' via SMS - enter it below to verify your mobile number'
         : ' - enter it below to verify your email';
+      document.getElementById('reg-otp-change-label').textContent = isPhone ? 'mobile number' : 'email';
       document.getElementById('reg-otp-info-desc').textContent = isPhone
         ? 'Verifying your mobile number helps us keep your account secure and makes sure you never miss important order and account updates.'
         : 'Verifying your email helps us keep your account secure and makes sure you never miss important order and account updates.';
@@ -7062,9 +7256,9 @@
         document.getElementById('reg-login-password-input').focus();
       } else if (journey === 'verify' || journey === 'create') {
         // 'create' (new@user.com, or any phone submission) goes through
-        // the same verify/OTP steps as 'verify' — OTP is part of the
-        // standard create-account journey for both contact methods.
-        document.getElementById('reg-step-verify-email').style.display = '';
+        // the same OTP step as 'verify' — straight there now, no more
+        // separate "confirm, then send code" screen in between.
+        regGoToOtp();
       } else {
         document.getElementById('reg-step-account').style.display = '';
         regUpdateAccountContactField();
@@ -7075,37 +7269,29 @@
       document.getElementById('reg-step-account').style.display      = 'none';
       document.getElementById('reg-step-password').style.display     = 'none';
       document.getElementById('reg-step-login').style.display        = 'none';
-      document.getElementById('reg-step-verify-email').style.display = 'none';
       document.getElementById('reg-step-otp').style.display          = 'none';
-      document.getElementById('reg-step-forgot').style.display       = 'none';
       document.getElementById('reg-step-new-password').style.display = 'none';
       if (regOtpTimer) { clearInterval(regOtpTimer); regOtpTimer = null; }
       document.getElementById('reg-step-email').style.display    = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
     }
 
-    /* ── JOURNEY 6 — Forgot password ── */
+    /* ── JOURNEY 6 — Forgot password. Goes straight from Login to OTP now
+       — reg-step-forgot (its old "confirm, then send code" screen) is
+       gone, same merge as JOURNEY 3's regSubmitEmail(). "Not your email?
+       Change it" on the OTP step covers what that screen's own Edit link
+       used to. Always email-flavoured copy — this journey only ever
+       starts from the login step's own email, no phone tab involved. ── */
     function regGoToForgotPassword() {
-      var email = document.getElementById('reg-login-email-display').textContent;
-      document.getElementById('reg-forgot-email-display').textContent = email;
-      document.getElementById('reg-step-login').style.display  = 'none';
-      document.getElementById('reg-step-forgot').style.display = '';
-      document.getElementById('signin-panel-body').scrollTop = 0;
-    }
-
-    function regSendForgotCode() {
       regJourney = 'forgot-password';
-      var email = document.getElementById('reg-forgot-email-display').textContent;
+      var email = document.getElementById('reg-login-email-display').textContent;
       document.getElementById('reg-otp-email-display').textContent = email;
       document.getElementById('reg-otp-title').textContent = 'Check your email';
       document.getElementById('reg-otp-subtitle-suffix').textContent = ' - enter it below to reset your password';
+      document.getElementById('reg-otp-change-label').textContent = 'email';
       document.getElementById('reg-otp-info-desc').textContent = 'Verifying your email helps us confirm it’s really you before resetting your password.';
-      document.getElementById('reg-step-forgot').style.display = 'none';
-      document.getElementById('reg-step-otp').style.display = '';
-      document.getElementById('signin-panel-body').scrollTop = 0;
-      regOtpStart();
-      var first = document.querySelector('.reg-otp-box[data-otp-index="0"]');
-      if (first) first.focus();
+      document.getElementById('reg-step-login').style.display = 'none';
+      regGoToOtp();
     }
 
     function regCheckNewPassword() {
@@ -7180,7 +7366,6 @@
 
     /* ── JOURNEY 3 — Create an account via email verification ── */
     function regGoToOtp() {
-      document.getElementById('reg-step-verify-email').style.display = 'none';
       document.getElementById('reg-step-otp').style.display = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
       regOtpStart();
@@ -7286,7 +7471,7 @@
     var regBusinessSuggestions = [
       { name: 'My restaurant',      address: 'Via Roma 12',       city: 'Milano',   postal: '20121', dialCode: '+39', phone: '345 678 9012' },
       { name: 'La Trattoria Bella', address: 'Via Dante 8',       city: 'Torino',   postal: '10121', dialCode: '+39', phone: '347 221 5566' },
-      { name: 'Pizzeria Napoli',    address: '',                  city: 'Napoli',   postal: '80122', dialCode: '+39', phone: '333 998 4471' }, // address missing on file — see regShowBizCard()
+      { name: 'Pizzeria Napoli',    address: '',                  city: 'Napoli',   postal: '80122', dialCode: '+39', phone: '333 998 4471' }, // address missing on file — see regApplyBusinessRecord()
       { name: 'Osteria del Chef',   address: 'Piazza Garibaldi 3', city: 'Firenze', postal: '50123', dialCode: '+39', phone: '328 674 1290' },
       { name: 'Ristorante Milano',  address: 'Via Torino 21',     city: 'Milano',   postal: '20123', dialCode: '+39', phone: '351 887 3345' }
     ];
@@ -7305,17 +7490,37 @@
     // card still loads with whatever it does have, plus a note pointing at
     // reg-address-wrap, revealed here as the one editable field instead of
     // falling back to the fully-editable reg-extra-fields block.
-    function regShowBizCard(name, biz) {
-      document.getElementById('reg-extra-fields').classList.remove('is-visible');
-      document.getElementById('reg-biz-card-name').textContent    = name;
-      document.getElementById('reg-biz-card-address').textContent = [biz.address, biz.city, biz.postal].filter(Boolean).join(', ');
-      document.getElementById('reg-biz-card-phone').textContent   = biz.dialCode + ' ' + biz.phone;
-      document.getElementById('reg-biz-card').classList.add('is-visible');
-      regReplayCheckDraw();
+    // Only shows the read-only summary card when EVERY field is on file —
+    // a checkmark implies "everything's confirmed", which isn't true for
+    // a partial record. Anything less than complete (e.g. Pizzeria Napoli,
+    // no address) falls back to the real fields instead, pre-filled with
+    // whatever data exists, each one locked individually only if it
+    // actually has a value — whichever field(s) are genuinely missing
+    // stay editable so the profile can still be completed (that's also
+    // exactly what regValidateStep2()'s address-required check expects:
+    // reg-address-wrap visible + empty = blocks Continue until filled).
+    function regApplyBusinessRecord(name, biz) {
+      var isComplete = !!(biz.address && biz.city && biz.postal && biz.phone);
 
-      var missingAddress = !biz.address;
-      document.getElementById('reg-biz-card-missing-note').hidden = !missingAddress;
-      document.getElementById('reg-address-wrap').classList.toggle('is-visible', missingAddress);
+      if (isComplete) {
+        document.getElementById('reg-address-wrap').classList.remove('is-visible');
+        document.getElementById('reg-extra-fields').classList.remove('is-visible');
+        document.getElementById('reg-biz-card-name').textContent    = name;
+        document.getElementById('reg-biz-card-address').textContent = [biz.address, biz.city, biz.postal].filter(Boolean).join(', ');
+        document.getElementById('reg-biz-card-phone').textContent   = biz.dialCode + ' ' + biz.phone;
+        document.getElementById('reg-biz-card').classList.add('is-visible');
+        regReplayCheckDraw();
+        return;
+      }
+
+      document.getElementById('reg-biz-card').classList.remove('is-visible');
+      document.querySelector('.reg-biz-card-check').classList.remove('is-drawing');
+      document.getElementById('reg-address-wrap').classList.add('is-visible');
+      document.getElementById('reg-extra-fields').classList.add('is-visible');
+      document.getElementById('reg-address').disabled = !!biz.address;
+      document.getElementById('reg-city').disabled    = !!biz.city;
+      document.getElementById('reg-postal').disabled  = !!biz.postal;
+      document.getElementById('reg-phone').disabled   = !!biz.phone;
     }
 
     // Restarts the checkmark's draw animation every time it's called, even
@@ -7335,8 +7540,11 @@
       document.getElementById('reg-biz-card-name').textContent    = '';
       document.getElementById('reg-biz-card-address').textContent = '';
       document.getElementById('reg-biz-card-phone').textContent   = '';
-      document.getElementById('reg-biz-card-missing-note').hidden = true;
       document.getElementById('reg-address-wrap').classList.remove('is-visible');
+      document.getElementById('reg-extra-fields').classList.remove('is-visible');
+      ['reg-address', 'reg-city', 'reg-postal', 'reg-phone'].forEach(function(id) {
+        document.getElementById(id).disabled = false;
+      });
     }
 
     function regBusinessNameInput(value) {
@@ -7382,13 +7590,14 @@
       document.getElementById('reg-biz-suggest').classList.remove('is-open');
       document.getElementById('reg-biz-suggest').innerHTML = '';
       if (!biz) return;
-      // Picked from the list — read-only summary card, not editable fields.
+      // Picked from the list — pre-fill with whatever's on file either way;
+      // regApplyBusinessRecord() decides card vs. locked-but-visible fields.
       document.getElementById('reg-address').value    = biz.address;
       document.getElementById('reg-city').value       = biz.city;
       document.getElementById('reg-postal').value     = biz.postal;
       regPhoneCodeSetValue('reg-phone-code', biz.dialCode);
       document.getElementById('reg-phone').value      = biz.phone;
-      regShowBizCard(name, biz);
+      regApplyBusinessRecord(name, biz);
       document.getElementById('reg-business-type').focus();
       regValidateStep2();
     }
@@ -7438,8 +7647,12 @@
 
     function regValidateStep2() {
       // reg-terms (marketing consent, with its Email/Mobile channels) is
-      // optional — only age confirmation gates Continue here.
-      var ok = document.getElementById('reg-age').checked;
+      // optional — only age confirmation gates Continue here. Skipped
+      // when the summary card is showing (newsletter → "Finish my
+      // account" path) — reg-age is hidden there, already answered on the
+      // newsletter form and carried over by nlFinishAccount().
+      var summaryMode = document.getElementById('reg-account-summary-card').classList.contains('is-visible');
+      var ok = summaryMode || document.getElementById('reg-age').checked;
 
       // Whichever of email/mobile wasn't given in Step 1 is required here
       // — unlike most of this step's other fields, which stay optional.
@@ -7463,10 +7676,11 @@
         ok = ok && document.getElementById('reg-business').value.trim() !== '';
       }
 
-      // Business Address is revealed only when a selected business record
-      // is missing one on file (e.g. Pizzeria Napoli — see
-      // regShowBizCard()'s missingAddress check) — required once shown,
-      // same pattern as Business name above.
+      // Business Address is revealed whenever the selected/entered business
+      // record is incomplete (regApplyBusinessRecord()) or custom — still
+      // required once shown even if the input itself is disabled (a
+      // record that already has an address locks the field but its value
+      // is still readable/valid here), same pattern as Business name above.
       if (document.getElementById('reg-address-wrap').classList.contains('is-visible')) {
         ok = ok && document.getElementById('reg-address').value.trim() !== '';
       }
@@ -7685,10 +7899,8 @@
       document.getElementById('reg-step-password').style.display     = 'none';
       document.getElementById('reg-step-success').style.display      = 'none';
       document.getElementById('reg-step-login').style.display        = 'none';
-      document.getElementById('reg-step-verify-email').style.display = 'none';
       document.getElementById('reg-step-otp').style.display          = 'none';
       document.getElementById('reg-step-extra').style.display        = 'none';
-      document.getElementById('reg-step-forgot').style.display       = 'none';
       document.getElementById('reg-step-new-password').style.display = 'none';
       regJourney = null;
 
@@ -7836,23 +8048,88 @@
 
     function nlValidate() {
       var bizType = document.getElementById('nl-business-type').value;
-      // Job Title is optional — same rule as reg-job-title in the sign-up
-      // journey.
+      // Job Title and Mobile number are both optional — same rule as
+      // reg-job-title in the sign-up journey. Mobile only blocks Subscribe
+      // when it's non-empty AND malformed (see nlMobileIsValid()) — an
+      // empty optional field is never itself a validation failure. Age
+      // confirmation is required, same as reg-age in the sign-up form.
+      // Marketing consent stays required here too (pre-existing behaviour,
+      // unlike reg-terms which is optional in the sign-up form) — this is
+      // a newsletter subscription, so declining the communications it's
+      // for isn't a meaningful "subscribe".
       var ok = document.getElementById('nl-name').value.trim()
         && document.getElementById('nl-lastname').value.trim()
         && bizType
+        && nlMobileIsValid()
+        && document.getElementById('nl-age').checked
         && document.getElementById('nl-consent').checked;
       document.getElementById('nl-subscribe-btn').disabled = !ok;
     }
 
-    // Business type → reveals Job Title (any real business type, same as
-    // regBusinessTypeChange()). This form stops here — no Business name
-    // field to chain into.
+    // "Choose channel" — Email/Mobile under the marketing-consent checkbox.
+    // Same two-way sync + OR-logic as regTermsToggle()/regConsentChannelChange()
+    // in the sign-up form (see that pair's own comment for the reasoning),
+    // scoped to .nl-consent-channel so the two forms' identical-looking
+    // channel checkboxes never cross-toggle each other.
+    function nlTermsToggle() {
+      var checked = document.getElementById('nl-consent').checked;
+      document.querySelectorAll('.nl-consent-channel').forEach(function(cb) { cb.checked = checked; });
+      nlValidate();
+    }
+
+    function nlConsentChannelChange() {
+      var boxes = document.querySelectorAll('.nl-consent-channel');
+      var anyChecked = Array.prototype.some.call(boxes, function(cb) { return cb.checked; });
+      document.getElementById('nl-consent').checked = anyChecked;
+      nlValidate();
+    }
+
+    function nlToggleConsentChannels() {
+      var btn = document.getElementById('nl-consent-toggle');
+      var panel = document.getElementById('nl-consent-channels');
+      var opening = panel.hidden;
+      panel.hidden = !opening;
+      btn.classList.toggle('is-open', opening);
+      btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    }
+
+    // Business type → reveals Job Title + Mobile number together (any real
+    // business type, same as regBusinessTypeChange()). This form stops
+    // here — no Business name field to chain into.
     function nlBusinessTypeChange() {
       var type = document.getElementById('nl-business-type').value;
       var showJobTitle = (type !== '' && type !== 'none');
       document.getElementById('nl-job-title-wrap').classList.toggle('is-visible', showJobTitle);
+      document.getElementById('nl-mobile-wrap').classList.toggle('is-visible', showJobTitle);
       nlValidate();
+    }
+
+    // Mirrors regClearAccountContactError()/regValidateAccountContactFormat()
+    // for the one field here (no email/mobile tab split to branch on) —
+    // oninput clears any showing error and re-checks Subscribe live; onblur
+    // is where a genuinely malformed (non-empty) value actually gets flagged.
+    function nlClearMobileError() {
+      document.getElementById('nl-mobile').classList.remove('is-invalid');
+      document.getElementById('nl-mobile-hint').classList.remove('is-error');
+      document.getElementById('nl-mobile-hint').textContent = '';
+    }
+
+    function nlMobileIsValid() {
+      var val = document.getElementById('nl-mobile').value.trim();
+      if (!val) return true;
+      var country = regFindCountryByDial(document.getElementById('nl-mobile-code').value);
+      return regValidatePhone(val, country).valid;
+    }
+
+    function nlValidateMobileFormat() {
+      var input = document.getElementById('nl-mobile');
+      var hint  = document.getElementById('nl-mobile-hint');
+      var val = input.value.trim();
+      if (!val) { input.classList.remove('is-invalid'); hint.classList.remove('is-error'); hint.textContent = ''; return; }
+      var valid = nlMobileIsValid();
+      input.classList.toggle('is-invalid', !valid);
+      hint.classList.toggle('is-error', !valid);
+      hint.textContent = valid ? '' : 'Enter a valid mobile number for the selected country code.';
     }
 
     var nlSubmitTimeout = null;
@@ -7869,9 +8146,10 @@
     }
 
     function nlSetFieldsDisabled(v) {
-      ['nl-name', 'nl-lastname', 'nl-business-type', 'nl-job-title', 'nl-consent'].forEach(function(id) {
+      ['nl-name', 'nl-lastname', 'nl-business-type', 'nl-job-title', 'nl-mobile', 'nl-consent', 'nl-age'].forEach(function(id) {
         document.getElementById(id).disabled = v;
       });
+      document.querySelectorAll('.nl-consent-channel').forEach(function(cb) { cb.disabled = v; });
     }
 
     function nlSubmit() {
@@ -7912,14 +8190,19 @@
         document.getElementById(id).style.display = on ? 'none' : '';
       });
       document.getElementById('reg-account-summary-card').classList.toggle('is-visible', on);
-      // Marketing consent isn't asked again here — it was already offered
-      // on the newsletter form. Age confirmation (outside this group)
-      // still applies to every path and stays visible.
+      // The email chip above would otherwise duplicate the address the
+      // summary card now also shows — hide it here, same reasoning as the
+      // four fields above.
+      document.getElementById('reg-account-email-chip').style.display = on ? 'none' : '';
+      // Marketing consent AND age confirmation were both already answered
+      // on the newsletter form — neither is asked again here.
       document.getElementById('reg-consent-group').style.display = on ? 'none' : '';
+      document.getElementById('reg-age-row').style.display = on ? 'none' : '';
     }
 
-    function regPopulateAccountSummary(name, lastname, bizTypeLabel, jobTitleLabel) {
+    function regPopulateAccountSummary(name, lastname, bizTypeLabel, jobTitleLabel, email) {
       document.getElementById('reg-account-summary-name').textContent = (name + ' ' + lastname).trim();
+      document.getElementById('reg-account-summary-email').textContent = email;
       document.getElementById('reg-account-summary-business').textContent = [bizTypeLabel, jobTitleLabel].filter(Boolean).join(' · ');
     }
 
@@ -7936,7 +8219,10 @@
       // this data gets copied over below.
       var bizTypeLabel  = bizTypeSelect.selectedIndex  >= 0 ? bizTypeSelect.options[bizTypeSelect.selectedIndex].text   : '';
       var jobTitleLabel = jobTitleSelect.selectedIndex >= 0 ? jobTitleSelect.options[jobTitleSelect.selectedIndex].text : '';
-      var consent  = document.getElementById('nl-consent').checked;
+      var consent      = document.getElementById('nl-consent').checked;
+      var consentEmail = document.getElementById('nl-consent-email').checked;
+      var consentMobile = document.getElementById('nl-consent-mobile').checked;
+      var age          = document.getElementById('nl-age').checked;
 
       closeNewsletter();
       openSignIn();
@@ -7949,38 +8235,51 @@
       document.getElementById('reg-business-type').value = bizType;
       document.getElementById('reg-job-title').value     = jobTitle;
       document.getElementById('reg-terms').checked       = consent;
+      // Already answered on the newsletter form — carry the granular
+      // channel choice and age confirmation over too, same "don't re-ask
+      // what's already known" principle as every other field here.
+      document.getElementById('reg-consent-email').checked  = consentEmail;
+      document.getElementById('reg-consent-mobile').checked = consentMobile;
+      document.getElementById('reg-age').checked            = age;
       // Reveals Job Title for the pre-filled business type, and — since
       // reg-job-title is already set above — cascades straight through to
       // reveal Business name too (regBusinessTypeChange() re-checks both
       // fields' current values on every call, not just the one that
       // triggered it), same as picking them by hand in the sign-up form.
-      // Business name stays genuinely editable — nothing here pre-fills
-      // it — same as Mobile number below.
+      // Business name stays genuinely editable — nothing here pre-fills it.
       regBusinessTypeChange();
 
+      // Mobile number was optional on the newsletter form — carry it over
+      // only if they actually gave one; otherwise leave reg-account-mobile
+      // blank, same as if they'd never been asked.
+      var nlMobile = document.getElementById('nl-mobile').value.trim();
+      if (nlMobile) {
+        document.getElementById('reg-account-mobile').value = nlMobile;
+        regPhoneCodeSetValue('reg-account-mobile-code', document.getElementById('nl-mobile-code').value);
+      }
+
       // Already known from the newsletter form — no need to re-ask.
-      // Mobile number and Business name are the two fields still missing.
-      // These fields aren't shown until reg-step-account, reached below
-      // only after verify-email/OTP — pre-filling them now is safe since
-      // nothing renders them before then.
-      regPopulateAccountSummary(name, lastname, bizTypeLabel, jobTitleLabel);
+      // Business name is the one field still always missing. These fields
+      // aren't shown until reg-step-account, reached below only after
+      // verify-email/OTP — pre-filling them now is safe since nothing
+      // renders them before then.
+      regPopulateAccountSummary(name, lastname, bizTypeLabel, jobTitleLabel, email);
       regSetAccountSummaryMode(true);
 
-      // Same verify-email -> OTP steps as the regular create-account
-      // journey (regSubmitEmail()'s 'create' branch) instead of jumping
-      // straight to account details — the newsletter email still needs
-      // to be verified before the account is created.
+      // Same OTP step as the regular create-account journey
+      // (regSubmitEmail()'s 'create' branch) instead of jumping straight
+      // to account details — the newsletter email still needs to be
+      // verified before the account is created. Straight to OTP now, no
+      // separate confirmation screen in between (same merge as there).
       regJourney = 'create';
-      document.getElementById('reg-verify-email-display').textContent = email;
       document.getElementById('reg-otp-email-display').textContent    = email;
-      document.getElementById('reg-verify-cta-btn').textContent = 'Verify your email';
       document.getElementById('reg-otp-title').textContent = 'Check your email';
       document.getElementById('reg-otp-subtitle-suffix').textContent = ' - enter it below to verify your email';
+      document.getElementById('reg-otp-change-label').textContent = 'email';
       document.getElementById('reg-otp-info-desc').textContent = 'Verifying your email helps us keep your account secure and makes sure you never miss important order and account updates.';
 
       document.getElementById('reg-step-email').style.display        = 'none';
-      document.getElementById('reg-step-verify-email').style.display = '';
-      document.getElementById('signin-panel-body').scrollTop = 0;
+      regGoToOtp();
     }
 
     function nlResetFlow() {
@@ -7993,10 +8292,194 @@
       document.getElementById('nl-business-type').value = '';
       document.getElementById('nl-job-title').value      = '';
       document.getElementById('nl-job-title-wrap').classList.remove('is-visible');
+      document.getElementById('nl-mobile').value         = '';
+      document.getElementById('nl-mobile-wrap').classList.remove('is-visible');
+      regPhoneCodeSetValue('nl-mobile-code', '+1');
+      regPhoneCodeCloseAll();
+      document.getElementById('nl-mobile').classList.remove('is-invalid');
+      document.getElementById('nl-mobile-hint').textContent = '';
       document.getElementById('nl-consent').checked     = false;
+      document.querySelectorAll('.nl-consent-channel').forEach(function(cb) { cb.checked = false; });
+      document.getElementById('nl-consent-channels').hidden = true;
+      document.getElementById('nl-consent-toggle').classList.remove('is-open');
+      document.getElementById('nl-consent-toggle').setAttribute('aria-expanded', 'false');
+      document.getElementById('nl-age').checked = false;
       nlSetFieldsDisabled(false);
       nlResetSubmitButton();
       document.getElementById('nl-subscribe-btn').disabled = true;
+    }
+
+    /* ================================================================
+       CONTACT US — triggered from the promo banner (openContact()).
+       Step 1 mirrors the newsletter form's own field set/validation
+       (contactValidate() ~= nlValidate(), contactTermsToggle()/
+       contactConsentChannelChange()/contactToggleConsentChannels() ~=
+       their nl- equivalents) except Mobile number is always-visible and
+       required here rather than optional-and-tied-to-Business-type — see
+       the markup comment above contact-mobile-wrap for why. Step 2
+       (Business name + Country) is new — this form's own "extra module"
+       the newsletter form doesn't have.
+    ================================================================ */
+    function openContact() {
+      contactResetFlow();
+      document.getElementById('contact-backdrop').classList.add('is-open');
+      document.getElementById('contact-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('contact-panel-body').scrollTop = 0;
+    }
+
+    function closeContact() {
+      document.getElementById('contact-backdrop').classList.remove('is-open');
+      document.getElementById('contact-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
+    function contactValidate() {
+      var bizType = document.getElementById('contact-business-type').value;
+      // Job Title stays optional, same as everywhere else it appears.
+      // Mobile is required (not merely "valid if given") — see the
+      // markup comment above contact-mobile-wrap.
+      var ok = document.getElementById('contact-name').value.trim()
+        && document.getElementById('contact-lastname').value.trim()
+        && bizType
+        && contactMobileIsValid()
+        && document.getElementById('contact-age').checked
+        && document.getElementById('contact-consent').checked;
+      document.getElementById('contact-continue-btn').disabled = !ok;
+    }
+
+    function contactTermsToggle() {
+      var checked = document.getElementById('contact-consent').checked;
+      document.querySelectorAll('.contact-consent-channel').forEach(function(cb) { cb.checked = checked; });
+      contactValidate();
+    }
+
+    function contactConsentChannelChange() {
+      var boxes = document.querySelectorAll('.contact-consent-channel');
+      var anyChecked = Array.prototype.some.call(boxes, function(cb) { return cb.checked; });
+      document.getElementById('contact-consent').checked = anyChecked;
+      contactValidate();
+    }
+
+    function contactToggleConsentChannels() {
+      var btn = document.getElementById('contact-consent-toggle');
+      var panel = document.getElementById('contact-consent-channels');
+      var opening = panel.hidden;
+      panel.hidden = !opening;
+      btn.classList.toggle('is-open', opening);
+      btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
+    }
+
+    // Business type only reveals Job Title here — Mobile stays visible
+    // regardless (see contact-mobile-wrap's own comment).
+    function contactBusinessTypeChange() {
+      var type = document.getElementById('contact-business-type').value;
+      var showJobTitle = (type !== '' && type !== 'none');
+      document.getElementById('contact-job-title-wrap').classList.toggle('is-visible', showJobTitle);
+      contactValidate();
+    }
+
+    function contactClearMobileError() {
+      document.getElementById('contact-mobile').classList.remove('is-invalid');
+      document.getElementById('contact-mobile-hint').classList.remove('is-error');
+      document.getElementById('contact-mobile-hint').textContent = '';
+    }
+
+    function contactMobileIsValid() {
+      var val = document.getElementById('contact-mobile').value.trim();
+      if (!val) return false;
+      var country = regFindCountryByDial(document.getElementById('contact-mobile-code').value);
+      return regValidatePhone(val, country).valid;
+    }
+
+    function contactValidateMobileFormat() {
+      var input = document.getElementById('contact-mobile');
+      var hint  = document.getElementById('contact-mobile-hint');
+      var val = input.value.trim();
+      if (!val) { input.classList.remove('is-invalid'); hint.classList.remove('is-error'); hint.textContent = ''; return; }
+      var valid = contactMobileIsValid();
+      input.classList.toggle('is-invalid', !valid);
+      hint.classList.toggle('is-error', !valid);
+      hint.textContent = valid ? '' : 'Enter a valid mobile number for the selected country code.';
+    }
+
+    function contactContinueStep1() {
+      document.getElementById('contact-step-form').style.display    = 'none';
+      document.getElementById('contact-step-details').style.display = '';
+      document.getElementById('contact-panel-body').scrollTop = 0;
+    }
+
+    function contactValidateStep2() {
+      var ok = document.getElementById('contact-business-name').value.trim()
+        && document.getElementById('contact-country').value;
+      document.getElementById('contact-submit-btn').disabled = !ok;
+    }
+
+    var contactSubmitTimeout = null;
+
+    function contactResetSubmitButton() {
+      if (contactSubmitTimeout) { clearTimeout(contactSubmitTimeout); contactSubmitTimeout = null; }
+      var btn = document.getElementById('contact-submit-btn');
+      btn.classList.remove('is-loading');
+      var bar = document.getElementById('contact-submit-btn-bar');
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+      void bar.offsetWidth; // force reflow so the next fill re-triggers the transition
+      bar.style.transition = '';
+    }
+
+    function contactSetStep2FieldsDisabled(v) {
+      ['contact-business-name', 'contact-country'].forEach(function(id) {
+        document.getElementById(id).disabled = v;
+      });
+    }
+
+    function contactSubmit() {
+      var btn = document.getElementById('contact-submit-btn');
+      if (btn.disabled || btn.classList.contains('is-loading')) return;
+      btn.classList.add('is-loading');
+      btn.disabled = true;
+      contactSetStep2FieldsDisabled(true);
+      var bar = document.getElementById('contact-submit-btn-bar');
+      requestAnimationFrame(function() { bar.style.width = '100%'; });
+      contactSubmitTimeout = setTimeout(function() {
+        contactSubmitTimeout = null;
+        contactComplete();
+      }, 1000);
+    }
+
+    function contactComplete() {
+      document.getElementById('contact-step-details').style.display = 'none';
+      document.getElementById('contact-step-success').style.display = '';
+      document.getElementById('contact-panel-body').scrollTop = 0;
+    }
+
+    function contactResetFlow() {
+      document.getElementById('contact-step-form').style.display    = '';
+      document.getElementById('contact-step-details').style.display = 'none';
+      document.getElementById('contact-step-success').style.display = 'none';
+      document.getElementById('contact-name').value          = '';
+      document.getElementById('contact-lastname').value      = '';
+      document.getElementById('contact-mobile').value        = '';
+      regPhoneCodeSetValue('contact-mobile-code', '+1');
+      regPhoneCodeCloseAll();
+      document.getElementById('contact-mobile').classList.remove('is-invalid');
+      document.getElementById('contact-mobile-hint').textContent = '';
+      document.getElementById('contact-business-type').value = '';
+      document.getElementById('contact-job-title').value      = '';
+      document.getElementById('contact-job-title-wrap').classList.remove('is-visible');
+      document.getElementById('contact-consent').checked     = false;
+      document.querySelectorAll('.contact-consent-channel').forEach(function(cb) { cb.checked = false; });
+      document.getElementById('contact-consent-channels').hidden = true;
+      document.getElementById('contact-consent-toggle').classList.remove('is-open');
+      document.getElementById('contact-consent-toggle').setAttribute('aria-expanded', 'false');
+      document.getElementById('contact-age').checked = false;
+      document.getElementById('contact-continue-btn').disabled = true;
+      document.getElementById('contact-business-name').value = '';
+      document.getElementById('contact-country').value = '';
+      contactSetStep2FieldsDisabled(false);
+      contactResetSubmitButton();
+      document.getElementById('contact-submit-btn').disabled = true;
     }
 
     /* ================================================================
