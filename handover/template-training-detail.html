@@ -2292,7 +2292,7 @@
     }
     .reg-biz-suggest-item:hover { background: var(--color-mushroom-100); }
     .reg-biz-suggest-item + .reg-biz-suggest-item { border-top: 1px solid var(--color-mushroom-100); }
-    .reg-biz-suggest-item--add { color: var(--color-mushroom-700); font-style: italic; border-top: 1px solid var(--color-mushroom-300) !important; }
+    .reg-biz-suggest-item--add { color: var(--color-accessible-orange); font-style: italic; border-top: 1px solid var(--color-mushroom-300) !important; }
     .fi-select {
       appearance: none; -webkit-appearance: none;
       background-image: url('icons/arrow.svg'); background-repeat: no-repeat;
@@ -2358,17 +2358,13 @@
     .reg-biz-card-icon { width: var(--space-6); height: var(--space-6); flex-shrink: 0; margin-top: 1px; color: var(--color-brand-dark); }
     .reg-biz-card-name { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600; color: var(--color-brand-dark); }
     .reg-biz-card-address, .reg-biz-card-phone { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-squid-500); }
-    /* Flags a field missing from the picked record (e.g. Pizzeria Napoli
-       has no address on file) — sits in the card, pointing at the
-       reg-conditional-field revealed right below it. */
-    .reg-biz-card-missing-note { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-accessible-orange); font-weight: 600; margin-top: var(--space-1); }
     /* Checkmark "draw" — sequential with the card reveal (0.3s), not
        simultaneous: the 0.35s delay lets regExtraReveal settle first, then
        stroke-dashoffset animates the polyline's ~22px length down to 0.
        .reg-biz-card-check.is-drawing is toggled by JS on every
-       regShowBizCard() call (not just the class going from hidden→visible)
-       so re-selecting a different business replays the draw each time —
-       see regReplayCheckDraw(). */
+       regApplyBusinessRecord() call (not just the class going from
+       hidden→visible) so re-selecting a different business replays the
+       draw each time — see regReplayCheckDraw(). */
     .reg-biz-card-check { stroke-dasharray: 22; stroke-dashoffset: 22; }
     .reg-biz-card-check.is-drawing { animation: regBizCardCheckDraw 0.35s ease-out 0.3s forwards; }
     @keyframes regBizCardCheckDraw { to { stroke-dashoffset: 0; } }
@@ -5362,33 +5358,20 @@
         </button>
       </div>
 
-      <!-- JOURNEY 6 — Forgot password. Triggered from reg-step-login;
-           reuses reg-step-otp (email chip → send code → verify) and the
-           account-creation password step's strength-checklist pattern
-           (own ids below, since it needs independent state) rather than
-           inventing new UI for either. Ends by reusing reg-step-success
-           with its avatar hidden — this journey never collects a name. -->
-      <div id="reg-step-forgot" style="display:none">
-        <h2 class="signin-panel-title">Reset your password</h2>
-        <p class="reg-otp-subtitle">We will send a verification code to:</p>
-        <div class="reg-email-chip">
-          <span id="reg-forgot-email-display">email@email.com</span>
-          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
-        </div>
-        <button class="btn btn-primary" style="width:100%" onclick="regSendForgotCode()">Send verification code</button>
-      </div>
+      <!-- JOURNEY 6 — Forgot password. Triggered from reg-step-login; goes
+           straight to reg-step-otp now — no separate "confirm, then send
+           code" screen in between (same merge as regSubmitEmail() below) —
+           and reuses the account-creation password step's strength-
+           checklist pattern (own ids below, since it needs independent
+           state) rather than inventing new UI for either. Ends by reusing
+           reg-step-success with its avatar hidden — this journey never
+           collects a name. See regGoToForgotPassword(). -->
 
-      <!-- JOURNEY 3a — Create an account, email-verification variant (verification@user.com) -->
-      <div id="reg-step-verify-email" style="display:none">
-        <h2 class="signin-panel-title">Create an account</h2>
-        <div class="reg-email-chip">
-          <span id="reg-verify-email-display">email@email.com</span>
-          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
-        </div>
-        <button class="btn btn-primary" style="width:100%" id="reg-verify-cta-btn" onclick="regGoToOtp()">Verify your email</button>
-      </div>
-
-      <!-- JOURNEY 3b — OTP verification. Adapted from Figma node 5509:9791
+      <!-- JOURNEY 3 — OTP verification. Shown straight after Step 1
+           submission for the 'verify'/'create' journeys (both Email and
+           Mobile number tabs — see regSubmitEmail()) — no separate
+           "confirm, then send code" screen in between (same merge as
+           JOURNEY 6 above). Adapted from Figma node 5509:9791
            (mobile-registration OTP screen). Copy is set dynamically by
            regSubmitEmail() based on regActiveContactTab — email gets "sent
            to your email" / SMS gets "sent via SMS to your mobile number",
@@ -5536,17 +5519,18 @@
             <div class="reg-biz-suggest" id="reg-biz-suggest"></div>
           </div>
 
-          <!-- Shown instead of reg-extra-fields when a business is picked
-               FROM THE LIST (regSelectBusiness) — read-only summary, not
-               editable fields. Adding a new business not in the list
-               (regAddCustomBusiness) shows reg-extra-fields instead, same
-               as before this card existed. Figma node 2321:6516.
-               A record picked from the list can still be missing an
-               individual field (e.g. Pizzeria Napoli has no address on
-               file) — reg-biz-card-missing-note flags it inline and
-               reg-address-wrap (below) reveals just that one field as
-               editable, instead of falling back to the fully-editable
-               reg-extra-fields block. See regShowBizCard(). -->
+          <!-- Same reveal recipe as reg-biz-card in the newsletter/contact
+               forms — see regApplyBusinessRecord(). A business picked FROM
+               THE LIST (regSelectBusiness) shows this read-only summary
+               card only when every field is on file; anything less than
+               complete (e.g. Pizzeria Napoli, no address) falls back to
+               reg-address-wrap + reg-extra-fields below instead, pre-filled
+               with whatever data exists, each field locked individually
+               only if it actually has a value and red-bordered (.is-invalid)
+               if it doesn't — cleared as soon as that field is filled in.
+               Adding a new business not in the list (regAddCustomBusiness)
+               also uses those same two blocks, fully editable since nothing
+               is known. Figma node 2321:6516. -->
           <div class="reg-biz-card" id="reg-biz-card">
             <svg class="reg-biz-card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <polyline class="reg-biz-card-check" points="5 13 10 18 19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -5555,24 +5539,15 @@
               <div class="reg-biz-card-name" id="reg-biz-card-name"></div>
               <div class="reg-biz-card-address" id="reg-biz-card-address"></div>
               <div class="reg-biz-card-phone" id="reg-biz-card-phone"></div>
-              <div class="reg-biz-card-missing-note" id="reg-biz-card-missing-note" hidden>Address not on file — please add it below</div>
             </div>
           </div>
 
-          <!-- Individually-revealed Address field — same reveal recipe as
-               Job Title/Business name above (.reg-conditional-field), used
-               instead of the full reg-extra-fields block so picking a
-               business with a missing address doesn't also re-expose its
-               already-known city/postal/phone as editable. Shown either on
-               its own (business picked from list, address missing) or
-               together with reg-extra-fields (regAddCustomBusiness, where
-               nothing is known yet). -->
-          <div class="fi-wrap reg-conditional-field" id="reg-address-wrap"><label class="fi-label">Business Address</label><input class="fi-field" type="text" id="reg-address" placeholder="Please enter your address" autocomplete="address-line1" oninput="regValidateStep2()" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+          <div class="fi-wrap reg-conditional-field" id="reg-address-wrap"><label class="fi-label">Business Address</label><input class="fi-field" type="text" id="reg-address" placeholder="Please enter your address" autocomplete="address-line1" oninput="this.classList.remove('is-invalid'); regValidateStep2()" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
 
           <div class="reg-extra-fields" id="reg-extra-fields">
             <div class="fi-row">
-              <div class="fi-wrap"><label class="fi-label">City</label><input class="fi-field" type="text" id="reg-city" placeholder="Enter your city" autocomplete="address-level2" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
-              <div class="fi-wrap"><label class="fi-label">Postal code</label><input class="fi-field" type="text" id="reg-postal" placeholder="e.g. 20121" autocomplete="postal-code" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+              <div class="fi-wrap"><label class="fi-label">City</label><input class="fi-field" type="text" id="reg-city" placeholder="Enter your city" autocomplete="address-level2" oninput="this.classList.remove('is-invalid')" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
+              <div class="fi-wrap"><label class="fi-label">Postal code</label><input class="fi-field" type="text" id="reg-postal" placeholder="e.g. 20121" autocomplete="postal-code" oninput="this.classList.remove('is-invalid')" onkeydown="regStepEnter(event,'reg-account-btn')"/></div>
             </div>
             <div class="fi-wrap">
               <label class="fi-label">Business phone number</label>
@@ -5590,7 +5565,7 @@
                   </div>
                   <input type="hidden" id="reg-phone-code" value="+39"/>
                 </div>
-                <input class="fi-field fi-phone-number" type="tel" id="reg-phone" placeholder="e.g. 345 678 9012" autocomplete="tel-national" onkeydown="regStepEnter(event,'reg-account-btn')"/>
+                <input class="fi-field fi-phone-number" type="tel" id="reg-phone" placeholder="e.g. 345 678 9012" autocomplete="tel-national" oninput="this.classList.remove('is-invalid')" onkeydown="regStepEnter(event,'reg-account-btn')"/>
               </div>
             </div>
           </div>
@@ -7009,7 +6984,6 @@
       document.getElementById('reg-email-display').textContent       = email;
       document.getElementById('reg-email-display-2').textContent     = email;
       document.getElementById('reg-login-email-display').textContent = email;
-      document.getElementById('reg-verify-email-display').textContent = email;
       document.getElementById('reg-otp-email-display').textContent   = email;
       document.getElementById('reg-step-email').style.display   = 'none';
       document.getElementById('signin-panel-body').scrollTop = 0;
@@ -7018,7 +6992,6 @@
       // "email" for "mobile number" / "SMS" so a phone-initiated signup
       // doesn't read like it's about to email a code to a phone number.
       var isPhone = regActiveContactTab === 'phone';
-      document.getElementById('reg-verify-cta-btn').textContent = isPhone ? 'Verify your mobile number' : 'Verify your email';
       document.getElementById('reg-otp-title').textContent = isPhone ? 'Check your phone' : 'Check your email';
       document.getElementById('reg-otp-subtitle-suffix').textContent = isPhone
         ? ' via SMS - enter it below to verify your mobile number'
@@ -7034,7 +7007,9 @@
         // 'create' (new@user.com, or any phone submission) goes through
         // the same verify/OTP steps as 'verify' — OTP is part of the
         // standard create-account journey for both contact methods.
-        document.getElementById('reg-step-verify-email').style.display = '';
+        // Straight to OTP now, no separate "confirm, then send code"
+        // screen in between.
+        regGoToOtp();
       } else {
         document.getElementById('reg-step-account').style.display = '';
         regUpdateAccountContactField();
@@ -7045,32 +7020,24 @@
       document.getElementById('reg-step-account').style.display      = 'none';
       document.getElementById('reg-step-password').style.display     = 'none';
       document.getElementById('reg-step-login').style.display        = 'none';
-      document.getElementById('reg-step-verify-email').style.display = 'none';
       document.getElementById('reg-step-otp').style.display          = 'none';
-      document.getElementById('reg-step-forgot').style.display       = 'none';
       document.getElementById('reg-step-new-password').style.display = 'none';
       if (regOtpTimer) { clearInterval(regOtpTimer); regOtpTimer = null; }
       document.getElementById('reg-step-email').style.display    = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
     }
 
-    /* ── JOURNEY 6 — Forgot password ── */
+    /* ── JOURNEY 6 — Forgot password. Goes straight from Login to OTP now
+       — reg-step-forgot (its old "confirm, then send code" screen) is
+       gone, same merge as JOURNEY 3's regSubmitEmail(). ── */
     function regGoToForgotPassword() {
-      var email = document.getElementById('reg-login-email-display').textContent;
-      document.getElementById('reg-forgot-email-display').textContent = email;
-      document.getElementById('reg-step-login').style.display  = 'none';
-      document.getElementById('reg-step-forgot').style.display = '';
-      document.getElementById('signin-panel-body').scrollTop = 0;
-    }
-
-    function regSendForgotCode() {
       regJourney = 'forgot-password';
-      var email = document.getElementById('reg-forgot-email-display').textContent;
+      var email = document.getElementById('reg-login-email-display').textContent;
       document.getElementById('reg-otp-email-display').textContent = email;
       document.getElementById('reg-otp-title').textContent = 'Check your email';
       document.getElementById('reg-otp-subtitle-suffix').textContent = ' - enter it below to reset your password';
       document.getElementById('reg-otp-info-desc').textContent = 'Verifying your email helps us confirm it’s really you before resetting your password.';
-      document.getElementById('reg-step-forgot').style.display = 'none';
+      document.getElementById('reg-step-login').style.display = 'none';
       document.getElementById('reg-step-otp').style.display = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
       regOtpStart();
@@ -7150,7 +7117,6 @@
 
     /* ── JOURNEY 3 — Create an account via email verification ── */
     function regGoToOtp() {
-      document.getElementById('reg-step-verify-email').style.display = 'none';
       document.getElementById('reg-step-otp').style.display = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
       regOtpStart();
@@ -7256,7 +7222,7 @@
     var regBusinessSuggestions = [
       { name: 'My restaurant',      address: 'Via Roma 12',       city: 'Milano',   postal: '20121', dialCode: '+39', phone: '345 678 9012' },
       { name: 'La Trattoria Bella', address: 'Via Dante 8',       city: 'Torino',   postal: '10121', dialCode: '+39', phone: '347 221 5566' },
-      { name: 'Pizzeria Napoli',    address: '',                  city: 'Napoli',   postal: '80122', dialCode: '+39', phone: '333 998 4471' }, // address missing on file — see regShowBizCard()
+      { name: 'Pizzeria Napoli',    address: '',                  city: 'Napoli',   postal: '80122', dialCode: '+39', phone: '333 998 4471' }, // address missing on file — see regApplyBusinessRecord()
       { name: 'Osteria del Chef',   address: 'Piazza Garibaldi 3', city: 'Firenze', postal: '50123', dialCode: '+39', phone: '328 674 1290' },
       { name: 'Ristorante Milano',  address: 'Via Torino 21',     city: 'Milano',   postal: '20123', dialCode: '+39', phone: '351 887 3345' }
     ];
@@ -7269,27 +7235,51 @@
     // populated from an existing business record (regSelectBusiness), so
     // they load as-is but aren't editable. regAddCustomBusiness() and
     // clearing Business name both unlock them again for manual entry.
-    // Address/City/Postal/Business phone number: readonly+disabled once
-    // populated from an existing business record (regSelectBusiness), so
-    // they load as-is but aren't editable. regAddCustomBusiness() and
-    // clearing Business name both unlock them again for manual entry.
     //
-    // A record can still be missing an individual field even when picked
-    // from the list (e.g. Pizzeria Napoli has no address on file) — the
-    // card still loads with whatever it does have, plus a note pointing at
-    // reg-address-wrap, revealed here as the one editable field instead of
-    // falling back to the fully-editable reg-extra-fields block.
-    function regShowBizCard(name, biz) {
-      document.getElementById('reg-extra-fields').classList.remove('is-visible');
-      document.getElementById('reg-biz-card-name').textContent    = name;
-      document.getElementById('reg-biz-card-address').textContent = [biz.address, biz.city, biz.postal].filter(Boolean).join(', ');
-      document.getElementById('reg-biz-card-phone').textContent   = biz.dialCode + ' ' + biz.phone;
-      document.getElementById('reg-biz-card').classList.add('is-visible');
-      regReplayCheckDraw();
+    // Only shows the read-only summary card when EVERY field is on file —
+    // a checkmark implies "everything's confirmed", which isn't true for
+    // a partial record. Anything less than complete (e.g. Pizzeria Napoli,
+    // no address) falls back to the real fields instead, pre-filled with
+    // whatever data exists, each one locked individually only if it
+    // actually has a value — whichever field(s) are genuinely missing
+    // stay editable (and flagged with a red border, .is-invalid, cleared
+    // as soon as that field is filled in) so the profile can still be
+    // completed.
+    function regApplyBusinessRecord(name, biz) {
+      var isComplete = !!(biz.address && biz.city && biz.postal && biz.phone);
 
-      var missingAddress = !biz.address;
-      document.getElementById('reg-biz-card-missing-note').hidden = !missingAddress;
-      document.getElementById('reg-address-wrap').classList.toggle('is-visible', missingAddress);
+      if (isComplete) {
+        document.getElementById('reg-address-wrap').classList.remove('is-visible');
+        document.getElementById('reg-extra-fields').classList.remove('is-visible');
+        document.getElementById('reg-biz-card-name').textContent    = name;
+        document.getElementById('reg-biz-card-address').textContent = [biz.address, biz.city, biz.postal].filter(Boolean).join(', ');
+        document.getElementById('reg-biz-card-phone').textContent   = biz.dialCode + ' ' + biz.phone;
+        document.getElementById('reg-biz-card').classList.add('is-visible');
+        regReplayCheckDraw();
+        return;
+      }
+
+      document.getElementById('reg-biz-card').classList.remove('is-visible');
+      document.querySelector('.reg-biz-card-check').classList.remove('is-drawing');
+      document.getElementById('reg-address-wrap').classList.add('is-visible');
+      document.getElementById('reg-extra-fields').classList.add('is-visible');
+      document.getElementById('reg-address').disabled = !!biz.address;
+      document.getElementById('reg-city').disabled    = !!biz.city;
+      document.getElementById('reg-postal').disabled  = !!biz.postal;
+      document.getElementById('reg-phone').disabled   = !!biz.phone;
+      // Country code is part of the same phone field, on file just like
+      // the number itself — lock the trigger alongside reg-phone so it
+      // can't be reopened and changed independently of the locked number.
+      document.getElementById('reg-phone-code-trigger').disabled = !!biz.phone;
+
+      // Flag whichever of the record's own fields are genuinely missing
+      // with a red border, same .is-invalid look as every other required
+      // field — cleared as soon as that field gets a value or the card
+      // resets (regHideBizCard()).
+      document.getElementById('reg-address').classList.toggle('is-invalid', !biz.address);
+      document.getElementById('reg-city').classList.toggle('is-invalid', !biz.city);
+      document.getElementById('reg-postal').classList.toggle('is-invalid', !biz.postal);
+      document.getElementById('reg-phone').classList.toggle('is-invalid', !biz.phone);
     }
 
     // Restarts the checkmark's draw animation every time it's called, even
@@ -7309,8 +7299,14 @@
       document.getElementById('reg-biz-card-name').textContent    = '';
       document.getElementById('reg-biz-card-address').textContent = '';
       document.getElementById('reg-biz-card-phone').textContent   = '';
-      document.getElementById('reg-biz-card-missing-note').hidden = true;
       document.getElementById('reg-address-wrap').classList.remove('is-visible');
+      document.getElementById('reg-extra-fields').classList.remove('is-visible');
+      ['reg-address', 'reg-city', 'reg-postal', 'reg-phone', 'reg-phone-code-trigger'].forEach(function(id) {
+        document.getElementById(id).disabled = false;
+      });
+      ['reg-address', 'reg-city', 'reg-postal', 'reg-phone'].forEach(function(id) {
+        document.getElementById(id).classList.remove('is-invalid');
+      });
     }
 
     function regBusinessNameInput(value) {
@@ -7356,13 +7352,14 @@
       document.getElementById('reg-biz-suggest').classList.remove('is-open');
       document.getElementById('reg-biz-suggest').innerHTML = '';
       if (!biz) return;
-      // Picked from the list — read-only summary card, not editable fields.
+      // Picked from the list — pre-fill with whatever's on file either way;
+      // regApplyBusinessRecord() decides card vs. locked-but-visible fields.
       document.getElementById('reg-address').value    = biz.address;
       document.getElementById('reg-city').value       = biz.city;
       document.getElementById('reg-postal').value     = biz.postal;
       regPhoneCodeSetValue('reg-phone-code', biz.dialCode);
       document.getElementById('reg-phone').value      = biz.phone;
-      regShowBizCard(name, biz);
+      regApplyBusinessRecord(name, biz);
       document.getElementById('reg-business-type').focus();
       regValidateStep2();
     }
@@ -7437,10 +7434,11 @@
         ok = ok && document.getElementById('reg-business').value.trim() !== '';
       }
 
-      // Business Address is revealed only when a selected business record
-      // is missing one on file (e.g. Pizzeria Napoli — see
-      // regShowBizCard()'s missingAddress check) — required once shown,
-      // same pattern as Business name above.
+      // Business Address is revealed whenever the selected/entered business
+      // record is incomplete (regApplyBusinessRecord()) or custom — still
+      // required once shown even if the input itself is disabled (a
+      // record that already has an address locks the field but its value
+      // is still readable/valid here), same pattern as Business name above.
       if (document.getElementById('reg-address-wrap').classList.contains('is-visible')) {
         ok = ok && document.getElementById('reg-address').value.trim() !== '';
       }
@@ -7665,10 +7663,8 @@
       document.getElementById('reg-step-password').style.display     = 'none';
       document.getElementById('reg-step-success').style.display      = 'none';
       document.getElementById('reg-step-login').style.display        = 'none';
-      document.getElementById('reg-step-verify-email').style.display = 'none';
       document.getElementById('reg-step-otp').style.display          = 'none';
       document.getElementById('reg-step-extra').style.display        = 'none';
-      document.getElementById('reg-step-forgot').style.display       = 'none';
       document.getElementById('reg-step-new-password').style.display = 'none';
       regJourney = null;
 
@@ -8029,21 +8025,20 @@
       regPopulateAccountSummary(name, lastname, bizTypeLabel, jobTitleLabel);
       regSetAccountSummaryMode(true);
 
-      // Same verify-email -> OTP steps as the regular create-account
-      // journey (regSubmitEmail()'s 'create' branch) instead of jumping
-      // straight to account details — the newsletter email still needs
-      // to be verified before the account is created.
+      // Same verify -> OTP step as the regular create-account journey
+      // (regSubmitEmail()'s 'create' branch) instead of jumping straight
+      // to account details — the newsletter email still needs to be
+      // verified before the account is created. Straight to OTP now, no
+      // separate confirmation screen in between (same merge as
+      // regSubmitEmail()/regGoToForgotPassword()).
       regJourney = 'create';
-      document.getElementById('reg-verify-email-display').textContent = email;
       document.getElementById('reg-otp-email-display').textContent    = email;
-      document.getElementById('reg-verify-cta-btn').textContent = 'Verify your email';
       document.getElementById('reg-otp-title').textContent = 'Check your email';
       document.getElementById('reg-otp-subtitle-suffix').textContent = ' - enter it below to verify your email';
       document.getElementById('reg-otp-info-desc').textContent = 'Verifying your email helps us keep your account secure and makes sure you never miss important order and account updates.';
 
       document.getElementById('reg-step-email').style.display        = 'none';
-      document.getElementById('reg-step-verify-email').style.display = '';
-      document.getElementById('signin-panel-body').scrollTop = 0;
+      regGoToOtp();
     }
 
     function nlResetFlow() {

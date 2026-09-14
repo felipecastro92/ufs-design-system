@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Form Journeys — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE — ported verbatim from the shared spec-page shell
+       (see product-tip-spec.html and siblings) so this page matches
+       every other handover/*-spec.html document byte-for-byte on the
+       shell layer. Only the sidebar (persistent here, not an overlay
+       drawer — see below) and the content-specific components further
+       down are this page's own.
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+    h1, h2, h3, h4, h5 { font-family: var(--font-family); text-wrap: balance; }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 48px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 48px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 560px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR — persistent, not the overlay drawer every other spec
+       page uses. Deliberate deviation: this document has 9 triggers
+       across 2 journeys plus 2 password flows and 3 shared patterns —
+       a lot more to navigate than a single-component spec — so it stays
+       docked and visible instead of needing to be reopened between every
+       section. Same visual language (colour, type, hover/active states)
+       as the shared sidebar otherwise.
+    ═══════════════════════════════════════ */
+    .shell { display: flex; align-items: flex-start; }
+    .sidebar { width: 260px; flex-shrink: 0; background: var(--color-brand-dark); position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 14px 20px 4px; }
+    .sidebar-group-label:first-child { padding-top: 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .sidebar-link.sub { padding-left: 32px; font-size: 12.5px; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    @media (max-width: 1000px) {
+      .sidebar { display: none; }
+    }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .main-col { flex: 1; min-width: 0; }
+    .content { padding: 56px 48px 128px; max-width: 900px; }
+    .doc-section { margin: 0 0 72px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); margin-bottom: 28px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 40px 0 0; }
+
+    h3.trigger-title { font-size: 20px; font-weight: 800; color: var(--color-brand-dark); margin: 40px 0 4px; display: flex; align-items: baseline; gap: 10px; }
+    .trigger-num { font-family: var(--font-family-mono); font-size: 12px; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-weight: 700; }
+    .trigger-trigger { font-size: 13px; color: var(--color-mushroom-900); margin-bottom: 18px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+    .trigger-trigger b { color: var(--color-brand-dark); font-weight: 600; }
+    .opt-word { color: var(--color-mushroom-700); font-style: italic; }
+
+    /* ═══════════════════════════════════════
+       NOTICES — same info/warn/tip pattern as every other spec page
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin: 18px 0; font-size: 13px; line-height: 1.6; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+    .notice-tag { font-family: var(--font-family-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-mushroom-900); display: block; margin-bottom: 3px; }
+
+    /* ═══════════════════════════════════════
+       CARDS — same .ds-card shell as every other spec page
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); margin-bottom: 16px; overflow: hidden; }
+    .card-hd { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--color-mushroom-300); background: var(--color-mushroom-100); }
+    .card-hd .n { width: 24px; height: 24px; border-radius: 50%; background: var(--color-brand-dark); color: var(--color-salt); display: flex; align-items: center; justify-content: center; font-family: var(--font-family-mono); font-size: 11.5px; font-weight: 700; flex-shrink: 0; }
+    .card-hd h4 { font-size: 14.5px; font-weight: 700; color: var(--color-brand-dark); }
+    .card-hd .card-tag { margin-left: auto; font-family: var(--font-family-mono); font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-mushroom-900); border: 1px solid var(--color-mushroom-300); padding: 2px 8px; border-radius: 4px; background: var(--color-salt); }
+    .card-body { padding: 18px 20px 20px; }
+    .card-body > p { font-size: 13px; line-height: 1.6; color: var(--color-mushroom-900); margin-bottom: 14px; }
+
+    /* step strip */
+    .step-strip { display: flex; gap: 6px; margin: 18px 0 26px; overflow-x: auto; padding-bottom: 2px; }
+    .step-chip { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding: 7px 14px 7px 9px; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: 999px; font-size: 12px; color: var(--color-mushroom-900); }
+    .step-chip .n { width: 19px; height: 19px; border-radius: 50%; background: var(--color-mushroom-100); color: var(--color-mushroom-900); display: flex; align-items: center; justify-content: center; font-family: var(--font-family-mono); font-size: 10.5px; font-weight: 700; flex-shrink: 0; }
+    .step-chip.opt .n { background: color-mix(in srgb, var(--color-brand-primary) 15%, transparent); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; }
+    .step-arrow { color: var(--color-mushroom-700); align-self: center; font-size: 12px; }
+
+    /* field table */
+    table.fields { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    table.fields th { text-align: left; font-family: var(--font-family-mono); font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-mushroom-700); font-weight: 600; padding: 0 12px 8px 0; border-bottom: 1px solid var(--color-mushroom-300); }
+    table.fields td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--color-mushroom-300); vertical-align: top; color: var(--color-mushroom-900); }
+    table.fields tr:last-child td { border-bottom: none; }
+    table.fields td.field-name { color: var(--color-brand-dark); font-weight: 600; white-space: nowrap; }
+    .req { color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-weight: 700; }
+    .field-scroll { overflow-x: auto; }
+    .field-scroll table { min-width: 540px; }
+
+    /* delta list for variants */
+    ul.delta-list { list-style: none; margin: 16px 0; display: flex; flex-direction: column; gap: 12px; }
+    ul.delta-list > li { display: flex; gap: 14px; padding: 14px 16px; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); background: var(--color-salt); }
+    .delta-mark { width: 24px; height: 24px; border-radius: 6px; background: color-mix(in srgb, var(--color-brand-primary) 12%, transparent); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12.5px; flex-shrink: 0; }
+    .delta-body h5 { font-size: 13px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .delta-body p { font-size: 13px; color: var(--color-mushroom-900); line-height: 1.6; }
+
+    /* success card */
+    .success-card { display: flex; gap: 16px; align-items: flex-start; padding: 18px 20px; border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-success) 8%, var(--color-salt)); border: 1px solid color-mix(in srgb, var(--color-success) 30%, transparent); margin: 16px 0; }
+    .success-icon { width: 36px; height: 36px; border-radius: 50%; background: var(--color-success); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+    .success-icon svg { width: 17px; height: 17px; }
+    .success-body h5 { font-size: 14px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .success-body p { font-size: 13px; color: var(--color-mushroom-900); line-height: 1.6; }
+    .success-body p + p { margin-top: 4px; }
+
+    /* legend */
+    .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 24px; }
+    .legend-item { display: flex; gap: 10px; align-items: flex-start; padding: 11px 13px; border-radius: var(--radius-sm); background: var(--color-salt); border: 1px solid var(--color-mushroom-300); }
+    .legend-swatch { width: 13px; height: 13px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+    .legend-item p { font-size: 12px; color: var(--color-mushroom-900); line-height: 1.45; }
+    .legend-item b { color: var(--color-brand-dark); font-size: 12px; display: block; margin-bottom: 1px; }
+
+    /* appendix */
+    .pattern { margin: 40px 0 52px; scroll-margin-top: 32px; }
+    .pattern h4 { font-size: 18px; font-weight: 800; color: var(--color-brand-dark); margin-bottom: 6px; }
+    .pattern-used-in { font-size: 12px; color: var(--color-mushroom-700); margin-bottom: 14px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .pattern-used-in b { color: var(--color-mushroom-900); font-weight: 600; }
+    .usein-chip { font-size: 11px; background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); color: var(--color-mushroom-900); padding: 2px 9px; border-radius: 999px; }
+
+    .biz-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 14px 0; }
+    .biz-table th { text-align: left; font-family: var(--font-family-mono); font-size: 9.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-mushroom-700); padding: 0 12px 8px 0; border-bottom: 1px solid var(--color-mushroom-300); }
+    .biz-table td { padding: 8px 12px 8px 0; border-bottom: 1px solid var(--color-mushroom-300); color: var(--color-mushroom-900); font-variant-numeric: tabular-nums; }
+    .biz-table tr.incomplete td { color: var(--color-brand-dark); }
+    .biz-table tr.incomplete td.miss { color: var(--color-error); font-weight: 600; font-style: italic; }
+    .biz-table td.name { font-weight: 600; color: var(--color-brand-dark); }
+
+    .pw-rules { display: flex; gap: 10px; margin: 14px 0; flex-wrap: wrap; }
+    .pw-rule { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: color-mix(in srgb, var(--color-success) 10%, var(--color-salt)); border: 1px solid color-mix(in srgb, var(--color-success) 35%, transparent); font-size: 12.5px; color: var(--color-brand-dark); }
+    .pw-rule svg { width: 12px; height: 12px; color: var(--color-success); flex-shrink: 0; }
+
+    footer.doc-foot { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--color-mushroom-300); font-size: 12px; color: var(--color-mushroom-700); }
+
+    @media print { .sidebar { display: none; } }
+
+  </style>
+</head>
+<body>
+
+  <div class="shell">
+
+    <!-- Sidebar — persistent (see the CSS comment above for why this
+         page departs from the shared overlay-drawer pattern) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      </div>
+      <nav class="sidebar-nav">
+        <a href="index.html" class="sidebar-back">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+          Design System
+        </a>
+
+        <div class="sidebar-group-label">Overview</div>
+        <a href="#overview" class="sidebar-link" data-s="overview"><span class="nav-dot"></span> How to read this</a>
+
+        <div class="sidebar-group-label">Account Creation</div>
+        <a href="#ac-intro" class="sidebar-link" data-s="ac-intro"><span class="nav-dot"></span> Overview</a>
+        <a href="#ac-regular" class="sidebar-link sub" data-s="ac-regular">Regular account creation</a>
+        <a href="#ac-sample" class="sidebar-link sub" data-s="ac-sample">+ Additional information</a>
+        <a href="#ac-unlock" class="sidebar-link sub" data-s="ac-unlock">Unlock content</a>
+        <a href="#ac-fav" class="sidebar-link sub" data-s="ac-fav">Access functionality</a>
+
+        <div class="sidebar-group-label">Opt-In</div>
+        <a href="#oi-intro" class="sidebar-link" data-s="oi-intro"><span class="nav-dot"></span> Overview</a>
+        <a href="#oi-regular" class="sidebar-link sub" data-s="oi-regular">Regular subscription</a>
+        <a href="#oi-contact" class="sidebar-link sub" data-s="oi-contact">Contact us</a>
+        <a href="#oi-order" class="sidebar-link sub" data-s="oi-order">How to order</a>
+        <a href="#oi-download" class="sidebar-link sub" data-s="oi-download">Download</a>
+
+        <div class="sidebar-group-label">Password</div>
+        <a href="#forgot-password" class="sidebar-link" data-s="forgot-password"><span class="nav-dot"></span> Forgot password</a>
+        <a href="#change-password" class="sidebar-link" data-s="change-password"><span class="nav-dot"></span> Change password</a>
+
+        <div class="sidebar-group-label">Shared Patterns</div>
+        <a href="#pattern-business" class="sidebar-link sub" data-s="pattern-business">Business name field</a>
+        <a href="#pattern-password" class="sidebar-link sub" data-s="pattern-password">Password rules</a>
+        <a href="#pattern-otp" class="sidebar-link sub" data-s="pattern-otp">Verification code</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-text">Fields, copy, validation &amp; step order only.<br/>No visual/implementation spec.</div>
+      </div>
+    </aside>
+
+    <div class="main-col">
+
+      <!-- Doc topbar -->
+      <div class="doc-topbar">
+        <a href="index.html" class="doc-topbar-back">
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+          Design System
+        </a>
+        <span class="doc-topbar-sep">/</span>
+        <span class="doc-topbar-current">Form Journeys</span>
+      </div>
+
+      <!-- Doc header -->
+      <header class="doc-header">
+        <div class="doc-header-inner">
+          <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+          <div class="doc-header-vdiv"></div>
+          <div class="doc-header-body">
+            <div class="doc-header-eyebrow">Handover Spec</div>
+            <h1 class="doc-header-title">Form <span>Journeys</span></h1>
+            <p class="doc-header-desc">Every side-panel form in the design system reduces to two journeys — Account Creation and Opt-In — plus two standalone password flows. This document specifies the base version of each journey once, then lists exactly how each real trigger modifies it: which fields it adds or drops, what copy changes, and what happens once the form succeeds.</p>
+          </div>
+          <div class="doc-header-meta">
+            <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+            <div class="doc-header-meta-row"><span class="doc-header-meta-val">9 triggers across 6 template files</span></div>
+            <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">UX specification</span></div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content">
+
+        <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+        <section class="doc-section" id="overview">
+          <div class="section-breadcrumb">Overview</div>
+          <h2 class="section-title">How to read this</h2>
+          <p class="section-desc">Fields, copy, validation and step order for every account-creation, opt-in and password form in the system — no visual or implementation detail, that's specified separately per component.</p>
+
+          <div class="legend">
+            <div class="legend-item">
+              <div class="legend-swatch" style="background:var(--color-brand-primary);"></div>
+              <p><b>Placement rule</b>A layout rule that applies across a whole journey.</p>
+            </div>
+            <div class="legend-item">
+              <div class="legend-swatch" style="background:var(--color-gold);"></div>
+              <p><b>Known divergence</b>Where a trigger's real, current behaviour departs from the base journey.</p>
+            </div>
+            <div class="legend-item">
+              <div class="legend-swatch" style="background:var(--color-info);"></div>
+              <p><b>Cross-reference</b>Points to a pattern fully specified once, elsewhere in this document.</p>
+            </div>
+            <div class="legend-item">
+              <div class="legend-swatch" style="background:var(--color-success);"></div>
+              <p><b>Success state</b>What the panel shows once the journey completes.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═══════════════════════════════════════ ACCOUNT CREATION ═══════════════════════════════════════ -->
+        <section class="doc-section" id="ac-intro">
+          <div class="section-breadcrumb">Section 1 of 2</div>
+          <h2 class="section-title">Account Creation journey</h2>
+          <p class="section-desc">Turns an anonymous visitor into a signed-in account. Every trigger below opens the same five-step panel and ends the same way — signed in — but each is reached from a different place for a different reason, and three of them modify the base flow to fit that reason.</p>
+
+          <div class="notice notice--tip">
+            <span class="notice-icon">💡</span>
+            <div><span class="notice-tag">Placement rule</span>Country selector, multi-country scenarios only: when a form in this journey needs to ask which country the person is in, the Country dropdown sits immediately after Last name — before Mobile number, Business type, or anything else. No Account Creation trigger currently asks for country, so there's no live example of the rule inside this journey yet; when one is added, this is where it goes. See the Opt-in journey's Contact us variant for the rule in production.</div>
+          </div>
+
+          <div class="step-strip">
+            <div class="step-chip"><span class="n">1</span>Contact entry</div>
+            <span class="step-arrow">→</span>
+            <div class="step-chip"><span class="n">2</span>Verification code</div>
+            <span class="step-arrow">→</span>
+            <div class="step-chip"><span class="n">3</span>Account details</div>
+            <span class="step-arrow">→</span>
+            <div class="step-chip"><span class="n">4</span>Password</div>
+            <span class="step-arrow">→</span>
+            <div class="step-chip opt"><span class="n">5</span>Success</div>
+          </div>
+        </section>
+
+        <!-- REGULAR -->
+        <section class="doc-section" id="ac-regular" style="margin-bottom:8px;">
+          <h3 class="trigger-title"><span class="trigger-num">01</span>Regular account creation</h3>
+          <div class="trigger-trigger"><b>Trigger:</b> "Account" button, main header <span class="opt-word">— present on every page</span></div>
+          <p class="section-desc" style="margin-bottom:16px;">This is the base version of the journey — every other Account Creation trigger is a modification of what's described here.</p>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">1</span><h4>Contact entry</h4></div>
+            <div class="card-body">
+              <p>Two tabs, Email selected by default. The person fills in whichever one, then continues.</p>
+              <div class="field-scroll">
+              <table class="fields">
+                <tr><th>Field</th><th>Tab</th><th>Placeholder</th><th>Required</th></tr>
+                <tr><td class="field-name">Email</td><td>Email</td><td>you@example.com</td><td><span class="req">Required</span></td></tr>
+                <tr><td class="field-name">Mobile number</td><td>Mobile number</td><td>e.g. 555 123 4567</td><td><span class="req">Required</span></td></tr>
+              </table>
+              </div>
+              <p style="margin-top:14px; margin-bottom:0;">Both the Email and the Mobile number tab lead into the verification-code step — neither one skips it.</p>
+            </div>
+          </div>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">2</span><h4>Verification code</h4><span class="card-tag">Shared pattern ↓</span></div>
+            <div class="card-body">
+              <p style="margin-bottom:0;">A 6-digit code sent to whichever contact method was given in step 1. Full behaviour specified once — see <a href="#pattern-otp" style="color:var(--color-accessible-orange); --color-accessible-orange:#B03D00; font-weight:600;">Verification code</a> in the appendix.</p>
+            </div>
+          </div>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">3</span><h4>Account details</h4></div>
+            <div class="card-body">
+              <div class="field-scroll">
+              <table class="fields">
+                <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+                <tr><td class="field-name">First name</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Last name</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Email / Mobile number</td><td>Text / phone</td><td><span class="req">Required</span></td><td>Whichever contact method <i>wasn't</i> given in step 1</td></tr>
+                <tr><td class="field-name">Business type</td><td>Select</td><td><span class="req">Required</span></td><td>Hotel, Restaurant, School canteen, Catering, Other, "I don't have/work in a business"</td></tr>
+                <tr><td class="field-name">Job title</td><td>Select</td><td><span class="opt-word">Optional</span></td><td>Appears once a real Business type is chosen. Chef, Owner/Manager, Purchasing Manager, F&amp;B Director, Other</td></tr>
+                <tr><td class="field-name">Business name</td><td>Typeahead</td><td><span class="req">Required</span></td><td>Appears together with Job title. See <a href="#pattern-business" style="color:var(--color-accessible-orange); --color-accessible-orange:#B03D00; font-weight:600;">Business name field</a> in the appendix</td></tr>
+                <tr><td class="field-name">Marketing consent</td><td>Checkbox</td><td><span class="opt-word">Optional</span></td><td>Expands to per-channel Email/Mobile sub-choices</td></tr>
+                <tr><td class="field-name">Age confirmation</td><td>Checkbox</td><td><span class="req">Required</span></td><td>"I confirm that I am 18 years or older"</td></tr>
+              </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">4</span><h4>Password</h4><span class="card-tag">Shared pattern ↓</span></div>
+            <div class="card-body">
+              <p style="margin-bottom:0;">One field, no re-type/confirm field anywhere in this journey. Full rule set specified once — see <a href="#pattern-password" style="color:var(--color-accessible-orange); --color-accessible-orange:#B03D00; font-weight:600;">Password rules</a> in the appendix.</p>
+            </div>
+          </div>
+
+          <div class="success-card">
+            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg></div>
+            <div class="success-body">
+              <h5>Success — "Your account is ready, {First name}!"</h5>
+              <p>One button: <code>Continue</code>, which closes the panel. The person is now signed in.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SAMPLE -->
+        <section class="doc-section" id="ac-sample" style="margin-bottom:8px;">
+          <h3 class="trigger-title"><span class="trigger-num">02</span>Account creation with additional information</h3>
+          <div class="trigger-trigger"><b>Trigger:</b> "Request a sample" button, product page hero</div>
+          <p class="section-desc" style="margin-bottom:16px;">Same panel as Regular account creation, with the differences below — including one fewer step, since this trigger skips verification.</p>
+
+          <ul class="delta-list">
+            <li>
+              <div class="delta-mark">1</div>
+              <div class="delta-body">
+                <h5>Step 1 heading changes</h5>
+                <p>Reads <code>Sign in or Create an account to Request Sample</code> instead of the generic heading — and if the person is already signed in, the whole panel is skipped and they land directly on the consulting-needs questions below.</p>
+              </div>
+            </li>
+            <li>
+              <div class="delta-mark">2</div>
+              <div class="delta-body">
+                <h5>An extra step is inserted after Password: consulting needs</h5>
+                <p>Before Success, a "Tell us about your consulting needs" step collects:</p>
+                <div class="field-scroll" style="margin-top:10px;">
+                <table class="fields">
+                  <tr><th>Field</th><th>Type</th><th>Required</th></tr>
+                  <tr><td class="field-name">Type of support wanted</td><td>Checkbox group (choose any)</td><td><span class="req">At least one</span></td></tr>
+                  <tr><td class="field-name">— "Other", if checked</td><td>Text</td><td><span class="req">Required</span></td></tr>
+                  <tr><td class="field-name">Why these options, and the location's specific need</td><td>Long text</td><td><span class="req">Required</span></td></tr>
+                  <tr><td class="field-name">Menu dishes to develop/customise sauces for</td><td>Long text</td><td><span class="req">Required</span></td></tr>
+                  <tr><td class="field-name">What a good outcome from the session looks like</td><td>Long text</td><td><span class="req">Required</span></td></tr>
+                </table>
+                </div>
+                <p style="margin-top:10px;">Checkbox options: development of new preparations; developing new sauces; customising sauces for dishes already on the menu; serving/presentation ideas for street food or dine-in; adapting preparations for large volumes, events or delivery; other. Button: <code>Order sample</code>.</p>
+              </div>
+            </li>
+            <li>
+              <div class="delta-mark">3</div>
+              <div class="delta-body">
+                <h5>Success copy is shorter</h5>
+                <p>"You've successfully requested the sample" — no description line underneath, unlike the base journey's success screen.</p>
+              </div>
+            </li>
+          </ul>
+
+          <div class="notice notice--warn">
+            <span class="notice-icon">⚠️</span>
+            <div><span class="notice-tag">Known divergence</span>On this trigger, account registration skips the verification-code step entirely — for both Email and Mobile number. Whichever contact method was given goes straight to Account details, unverified. Every other Account Creation trigger verifies the contact method with a code first.</div>
+          </div>
+        </section>
+
+        <!-- UNLOCK -->
+        <section class="doc-section" id="ac-unlock" style="margin-bottom:8px;">
+          <h3 class="trigger-title"><span class="trigger-num">03</span>Account creation to unlock content</h3>
+          <div class="trigger-trigger"><b>Trigger:</b> "Start Training Now" (course hero) <span class="opt-word">or</span> any locked video's play button</div>
+          <p class="section-desc" style="margin-bottom:16px;">Identical to Regular account creation start to finish — same heading, same fields, same copy. The only difference is what happens after Success.</p>
+
+          <ul class="delta-list">
+            <li>
+              <div class="delta-mark">1</div>
+              <div class="delta-body">
+                <h5>Every locked module unlocks at once</h5>
+                <p>The moment sign-in completes, all locked videos on the page unlock together — not just the one the person clicked — and both the hero and sticky "Start Training Now" buttons disappear, since there's nothing left to unlock. The person clicks the module again to actually play it; nothing auto-plays.</p>
+              </div>
+            </li>
+          </ul>
+
+          <div class="notice notice--warn">
+            <span class="notice-icon">⚠️</span>
+            <div><span class="notice-tag">Known divergence</span>This "unlock everything at once" behaviour is specific to this trigger. Compare with Access functionality below, where only the single item the person acted on completes automatically.</div>
+          </div>
+        </section>
+
+        <!-- FAV -->
+        <section class="doc-section" id="ac-fav">
+          <h3 class="trigger-title"><span class="trigger-num">04</span>Account creation to access functionality</h3>
+          <div class="trigger-trigger"><b>Trigger:</b> Favourite (heart) button, recipe hero</div>
+          <p class="section-desc" style="margin-bottom:16px;">Same five steps as Regular account creation, with the differences below.</p>
+
+          <ul class="delta-list">
+            <li>
+              <div class="delta-mark">1</div>
+              <div class="delta-body">
+                <h5>Step 1 heading and description change</h5>
+                <p>Heading: <code>Sign up or Log in to create your own personal recipe book.</code> A description appears underneath, which the generic entry point doesn't show: <code>Join over 1 million chefs already getting inspired.</code></p>
+              </div>
+            </li>
+            <li>
+              <div class="delta-mark">2</div>
+              <div class="delta-body">
+                <h5>The favourite completes itself</h5>
+                <p>Once sign-in finishes — by creating an account <i>or</i> by logging in — the recipe the person originally tried to favourite is favourited automatically. They never have to click the heart a second time.</p>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <div class="section-rule" style="margin-bottom:48px;"></div>
+
+        <!-- ═══════════════════════════════════════ OPT-IN ═══════════════════════════════════════ -->
+        <section class="doc-section" id="oi-intro">
+          <div class="section-breadcrumb">Section 2 of 2</div>
+          <h2 class="section-title">Opt-In journey</h2>
+          <p class="section-desc">Captures contact details and marketing consent without necessarily creating an account. Shorter than Account Creation — no password, no verification code — and, unlike that journey, it's the one place where account creation can be reached <i>from</i> it, as an explicit next step, rather than the other way around.</p>
+
+          <div class="notice notice--tip">
+            <span class="notice-icon">💡</span>
+            <div><span class="notice-tag">Placement rule</span>Country selector, multi-country scenarios only: same rule as Account Creation — the Country dropdown sits immediately after Last name, before any other field. The Contact us variant below is the one live example of this in the system today.</div>
+          </div>
+
+          <div class="step-strip">
+            <div class="step-chip"><span class="n">1</span>Details form</div>
+            <span class="step-arrow">→</span>
+            <div class="step-chip opt"><span class="n">2</span>Success</div>
+          </div>
+        </section>
+
+        <!-- NEWSLETTER -->
+        <section class="doc-section" id="oi-regular" style="margin-bottom:8px;">
+          <h3 class="trigger-title"><span class="trigger-num">01</span>Regular opt-in subscription</h3>
+          <div class="trigger-trigger"><b>Trigger:</b> Newsletter band, footer <span class="opt-word">— present on every page</span></div>
+          <p class="section-desc" style="margin-bottom:16px;">Base version of the journey. A one-field email capture in the footer opens the full panel with that email already filled in.</p>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">1</span><h4>Details form — "Join our newsletter"</h4></div>
+            <div class="card-body">
+              <div class="field-scroll">
+              <table class="fields">
+                <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+                <tr><td class="field-name">Email</td><td>Chip</td><td><span class="req">Required</span></td><td>Pre-filled from the footer capture; editable</td></tr>
+                <tr><td class="field-name">Name</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Lastname</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Business type</td><td>Select</td><td><span class="req">Required</span></td><td>Same 6 options as Account Creation</td></tr>
+                <tr><td class="field-name">Job title</td><td>Select</td><td><span class="opt-word">Optional</span></td><td>Appears with Business type</td></tr>
+                <tr><td class="field-name">Mobile number</td><td>Phone</td><td><span class="opt-word">Optional</span></td><td>Appears together with Job title; blank is valid, only a malformed number blocks Subscribe</td></tr>
+                <tr><td class="field-name">Marketing consent</td><td>Checkbox</td><td><span class="req">Required</span></td><td>Required here — unlike its optional counterpart in Account Creation</td></tr>
+                <tr><td class="field-name">Age confirmation</td><td>Checkbox</td><td><span class="req">Required</span></td><td>—</td></tr>
+              </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="success-card">
+            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg></div>
+            <div class="success-body">
+              <h5>Success — "You're subscribed, {Name}!"</h5>
+              <p>"Unlock the best inspiration, loyalty rewards and professional training by finalising your account." A 4-item benefits list, then one button: <code>Continue account creation</code>.</p>
+            </div>
+          </div>
+
+          <div class="notice notice--info">
+            <span class="notice-icon">ℹ️</span>
+            <div><span class="notice-tag">Bridges to Account Creation</span><code>Continue account creation</code> carries every field just given straight into the <a href="#ac-intro" style="color:var(--color-brand-dark); font-weight:600; text-decoration:underline;">Account Creation journey</a>, skips its Contact entry step entirely, and goes straight to Verification code. Once that succeeds, Account details opens in a read-only summary mode: Name, Business type, Job title, Email and the consent/age checkboxes are all shown as a single locked summary instead of editable fields, since they were just answered here. Only Business name (and the address fields it can reveal) stays editable, before Password.</div>
+          </div>
+        </section>
+
+        <!-- CONTACT US -->
+        <section class="doc-section" id="oi-contact" style="margin-bottom:8px;">
+          <h3 class="trigger-title"><span class="trigger-num">02</span>Contact us — Opt-in + Business information</h3>
+          <div class="trigger-trigger"><b>Trigger:</b> "Contact us" button, promo banner on the home page</div>
+          <p class="section-desc" style="margin-bottom:16px;">The only Opt-in variant with a Business name field — becomes a genuine two-step form because of it.</p>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">1</span><h4>Details form — "Contact us"</h4></div>
+            <div class="card-body">
+              <p>"Simply fill out your details below and we'll call you back. (8am – 4pm)."</p>
+              <div class="field-scroll">
+              <table class="fields">
+                <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+                <tr><td class="field-name">Email</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Name</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Lastname</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr style="background:color-mix(in srgb, var(--color-brand-primary) 8%, transparent);"><td class="field-name">Country</td><td>Select</td><td><span class="req">Required</span></td><td>Maldives, Seychelles — placement rule applies, see above</td></tr>
+                <tr><td class="field-name">Mobile number</td><td>Phone</td><td><span class="req">Required</span></td><td>Always visible and mandatory here — this is a callback request, the phone number is the point</td></tr>
+                <tr><td class="field-name">Business type</td><td>Select</td><td><span class="req">Required</span></td><td>Same 6 options</td></tr>
+                <tr><td class="field-name">Job title</td><td>Select</td><td><span class="opt-word">Optional</span></td><td>Appears with Business type</td></tr>
+                <tr><td class="field-name">Marketing consent</td><td>Checkbox</td><td><span class="opt-word">Optional</span></td><td>—</td></tr>
+                <tr><td class="field-name">Age confirmation</td><td>Checkbox</td><td><span class="req">Required</span></td><td>—</td></tr>
+              </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">2</span><h4>Business information</h4><span class="card-tag">Shared pattern ↓</span></div>
+            <div class="card-body">
+              <p style="margin-bottom:0;">"Please provide your business information." One field: Business name. Identical behaviour to Account Creation's Business name field — see <a href="#pattern-business" style="color:var(--color-accessible-orange); --color-accessible-orange:#B03D00; font-weight:600;">Business name field</a> in the appendix.</p>
+            </div>
+          </div>
+
+          <div class="success-card">
+            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg></div>
+            <div class="success-body">
+              <h5>Success — "Thanks for contacting us"</h5>
+              <p>"We'll come back to you as soon as possible." One button: <code>Continue</code>.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- HOW TO ORDER -->
+        <section class="doc-section" id="oi-order" style="margin-bottom:8px;">
+          <h3 class="trigger-title"><span class="trigger-num">03</span>How to order — Opt-in + Business information</h3>
+          <div class="trigger-trigger"><b>Trigger:</b> "How to order" button, product page hero</div>
+          <p class="section-desc" style="margin-bottom:16px;">A separate real-world entry point into the exact same panel as Contact us — listed here in its own right for the same reason Account Creation lists 4 separate triggers even though most share one underlying flow.</p>
+
+          <div class="notice notice--info">
+            <span class="notice-icon">ℹ️</span>
+            <div><span class="notice-tag">Identical to Contact us</span>Byte-for-byte the same panel — same fields, same two steps, same success copy ("Thanks for contacting us"). The only difference is where it's triggered from: the product page's "How to order" button instead of the home page's promo banner. See <a href="#oi-contact" style="color:var(--color-brand-dark); font-weight:600; text-decoration:underline;">Contact us</a> above for the full field-by-field spec.</div>
+          </div>
+        </section>
+
+        <!-- DOWNLOAD -->
+        <section class="doc-section" id="oi-download">
+          <h3 class="trigger-title"><span class="trigger-num">04</span>Download — Opt-in + access to file</h3>
+          <div class="trigger-trigger"><b>Trigger:</b> "Download brochure" link, About Us page</div>
+          <p class="section-desc" style="margin-bottom:16px;">Same shape as Regular opt-in subscription (no Business name, no Country), with a file handed over on success instead of a benefits pitch.</p>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">1</span><h4>Details form — "Download brochure"</h4></div>
+            <div class="card-body">
+              <p>"Tell us a bit about yourself and we'll get your brochure ready."</p>
+              <div class="field-scroll">
+              <table class="fields">
+                <tr><th>Field</th><th>Type</th><th>Required</th><th>Notes</th></tr>
+                <tr><td class="field-name">Email</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Name</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Lastname</td><td>Text</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Business type</td><td>Select</td><td><span class="req">Required</span></td><td>Same 6 options</td></tr>
+                <tr><td class="field-name">Job title</td><td>Select</td><td><span class="opt-word">Optional</span></td><td>Appears with Business type</td></tr>
+                <tr><td class="field-name">Mobile number</td><td>Phone</td><td><span class="opt-word">Optional</span></td><td>Appears with Job title</td></tr>
+                <tr><td class="field-name">Marketing consent</td><td>Checkbox</td><td><span class="req">Required</span></td><td>—</td></tr>
+                <tr><td class="field-name">Age confirmation</td><td>Checkbox</td><td><span class="req">Required</span></td><td>—</td></tr>
+              </table>
+              </div>
+              <p style="margin-top:14px; margin-bottom:0;">Button reads <code>Continue</code>, not "Submit" or "Subscribe."</p>
+            </div>
+          </div>
+
+          <div class="success-card">
+            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg></div>
+            <div class="success-body">
+              <h5>Success — "Thank you, {Name}!"</h5>
+              <p>"You can download your brochure now." Button: <code>Download "The Art of Plating"</code> — fills while downloading, then reads <code>Downloaded</code>.</p>
+            </div>
+          </div>
+
+          <div class="notice notice--warn">
+            <span class="notice-icon">⚠️</span>
+            <div><span class="notice-tag">Known behaviour</span>Repeat visits skip the form. Once the file has been downloaded once in the current browser session, clicking "Download brochure" again doesn't reopen the panel at all — the link itself briefly reads "Downloading…" then "Downloaded" and hands over the file directly, since the person's details are already on hand. A page refresh resets this and the form is asked again.</div>
+          </div>
+        </section>
+
+        <div class="section-rule" style="margin-bottom:48px;"></div>
+
+        <!-- ═══════════════════════════════════════ PASSWORD ═══════════════════════════════════════ -->
+        <section class="doc-section" id="forgot-password">
+          <div class="section-breadcrumb">Standalone</div>
+          <h2 class="section-title">Forgot password</h2>
+          <p class="section-desc"><b style="color:var(--color-brand-dark);">Trigger:</b> "Forgot password?" link, shown on the Login step (reached by entering an email or mobile number tied to an existing account).</p>
+
+          <div class="step-strip">
+            <div class="step-chip"><span class="n">1</span>Verification code</div>
+            <span class="step-arrow">→</span>
+            <div class="step-chip"><span class="n">2</span>New password</div>
+            <span class="step-arrow">→</span>
+            <div class="step-chip opt"><span class="n">3</span>Success</div>
+          </div>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">1</span><h4>Verification code</h4><span class="card-tag">Shared pattern ↓</span></div>
+            <div class="card-body">
+              <p style="margin-bottom:0;">Same 6-digit code step as Account Creation, sent the moment "Forgot password?" is clicked — there's no separate "send me a code" screen first. Copy is reset-flavoured: "…enter it below to reset your password." Full behaviour under <a href="#pattern-otp" style="color:var(--color-accessible-orange); --color-accessible-orange:#B03D00; font-weight:600;">Verification code</a> in the appendix.</p>
+            </div>
+          </div>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">2</span><h4>New password — "Set a new password"</h4><span class="card-tag">Shared pattern ↓</span></div>
+            <div class="card-body">
+              <p style="margin-bottom:0;">One field, same 3-rule checklist as everywhere else in the system — see <a href="#pattern-password" style="color:var(--color-accessible-orange); --color-accessible-orange:#B03D00; font-weight:600;">Password rules</a>. No confirm/re-type field. Button: <code>Reset password</code>.</p>
+            </div>
+          </div>
+
+          <div class="success-card">
+            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg></div>
+            <div class="success-body">
+              <h5>Success — "Your password has been updated"</h5>
+              <p>No name in the title and no avatar icon on this success screen — this journey never asks for a name, unlike Account Creation's identical-looking success step.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="doc-section" id="change-password">
+          <div class="section-breadcrumb">Standalone</div>
+          <h2 class="section-title">Change password</h2>
+          <p class="section-desc"><b style="color:var(--color-brand-dark);">Trigger:</b> "Change password" button, Account Security section, Profile Details page.</p>
+
+          <div class="step-strip">
+            <div class="step-chip"><span class="n">1</span>New password</div>
+            <span class="step-arrow">→</span>
+            <div class="step-chip opt"><span class="n">2</span>Success</div>
+          </div>
+
+          <div class="ds-card">
+            <div class="card-hd"><span class="n">1</span><h4>New password — "Change your password"</h4><span class="card-tag">Shared pattern ↓</span></div>
+            <div class="card-body">
+              <p style="margin-bottom:0;">"Enter a new password to enhance your account security. Ensure it is strong and unique." One field, same 3-rule checklist — see <a href="#pattern-password" style="color:var(--color-accessible-orange); --color-accessible-orange:#B03D00; font-weight:600;">Password rules</a>. No Current password field, no confirm field. Button: <code>Save password</code>.</p>
+            </div>
+          </div>
+
+          <div class="success-card">
+            <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg></div>
+            <div class="success-body">
+              <h5>Success — "Your password has been changed"</h5>
+              <p>"You can now logout and login with your new password." Button: <code>Continue</code>.</p>
+            </div>
+          </div>
+
+          <div class="notice notice--warn">
+            <span class="notice-icon">⚠️</span>
+            <div><span class="notice-tag">Side effect</span>Once this succeeds, the "Last updated 2 months ago" note next to the Change password button (Account Security section) refreshes to <code>Just updated</code>.</div>
+          </div>
+        </section>
+
+        <div class="section-rule" style="margin-bottom:48px;"></div>
+
+        <!-- ═══════════════════════════════════════ SHARED PATTERNS ═══════════════════════════════════════ -->
+        <section class="doc-section" id="pattern-business" style="margin-bottom:8px;">
+          <div class="section-breadcrumb">Shared Patterns</div>
+          <h2 class="section-title" style="font-size:24px;">Business name field</h2>
+          <div class="pattern-used-in" style="margin-top:6px;"><b>Used in:</b> <span class="usein-chip">Account Creation — all 4 triggers</span><span class="usein-chip">Opt-in — Contact us, How to order</span></div>
+          <p class="section-desc">A typeahead field. Typing filters a list of known businesses by name; the list always ends with an <code>Add "{typed text}"</code> option to register a business that isn't on file.</p>
+
+          <table class="biz-table">
+            <tr><th>Business</th><th>Address</th><th>City</th><th>Postal</th><th>Phone</th></tr>
+            <tr><td class="name">My restaurant</td><td>Via Roma 12</td><td>Milano</td><td>20121</td><td>+39 345 678 9012</td></tr>
+            <tr><td class="name">La Trattoria Bella</td><td>Via Dante 8</td><td>Torino</td><td>10121</td><td>+39 347 221 5566</td></tr>
+            <tr class="incomplete"><td class="name">Pizzeria Napoli</td><td class="miss">— not on file</td><td>Napoli</td><td>80122</td><td>+39 333 998 4471</td></tr>
+            <tr><td class="name">Osteria del Chef</td><td>Piazza Garibaldi 3</td><td>Firenze</td><td>50123</td><td>+39 328 674 1290</td></tr>
+            <tr><td class="name">Ristorante Milano</td><td>Via Torino 21</td><td>Milano</td><td>20123</td><td>+39 351 887 3345</td></tr>
+          </table>
+
+          <ul class="delta-list" style="margin-top:14px;">
+            <li>
+              <div class="delta-mark" style="background:color-mix(in srgb, var(--color-success) 15%, transparent); color:var(--color-success);">✓</div>
+              <div class="delta-body">
+                <h5>Picking a complete record</h5>
+                <p>Shows a read-only summary card — name, address line, phone — instead of separate fields. Nothing left to fill in.</p>
+              </div>
+            </li>
+            <li>
+              <div class="delta-mark" style="background:color-mix(in srgb, var(--color-error) 12%, transparent); color:var(--color-error);">!</div>
+              <div class="delta-body">
+                <h5>Picking an incomplete record — e.g. Pizzeria Napoli</h5>
+                <p>No summary card. Address, City, Postal code and Phone appear as real fields, pre-filled with whatever's on file and locked wherever a value exists. Whichever field is genuinely missing — Address, for Pizzeria Napoli — stays open for editing and shows a red border until filled in.</p>
+              </div>
+            </li>
+            <li>
+              <div class="delta-mark">+</div>
+              <div class="delta-body">
+                <h5>Adding a new business</h5>
+                <p>Same Address/City/Postal/Phone fields, all blank and fully editable — no red border, since nothing was expected to already be there.</p>
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <section class="doc-section" id="pattern-password" style="margin-bottom:8px;">
+          <div class="section-breadcrumb">Shared Patterns</div>
+          <h2 class="section-title" style="font-size:24px;">Password rules</h2>
+          <div class="pattern-used-in" style="margin-top:6px;"><b>Used in:</b> <span class="usein-chip">Account Creation — Password step</span><span class="usein-chip">Forgot password — New password step</span><span class="usein-chip">Change password</span></div>
+          <p class="section-desc">Every password field in the system is a single input — there is no re-type/confirm field anywhere — gated by the same three live-updating checklist rules:</p>
+
+          <div class="pw-rules">
+            <div class="pw-rule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg>At least 8 characters</div>
+            <div class="pw-rule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg>At least 1 uppercase letter</div>
+            <div class="pw-rule"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 13 10 18 19 7"/></svg>At least 1 number</div>
+          </div>
+          <p style="font-size:13px; line-height:1.6; color:var(--color-mushroom-900);">Each rule turns green as it's met. The submit button — "Create account", "Reset password", or "Save password" depending on where this appears — stays disabled until all three pass.</p>
+        </section>
+
+        <section class="doc-section" id="pattern-otp">
+          <div class="section-breadcrumb">Shared Patterns</div>
+          <h2 class="section-title" style="font-size:24px;">Verification code</h2>
+          <div class="pattern-used-in" style="margin-top:6px;"><b>Used in:</b> <span class="usein-chip">Account Creation — Regular, Unlock content, Access functionality</span><span class="usein-chip">Forgot password</span></div>
+          <p class="section-desc">6 individual digit boxes, auto-advancing as each is typed, pasting a full code fills all six at once. A <code>Resend code</code> link stays disabled for 59 seconds after the code is sent, counting down visibly. "Not your email/mobile number? <b style="color:var(--color-brand-dark);">Change it</b>" returns to the contact-entry step, discarding everything since. Copy switches between an email-flavoured and an SMS-flavoured variant depending on which contact method is being verified — e.g. "Check your email" vs. "Check your phone" — and, on the Forgot password journey, to a reset-flavoured variant ("…to reset your password") instead of a verify-flavoured one.</p>
+        </section>
+
+        <footer class="doc-foot">
+          Form Journeys Specification — UFS Design System. Documents field-, copy- and behaviour-level intent only; component visuals and interaction states are specified separately in the design files.
+        </footer>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      var current = null;
+      sections.forEach(function(sec) {
+        if (sec.offsetTop - 100 <= scrollY) current = sec;
+      });
+      links.forEach(function(a) { a.classList.remove('active'); });
+      if (current) {
+        var match = document.querySelector('.sidebar-link[data-s="' + current.id + '"]');
+        if (match) match.classList.add('active');
+      }
+    }, { passive: true });
+
+    links.forEach(function(a) {
+      a.addEventListener('click', function(e) {
+        var el = document.querySelector(a.getAttribute('href'));
+        if (!el) return;
+        e.preventDefault();
+        window.scrollTo({ top: el.offsetTop - 16, behavior: 'smooth' });
+      });
+    });
+  </script>
+</body>
+</html>

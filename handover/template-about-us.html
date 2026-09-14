@@ -5088,7 +5088,7 @@
             <p>Dining trends and customer expectations are always changing, and it can be an on-going struggle to keep up.</p>
             <p>We make it easy to stay inspired and confident with the latest trends, recipes ideas and technique innovations. Check out local trend setters and get insights from chefs around the world to keep you ahead of the pack.</p>
           </div>
-          <a href="#" class="ufs-text-block__link" onclick="openBrochureDownload(); return false;">Download brochure</a>
+          <a href="#" class="ufs-text-block__link" id="brochure-download-link" onclick="handleBrochureDownloadClick(); return false;">Download brochure</a>
         </div>
         <div class="ufs-text-block__media"><img src="images/carousel/slide1.jpg" alt="A chef plating a dish in a professional kitchen"/></div>
       </div>
@@ -5645,6 +5645,32 @@
       if (btn && !btn.disabled) btn.click();
     }
 
+    // Once the visitor has filled out the form and downloaded the brochure
+    // once this session (brochureDownloadedThisSession, set at the end of
+    // downloadBrochureFile() below), we already have their info — later
+    // clicks on the trigger link skip the form/panel entirely and
+    // re-download immediately instead of asking again. In-memory only
+    // (resets on refresh), matching every other reset-on-reopen flow on
+    // this site — nothing here persists across a reload.
+    var brochureDownloadedThisSession = false;
+    var brochureAutoDownloadTimeout = null;
+
+    function handleBrochureDownloadClick() {
+      if (!brochureDownloadedThisSession) {
+        openBrochureDownload();
+        return;
+      }
+      if (brochureAutoDownloadTimeout) return; // already re-downloading
+      var link = document.getElementById('brochure-download-link');
+      var originalLabel = link.textContent;
+      link.textContent = 'Downloading…';
+      brochureAutoDownloadTimeout = setTimeout(function() {
+        brochureAutoDownloadTimeout = null;
+        link.textContent = 'Downloaded';
+        setTimeout(function() { link.textContent = originalLabel; }, 1500);
+      }, 900);
+    }
+
     function openBrochureDownload() {
       document.getElementById('brochure-step-form').style.display    = '';
       document.getElementById('brochure-step-success').style.display = 'none';
@@ -5826,6 +5852,9 @@
         btn.classList.remove('is-loading');
         btn.classList.add('is-done');
         document.getElementById('brochure-download-btn-label').textContent = 'Downloaded';
+        // From here on, the trigger link re-downloads automatically —
+        // see handleBrochureDownloadClick().
+        brochureDownloadedThisSession = true;
       }, 900);
     }
   </script>
