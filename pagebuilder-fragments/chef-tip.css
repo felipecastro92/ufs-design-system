@@ -1,0 +1,91 @@
+/* ==========================================================================
+   CHEF'S TIP — ported from handover/chef-tip-spec.html.
+
+   An expandable/collapsible panel that sits between Preparation and the
+   Utility Bar on the recipe detail page: eyebrow pill, heading, a 2-line-
+   clamped body with "Read more", and a hidden-until-expanded block (photo +
+   link + secondary CTA). The spec's only states are Collapsed/Expanded —
+   an interaction state (same category as hover/focus), not a marketer-
+   facing visual toggle — plus a responsive resize and an RTL mirror, so no
+   VARIANTS are registered, matching the task's guidance. The port renders
+   expanded by default so the full component (photo + CTA included) is
+   visible without requiring a click.
+
+   Token notes:
+   - Card background #fff5f0 is a literal one-off with no matching DS
+     token — the spec itself calls this out explicitly ("no matching DS
+     token, same precedent as .ufs-recipe-tag's border"), so it's kept
+     verbatim rather than substituted.
+   - Every other token below (--space-*, --radius-*, --shadow-*, --text-*,
+     --color-*) exists as-is in tokens.css.
+========================================================================== */
+
+/* Button — mirrored 1:1 from chef-tip-spec.html. The card's CTA depends on
+   this; it isn't otherwise defined in page-builder.html. */
+
+@keyframes ufsAccordionReveal {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.ufs-chef-tip {
+  position: relative; display: flex; flex-direction: column; gap: var(--space-4);
+  background: #fff5f0; border: 1px solid var(--color-orange-500);
+  border-radius: var(--space-4); padding: var(--space-8); padding-top: var(--space-10); margin-top: var(--space-8);
+}
+.ufs-chef-tip__eyebrow {
+  position: absolute; top: -25px; inset-inline-start: -20px;
+  display: flex; align-items: center; gap: 11px;
+  padding: 4px var(--space-4) 4px 4px;
+  background: var(--color-salt); border-radius: var(--radius-full); box-shadow: var(--shadow-sm);
+}
+.ufs-chef-tip__eyebrow-icon {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: var(--space-8); height: var(--space-8); border-radius: var(--radius-full);
+  background: var(--color-accessible-orange);
+}
+.ufs-chef-tip__eyebrow-icon img { width: var(--space-4); height: var(--space-4); filter: brightness(0) invert(1); }
+.ufs-chef-tip__eyebrow-text {
+  margin: 0; white-space: nowrap; color: var(--color-brand-dark);
+  font-size: var(--text-overline-size); line-height: var(--text-overline-lh);
+  font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls);
+  text-transform: uppercase;
+}
+.ufs-chef-tip__heading { margin: 0; font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); color: var(--color-brand-dark); }
+.ufs-chef-tip__body {
+  margin: 0; font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark);
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.ufs-chef-tip.is-expanded .ufs-chef-tip__body { -webkit-line-clamp: unset; overflow: visible; }
+.ufs-chef-tip__extra { display: none; flex-direction: column; gap: var(--space-4); }
+.ufs-chef-tip.is-expanded .ufs-chef-tip__extra { display: flex; animation: ufsAccordionReveal 0.35s ease; }
+.ufs-chef-tip__photo { position: relative; width: 100%; aspect-ratio: 587 / 301; border-radius: var(--radius-sm); overflow: hidden; }
+/* Real spec sets the photo directly via background-image on this element.
+   Rendered here as a real <img> child (object-fit:cover) instead, so
+   PB.replaceImage's img.src swap — its only DOM-patching branch besides
+   .pb-hero-img-placeholder — can update it directly. */
+.ufs-chef-tip__photo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.ufs-chef-tip__link { margin: 0; font-size: var(--text-body-size); line-height: 24px; color: var(--color-brand-dark); }
+.ufs-chef-tip__link a { color: var(--color-orange-700); text-decoration: none; }
+.ufs-chef-tip__link a:hover { text-decoration: underline; }
+.ufs-chef-tip__extra .btn { align-self: flex-start; }
+.ufs-chef-tip__toggle {
+  align-self: flex-start; background: none; border: none; padding: 0; margin: 0; cursor: pointer;
+  font-family: var(--font-family); font-size: var(--text-body-size); line-height: 24px; color: var(--color-orange-700);
+}
+.ufs-chef-tip__toggle:hover { text-decoration: underline; }
+
+/* Editable photo slot — generic .pb-img-slot pattern layered on top of the
+   real .ufs-chef-tip__photo class so PB.replaceImage works the same way it
+   does for tiles/heroes. */
+.ufs-chef-tip__photo.pb-img-slot { cursor: pointer; }
+
+@media (max-width: 768px) {
+  .ufs-chef-tip { padding: var(--space-9) var(--space-5) var(--space-5); border-radius: var(--space-3); gap: var(--space-3); }
+  .ufs-chef-tip__heading { font-size: var(--text-h6-mob-size); }
+  .ufs-chef-tip__body { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+  .ufs-chef-tip__link { font-size: var(--text-body-sm-size); line-height: 22px; }
+  .ufs-chef-tip__toggle { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+  .ufs-chef-tip__eyebrow { top: -18px; inset-inline-start: 0; inset-inline-end: 0; margin-inline: auto; width: fit-content; gap: var(--space-2); padding: 4px var(--space-3) 4px 4px; }
+  .ufs-chef-tip__eyebrow-icon { width: var(--space-7); height: var(--space-7); }
+}

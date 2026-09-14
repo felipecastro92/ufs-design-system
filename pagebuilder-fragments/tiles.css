@@ -1,0 +1,141 @@
+/* ==========================================================================
+   TILES — ported from handover/tiles-spec.html.
+
+   That spec documents 8 tile content-types (Product, Recipe, Training,
+   Article, Topic, Reward, Brand, Chef). Page Builder treats "Tiles" as ONE
+   section type with a variant switcher, so this fragment registers the 4
+   most useful, structurally-identical grid cards for a marketer composing a
+   page — Product, Recipe, Training and Article. All 4 share the exact same
+   .ufs-tile base anatomy (only which optional pieces are present differs,
+   per the spec's own "Anatomy & Interaction" section) so one CSS block
+   serves every variant. Topic Tile (hero/CTA block), Brand Tile (carousel
+   logo row) and Chef Tile (profile card) were left out: they carry their
+   own bespoke CSS rather than reusing .ufs-tile, and don't read as a "grid
+   of cards" the way the other 4 do — see the port report for the full
+   reasoning.
+
+   Every token below (--space-*, --radius-*, --shadow-*, --text-*,
+   --color-*) exists as-is in tokens.css — no substitutions were needed for
+   this component.
+========================================================================== */
+
+/* Button — mirrored 1:1 from tiles-spec.html (itself mirrored from
+   full-page-preview-v0.2.html). Product Tile's CTA depends on this; it
+   isn't otherwise defined in page-builder.html. */
+
+/* Grid container — not itself part of tiles-spec.html (the spec only
+   documents the ≤768px catalog-grid row reflow below, not the ≥769px
+   container rules — those live in a different, uncaptured source file).
+   A simple auto-fit grid is added here so this section renders as a real
+   card grid in the builder; gap/max-width use real tokens. */
+.ufs-catalog-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-6); max-width: 1280px; margin: 0 auto;
+}
+
+/* ==========================================================================
+   TILES — shared base (.ufs-tile), verbatim from tiles-spec.html
+========================================================================== */
+.ufs-tile {
+  position: relative;
+  background: var(--color-salt);
+  border: 1px solid var(--color-mushroom-300);
+  border-radius: var(--radius-md);
+  display: flex; flex-direction: column; gap: var(--space-4);
+  min-width: 0;
+  padding-bottom: var(--space-4);
+  text-decoration: none; color: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ufs-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+}
+
+.ufs-tile__image {
+  position: relative; width: 100%; height: 240px; flex-shrink: 0;
+  background-color: var(--color-mushroom-100);
+  border-radius: var(--radius-md) var(--radius-md) 0 0; overflow: hidden;
+}
+/* Real spec renders this as a background-image div (a separate transform
+   layer, so the hover zoom can animate independently of .ufs-tile__image's
+   own overflow:hidden). Rendered here as a real <img> instead — object-fit
+   emulates the same visual result — so PB.replaceImage's img.src swap
+   (its only DOM-patching branch besides .pb-hero-img-placeholder) can
+   update it directly; a background-image div wouldn't be. */
+.ufs-tile__image-media {
+  display: block; width: 100%; height: 100%; object-fit: cover; object-position: center;
+  transition: transform 0.35s ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ufs-tile:hover .ufs-tile__image-media { transform: scale(1.06); }
+}
+
+.ufs-tile__fav {
+  position: absolute; top: var(--space-3); right: var(--space-3); z-index: 2;
+  width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+  background: rgba(255,255,255,0.8); backdrop-filter: blur(3px);
+  box-shadow: var(--shadow-xs), 1px 1px 0px rgba(255,255,255,0.5) inset, -1px -1px 0px rgba(255,255,255,0.5) inset;
+  border: none; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  overflow: visible;
+}
+.ufs-tile__fav svg { width: 20px; height: 18px; }
+.ufs-tile__fav svg path { fill: none; stroke: var(--color-brand-dark); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
+.ufs-tile__fav.is-active svg path { fill: var(--color-brand-primary); stroke: var(--color-brand-primary); stroke-width: 1; }
+
+.ufs-tile__badge {
+  position: absolute; top: var(--space-4); left: var(--space-4); z-index: 2;
+  background: var(--color-aubergine); border: 1px solid var(--color-brand-primary);
+  border-radius: var(--radius-full); height: var(--space-6);
+  display: inline-flex; align-items: center; padding: 0 var(--space-3);
+  color: var(--color-salt); font-size: var(--text-badge-size); font-weight: var(--text-badge-w);
+  letter-spacing: var(--text-badge-ls); line-height: var(--text-badge-lh); text-transform: uppercase;
+}
+
+.ufs-tile__content { display: contents; }
+.ufs-tile__body { display: flex; flex-direction: column; gap: var(--space-1); padding: 0 var(--space-4); }
+.ufs-tile__eyebrow { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); line-height: var(--text-overline-lh); text-transform: uppercase; color: var(--color-mushroom-900); }
+.ufs-tile__title { font-size: var(--text-h6-size); font-weight: var(--text-h6-w); line-height: var(--text-h6-lh); color: var(--color-brand-dark); margin: 0; }
+
+.ufs-tile__rating { display: flex; align-items: center; gap: var(--space-1); margin-top: var(--space-1); }
+.ufs-tile__stars { display: flex; align-items: center; }
+.ufs-tile__rating svg { width: 14px; height: 14px; fill: var(--color-brand-primary); }
+.ufs-tile__rating span { font-size: var(--text-body-xs-size); color: var(--color-brand-dark); }
+
+.ufs-tile__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin-top: var(--space-1); }
+.ufs-tile__meta-item { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-badge-size); font-weight: var(--text-badge-w); letter-spacing: var(--text-badge-ls); color: var(--color-mushroom-900); text-transform: uppercase; }
+.ufs-tile__meta-item svg { width: 14px; height: 14px; }
+.ufs-tile__meta-sep { color: var(--color-mushroom-500); font-size: var(--text-badge-size); }
+
+.ufs-tile__cta { padding: 0 var(--space-4); margin-top: var(--space-1); }
+.ufs-tile__cta .btn { width: 100%; }
+
+@media (max-width: 480px) {
+  .ufs-tile__image { height: 200px; }
+}
+
+/* ==========================================================================
+   TILES — catalog-grid responsive reflow (≤768px), verbatim from
+   tiles-spec.html. Same .ufs-tile markup, no new HTML — just a compact
+   horizontal row below 768px (page-builder's mobile preview is 390px wide,
+   so this fires there).
+========================================================================== */
+@media (max-width: 768px) {
+  .ufs-catalog-grid .ufs-tile { display: grid; grid-template-columns: 100px 1fr; grid-template-areas: "image content"; align-items: center; column-gap: var(--space-3); min-width: 0; width: 100%; border: none; border-bottom: 1px solid var(--color-mushroom-300); border-radius: 0; padding: var(--space-4); }
+  .ufs-catalog-grid .ufs-tile:hover { box-shadow: none; transform: none; }
+  .ufs-catalog-grid .ufs-tile:hover .ufs-tile__image-media { transform: none; }
+  .ufs-catalog-grid .ufs-tile__image { grid-area: image; width: 100px; height: 100px; border-radius: var(--radius-md); position: static; }
+  .ufs-catalog-grid .ufs-tile__fav { width: var(--space-8); height: var(--space-8); top: var(--space-2); right: var(--space-2); }
+  .ufs-catalog-grid .ufs-tile__fav svg { width: 16px; height: 14px; }
+  .ufs-catalog-grid .ufs-tile__badge { top: var(--space-2); left: var(--space-2); height: auto; padding: 2px var(--space-2); font-size: var(--text-badge-size); }
+  .ufs-catalog-grid .ufs-tile__content { display: flex; flex-direction: column; grid-area: content; }
+  .ufs-catalog-grid .ufs-tile__body { padding: 0; gap: var(--space-1); }
+  .ufs-catalog-grid .ufs-tile__eyebrow { font-size: var(--text-badge-size); }
+  .ufs-catalog-grid .ufs-tile__title { font-size: var(--text-body-sm-size); font-weight: 600; line-height: var(--text-body-sm-lh); }
+  .ufs-catalog-grid .ufs-tile__rating svg { width: 12px; height: 12px; }
+  .ufs-catalog-grid .ufs-tile__rating span { font-size: var(--text-badge-size); }
+  .ufs-catalog-grid .ufs-tile__meta-item, .ufs-catalog-grid .ufs-tile__meta-sep { font-size: var(--text-fine-print-size); }
+  .ufs-catalog-grid .ufs-tile__cta { padding: 0; margin-top: var(--space-1); }
+}

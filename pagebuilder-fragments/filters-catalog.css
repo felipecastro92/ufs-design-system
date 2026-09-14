@@ -1,0 +1,114 @@
+/* ==========================================================================
+   FILTERS & CATALOG TOOLBAR — ported from handover/filters-catalog-spec.html.
+
+   The spec documents 5 sub-pieces: Filters Bar (search + quick dropdowns +
+   "All filters"), Filter Dropdown, Popular Filters (pill row), Active
+   Filters (replaces Popular Filters once any filter is active — a data/
+   interaction state, not a marketer-facing look, so it isn't wired here),
+   the All Filters side drawer, and the Catalog Toolbar (results count +
+   sort). This fragment ports the "Full Component Preview" desktop
+   composition — Filters Bar + Popular Filters + Catalog Toolbar — which is
+   the one canonical, always-visible layout a marketer would drop onto a
+   catalog page. The All Filters side drawer (a lateral overlay reusing the
+   sign-in-panel scaffold) was left out: it's an on-demand overlay, not
+   part of the page's own flow, and out of scope for a static section
+   preview. No variants are registered — matching the task's guidance for a
+   single canonical layout.
+
+   Token/value notes (component-local vars that don't exist in tokens.css):
+   - The real component reads --nav-h / --mnav-h / --msearch-bar-h, 3
+     page-level context vars the live header sets on :root (documented in
+     the spec's own reset block as "not part of tokens.css"). Page Builder
+     has no such header contract, so position:sticky (which depends on
+     --nav-h as its offset) is swapped for position:static here — same
+     substitution spirit as the project's other nearest-value swaps, just
+     for a positioning scheme instead of a color/spacing token.
+   - Every other token below (--space-*, --radius-*, --shadow-*, --text-*,
+     --color-*) exists as-is in tokens.css.
+========================================================================== */
+
+/* Button — mirrored 1:1 from filters-catalog-spec.html. */
+
+/* Checkbox (.fi-checkbox) — mirrored 1:1, used inside the filter dropdown
+   panel's checklist. */
+.fi-checkbox-row { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-5) 0; }
+.fi-checkbox { display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer; }
+.fi-checkbox input { position: absolute; opacity: 0; width: 0; height: 0; }
+.fi-checkbox-box {
+  flex-shrink: 0; width: var(--space-5); height: var(--space-5); margin-top: 1px;
+  border: 1.5px solid var(--color-mushroom-700); border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-salt); transition: background 0.15s, border-color 0.15s;
+}
+.fi-checkbox-box img { width: 11px; height: 11px; opacity: 0; filter: brightness(0) invert(1); transition: opacity 0.1s; }
+.fi-checkbox input:checked + .fi-checkbox-box { background: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+.fi-checkbox input:checked + .fi-checkbox-box img { opacity: 1; }
+.fi-checkbox-label { font-size: var(--text-body-sm-size); color: var(--color-brand-dark); line-height: 1.4; padding-top: 1px; }
+
+/* ==========================================================================
+   FILTERS BAR — verbatim from filters-catalog-spec.html, position swapped
+   sticky→static (see header comment).
+========================================================================== */
+.ufs-filters-bar {
+  display: flex; align-items: center; gap: var(--space-4); max-width: 1280px; margin: 0 auto; padding: var(--space-4);
+  margin-top: var(--space-2);
+  background: var(--color-mushroom-100); border-radius: var(--radius-lg);
+  position: static;
+}
+.ufs-filters-search { position: relative; flex: 1; min-width: 0; }
+.ufs-filters-search__icon { position: absolute; left: var(--space-4); top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--color-mushroom-700); pointer-events: none; }
+.ufs-filters-search__input { width: 100%; height: var(--space-12); box-sizing: border-box; padding: 0 var(--space-4) 0 var(--space-10); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm); background: var(--color-salt); font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); outline: none; transition: border-color 0.15s; }
+.ufs-filters-search__input:focus { border-color: var(--color-brand-dark); }
+.ufs-filters-search__input::placeholder { color: var(--color-mushroom-700); }
+
+.ufs-filters-dropdown { position: relative; flex-shrink: 0; }
+.ufs-filters-dropdown__trigger { display: flex; align-items: center; gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-4); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm); background: var(--color-salt); font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); cursor: pointer; white-space: nowrap; transition: border-color 0.15s; }
+.ufs-filters-dropdown__trigger:hover { border-color: var(--color-brand-dark); }
+.ufs-filters-dropdown.is-open .ufs-filters-dropdown__trigger { border-color: var(--color-brand-dark); }
+.ufs-filters-dropdown__chev { width: 14px; height: 14px; transition: transform 0.2s ease; }
+.ufs-filters-dropdown.is-open .ufs-filters-dropdown__chev { transform: rotate(180deg); }
+.ufs-filters-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--radius-full); background: var(--color-accessible-orange); color: var(--color-salt); font-size: var(--text-badge-size); font-weight: 600; line-height: 1; }
+.ufs-filters-badge[hidden] { display: none; }
+.ufs-filters-dropdown__panel { display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; min-width: 240px; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: var(--space-4); }
+.ufs-filters-dropdown.is-open .ufs-filters-dropdown__panel { display: block; }
+.ufs-filters-dropdown__panel .fi-checkbox-row { margin: 0; }
+.ufs-filters-dropdown__ft { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-mushroom-300); }
+.ufs-filters-dropdown__ft .btn-primary { flex: 1; }
+
+.ufs-filters-allbtn__icon { width: 18px; height: 18px; }
+.ufs-filters-allbtn__badge { display: none; position: absolute; top: -8px; right: -8px; }
+
+.ufs-catalog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); max-width: 1280px; margin: var(--space-4) auto 0; }
+.ufs-catalog-results { font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-mushroom-900); margin: 0; }
+
+.ufs-catalog-sort { position: relative; flex-shrink: 0; }
+.ufs-catalog-sort__trigger { display: flex; align-items: center; gap: var(--space-2); background: none; border: none; padding: 0; font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; cursor: pointer; }
+.ufs-catalog-sort__chev { width: 14px; height: 14px; flex-shrink: 0; transition: transform 0.2s ease; }
+.ufs-catalog-sort.is-open .ufs-catalog-sort__chev { transform: rotate(180deg); }
+.ufs-catalog-sort__panel { display: none; position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; min-width: 180px; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: var(--space-2); }
+.ufs-catalog-sort.is-open .ufs-catalog-sort__panel { display: block; }
+.ufs-catalog-sort__option { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-xs); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); cursor: pointer; }
+.ufs-catalog-sort__option:hover { background: var(--color-mushroom-100); }
+
+.ufs-popular-filters { display: flex; align-items: center; justify-content: center; gap: var(--space-3); max-width: 1280px; margin: var(--space-4) auto var(--space-4); }
+.ufs-popular-filters__label { font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; margin: 0; flex-shrink: 0; }
+.ufs-popular-filters__pills { display: flex; align-items: center; gap: var(--space-3); overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.ufs-popular-filters__pills::-webkit-scrollbar { display: none; }
+.ufs-popular-filters__pill { display: flex; align-items: center; gap: var(--space-1); height: var(--space-8); padding: 0 var(--space-4); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-full); background: none; font-family: var(--font-family); font-size: var(--text-btn-sm-size); color: var(--color-brand-dark); white-space: nowrap; cursor: pointer; flex-shrink: 0; transition: border-color 0.15s, background 0.15s; }
+.ufs-popular-filters__pill:hover { border-color: var(--color-brand-dark); }
+.ufs-popular-filters__pill.is-active { background: var(--color-mushroom-100); border-color: var(--color-accessible-orange); font-weight: var(--text-btn-w); }
+.ufs-popular-filters__pill-check { width: 14px; height: 14px; flex-shrink: 0; display: none; }
+.ufs-popular-filters__pill.is-active .ufs-popular-filters__pill-check { display: block; }
+
+@media (max-width: 1279px) {
+  .ufs-filters-dropdown { display: none; }
+}
+@media (max-width: 768px) {
+  .ufs-filters-bar { margin: var(--space-2) 0 0; padding: var(--space-3); gap: var(--space-3); border-radius: 0; }
+  .ufs-filters-allbtn { width: var(--space-12); padding: 0; flex-shrink: 0; position: relative; }
+  .ufs-filters-allbtn__label { display: none; }
+  .ufs-filters-allbtn__badge { display: flex; }
+  .ufs-catalog-toolbar { padding: 0 var(--space-4); }
+  .ufs-popular-filters { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--space-2); padding: 0 var(--space-4); }
+  .ufs-popular-filters__pills { align-self: stretch; margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); }
+}

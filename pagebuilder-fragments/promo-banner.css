@@ -1,0 +1,119 @@
+/* ================================================================
+   BUTTON — mirrored 1:1 from handover/promo-banner-spec.html (itself
+   mirrored from full-page-preview-v0.2.html). Promo Banner's CTAs
+   depend on this; not itself part of the spec. Declared independently
+   here per this handover's own no-shared-stylesheet convention (every
+   fragment duplicates the component CSS it depends on; only tokens.css
+   is genuinely shared).
+================================================================ */
+
+/* ================================================================
+   PROMO BANNER — ported from handover/promo-banner-spec.html. Full-
+   bleed image + content panel, optional countdown/logo/secondary CTA,
+   stacks on mobile, splits into a "nested pill" layout on desktop
+   (image absolutely positioned, overlapping the panel's edge).
+
+   .ufs-promo-banner__image originally carried the photo as a plain
+   CSS background-image in the spec; ported here as a real <img> child
+   instead (position:absolute + object-fit:cover, parent overflow:
+   hidden for the radius clip) so it's swappable through the shared
+   PB.replaceImage() image-slot pattern, which looks for an <img>
+   descendant to update. Visually identical to the spec's background-
+   image treatment.
+================================================================ */
+.ufs-promo-banner {
+  position: relative;
+  background: var(--color-mushroom-100);
+  border-radius: var(--radius-md);
+}
+.ufs-promo-banner__image {
+  position: relative;
+  aspect-ratio: 390 / 295;
+  overflow: hidden;
+  border-radius: var(--radius-md) var(--radius-xxl) 0 0;
+}
+.ufs-promo-banner__image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.ufs-promo-banner__panel {
+  display: flex; flex-direction: column; justify-content: center;
+  align-items: center; text-align: center;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-6) var(--space-6);
+}
+.ufs-promo-banner__logo { height: 22px; width: auto; }
+.ufs-promo-banner__body { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); width: 100%; }
+.ufs-promo-banner__title { color: var(--color-brand-dark); margin: 0; font-size: var(--text-h3-mob-size); line-height: var(--text-h3-lh); }
+.ufs-promo-banner__desc { color: var(--color-brand-dark); margin: 0; font-size: var(--text-body-sm-size); }
+.ufs-promo-banner__countdown { display: flex; align-items: center; justify-content: center; gap: var(--space-1); width: 100%; }
+.ufs-promo-banner__countdown-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ufs-promo-banner__countdown-value { color: var(--color-brand-dark); margin: 0; width: 60px; font-size: var(--text-price-xl-mob-size); }
+.ufs-promo-banner__countdown-label { color: var(--color-brand-dark); margin: 0; }
+.ufs-promo-banner__ctas { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.ufs-promo-banner__ctas .btn { width: 100%; }
+.ufs-promo-banner__disclaimer { color: color-mix(in srgb, var(--color-brand-dark) 80%, transparent); margin: 0; }
+.ufs-promo-banner .btn-secondary { background: var(--color-salt); }
+.ufs-promo-banner .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: transparent; }
+
+.ufs-promo-banner--dark { background: var(--color-brand-dark); }
+.ufs-promo-banner--dark .ufs-promo-banner__title,
+.ufs-promo-banner--dark .ufs-promo-banner__desc,
+.ufs-promo-banner--dark .ufs-promo-banner__countdown-value,
+.ufs-promo-banner--dark .ufs-promo-banner__countdown-label { color: var(--color-salt); }
+.ufs-promo-banner--dark .ufs-promo-banner__disclaimer { color: color-mix(in srgb, var(--color-salt) 80%, transparent); }
+.ufs-promo-banner--dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+.ufs-promo-banner--dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+
+@media (min-width: 1024px) {
+  .ufs-promo-banner {
+    display: flex;
+    border-radius: var(--radius-xl);
+    border-top-right-radius: var(--radius-xxxl);
+  }
+  .ufs-promo-banner__panel {
+    flex: 0 0 52%; min-width: 0;
+    align-items: flex-start; text-align: left;
+    min-height: 400px;
+    gap: var(--space-6);
+    padding: var(--space-16) var(--space-16) var(--space-14) var(--space-14);
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  }
+  .ufs-promo-banner__body { align-items: flex-start; gap: var(--space-4); }
+  .ufs-promo-banner__image {
+    position: absolute; inset: -12px 0 -12px auto; left: 49%;
+    aspect-ratio: auto; width: auto;
+    border-radius: var(--radius-xl) var(--radius-xxxl) var(--radius-xl) var(--radius-xl);
+    z-index: 1;
+  }
+  .ufs-promo-banner__logo { height: 24px; }
+  .ufs-promo-banner__title { font-size: var(--text-h3-size); line-height: var(--text-h3-lh); }
+  .ufs-promo-banner__desc { font-size: var(--text-body-size); }
+  .ufs-promo-banner__countdown { justify-content: flex-start; gap: var(--space-10); }
+  .ufs-promo-banner__countdown-value { text-align: center; font-size: var(--text-price-xl-size); }
+  .ufs-promo-banner__ctas { flex-direction: row; width: auto; }
+  .ufs-promo-banner__ctas .btn { width: auto; }
+}
+
+/* Mobile preview — scoped to .pb-canvas-inner.is-mobile (page-builder's
+   own mobile-preview container) instead of relying on a real viewport
+   change, since the tool's "Mobile" toggle only narrows a container.
+   Values mirrored 1:1 from the spec's own doc-only .pv-mobile wrapper,
+   which forces the mobile (pre-1024px) declarations back on. */
+.pb-canvas-inner.is-mobile .ufs-promo-banner__image {
+  position: relative; inset: auto; left: auto;
+  aspect-ratio: 390 / 295; width: 100%;
+  border-radius: var(--radius-md) var(--radius-xxl) 0 0;
+}
+.pb-canvas-inner.is-mobile .ufs-promo-banner { display: block; border-radius: var(--radius-md); }
+.pb-canvas-inner.is-mobile .ufs-promo-banner__panel {
+  flex: none; align-items: center; text-align: center;
+  min-height: 0; gap: var(--space-4);
+  padding: var(--space-8) var(--space-6) var(--space-6);
+  border-radius: 0;
+}
+.pb-canvas-inner.is-mobile .ufs-promo-banner__body { align-items: center; }
+.pb-canvas-inner.is-mobile .ufs-promo-banner__logo { height: 22px; }
+.pb-canvas-inner.is-mobile .ufs-promo-banner__title { font-size: var(--text-h3-mob-size); line-height: var(--text-h3-lh); }
+.pb-canvas-inner.is-mobile .ufs-promo-banner__desc { font-size: var(--text-body-sm-size); }
+.pb-canvas-inner.is-mobile .ufs-promo-banner__countdown { justify-content: center; gap: var(--space-1); }
+.pb-canvas-inner.is-mobile .ufs-promo-banner__countdown-value { font-size: var(--text-price-xl-mob-size); }
+.pb-canvas-inner.is-mobile .ufs-promo-banner__ctas { flex-direction: column; width: 100%; }
+.pb-canvas-inner.is-mobile .ufs-promo-banner__ctas .btn { width: 100%; }

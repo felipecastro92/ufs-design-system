@@ -1,0 +1,98 @@
+/* ================================================================
+   VIDEO EMBED — ported from handover/video-embed-spec.html
+   Real DS classes: .ufs-video-embed(--tile/--wide)(__media/__photo/
+   __play/__play-icon/__body/__title/__meta). Only the --wide (650px
+   desktop / fluid 4:3 mobile) size is ported here as the standalone
+   Page Builder section — --tile is a fixed-width flex-carousel card,
+   out of scope for a full-bleed section. Every token used (--space-*,
+   --text-h5-*, --text-h6-*, --text-body-xs-*, --color-brand-dark,
+   --color-salt, --color-mushroom-300, --radius-lg, --radius-full,
+   --shadow-lg) already exists in tokens.css, so no token substitution
+   was needed.
+
+   One structural adaptation from the spec: .ufs-video-embed__photo
+   was a bare background-image div there. Page Builder's generic
+   image-replace slot (PB.replaceImage, see page-builder.html) looks
+   for a real <img> inside the clicked slot, so the poster is a real
+   <img class="ufs-video-embed__poster"> here instead, absolutely
+   positioned/object-fit:cover to render identically.
+================================================================ */
+.pbf-video-embed-section {
+  display: flex; justify-content: center;
+  padding: var(--space-16) var(--space-8);
+  background: var(--color-mushroom-100);
+}
+.ufs-video-embed {
+  position: relative; display: flex; flex-direction: column; justify-content: flex-end;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.ufs-video-embed--wide { width: 350px; aspect-ratio: 4 / 3; }
+.ufs-video-embed__media { position: absolute; inset: 0; overflow: hidden; z-index: 0; }
+.ufs-video-embed__poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.35s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .ufs-video-embed:hover .ufs-video-embed__poster { transform: scale(1.06); }
+  .ufs-video-embed:hover { box-shadow: var(--shadow-lg); }
+}
+.ufs-video-embed::before {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-dark) 0%, transparent) 23.5%, var(--color-brand-dark) 74%);
+}
+.ufs-video-embed__play {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 0; cursor: pointer;
+  touch-action: pan-x;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ufs-video-embed__play { inset: 0; top: auto; left: auto; transform: none; width: 100%; height: 100%; }
+}
+.ufs-video-embed__play-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: var(--space-16); height: var(--space-16); border-radius: var(--radius-full);
+  background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.6);
+  transition: background 0.15s, transform 0.15s;
+  margin-top: -32px;
+}
+.ufs-video-embed__play-icon svg { width: 26px; height: 26px; fill: var(--color-salt); }
+.ufs-video-embed__play:hover .ufs-video-embed__play-icon { background: rgba(0,0,0,0.4); transform: scale(1.08); }
+.ufs-video-embed__body {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+  padding: var(--space-5); text-align: center;
+}
+.ufs-video-embed__title { font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); color: var(--color-salt); margin: 0; }
+.ufs-video-embed__meta { display: flex; align-items: center; justify-content: center; gap: var(--space-1); }
+.ufs-video-embed__meta img { width: var(--space-4); height: var(--space-4); filter: brightness(0) invert(1); opacity: 0.75; }
+.ufs-video-embed__meta span { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-300); }
+
+/* pb-img-slot compound selector so the replace-image hover chrome
+   composes cleanly with .ufs-video-embed__media's own position -
+   both need position:absolute;inset:0 here (the media layer fills
+   the card, unlike a plain relative-positioned image slot). */
+.ufs-video-embed__media.pb-img-slot { position: absolute; inset: 0; }
+
+@media (min-width: 769px) {
+  .ufs-video-embed--wide { width: 650px; aspect-ratio: 16 / 9; }
+  .ufs-video-embed--wide .ufs-video-embed__play-icon { width: var(--space-20); height: var(--space-20); }
+  .ufs-video-embed--wide .ufs-video-embed__play-icon svg { width: 32px; height: 32px; }
+  .ufs-video-embed--wide .ufs-video-embed__body { padding: var(--space-8); }
+  .ufs-video-embed--wide .ufs-video-embed__title { font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); }
+}
+
+@media (max-width: 768px) {
+  .ufs-video-embed--wide { width: 100%; aspect-ratio: 4 / 3; }
+  .ufs-video-embed__play-icon { width: var(--space-12); height: var(--space-12); }
+  .ufs-video-embed__play-icon svg { width: 14px; height: 14px; }
+}
+
+/* Page Builder's mobile-viewport toggle only constrains the canvas's
+   CSS width, not the real browser viewport, so the @media block above
+   never fires from it. This restates the same rules scoped to
+   .pb-canvas-inner.is-mobile, mirroring the spec's own doc-only
+   .pv-mobile emulation block. */
+.pb-canvas-inner.is-mobile .pbf-video-embed-section { padding: var(--space-8) var(--space-4); }
+.pb-canvas-inner.is-mobile .ufs-video-embed--wide { width: 100%; aspect-ratio: 4 / 3; }
+.pb-canvas-inner.is-mobile .ufs-video-embed__play-icon { width: var(--space-12); height: var(--space-12); }
+.pb-canvas-inner.is-mobile .ufs-video-embed__play-icon svg { width: 14px; height: 14px; }

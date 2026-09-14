@@ -1,0 +1,154 @@
+/* ================================================================
+   BUTTON — mirrored 1:1 from handover/product-hero-spec.html (itself
+   mirrored from full-page-preview-v0.2.html / index-v2.html). Product
+   Hero's CTA depends on this; not itself part of the spec. Declared
+   independently here per this handover's own no-shared-stylesheet
+   convention (every file duplicates component CSS independently; only
+   tokens.css is genuinely shared). .btn-secondary isn't defined in the
+   product-hero spec file itself (it assumes it's available globally,
+   same as this port assumes it) — pulled in from campaign-hero-spec.html,
+   the sibling spec that does define it, so the Dual-CTA variant renders
+   correctly.
+================================================================ */
+
+/* ================================================================
+   CAROUSEL ARROW — mirrored 1:1 from handover/product-hero-spec.html,
+   itself reused there from Flex Carousel's own .ufs-carousel-arrow.
+   Used as the gallery's prev/next control, recoloured via the local
+   --carousel-arrow-* tokens set on .ufs-product-hero__gallery below.
+================================================================ */
+.ufs-carousel-arrow {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border: 1px solid var(--carousel-arrow-border); border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs);
+  background: var(--carousel-arrow-bg); color: var(--carousel-arrow-color);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.ufs-carousel-arrow--next { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+.ufs-carousel-arrow svg { width: 14px; height: 14px; display: block; }
+.ufs-carousel-arrow--prev svg { transform: scaleX(-1); }
+.ufs-carousel-arrow:hover:not(:disabled) { background: var(--carousel-btn-hover-bg); }
+.ufs-carousel-arrow:active:not(:disabled) { background: var(--carousel-arrow-active-bg); }
+.ufs-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ================================================================
+   PRODUCT HERO — ported from handover/product-hero-spec.html
+   Image gallery (main + thumbnails, orange active-indicator, prev/next
+   arrows) alongside a product info panel. Adapted from Figma nodes
+   1906:4265 (desktop) / 1906:4197 (mobile). This port renders the
+   gallery statically (scroll-snap track, thumbnail sync and swipe are
+   the spec's own live JS — out of scope for a static drag-and-drop
+   preview, same as Nav/Footer's own decorative-only interactive bits).
+   Real variant registered: CTA Variants — Default (single primary CTA)
+   vs the Dual-CTA variant, both explicitly documented as a named
+   variant in the spec (used by default in template-product-bin.html).
+================================================================ */
+.ufs-product-hero {
+  display: flex; align-items: center; gap: var(--space-20);
+  max-width: 1240px; margin-inline: auto;
+  background: var(--color-salt);
+}
+
+/* ── Gallery ─────────────────────────────────────────── */
+.ufs-product-hero__gallery {
+  flex: 1 1 0; min-width: 0;
+  display: flex; flex-direction: column; gap: var(--space-4);
+  --carousel-arrow-border: var(--color-smoke);
+  --carousel-arrow-color: var(--color-smoke);
+  --carousel-arrow-bg: var(--color-salt);
+  --carousel-btn-hover-bg: var(--color-mushroom-100);
+  --carousel-arrow-active-bg: var(--color-mushroom-300);
+}
+.ufs-product-hero__main { position: relative; }
+.ufs-product-hero__main-track {
+  display: flex; overflow-x: auto; scroll-snap-type: x proximity;
+  touch-action: pan-x; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; border-radius: var(--radius-md);
+}
+.ufs-product-hero__main-track::-webkit-scrollbar { display: none; }
+.ufs-product-hero__main-frame {
+  flex: 0 0 100%; scroll-snap-align: start;
+  aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
+  padding: var(--space-2) var(--space-3); background: var(--color-salt);
+}
+.ufs-product-hero__main-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.ufs-product-hero__main .ufs-carousel-arrow { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; }
+.ufs-product-hero__main .ufs-carousel-arrow--prev { left: var(--space-2); }
+.ufs-product-hero__main .ufs-carousel-arrow--next { right: var(--space-2); }
+
+.ufs-product-hero__thumbs { display: flex; gap: var(--space-2); overflow-x: auto; scrollbar-width: none; justify-content: center; }
+.ufs-product-hero__thumbs::-webkit-scrollbar { display: none; }
+.ufs-product-hero__thumb {
+  position: relative; flex-shrink: 0; width: var(--space-20); height: var(--space-20);
+  padding: var(--space-2) var(--space-3); background: none; border: none; cursor: pointer;
+}
+.ufs-product-hero__thumb img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.ufs-product-hero__thumb::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+  background: var(--color-accessible-orange); opacity: 0; transition: opacity 0.15s;
+}
+.ufs-product-hero__thumb.is-active::after { opacity: 1; }
+
+/* ── Info panel ──────────────────────────────────────── */
+.ufs-product-hero__info { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-6); }
+.ufs-product-hero__intro { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); width: 100%; }
+.ufs-product-hero__header { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+.ufs-product-hero__eyebrow {
+  font-size: var(--text-overline-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w);
+  letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: rgba(34,29,55,0.6);
+  margin: 0;
+}
+.ufs-product-hero__title {
+  font-size: var(--text-h2-size); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); font-weight: var(--text-h2-w);
+  color: var(--color-brand-dark); margin: 0;
+}
+.ufs-product-hero__usps { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
+.ufs-product-hero__usps-label { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600; color: var(--color-brand-dark); margin: 0; }
+.ufs-product-hero__usps-list { list-style: disc; margin: 0; padding-inline-start: 21px; display: flex; flex-direction: column; gap: var(--space-1); }
+.ufs-product-hero__usps-list li { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); }
+.ufs-product-hero__link {
+  font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600;
+  color: var(--color-accessible-orange); text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
+}
+.ufs-product-hero__tags { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
+.ufs-product-hero__tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: var(--space-6); padding: var(--space-1) var(--space-3);
+  background: var(--color-mushroom-100);
+  border: 1px solid rgba(78, 78, 78, 0.2);
+  border-radius: var(--radius-full);
+  font-family: var(--font-family);
+  font-size: var(--text-badge-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls);
+  text-transform: uppercase; color: var(--color-mushroom-900);
+  white-space: nowrap;
+}
+.ufs-product-hero__cta { width: auto; }
+.ufs-product-hero__ctas { display: flex; align-items: center; gap: var(--space-4); }
+.ufs-product-hero__sku { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-brand-dark); margin: 0; }
+
+.ufs-product-hero__utility { display: inline-flex; align-items: center; background: var(--color-mushroom-100); border-radius: var(--radius-sm); overflow: hidden; }
+.ufs-product-hero__utility-btn {
+  display: flex; align-items: center; gap: var(--space-1); padding: var(--space-2) var(--space-4);
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-family); font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark);
+  transition: background 0.15s;
+}
+.ufs-product-hero__utility-btn:hover { background: var(--color-mushroom-300); }
+.ufs-product-hero__utility-btn img { width: 20px; height: 20px; }
+
+/* Mobile preview — scoped to .pb-canvas-inner.is-mobile (page-builder's
+   own mobile-preview container) instead of a plain
+   @media(max-width:768px) rule, since the tool's "Mobile" toggle only
+   narrows a container rather than the real browser viewport. Same
+   technique the spec file itself uses with its own doc-only .pv-mobile
+   wrapper; values mirrored 1:1 from the component's real
+   @media(max-width:768px) block. */
+.pb-canvas-inner.is-mobile .ufs-product-hero__main .ufs-carousel-arrow { display: none; }
+.pb-canvas-inner.is-mobile .ufs-product-hero { flex-direction: column; align-items: stretch; gap: var(--space-6); max-width: 100%; padding: 0 var(--space-4); }
+.pb-canvas-inner.is-mobile .ufs-product-hero__gallery { flex: none; max-width: 100%; gap: var(--space-2); }
+.pb-canvas-inner.is-mobile .ufs-product-hero__info { max-width: 100%; }
+.pb-canvas-inner.is-mobile .ufs-product-hero__title { font-size: var(--text-h3-mob-size); line-height: var(--text-h3-lh); letter-spacing: var(--text-h3-ls); }
+.pb-canvas-inner.is-mobile .ufs-product-hero__tags { margin-top: var(--space-2); }
+.pb-canvas-inner.is-mobile .ufs-product-hero__cta.btn-lg { width: 100%; height: var(--space-12); padding: 0 var(--space-6); font-size: var(--text-btn-size); font-weight: var(--text-btn-w); }
+.pb-canvas-inner.is-mobile .ufs-product-hero__ctas { flex-direction: column; align-items: stretch; gap: var(--space-3); width: 100%; }
+.pb-canvas-inner.is-mobile .ufs-product-hero__utility { width: 100%; justify-content: space-between; }

@@ -1,0 +1,176 @@
+/* ================================================================
+   BUTTON — mirrored 1:1 from handover/flex-carousel-spec.html (itself
+   mirrored from full-page-preview-v0.2.html). The carousel's CTAs
+   depend on this; not itself part of the spec. Declared independently
+   here per this handover's own no-shared-stylesheet convention (every
+   fragment duplicates the component CSS it depends on; only tokens.css
+   is genuinely shared).
+================================================================ */
+
+/* ================================================================
+   Shared arrow/dot controls — reused verbatim from the Full-Width
+   Banner Carousel (same .ufs-carousel-arrow/.ufs-carousel-dot markup,
+   duplicated per this handover's fragment-independence convention).
+   They read colour from --carousel-* custom properties set locally on
+   .ufs-flex-carousel below, not from design tokens directly — a
+   component-scoped API, not a design-token gap.
+================================================================ */
+.ufs-carousel-arrow {
+  width: 40px; height: 40px; flex-shrink: 0;
+  border: 1px solid var(--carousel-arrow-border); border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs);
+  background: var(--carousel-arrow-bg); color: var(--carousel-arrow-color);
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.ufs-carousel-arrow--next { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+.ufs-carousel-arrow svg { width: 14px; height: 14px; display: block; }
+.ufs-carousel-arrow--prev svg { transform: scaleX(-1); }
+.ufs-carousel-arrow:hover:not(:disabled) { background: var(--carousel-btn-hover-bg); }
+.ufs-carousel-arrow:active:not(:disabled) { background: var(--carousel-arrow-active-bg); }
+.ufs-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+.ufs-carousel-dots { display: flex; align-items: center; gap: var(--space-2); }
+.ufs-carousel-dot {
+  width: 6px; height: 6px; border-radius: var(--radius-full);
+  background: var(--carousel-dot-inactive); border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+  transition: width 0.25s ease, height 0.25s ease, background-color 0.25s ease, opacity 0.25s ease, margin 0.25s ease;
+}
+.ufs-carousel-dot.is-active { width: 30px; height: 6px; border-radius: 50px; background: var(--color-brand-primary); }
+
+/* ================================================================
+   FLEX CAROUSEL — ported from handover/flex-carousel-spec.html. Head
+   row (title/desc + secondary CTA), a native horizontally-scrolling
+   track of cards (edge-to-edge bleed), and a foot row (dots + arrows).
+   Scrolling itself is plain CSS (overflow-x:auto + scroll-snap — the
+   spec's own track already used overflow-x:auto natively, drag/swipe
+   works with zero JS); only the arrow buttons and dots need a small
+   onclick-driven helper (PB.flexNav / PB.flexNavDot in flex-carousel.js)
+   since scrollBy()/scrollIntoView() have to be called from script —
+   no addEventListener is used anywhere, so nothing here is at risk of
+   being silently stripped by PB.render()'s canvas re-render.
+
+   The spec's own .ufs-carousel-card ships as a bare, contentless
+   270×270 placeholder (no internal structure documented) — the
+   .ufs-carousel-card__img/__label rules below are this port's own
+   minimal illustrative content (a photo + caption) added only so the
+   preview reads as a real card carousel, not part of the handover spec.
+================================================================ */
+.ufs-flex-carousel {
+  --carousel-title-color: var(--color-brand-dark);
+  --carousel-desc-color: var(--color-mushroom-900);
+  --carousel-btn-border: var(--color-accessible-orange);
+  --carousel-btn-color: var(--color-accessible-orange);
+  --carousel-btn-hover-bg: var(--color-mushroom-100);
+  --carousel-card-bg: var(--color-mushroom-100);
+  --carousel-dot-inactive: var(--color-squid-300);
+  --carousel-arrow-border: var(--color-squid-300);
+  --carousel-arrow-color: var(--color-squid-300);
+  --carousel-arrow-bg: var(--color-salt);
+  --carousel-arrow-active-bg: var(--color-mushroom-300);
+  background: var(--color-salt);
+  padding: var(--space-16) var(--space-24);
+  display: flex; flex-direction: column; gap: var(--space-8);
+}
+.ufs-flex-carousel__head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6); }
+.ufs-flex-carousel__intro { display: flex; flex-direction: column; gap: var(--space-2); flex: 1; min-width: 0; }
+.ufs-flex-carousel__title { color: var(--carousel-title-color); margin: 0; }
+.ufs-flex-carousel__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--carousel-desc-color); margin: 0; }
+.ufs-flex-carousel__cta { flex-shrink: 0; border-color: var(--carousel-btn-border); color: var(--carousel-btn-color); }
+.ufs-flex-carousel__cta:hover:not(:disabled):not(.btn-loading) { background: var(--carousel-btn-hover-bg); }
+.ufs-flex-carousel__cta--mobile { display: none; }
+
+.ufs-flex-carousel__track-wrap { align-self: stretch; margin-left: calc(-1 * var(--space-24)); margin-right: calc(-1 * var(--space-24)); }
+.ufs-carousel-track {
+  display: flex;
+  overflow-x: auto; scroll-behavior: smooth; scroll-snap-type: x proximity;
+  touch-action: pan-x; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; -ms-overflow-style: none;
+  padding-right: var(--space-24);
+  padding-top: var(--space-2); padding-bottom: var(--space-10);
+}
+.ufs-carousel-track::-webkit-scrollbar { display: none; }
+.ufs-carousel-spacer { flex: 0 0 var(--space-24); }
+.ufs-carousel-card {
+  width: 270px; height: 270px; flex-shrink: 0;
+  background: var(--carousel-card-bg); border-radius: var(--radius-lg);
+  margin-right: var(--space-8);
+  position: relative; overflow: hidden; scroll-snap-align: start;
+}
+.ufs-carousel-card:last-child { margin-right: 0; }
+.ufs-carousel-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.ufs-carousel-card__scrim { position: absolute; left: 0; right: 0; bottom: 0; height: 60%; background: linear-gradient(to top, rgba(0,0,0,0.55), transparent); pointer-events: none; }
+.ufs-carousel-card__label { position: absolute; left: var(--space-4); right: var(--space-4); bottom: var(--space-3); color: var(--color-salt); font-size: var(--text-body-sm-size); font-weight: 700; line-height: var(--text-body-sm-lh); margin: 0; }
+
+.ufs-flex-carousel__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); margin-top: calc(var(--space-2) - var(--space-8)); }
+.ufs-flex-carousel__arrows { display: flex; align-items: center; gap: var(--space-4); }
+
+/* Colour variants — pure token swaps against the custom properties above. */
+.ufs-flex-carousel--squid {
+  background: var(--color-brand-dark);
+  --carousel-title-color: var(--color-salt);
+  --carousel-desc-color: rgba(255,255,255,0.75);
+  --carousel-btn-border: var(--color-salt);
+  --carousel-btn-color: var(--color-salt);
+  --carousel-btn-hover-bg: rgba(255,255,255,0.12);
+  --carousel-card-bg: color-mix(in srgb, var(--color-mushroom-500) 30%, transparent);
+  --carousel-dot-inactive: var(--color-mushroom-500);
+  --carousel-arrow-border: var(--color-mushroom-500);
+  --carousel-arrow-color: var(--color-mushroom-500);
+  --carousel-arrow-bg: transparent;
+  --carousel-arrow-active-bg: rgba(255,255,255,0.2);
+}
+.ufs-flex-carousel--mushroom {
+  background: var(--color-mushroom-100);
+  gap: var(--space-6);
+  --carousel-card-bg: var(--color-salt);
+  --carousel-btn-hover-bg: var(--color-salt);
+  --carousel-arrow-bg: transparent;
+}
+.ufs-flex-carousel--mushroom .ufs-flex-carousel__foot { margin-top: calc(var(--space-2) - var(--space-6)); }
+.ufs-flex-carousel--mushroom .ufs-carousel-dot.is-active { background: var(--color-orange-700); }
+.ufs-flex-carousel--image {
+  background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/M_GPP_6074.jpg');
+  background-size: cover, cover; background-position: center, center; background-repeat: no-repeat, no-repeat;
+  --carousel-title-color: var(--color-salt);
+  --carousel-desc-color: rgba(255,255,255,0.75);
+  --carousel-btn-border: var(--color-salt);
+  --carousel-btn-color: var(--color-salt);
+  --carousel-btn-hover-bg: rgba(255,255,255,0.15);
+  --carousel-card-bg: rgba(255,255,255,0.5);
+  --carousel-dot-inactive: var(--color-salt);
+  --carousel-arrow-border: var(--color-salt);
+  --carousel-arrow-color: var(--color-salt);
+  --carousel-arrow-bg: transparent;
+  --carousel-arrow-active-bg: rgba(255,255,255,0.25);
+}
+.ufs-flex-carousel--image .ufs-carousel-card { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+
+@media (max-width: 768px) {
+  .ufs-flex-carousel { padding: 56px var(--space-4); gap: var(--space-6); }
+  .ufs-flex-carousel__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+  .ufs-flex-carousel__cta { display: none; }
+  .ufs-flex-carousel__cta--mobile { display: block; width: 100%; }
+  .ufs-carousel-track { padding-right: var(--space-4); }
+  .ufs-carousel-spacer { flex-basis: var(--space-4); }
+  .ufs-carousel-card { margin-right: var(--space-6); }
+  .ufs-carousel-card:last-child { margin-right: 0; }
+  .ufs-flex-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); }
+  .ufs-flex-carousel__foot { justify-content: center; margin-top: calc(var(--space-2) - var(--space-6)); }
+  .ufs-carousel-dots { flex: 1; justify-content: center; }
+  .ufs-flex-carousel__arrows { display: none; }
+}
+
+/* Mobile preview — scoped to .pb-canvas-inner.is-mobile (page-builder's
+   own mobile-preview container) instead of relying on a real viewport
+   change, since the tool's "Mobile" toggle only narrows a container.
+   Values mirrored 1:1 from the spec's own doc-only .pv-mobile wrapper. */
+.pb-canvas-inner.is-mobile .ufs-flex-carousel { padding: 56px var(--space-4); gap: var(--space-6); }
+.pb-canvas-inner.is-mobile .ufs-flex-carousel__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+.pb-canvas-inner.is-mobile .ufs-flex-carousel__cta { display: none; }
+.pb-canvas-inner.is-mobile .ufs-flex-carousel__cta--mobile { display: block; width: 100%; }
+.pb-canvas-inner.is-mobile .ufs-carousel-track { padding-right: var(--space-4); }
+.pb-canvas-inner.is-mobile .ufs-carousel-spacer { flex-basis: var(--space-4); }
+.pb-canvas-inner.is-mobile .ufs-carousel-card { margin-right: var(--space-6); }
+.pb-canvas-inner.is-mobile .ufs-flex-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); }
+.pb-canvas-inner.is-mobile .ufs-flex-carousel__foot { justify-content: center; margin-top: calc(var(--space-2) - var(--space-6)); }
+.pb-canvas-inner.is-mobile .ufs-carousel-dots { flex: 1; justify-content: center; }
+.pb-canvas-inner.is-mobile .ufs-flex-carousel__arrows { display: none; }
