@@ -101,12 +101,12 @@
     }
     .btn-primary.btn-loading::after,
     .btn-critical.btn-loading::after {
-      border-color: color-mix(in srgb, var(--color-salt) 25%, transparent);
+      border-color: rgba(255,255,255,0.25);
       border-top-color: var(--color-salt);
     }
     .btn-secondary.btn-loading::after,
     .btn-ghost.btn-loading::after {
-      border-color: color-mix(in srgb, var(--color-accessible-orange) 20%, transparent);
+      border-color: rgba(209,73,0,0.2);
       border-top-color: var(--color-accessible-orange);
     }
 
@@ -114,27 +114,27 @@
     .btn-surface-dark { background: var(--color-brand-dark); }
     .btn-surface-grey { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); }
     .btn-surface-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
-    .btn-surface-dark .btn-secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+    .btn-surface-dark .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
     .btn-surface-dark .btn-ghost { color: var(--color-salt); }
-    .btn-surface-dark .btn-ghost:hover:not(:disabled) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+    .btn-surface-dark .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
     .btn-surface-dark .btn-link { color: var(--color-mushroom); text-decoration-color: var(--color-mushroom); }
     .btn-surface-dark .btn-link:hover:not(:disabled) { color: var(--color-salt); text-decoration-color: var(--color-salt); }
     .btn-surface-dark .btn-secondary.btn-loading::after,
     .btn-surface-dark .btn-ghost.btn-loading::after {
-      border-color: color-mix(in srgb, var(--color-salt) 25%, transparent);
+      border-color: rgba(255,255,255,0.25);
       border-top-color: var(--color-salt);
     }
     .btn-surface-dark :focus-visible { outline-color: var(--color-salt); }
 
     .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
-    .btn-on-dark .btn-secondary:hover:not(:disabled) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+    .btn-on-dark .btn-secondary:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
     .btn-on-dark .btn-ghost { color: var(--color-salt); }
-    .btn-on-dark .btn-ghost:hover:not(:disabled) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+    .btn-on-dark .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.1); }
     .btn-on-dark .btn-link { color: var(--color-mushroom); text-decoration-color: var(--color-mushroom); }
     .btn-on-dark .btn-link:hover:not(:disabled) { color: var(--color-salt); text-decoration-color: var(--color-salt); }
     .btn-on-dark .btn-secondary.btn-loading::after,
     .btn-on-dark .btn-ghost.btn-loading::after {
-      border-color: color-mix(in srgb, var(--color-salt) 25%, transparent);
+      border-color: rgba(255,255,255,0.25);
       border-top-color: var(--color-salt);
     }
     .btn-on-dark :focus-visible { outline-color: var(--color-salt); }
@@ -205,6 +205,34 @@
       transition: all 0.15s;
     }
     .pb-clear-btn:hover { color: #ff7070; border-color: rgba(255,80,80,0.3); }
+
+    /* Export — screenshots #pb-canvas via html2canvas (PB.exportCanvas
+       below) and downloads it as an image. Format select uses the same
+       dark toolbar look as every other picker in this file. */
+    .pb-export-group { display: flex; align-items: center; gap: 1px; background: rgba(255,255,255,0.07); border-radius: var(--radius-xs); padding: 3px; }
+    .pb-export-format {
+      font-size: 11px; font-weight: 600; font-family: var(--font-family);
+      color: rgba(255,255,255,0.6); background: transparent; border: none;
+      border-radius: 3px; padding: 4px 4px 4px 8px; cursor: pointer; outline: none;
+    }
+    .pb-export-btn {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.75);
+      background: transparent; border: none;
+      border-radius: 3px; padding: 5px 10px 5px 6px; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pb-export-btn:hover:not(:disabled) { color: white; background: rgba(255,255,255,0.1); }
+    .pb-export-btn:disabled { opacity: 0.5; cursor: wait; }
+    .pb-export-btn svg { flex-shrink: 0; }
+
+    /* Applied to #pb-canvas only for the moment html2canvas is reading
+       it — strips builder-only chrome (drag handle, toolbar, remove
+       button) so the exported image shows just the real page, the way
+       PB._bindInlineEdit's dashed hover outline is already invisible
+       until :hover. Removed again immediately after capture. */
+    .pb-exporting .pb-section-bar,
+    .pb-exporting .pb-remove-btn { display: none !important; }
 
     /* Import layout plan — the "AI plan" entry point. No live model call
        happens in this file (a static, backend-less tool can't hold an
@@ -496,8 +524,14 @@
       background: rgba(15,13,25,0.88); backdrop-filter: blur(10px);
       opacity: 0; transition: opacity 0.15s; pointer-events: none;
     }
-    .pb-section:hover .pb-section-bar { opacity: 1; pointer-events: all; }
-    .pb-section-bar:hover { opacity: 1; pointer-events: all; }
+    .pb-section:hover .pb-section-bar { opacity: 1; }
+    .pb-section-bar:hover { opacity: 1; }
+    /* Only the bar's real controls capture clicks — not .pb-spacer or the
+       bar's own background — so on short components (Announcement Banner
+       is ~46px tall, barely more than the bar itself) hovering to reveal
+       the toolbar doesn't also block clicking editable text sitting right
+       underneath it (see PB._startInlineEdit()). */
+    .pb-section-bar > *:not(.pb-spacer) { pointer-events: all; }
 
     .pb-drag-handle {
       width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
@@ -545,6 +579,33 @@
       flex-shrink: 0;
     }
     .pb-remove-btn:hover { background: rgba(220,50,50,0.25); color: #ff8080; }
+
+    /* ── Inline text editing (test — Title/Text Block only for now) ──
+       [data-pb-edit] marks a rendered text node as directly editable in
+       the canvas — click it, type, blur/Enter to save into
+       sec.overrides[field] and re-render (see PB._startInlineEdit()).
+       Dashed outline is the click affordance; swapped for a real
+       input/textarea (.pb-inline-editor) while editing, styled to
+       inherit the surrounding component's real typography via
+       getComputedStyle rather than per-field CSS, so this generalizes
+       to any future component without new rules here. */
+    [data-pb-edit] {
+      cursor: text;
+      outline: 1px dashed transparent; outline-offset: 3px;
+      transition: outline-color 0.12s, background-color 0.12s;
+    }
+    [data-pb-edit]:hover {
+      outline-color: var(--color-brand-primary);
+      background: rgba(255,90,0,0.06);
+    }
+    [data-pb-edit].pb-editing { outline: none; background: none; cursor: default; }
+    .pb-inline-editor {
+      display: block; width: 100%; box-sizing: border-box;
+      border: 1px dashed var(--color-brand-primary); border-radius: 2px;
+      background: rgb(255,247,242);
+      padding: 1px 3px; margin: -1px -3px; outline: none;
+    }
+    textarea.pb-inline-editor { resize: vertical; }
 
     /* ================================================================
        UFS NAV / HEADER — ported from handover/nav-header-spec.html.
@@ -776,6 +837,50 @@
     .pb-img-overlay-label {
       font-size: 12px; font-weight: 700; color: white; letter-spacing: 0.3px;
     }
+
+    /* Editable icon slot (Pathways) — same click-affordance family as
+       .pb-img-slot above, sized for a small glyph rather than a photo:
+       a persistent (not hover-only) ring + corner badge, since a 30px
+       icon has no room to host a hover overlay of its own. Click opens
+       PB.openIconPicker's floating popover (see PB._pathways/PB.ICONS
+       below) instead of a file upload — this swaps in a library icon,
+       it doesn't accept an arbitrary image. */
+    .pb-icon-slot {
+      position: relative; cursor: pointer; border-radius: var(--radius-sm);
+      outline: 1px dashed transparent; outline-offset: 4px;
+      transition: outline-color 0.12s;
+    }
+    .pb-icon-slot:hover { outline-color: rgba(255,255,255,0.6); }
+    .ufs-pathways__card--smoke .pb-icon-slot:hover { outline-color: var(--color-brand-dark); }
+
+    .pb-icon-picker {
+      position: fixed; z-index: 300; width: 300px; max-height: 360px;
+      background: var(--color-salt); border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg); border: 1px solid var(--color-mushroom-300);
+      display: none; flex-direction: column; overflow: hidden;
+    }
+    .pb-icon-picker.is-open { display: flex; }
+    .pb-icon-picker__search {
+      flex-shrink: 0; margin: var(--space-3); margin-bottom: var(--space-2);
+      padding: 0 var(--space-3); height: 34px; border-radius: var(--radius-sm);
+      border: 1px solid var(--color-mushroom-300); font-family: var(--font-family);
+      font-size: 13px; color: var(--color-brand-dark); outline: none;
+    }
+    .pb-icon-picker__search:focus { border-color: var(--color-accessible-orange); }
+    .pb-icon-picker__grid {
+      overflow-y: auto; padding: var(--space-2) var(--space-3) var(--space-3);
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+    }
+    .pb-icon-picker__item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 6px 2px; border: none; background: transparent; border-radius: var(--radius-sm);
+      cursor: pointer; color: var(--color-mushroom-900);
+    }
+    .pb-icon-picker__item:hover { background: var(--color-mushroom-100); color: var(--color-brand-dark); }
+    .pb-icon-picker__item.is-selected { background: rgba(209,73,0,0.12); color: var(--color-brand-dark); }
+    .pb-icon-picker__item img { width: 18px; height: 18px; }
+    .pb-icon-picker__item span { font-size: 9px; line-height: 1.2; text-align: center; word-break: break-word; }
+    .pb-icon-picker__empty { padding: var(--space-6) var(--space-4); text-align: center; font-size: 12px; color: var(--color-mushroom-900); grid-column: 1 / -1; }
 
     /* Placeholder — sections not yet ported from their spec file */
     .pb-placeholder {
@@ -1547,7 +1652,7 @@
 .ufs-promo-banner__countdown-label { color: var(--color-brand-dark); margin: 0; }
 .ufs-promo-banner__ctas { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
 .ufs-promo-banner__ctas .btn { width: 100%; }
-.ufs-promo-banner__disclaimer { color: color-mix(in srgb, var(--color-brand-dark) 80%, transparent); margin: 0; }
+.ufs-promo-banner__disclaimer { color: rgba(34,29,55,0.8); margin: 0; }
 .ufs-promo-banner .btn-secondary { background: var(--color-salt); }
 .ufs-promo-banner .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: transparent; }
 
@@ -1556,9 +1661,9 @@
 .ufs-promo-banner--dark .ufs-promo-banner__desc,
 .ufs-promo-banner--dark .ufs-promo-banner__countdown-value,
 .ufs-promo-banner--dark .ufs-promo-banner__countdown-label { color: var(--color-salt); }
-.ufs-promo-banner--dark .ufs-promo-banner__disclaimer { color: color-mix(in srgb, var(--color-salt) 80%, transparent); }
+.ufs-promo-banner--dark .ufs-promo-banner__disclaimer { color: rgba(255,255,255,0.8); }
 .ufs-promo-banner--dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
-.ufs-promo-banner--dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+.ufs-promo-banner--dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: rgba(255,255,255,0.1); }
 
 @media (min-width: 1024px) {
   .ufs-promo-banner {
@@ -1646,7 +1751,7 @@
 }
 .ufs-ann-banner.is-closing { opacity: 0; pointer-events: none; }
 .ufs-ann-banner--neutral { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-500); }
-.ufs-ann-banner--warm { background: color-mix(in srgb, var(--color-orange-100) 30%, var(--color-salt)); border: 1px solid var(--color-orange-300); }
+.ufs-ann-banner--warm { background: rgb(255,245,240); border: 1px solid var(--color-orange-300); }
 /* Above 1480px the fixed space-20 side margin would keep growing the
    banner forever — cap it and let auto margins take over instead. */
 @media (min-width: 1480px) {
@@ -1670,7 +1775,7 @@
   display: flex; align-items: center; justify-content: center; transition: background 0.15s;
 }
 .ufs-ann-banner__close svg { width: 12px; height: 12px; }
-.ufs-ann-banner__close:hover { background: color-mix(in srgb, var(--color-brand-dark) 8%, transparent); }
+.ufs-ann-banner__close:hover { background: rgba(34,29,55,0.08); }
 @media (max-width: 768px) {
   .ufs-ann-banner {
     flex-direction: column; align-items: center; text-align: center; height: auto;
@@ -2050,7 +2155,7 @@
   --carousel-btn-border: var(--color-salt);
   --carousel-btn-color: var(--color-salt);
   --carousel-btn-hover-bg: rgba(255,255,255,0.12);
-  --carousel-card-bg: color-mix(in srgb, var(--color-mushroom-500) 30%, transparent);
+  --carousel-card-bg: rgba(203,197,199,0.3);
   --carousel-dot-inactive: var(--color-mushroom-500);
   --carousel-arrow-border: var(--color-mushroom-500);
   --carousel-arrow-color: var(--color-mushroom-500);
@@ -2067,7 +2172,7 @@
 .ufs-flex-carousel--mushroom .ufs-flex-carousel__foot { margin-top: calc(var(--space-2) - var(--space-6)); }
 .ufs-flex-carousel--mushroom .ufs-carousel-dot.is-active { background: var(--color-orange-700); }
 .ufs-flex-carousel--image {
-  background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/M_GPP_6074.jpg');
+  background-image: linear-gradient(rgba(34,29,55,0.6), rgba(34,29,55,0.6)), url('images/M_GPP_6074.jpg');
   background-size: cover, cover; background-position: center, center; background-repeat: no-repeat, no-repeat;
   --carousel-title-color: var(--color-salt);
   --carousel-desc-color: rgba(255,255,255,0.75);
@@ -2337,7 +2442,7 @@
 .ufs-tile__topic-photo { display: block; position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .ufs-tile--topic::before {
   content: ''; position: absolute; inset: 0; border-radius: var(--radius-lg); z-index: 1;
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-dark) 0%, transparent) 23.5%, var(--color-brand-dark) 74%);
+  background: linear-gradient(to bottom, rgba(34,29,55,0) 23.5%, var(--color-brand-dark) 74%);
 }
 .ufs-tile__topic-body { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; padding: var(--space-8) var(--space-5) var(--space-6); }
 .ufs-tile__topic-eyebrow { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); line-height: var(--text-overline-lh); text-transform: uppercase; color: var(--color-mushroom-500); margin: 0; }
@@ -2826,15 +2931,18 @@
 /* ================================================================
    TEXT BLOCK — ported from handover/text-block-spec.html
    Real DS classes: .ufs-text-block(__content/__eyebrow/__heading
-   (--lead)/__body(--lead)/__link). This fragment only ports the base
-   text-only shape (no .ufs-text-block__media / image / video layout
-   modifiers) per this porting pass's scope — text-block is treated as
-   a pure-text article/inspiration block here, matching the "richest
-   text-only configuration" shown first in the spec's own Overview
-   section. Every token used (--space-*, --text-overline-*,
+   (--lead)/__body(--lead)/__link/__media). All 8 layout configurations
+   from the spec are wired as variants: the base text-only shape (kept
+   as this component's pre-existing "intro" default — eyebrow + --lead
+   heading/body) plus image-bottom/top/left/right and video-left/right/
+   full, each a root --modifier class per the spec's Layout Variants
+   section (see PB._textBlock). Media uses this file's own pb-img-slot
+   convention (radius/overflow on .ufs-text-block__media rather than
+   the spec's `__media > img`) so replace-image works like every other
+   ported component. Every token used (--space-*, --text-overline-*,
    --text-h2-*, --text-h3-*, --text-body-*, --color-accessible-orange,
-   --color-brand-dark, --color-squid-500) already exists in
-   tokens.css, so no substitution was needed.
+   --color-brand-dark, --color-squid-500, --radius-lg/sm) already
+   exists in tokens.css, so no substitution was needed.
 ================================================================ */
 .ufs-text-block {
   max-width: 960px;
@@ -2875,11 +2983,73 @@
   text-decoration: underline; text-underline-offset: 2px; cursor: pointer;
 }
 
+/* Media side — image or .ufs-video-embed. Radius/overflow live on
+   .ufs-text-block__media itself (compound .pb-img-slot class) rather
+   than on the spec's `__media > img` selector, matching this file's
+   own pb-img-slot convention (see .ufs-teaser__image.pb-img-slot) so
+   the replace-image affordance clips correctly too. */
+.ufs-text-block__media { min-width: 0; border-radius: var(--radius-lg); overflow: hidden; }
+.ufs-text-block__media img { display: block; width: 100%; height: auto; }
+
+/* ── Stacked variants: image-bottom (default DOM order) / image-top /
+   video-full — DOM order is always (content, media); image-top's swap
+   is done with `order`, never by reordering markup. ── */
+.ufs-text-block--image-bottom,
+.ufs-text-block--image-top,
+.ufs-text-block--video-full {
+  display: flex; flex-direction: column; gap: var(--space-6);
+}
+.ufs-text-block--image-top .ufs-text-block__media { order: -1; }
+
+/* .ufs-video-embed--wide ships elsewhere as a fixed-width card (350/
+   650px) — text-block needs it fluid at 16:9 in all three video
+   placements, overridden locally here (see text-block-spec.html). */
+@media (min-width: 769px) {
+  .ufs-text-block--video-left .ufs-video-embed--wide,
+  .ufs-text-block--video-right .ufs-video-embed--wide,
+  .ufs-text-block--video-full .ufs-video-embed--wide {
+    width: 100%; aspect-ratio: 16 / 9;
+  }
+}
+
+/* ── Split variants: image/video left or right, ~50/50 columns.
+   --left variants flip visually with row-reverse rather than
+   reordering the DOM, so the mobile column-reverse rule below puts
+   media first regardless of which side it's on at desktop. ── */
+.ufs-text-block--image-left,
+.ufs-text-block--image-right,
+.ufs-text-block--video-left,
+.ufs-text-block--video-right {
+  display: flex; align-items: flex-start; gap: var(--space-10); padding-top: var(--space-8);
+}
+.ufs-text-block--image-left,
+.ufs-text-block--video-left { flex-direction: row-reverse; }
+.ufs-text-block--image-left .ufs-text-block__content,
+.ufs-text-block--image-right .ufs-text-block__content,
+.ufs-text-block--video-left .ufs-text-block__content,
+.ufs-text-block--video-right .ufs-text-block__content,
+.ufs-text-block--image-left .ufs-text-block__media,
+.ufs-text-block--image-right .ufs-text-block__media,
+.ufs-text-block--video-left .ufs-text-block__media,
+.ufs-text-block--video-right .ufs-text-block__media {
+  flex: 1; min-width: 0;
+}
+
 @media (max-width: 768px) {
   .ufs-text-block__heading { font-size: var(--text-h3-mob-size); }
   .ufs-text-block__heading--lead { font-size: var(--text-h2-mob-size); }
   .ufs-text-block__body p { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
   .ufs-text-block__body--lead p { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+  .ufs-text-block__media { border-radius: var(--radius-sm); }
+  .ufs-text-block--image-bottom,
+  .ufs-text-block--image-top,
+  .ufs-text-block--video-full { gap: var(--space-4); }
+  .ufs-text-block--image-left,
+  .ufs-text-block--image-right,
+  .ufs-text-block--video-left,
+  .ufs-text-block--video-right {
+    flex-direction: column-reverse; align-items: stretch; gap: var(--space-4); padding-top: 0;
+  }
 }
 
 /* Page Builder's mobile-viewport toggle only constrains the canvas's
@@ -2891,6 +3061,16 @@
 .pb-canvas-inner.is-mobile .ufs-text-block__heading--lead { font-size: var(--text-h2-mob-size); }
 .pb-canvas-inner.is-mobile .ufs-text-block__body p { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
 .pb-canvas-inner.is-mobile .ufs-text-block__body--lead p { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+.pb-canvas-inner.is-mobile .ufs-text-block__media { border-radius: var(--radius-sm); }
+.pb-canvas-inner.is-mobile .ufs-text-block--image-bottom,
+.pb-canvas-inner.is-mobile .ufs-text-block--image-top,
+.pb-canvas-inner.is-mobile .ufs-text-block--video-full { gap: var(--space-4); }
+.pb-canvas-inner.is-mobile .ufs-text-block--image-left,
+.pb-canvas-inner.is-mobile .ufs-text-block--image-right,
+.pb-canvas-inner.is-mobile .ufs-text-block--video-left,
+.pb-canvas-inner.is-mobile .ufs-text-block--video-right {
+  flex-direction: column-reverse; align-items: stretch; gap: var(--space-4); padding-top: 0;
+}
 
     /* ================================================================
        TEASER — ported from handover/teaser-spec.html
@@ -3054,10 +3234,12 @@
    2296:6180). Every token used (--space-*, --text-h4-*, --text-h6-*,
    --color-brand-dark, --color-aubergine, --color-accessible-orange,
    --color-smoke, --radius-lg, --radius-sm, --shadow-md) already
-   exists in tokens.css, so no substitution was needed — including
-   the --smoke card's color-mix(), which the spec's own comments
-   confirm lands on the --color-smoke token itself, not an
-   approximation.
+   exists in tokens.css, so no substitution was needed. The --smoke
+   card's background is the spec's own color-mix(in srgb,
+   var(--color-smoke) 50%, transparent) — pre-computed here to the
+   literal rgba(148,136,157,0.5) it resolves to (same for every other
+   color-mix() in this file), since html2canvas (PB.exportCanvas) can't
+   parse the color-mix() function and throws on it, not just degrades.
 ================================================================ */
 .ufs-pathways {
   display: flex; flex-direction: column; align-items: center;
@@ -3119,7 +3301,7 @@
 .ufs-pathways__card--orange .ufs-pathways__icon img,
 .ufs-pathways__card--orange .ufs-pathways__chevron svg { filter: brightness(0) invert(1); }
 
-.ufs-pathways__card--smoke { background: color-mix(in srgb, var(--color-smoke) 50%, transparent); }
+.ufs-pathways__card--smoke { background: rgba(148,136,157,0.5); }
 .ufs-pathways__card--smoke .ufs-pathways__label { color: var(--color-brand-dark); }
 
 @media (min-width: 769px) {
@@ -3226,7 +3408,7 @@
 }
 .ufs-video-embed::before {
   content: ''; position: absolute; inset: 0; z-index: 1;
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-brand-dark) 0%, transparent) 23.5%, var(--color-brand-dark) 74%);
+  background: linear-gradient(to bottom, rgba(34,29,55,0) 23.5%, var(--color-brand-dark) 74%);
 }
 .ufs-video-embed__play {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 3;
@@ -3332,6 +3514,16 @@
         <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0l1.2 4.8L14 6l-4.8 1.2L8 12l-1.2-4.8L2 6l4.8-1.2L8 0z"/></svg>
         Import layout plan
       </button>
+      <div class="pb-export-group">
+        <select class="pb-export-format" id="pb-export-format" title="Export format">
+          <option value="png">PNG</option>
+          <option value="jpg">JPG</option>
+        </select>
+        <button class="pb-export-btn" id="pb-export-btn" onclick="PB.exportCanvas()" title="Save the current layout as an image">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1v9M4.5 6.5L8 10l3.5-3.5M2 12.5v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1"/></svg>
+          Export
+        </button>
+      </div>
       <button class="pb-clear-btn" onclick="PB.clear()">Clear canvas</button>
     </div>
   </header>
@@ -3385,6 +3577,12 @@
     </main>
 
   </div>
+
+  <!-- html2canvas — client-side DOM-to-canvas rasteriser used by
+       PB.exportCanvas() below (Export button in the header) to save the
+       generated layout as an image. Pinned version, no local copy kept
+       (this prototype has no build step to bundle a vendored file). -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
   <script>
     /* ================================================================
@@ -3754,8 +3952,101 @@
         }
       },
 
+      /* ── Export ─────────────────────────────────────────────────
+         Rasterises #pb-canvas with html2canvas (loaded via CDN, see
+         the <script> tag near the end of <body>) and downloads it as
+         PNG or JPG — a client-side screenshot, not a pixel-perfect
+         render: html2canvas can't parse the color-mix() CSS function
+         at all (throws, not just degrades — every color-mix() in this
+         file's CSS was pre-computed to a literal rgba()/rgb() for
+         exactly this reason, see the Pathways CSS comment for one
+         example), and things like backdrop-filter blur are a known
+         gap too and may come through slightly off.
+         Captures #pb-canvas itself, not its .pb-canvas-inner parent, so
+         the mobile-preview phone frame (border/shadow) is naturally
+         excluded — exactly what's rendered on screen right now, at
+         whatever viewport (desktop/mobile) is currently active. */
+      exportCanvas() {
+        if (typeof html2canvas === 'undefined') {
+          alert('The export library failed to load (needs an internet connection) — check your connection and try again.');
+          return;
+        }
+        if (!this.sections.length) {
+          alert('Add at least one section to the canvas before exporting.');
+          return;
+        }
+        // Opening this file directly (double-click, file://...) loads
+        // every local image (icons/, images/, handover/images/) from a
+        // file:// origin, which Chrome always treats as cross-origin for
+        // canvas purposes — html2canvas still draws them, but the
+        // resulting canvas comes out "tainted" and toDataURL() throws a
+        // SecurityError at the very last step, after the (slow, scale:2)
+        // render already ran. Catching this case up front, before doing
+        // that work, gives a fix instead of a cryptic error.
+        if (location.protocol === 'file:') {
+          alert('Export needs this page served over http(s), not opened directly as a file — local images load from a file:// origin, which the browser always blocks canvas export from reading.\n\nRun a local server from the project folder, e.g.:\n  python3 -m http.server 8000\nthen open http://localhost:8000/page-builder.html');
+          return;
+        }
+
+        const canvasEl = document.getElementById('pb-canvas');
+        const wrapEl = document.getElementById('pb-canvas-wrap');
+        const btn = document.getElementById('pb-export-btn');
+        const format = document.getElementById('pb-export-format').value; // 'png' | 'jpg'
+
+        // Don't capture a mid-edit input box or an open icon picker.
+        const active = document.activeElement;
+        if (active && active.classList && active.classList.contains('pb-inline-editor')) active.blur();
+        this.closeIconPicker();
+
+        const originalLabel = btn.innerHTML;
+        btn.disabled = true;
+        btn.textContent = 'Exporting…';
+        // #pb-canvas has no background of its own — the real page
+        // background lives on its .pb-canvas-wrap parent — so resolve
+        // that real colour up front rather than let html2canvas guess,
+        // otherwise a JPG export (no alpha channel) could fill any
+        // transparent gap with black.
+        const bg = getComputedStyle(wrapEl).backgroundColor || '#ffffff';
+        canvasEl.classList.add('pb-exporting');
+
+        html2canvas(canvasEl, { backgroundColor: bg, scale: 2, useCORS: true, logging: false })
+          .then(canvas => {
+            const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
+            const dataUrl = canvas.toDataURL(mime, format === 'jpg' ? 0.92 : undefined);
+            const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = `page-builder-export-${stamp}.${format}`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+          })
+          .catch(err => {
+            console.error('Export failed:', err);
+            // SecurityError here means some image drawn into the canvas
+            // came from a different origin without CORS (the file://
+            // case above is the common one; a hotlinked http(s) image
+            // with no Access-Control-Allow-Origin would hit this too) —
+            // give the actual reason rather than a generic failure.
+            if (err && err.name === 'SecurityError') {
+              alert('Export failed: the canvas is "tainted" by a cross-origin image (no CORS access) — if you opened this file directly rather than through a local server, that\'s almost always the cause. See the browser console for details.');
+            } else {
+              alert('Export failed — see the browser console for details.');
+            }
+          })
+          .finally(() => {
+            canvasEl.classList.remove('pb-exporting');
+            btn.disabled = false;
+            btn.innerHTML = originalLabel;
+          });
+      },
+
       /* ── Render ─────────────────────────────────────────────── */
       render() {
+        // A full canvas re-render invalidates the icon picker's anchor
+        // position (see PB.openIconPicker) — close it rather than let it
+        // float over the wrong element.
+        this.closeIconPicker();
         const canvas = document.getElementById('pb-canvas');
         const badge  = document.getElementById('pb-count');
 
@@ -3784,14 +4075,105 @@
 
         // Attach drag/drop events after render
         this.sections.forEach(sec => this._bindSection(sec.id));
+        // Inline text editing — see _bindInlineEdit()/_startInlineEdit()
+        this.sections.forEach(sec => this._bindInlineEdit(sec));
+      },
+
+      /* ── Inline text editing ───────────────────────────────────
+         [data-pb-edit="field"] on a rendered element marks it directly
+         editable in the canvas. Click swaps it for a real input/
+         textarea (styled to inherit the surrounding component's own
+         computed typography, not bespoke per-field CSS, so this works
+         for any component with zero new rules); blur or Enter commits
+         into sec.overrides[field] and re-renders, Escape reverts. */
+      _bindInlineEdit(sec) {
+        const contentEl = document.querySelector('#pbs-' + sec.id + ' .pb-section-content');
+        if (!contentEl) return;
+        contentEl.querySelectorAll('[data-pb-edit]').forEach(el => {
+          el.addEventListener('click', e => {
+            // preventDefault matters when the editable field is nested
+            // inside a real <a> (e.g. Pathways' card label) — stopping
+            // propagation alone doesn't cancel the anchor's own "follow
+            // href" default action, only a listener actually running.
+            e.preventDefault();
+            e.stopPropagation();
+            this._startInlineEdit(el, sec);
+          });
+        });
+      },
+
+      // Multi-paragraph fields (desc) start from the visible <p> children
+      // joined by a blank line rather than raw textContent, so the editor
+      // opens with real spacing between sentences instead of them run
+      // together — matches how sec.overrides.desc is already treated as
+      // a single string everywhere else (AI-plan overrides collapse to
+      // one paragraph on render too, see PB._textBlock/PB._title).
+      _inlineEditText(el) {
+        const paras = el.querySelectorAll(':scope > p');
+        if (paras.length > 1) return Array.from(paras).map(p => p.textContent.trim()).join('\n\n');
+        return el.textContent.trim();
+      },
+
+      _startInlineEdit(el, sec) {
+        if (el.classList.contains('pb-editing')) return;
+        const field = el.getAttribute('data-pb-edit');
+        const isMultiline = field === 'desc';
+        const original = this._inlineEditText(el);
+        const cs = getComputedStyle(el);
+
+        const editor = document.createElement(isMultiline ? 'textarea' : 'input');
+        editor.className = 'pb-inline-editor';
+        editor.value = original;
+        if (!isMultiline) editor.type = 'text';
+        else editor.rows = Math.max(2, original.split('\n').length);
+        Object.assign(editor.style, {
+          fontSize: cs.fontSize, fontWeight: cs.fontWeight, fontFamily: cs.fontFamily,
+          lineHeight: cs.lineHeight, color: cs.color, textAlign: cs.textAlign,
+          letterSpacing: cs.letterSpacing,
+        });
+
+        el.dataset.pbOriginalHtml = el.innerHTML;
+        el.classList.add('pb-editing');
+        el.innerHTML = '';
+        el.appendChild(editor);
+        editor.focus();
+        editor.select();
+
+        const commit = () => {
+          const val = editor.value.trim();
+          el.classList.remove('pb-editing');
+          sec.overrides = sec.overrides || {};
+          if (val) sec.overrides[field] = val; else delete sec.overrides[field];
+          this.render();
+        };
+        const cancel = () => {
+          editor.removeEventListener('blur', commit);
+          el.classList.remove('pb-editing');
+          el.innerHTML = el.dataset.pbOriginalHtml;
+        };
+
+        editor.addEventListener('blur', commit);
+        editor.addEventListener('keydown', ev => {
+          if (ev.key === 'Escape') { ev.preventDefault(); cancel(); }
+          else if (ev.key === 'Enter' && !isMultiline) { ev.preventDefault(); editor.blur(); }
+        });
       },
 
       _sectionHTML(sec) {
         const variants = this.VARIANTS[sec.type] || [];
+        // Text Block has 8 layout configurations — too many for the
+        // pill-row treatment every other multi-variant component uses,
+        // so it gets the same "many options" <select> pattern as Flex
+        // Carousel's card-type picker below, wired to the same generic
+        // PB.setVariant handler.
         const varHTML = variants.length > 1
-          ? `<div class="pb-var-group">${variants.map(v =>
-              `<button class="pb-var-btn${v === sec.variant ? ' is-active' : ''}" onclick="PB.setVariant('${sec.id}','${v}')">${this.VAR_LABELS[v]}</button>`
-            ).join('')}</div>`
+          ? (sec.type === 'text-block'
+              ? `<select class="pb-var-select" onclick="event.stopPropagation()" onchange="PB.setVariant('${sec.id}',this.value)">
+                  ${variants.map(v => `<option value="${v}"${v === sec.variant ? ' selected' : ''}>${this.VAR_LABELS[v] || v}</option>`).join('')}
+                </select>`
+              : `<div class="pb-var-group">${variants.map(v =>
+                  `<button class="pb-var-btn${v === sec.variant ? ' is-active' : ''}" onclick="PB.setVariant('${sec.id}','${v}')">${this.VAR_LABELS[v]}</button>`
+                ).join('')}</div>`)
           : '';
 
         // Flex Carousel's card-type + tile-count pickers live in the
@@ -3853,6 +4235,20 @@
             </select>`;
         }
 
+        // Pathways' card-count picker — the spec's own Anatomy notice
+        // says nothing hard-codes a count (3/4/5 are just centred flex),
+        // so this is a free choice, same toolbar-select treatment as
+        // every other "more than a couple of options" picker here.
+        let pathwaysCountHTML = '';
+        if (sec.type === 'pathways') {
+          const count = [3, 4, 5].includes(sec.cardCount) ? sec.cardCount : 3;
+          pathwaysCountHTML = `<select class="pb-var-select" onclick="event.stopPropagation()" onchange="PB.setPathwaysCardCount('${sec.id}',this.value)">
+              ${[3, 4, 5].map(n =>
+                `<option value="${n}"${n === count ? ' selected' : ''}>${n} cards</option>`
+              ).join('')}
+            </select>`;
+        }
+
         return `
           <div class="pb-section" id="pbs-${sec.id}">
             <div class="pb-section-bar">
@@ -3868,6 +4264,7 @@
               ${cardTypeHTML}
               ${splitRowHTML}
               ${teaserColsHTML}
+              ${pathwaysCountHTML}
               ${varHTML}
               <button class="pb-remove-btn" onclick="PB.removeSection('${sec.id}')" title="Remove section">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -4367,8 +4764,8 @@ PB._campaignHero = function(variant, sec) {
     <div class="ufs-campaign-hero__content">
       <img class="ufs-campaign-hero__logo" src="handover/images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
       <div class="ufs-campaign-hero__heading">
-        <h2 class="ufs-campaign-hero__title">${title}</h2>
-        <p class="ufs-campaign-hero__desc">${desc}</p>
+        <h2 class="ufs-campaign-hero__title" data-pb-edit="title">${title}</h2>
+        <p class="ufs-campaign-hero__desc" data-pb-edit="desc">${desc}</p>
       </div>
       <div class="ufs-campaign-hero__countdown" role="group" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
         <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
@@ -4389,10 +4786,10 @@ PB._campaignHero = function(variant, sec) {
         </div>
       </div>
       <div class="ufs-campaign-hero__ctas btn-on-dark">
-        <button type="button" class="btn btn-primary">${ctaPrimary}</button>
-        <button type="button" class="btn btn-secondary">${ctaSecondary}</button>
+        <button type="button" class="btn btn-primary" data-pb-edit="ctaPrimary">${ctaPrimary}</button>
+        <button type="button" class="btn btn-secondary" data-pb-edit="ctaSecondary">${ctaSecondary}</button>
       </div>
-      <p class="ufs-campaign-hero__disclaimer">${disclaimer}</p>
+      <p class="ufs-campaign-hero__disclaimer" data-pb-edit="disclaimer">${disclaimer}</p>
     </div>
   </section>`;
 };
@@ -4409,7 +4806,8 @@ PB._campaignHero = function(variant, sec) {
    imagery — this is a preview tool, not the spec's own live
    scroll-snap gallery (thumbnail sync / swipe / arrow JS is out of
    scope here, same as Nav/Footer's own decorative-only interactive
-   bits). */
+   bits). Eyebrow/title/CTA label(s) are editable in-canvas via
+   data-pb-edit, same override boundary as Campaign Hero. */
 Object.assign(PB.VARIANTS, { 'product-hero': ['default', 'dual'] });
 Object.assign(PB.DEFAULT_VARIANT, { 'product-hero': 'default' });
 Object.assign(PB.VAR_LABELS, { dual: 'Dual CTA' });
@@ -4419,12 +4817,22 @@ PB._productHero = function(variant, sec) {
   const uploadIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`;
   const chevron = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>`;
 
+  // Identity copy (eyebrow/title) + CTA labels are editable in-canvas
+  // via the same sec.overrides/data-pb-edit mechanism as every other
+  // ported component; tags, USPs, SKU and utility row stay real,
+  // structural content — same override boundary as Campaign Hero.
+  const o = sec.overrides || {};
+  const eyebrow = o.eyebrow || 'Condiments';
+  const title = o.title || 'Knorr Professional Chicken Stock Granules 1 Kg';
+  const ctaPrimary = o.ctaPrimary || 'How to order';
+  const ctaSecondary = o.ctaSecondary || 'Request a sample';
+
   const ctas = variant === 'dual'
     ? `<div class="ufs-product-hero__ctas">
-        <a href="#" class="btn btn-primary btn-lg ufs-product-hero__cta">How to order</a>
-        <a href="#" class="btn btn-secondary btn-lg ufs-product-hero__cta">Request a sample</a>
+        <a href="#" class="btn btn-primary btn-lg ufs-product-hero__cta" data-pb-edit="ctaPrimary" onclick="return false;">${ctaPrimary}</a>
+        <a href="#" class="btn btn-secondary btn-lg ufs-product-hero__cta" data-pb-edit="ctaSecondary" onclick="return false;">${ctaSecondary}</a>
       </div>`
-    : `<a href="#" class="btn btn-primary btn-lg ufs-product-hero__cta">How to order</a>`;
+    : `<a href="#" class="btn btn-primary btn-lg ufs-product-hero__cta" data-pb-edit="ctaPrimary" onclick="return false;">${ctaPrimary}</a>`;
 
   return `<section class="ufs-product-hero">
     <div class="ufs-product-hero__gallery">
@@ -4458,8 +4866,8 @@ PB._productHero = function(variant, sec) {
     <div class="ufs-product-hero__info">
       <div class="ufs-product-hero__intro">
         <div class="ufs-product-hero__header">
-          <p class="ufs-product-hero__eyebrow">Condiments</p>
-          <h1 class="ufs-product-hero__title">Knorr Professional Chicken Stock Granules 1 Kg</h1>
+          <p class="ufs-product-hero__eyebrow" data-pb-edit="eyebrow">${eyebrow}</p>
+          <h1 class="ufs-product-hero__title" data-pb-edit="title">${title}</h1>
           <div class="ufs-product-hero__tags">
             <span class="ufs-product-hero__tag">Vegan</span>
             <span class="ufs-product-hero__tag">Gluten Free</span>
@@ -4497,7 +4905,9 @@ PB._productHero = function(variant, sec) {
    in both variants rather than stripped down the way the spec's own
    side-by-side demo does — that demo trims content purely to keep the
    comparison compact, not because video precludes it. The media
-   photo is wired as an editable slot via PB.replaceImage. */
+   photo is wired as an editable slot via PB.replaceImage. Eyebrow/
+   title are editable in-canvas via data-pb-edit, same as every other
+   ported hero. */
 Object.assign(PB.VARIANTS, { 'recipe-hero': ['default', 'video'] });
 Object.assign(PB.DEFAULT_VARIANT, { 'recipe-hero': 'default' });
 Object.assign(PB.VAR_LABELS, { video: 'Video' });
@@ -4506,6 +4916,12 @@ PB._recipeHero = function(variant, sec) {
   const photoSrc = (sec.images && sec.images['photo']) || 'handover/images/hero/recipe.jpg';
   const uploadIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`;
   const star = `<svg viewBox="0 0 20 20" fill="currentColor" style="color:var(--color-brand-primary)"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>`;
+  // Eyebrow/title are editable in-canvas via data-pb-edit — rating,
+  // tags and author stay real, structural content (no free-text field
+  // maps to them), same override boundary as every other ported hero.
+  const o = sec.overrides || {};
+  const eyebrow = o.eyebrow || 'Recipe';
+  const title = o.title || 'Knorr Professional Mashed Potato for Bulk Cooking';
 
   const watchHTML = variant === 'video'
     ? `<div class="ufs-recipe-hero__overlay"></div>
@@ -4519,8 +4935,8 @@ PB._recipeHero = function(variant, sec) {
     <div class="ufs-recipe-hero__panel">
       <div class="ufs-recipe-hero__content">
         <div class="ufs-recipe-hero__text-group">
-          <p class="ufs-recipe-hero__eyebrow">Recipe</p>
-          <h1 class="ufs-recipe-hero__title">Knorr Professional Mashed Potato for Bulk Cooking</h1>
+          <p class="ufs-recipe-hero__eyebrow" data-pb-edit="eyebrow">${eyebrow}</p>
+          <h1 class="ufs-recipe-hero__title" data-pb-edit="title">${title}</h1>
           <div class="ufs-recipe-hero__rating">
             <span class="ufs-tile__stars">${star}${star}${star}${star}${star}</span>
             <span>(332)</span>
@@ -4570,7 +4986,8 @@ PB._recipeHero = function(variant, sec) {
    (PB.openTrailerLB/closeTrailerLB below) appended to document.body —
    outside the canvas PB.render() replaces on every state change, so it
    keeps working across re-renders without needing any per-section init
-   step. */
+   step. Eyebrow/title/desc/CTA label are editable in-canvas via
+   data-pb-edit, same override boundary as every other ported hero. */
 Object.assign(PB.VARIANTS, { 'training-hero': [] });
 Object.assign(PB.DEFAULT_VARIANT, { 'training-hero': 'default' });
 
@@ -4579,13 +4996,21 @@ PB._trainingHero = function (variant, sec) {
   const avatarSrc = (sec.images && sec.images['avatar']) || 'images/chef-profiles/eric-chua.png';
   const uploadIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
   const videoUrl = 'https://player.vimeo.com/video/336809853?autoplay=1&title=0&byline=0&portrait=0';
+  // Eyebrow/title/desc/CTA label are editable in-canvas via data-pb-edit
+  // — instructor name/role stay real content (avatar already covered by
+  // PB.replaceImage), same override boundary as every other ported hero.
+  const o = sec.overrides || {};
+  const eyebrow = o.eyebrow || 'Training';
+  const title = o.title || 'Middle Eastern Cuisine with Chef Rabeh';
+  const desc = o.desc || 'Make pasta from scratch with true Italian techniques in these online culinary courses! Learn about Italian cooking &amp; how to make the perfect Tagliatelle - Italian style!';
+  const ctaPrimary = o.ctaPrimary || 'Start Training Now';
 
   return `<section class="ufs-training-hero">
     <div class="ufs-training-hero__panel">
       <div class="ufs-training-hero__content">
-        <p class="ufs-training-hero__eyebrow">Training</p>
-        <h1 class="ufs-training-hero__title">Middle Eastern Cuisine with Chef Rabeh</h1>
-        <p class="ufs-training-hero__desc">Make pasta from scratch with true Italian techniques in these online culinary courses! Learn about Italian cooking &amp; how to make the perfect Tagliatelle - Italian style!</p>
+        <p class="ufs-training-hero__eyebrow" data-pb-edit="eyebrow">${eyebrow}</p>
+        <h1 class="ufs-training-hero__title" data-pb-edit="title">${title}</h1>
+        <p class="ufs-training-hero__desc" data-pb-edit="desc">${desc}</p>
         <div class="ufs-training-hero__instructor">
           <p class="ufs-training-hero__instructor-label">Instructor:</p>
           <div class="ufs-training-hero__instructor-row">
@@ -4600,7 +5025,7 @@ PB._trainingHero = function (variant, sec) {
           </div>
         </div>
         <div class="ufs-training-hero__cta">
-          <button type="button" class="btn btn-primary">Start Training Now</button>
+          <button type="button" class="btn btn-primary" data-pb-edit="ctaPrimary">${ctaPrimary}</button>
         </div>
       </div>
     </div>
@@ -4697,7 +5122,7 @@ PB._promoBanner = function (variant, sec) {
   const ctaPrimary = o.ctaPrimary || 'Discover All Courses';
   const ctaSecondaryLabel = o.ctaSecondary || 'How Academy Works?';
   const disclaimer = o.disclaimer || '*Disclaimer text for specific use cases';
-  const secondaryCta = isDark ? '' : `<button type="button" class="btn btn-secondary">${ctaSecondaryLabel}</button>`;
+  const secondaryCta = isDark ? '' : `<button type="button" class="btn btn-secondary" data-pb-edit="ctaSecondary">${ctaSecondaryLabel}</button>`;
 
   return `<div class="pg-promo-banner-section">
     <div class="ufs-promo-banner${isDark ? ' ufs-promo-banner--dark' : ''}">
@@ -4711,15 +5136,15 @@ PB._promoBanner = function (variant, sec) {
       <div class="ufs-promo-banner__panel">
         ${logo}
         <div class="ufs-promo-banner__body">
-          <h2 class="ufs-promo-banner__title text-h2">${title}</h2>
-          <p class="ufs-promo-banner__desc text-body">${desc}</p>
+          <h2 class="ufs-promo-banner__title text-h2" data-pb-edit="title">${title}</h2>
+          <p class="ufs-promo-banner__desc text-body" data-pb-edit="desc">${desc}</p>
           ${countdown}
         </div>
         <div class="ufs-promo-banner__ctas">
-          <button type="button" class="btn btn-primary">${ctaPrimary}</button>
+          <button type="button" class="btn btn-primary" data-pb-edit="ctaPrimary">${ctaPrimary}</button>
           ${secondaryCta}
         </div>
-        <p class="ufs-promo-banner__disclaimer text-body-xs">${disclaimer}</p>
+        <p class="ufs-promo-banner__disclaimer text-body-xs" data-pb-edit="disclaimer">${disclaimer}</p>
       </div>
     </div>
   </div>`;
@@ -4757,7 +5182,7 @@ PB._announcementBanner = function (variant, sec) {
     const neutralText = o.text || 'We are experiencing delays in our shippings due to bad weather conditions. Please keep an eye on your inbox for order updates.';
     return `<div class="ufs-ann-banner ufs-ann-banner--neutral">
       <p class="ufs-ann-banner__content">
-        <span class="ufs-ann-banner__text">${neutralText}</span>
+        <span class="ufs-ann-banner__text" data-pb-edit="text">${neutralText}</span>
       </p>
       ${closeBtn}
     </div>`;
@@ -4774,7 +5199,7 @@ PB._announcementBanner = function (variant, sec) {
         <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value">09</span><span class="ufs-ann-banner__unit-label">Seconds</span></div>
       </div>
       <p class="ufs-ann-banner__content">
-        <span class="ufs-ann-banner__title">${warmTitle}</span><span class="ufs-ann-banner__text">${warmText}</span><a href="#" class="ufs-ann-banner__link" onclick="return false;">${ctaLabel}</a>
+        <span class="ufs-ann-banner__title" data-pb-edit="title">${warmTitle}</span><span class="ufs-ann-banner__text" data-pb-edit="text">${warmText}</span><a href="#" class="ufs-ann-banner__link" data-pb-edit="ctaPrimary" onclick="return false;">${ctaLabel}</a>
       </p>
       ${closeBtn}
     </div>`;
@@ -4953,6 +5378,16 @@ PB._flexCarousel = function (variant, sec) {
   // doesn't repeat cards or invent a 4th/5th to hit the number.
   const requestedCount = sec.tileCount || 3;
   const modClass = variant && variant !== 'default' ? ' ufs-flex-carousel--' + variant : '';
+  // Head copy + CTA label are editable in-canvas via the same
+  // sec.overrides/data-pb-edit mechanism every other component uses
+  // (see PB._startInlineEdit). The CTA label is shared between the
+  // desktop button and its --mobile twin below — only one is ever
+  // visible at a time (see the --cta--mobile CSS), so editing whichever
+  // one is on screen updates both on the next render.
+  const o = sec.overrides || {};
+  const headTitle = o.title || 'Carousel title';
+  const headDesc = o.desc || 'Carousel description this can be optional if it’s needed to add some context';
+  const ctaLabel = o.cta || 'Discover more items';
   const uploadIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
   const arrowIcon = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>';
 
@@ -5200,10 +5635,10 @@ PB._flexCarousel = function (variant, sec) {
   return `<section class="ufs-flex-carousel${modClass}">
       <div class="ufs-flex-carousel__head">
         <div class="ufs-flex-carousel__intro">
-          <h2 class="ufs-flex-carousel__title text-h3">Carousel title</h2>
-          <p class="ufs-flex-carousel__desc">Carousel description this can be optional if it&rsquo;s needed to add some context</p>
+          <h2 class="ufs-flex-carousel__title text-h3" data-pb-edit="title">${headTitle}</h2>
+          <p class="ufs-flex-carousel__desc" data-pb-edit="desc">${headDesc}</p>
         </div>
-        <button type="button" class="btn btn-secondary ufs-flex-carousel__cta">Discover more items</button>
+        <button type="button" class="btn btn-secondary ufs-flex-carousel__cta" data-pb-edit="cta">${ctaLabel}</button>
       </div>
 
       <div class="ufs-flex-carousel__track-wrap">
@@ -5221,7 +5656,7 @@ PB._flexCarousel = function (variant, sec) {
         </div>
       </div>
 
-      <button type="button" class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile">Discover more items</button>
+      <button type="button" class="btn btn-secondary ufs-flex-carousel__cta ufs-flex-carousel__cta--mobile" data-pb-edit="cta">${ctaLabel}</button>
     </section>`;
 };
 
@@ -5746,36 +6181,132 @@ PB._title = function(variant, sec) {
   var desc = o.desc || 'Chef-built recipes engineered for foodservice kitchens — scalable, cost-conscious, and ready to plug into your menu.';
   return `<section class="${cls}">
     <div class="ufs-title-section__inner">
-      <p class="ufs-title-section__eyebrow">${eyebrow}</p>
-      <h2 class="ufs-title-section__heading">${heading}</h2>
-      <p class="ufs-title-section__desc">${desc}</p>
+      <p class="ufs-title-section__eyebrow" data-pb-edit="eyebrow">${eyebrow}</p>
+      <h2 class="ufs-title-section__heading" data-pb-edit="title">${heading}</h2>
+      <p class="ufs-title-section__desc" data-pb-edit="desc">${desc}</p>
     </div>
   </section>`;
 };
 
     // ---- text-block ----
-Object.assign(PB.VARIANTS, { 'text-block': [] });
+Object.assign(PB.VARIANTS, { 'text-block': ['default', 'image-bottom', 'image-top', 'image-left', 'image-right', 'video-left', 'video-right', 'video-full'] });
+Object.assign(PB.VAR_LABELS, { 'image-bottom': 'Image Bottom', 'image-top': 'Image Top', 'image-left': 'Image Left', 'image-right': 'Image Right', 'video-left': 'Video Left', 'video-right': 'Video Right', 'video-full': 'Video Full' });
 Object.assign(PB.DEFAULT_VARIANT, { 'text-block': 'default' });
+// Per-variant demo copy/media, sourced from text-block-spec.html's own
+// Layout Variants examples (one ds-card per configuration). 'default'
+// keeps this component's pre-existing text-only "intro" shape (eyebrow
+// + --lead heading/body) rather than the spec's plainer base example,
+// so switching variants never disturbs content already typed there.
+PB._TEXT_BLOCK_CONTENT = {
+  'default': {
+    eyebrow: 'Guest 365 for Hotels &amp; Conferencing',
+    title: 'The Best For Your Guest: Modern Comfort Food with a Twist!',
+    desc: 'Your guests crave the nostalgia of familiar dishes yet expect the excitement of new flavours. This is where the art of modern comfort food comes in to give your guests the best of both!\n\nWith modern spins on comfort classics, transform traditional favourites into a unique guest experience that makes your hotel dining a culinary destination – one plate at a time!'
+  },
+  'image-bottom': {
+    title: 'Modern Comfort Food is Key on Your Menu',
+    desc: 'MODERNISED COMFORT FOOD is all about elevating familiar comfort dishes with modern touches to provide a sense of nostalgia. With your culinary expertise and quality ingredients, blend traditional comfort classics with local flavours to wow guests from different destinations.',
+    image: 'handover/images/tiles/article.jpg', imageStyle: 'aspect-ratio:16/9; object-fit:cover;'
+  },
+  'image-top': {
+    title: 'Modern Comfort Food is Key on Your Menu',
+    desc: 'MODERNISED COMFORT FOOD is all about elevating familiar comfort dishes with modern touches to provide a sense of nostalgia. With your culinary expertise and quality ingredients, blend traditional comfort classics with local flavours to wow guests from different destinations.',
+    image: 'handover/images/tiles/article.jpg', imageStyle: 'aspect-ratio:16/9; object-fit:cover;'
+  },
+  'image-left': {
+    title: '250 of us wear whites.',
+    desc: "Only a Chef knows what it takes to run a successful kitchen. That's why our business is full of Chefs. Our global network of 250 Chefs help source the best ingredients, develop quality products, create inspiring on-trend recipes, and provide training and support.",
+    cta: 'Find your local sales representative',
+    image: 'handover/images/hero/recipe.jpg'
+  },
+  'image-right': {
+    title: 'Modern Comfort Food is Key on Your Menu',
+    desc: 'MODERNISED COMFORT FOOD is all about elevating familiar comfort dishes with modern touches to provide a sense of nostalgia. With your culinary expertise and quality ingredients, blend traditional comfort classics with local flavours to wow guests from different destinations.',
+    image: 'handover/images/tiles/article.jpg'
+  },
+  'video-left': {
+    title: 'We are Chefs supporting Chefs.',
+    desc: "We're a business built by Chefs, so we know what you face every day in the kitchen. Everything we do is focused on making your life a little easier — our team of over 250 professional Chefs create solutions that balance great taste, convenience and nutrition.",
+    video: { poster: 'handover/images/tiles/topic-wide.jpg', title: 'The Best For Your Guest: Modern Comfort Food with a Twist!', duration: '5 min' }
+  },
+  'video-right': {
+    title: '250 of us wear whites.',
+    desc: 'Only a Chef knows what it takes to run a successful kitchen. Our global network of 250 Chefs help source the best ingredients, develop quality products, create inspiring on-trend recipes, and provide training and support to kitchens everywhere.',
+    video: { poster: 'handover/images/tiles/topic.jpg', title: 'Knife Skills: Basic Cuts Masterclass', duration: '12 min' }
+  },
+  'video-full': {
+    title: 'The Best For Your Guest: Modern Comfort Food with a Twist!',
+    desc: 'Your guests crave the nostalgia of familiar dishes yet expect the excitement of new flavours — watch how modern spins on comfort classics turn traditional favourites into a unique guest experience.',
+    video: { poster: 'handover/images/tiles/topic-wide.jpg', title: 'The Best For Your Guest: Modern Comfort Food with a Twist!', duration: '5 min' }
+  }
+};
 PB._textBlock = function(variant, sec) {
-  // Real demo copy from text-block-spec.html's Overview section (the
-  // base .ufs-text-block shape, eyebrow + --lead heading + two --lead
-  // paragraphs, no media). Text Block is a pure article-body
-  // component here — no image/video layout modifier is wired.
   var o = sec.overrides || {};
-  var eyebrow = o.eyebrow || 'Guest 365 for Hotels &amp; Conferencing';
-  var heading = o.title || 'The Best For Your Guest: Modern Comfort Food with a Twist!';
-  var body = o.desc
-    ? '<p>' + o.desc + '</p>'
-    : '<p>Your guests crave the nostalgia of familiar dishes yet expect the excitement of new flavours. This is where the art of modern comfort food comes in to give your guests the best of both!</p>'
-      + '<p>With modern spins on comfort classics, transform traditional favourites into a unique guest experience that makes your hotel dining a culinary destination – one plate at a time!</p>';
-  return `<div class="ufs-text-block" style="padding-top: var(--space-16); padding-bottom: var(--space-16);">
+  var images = sec.images || {};
+  var defaults = PB._TEXT_BLOCK_CONTENT[variant] || PB._TEXT_BLOCK_CONTENT['default'];
+  var isDefault = variant === 'default' || !variant;
+  var modifierClass = isDefault ? '' : ' ufs-text-block--' + variant;
+  var isVideo = !!defaults.video;
+
+  var heading = o.title || defaults.title;
+  var bodyText = o.desc || defaults.desc;
+  var body = bodyText.split('\n\n').map(function (p) { return '<p>' + p + '</p>'; }).join('');
+
+  var eyebrowHTML = isDefault
+    ? `<p class="ufs-text-block__eyebrow" data-pb-edit="eyebrow">${o.eyebrow || defaults.eyebrow}</p>`
+    : '';
+  var headingClass = 'ufs-text-block__heading' + (isDefault ? ' ufs-text-block__heading--lead' : '');
+  var bodyClass = 'ufs-text-block__body' + (isDefault ? ' ufs-text-block__body--lead' : '');
+  var ctaHTML = defaults.cta
+    ? `<a href="#" class="ufs-text-block__link" data-pb-edit="cta" onclick="return false;">${o.cta || defaults.cta}</a>`
+    : '';
+
+  var mediaHTML = '';
+  if (!isDefault) {
+    if (isVideo) {
+      var poster = images.video || defaults.video.poster;
+      var uploadIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>';
+      mediaHTML = `<div class="ufs-text-block__media">
+        <div class="ufs-video-embed ufs-video-embed--wide">
+          <div class="ufs-video-embed__media pb-img-slot" onclick="PB.replaceImage('${sec.id}','video',this)">
+            <img class="ufs-video-embed__poster" src="${poster}" alt="">
+            <div class="pb-img-overlay">
+              <div class="pb-img-overlay-icon">${uploadIcon}</div>
+              <span class="pb-img-overlay-label">Replace</span>
+            </div>
+          </div>
+          <button type="button" class="ufs-video-embed__play" aria-label="Play video">
+            <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+          </button>
+          <div class="ufs-video-embed__body">
+            <p class="ufs-video-embed__title">${defaults.video.title}</p>
+            <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""><span>${defaults.video.duration}</span></div>
+          </div>
+        </div>
+      </div>`;
+    } else {
+      var imgSrc = images.image || defaults.image;
+      var imgUploadIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+      mediaHTML = `<div class="ufs-text-block__media pb-img-slot" onclick="PB.replaceImage('${sec.id}','image',this)">
+        <img src="${imgSrc}" alt="" ${defaults.imageStyle ? `style="${defaults.imageStyle}"` : ''}/>
+        <div class="pb-img-overlay">
+          <div class="pb-img-overlay-icon">${imgUploadIcon}</div>
+          <span class="pb-img-overlay-label">Replace image</span>
+        </div>
+      </div>`;
+    }
+  }
+
+  return `<div class="ufs-text-block${modifierClass}" style="padding-top: var(--space-16); padding-bottom: var(--space-16);">
     <div class="ufs-text-block__content">
-      <p class="ufs-text-block__eyebrow">${eyebrow}</p>
-      <h2 class="ufs-text-block__heading ufs-text-block__heading--lead">${heading}</h2>
-      <div class="ufs-text-block__body ufs-text-block__body--lead">
+      ${eyebrowHTML}
+      <h2 class="${headingClass}" data-pb-edit="title">${heading}</h2>
+      <div class="${bodyClass}" data-pb-edit="desc">
         ${body}
       </div>
+      ${ctaHTML}
     </div>
+    ${mediaHTML}
   </div>`;
 };
 
@@ -5876,37 +6407,166 @@ PB._teaser = function(variant, sec) {
 };
 
     // ---- pathways ----
+/* Pathways — ported from handover/pathways-spec.html. Card colour
+   (--aubergine/--squid/--orange/--smoke) is a per-card content choice
+   in the real component, not a whole-section look, so it isn't exposed
+   as a PB variant — colours simply rotate through the 4 real modifier
+   classes in card order, wrapping back to the first on a 5-card row.
+   Card count (3/4/5) is a free choice per the spec's own Anatomy
+   notice ("nothing stops a 2-card or 5-card row... 3 and 4 are simply
+   the two counts the source Figma frames happen to show") — wired as
+   a toolbar picker, same as every other "pick a number" control (see
+   PB.setPathwaysCardCount / PB._sectionHTML's pathwaysCountHTML).
+   Heading and each card's label are editable in-canvas via
+   data-pb-edit, keyed per card index (label0..label4) since they're
+   independent content, not one shared field. Each card's icon is
+   editable too, but from a fixed set rather than free text — clicking
+   it opens PB.openIconPicker's searchable popover over this DS's real
+   icons/ library (PB.ICONS below), not a file upload. */
 Object.assign(PB.VARIANTS, { pathways: [] });
 Object.assign(PB.DEFAULT_VARIANT, { pathways: 'default' });
+
+PB._PATHWAYS_COLORS = ['aubergine', 'squid', 'orange', 'smoke'];
+PB._PATHWAYS_DEFAULTS = [
+  { icon: 'products', label: 'Products' },
+  { icon: 'flame', label: 'Inspiration' },
+  { icon: 'chef', label: 'Trainings' },
+  { icon: 'whatsapp', label: 'WhatsApp News' },
+  { icon: 'cart', label: 'Order Now' }
+];
+
+PB.setPathwaysCardCount = function (id, count) {
+  var sec = PB.sections.find(function (s) { return s.id === id; });
+  if (!sec) return;
+  sec.cardCount = parseInt(count, 10);
+  PB.render();
+};
+
 PB._pathways = function(variant, sec) {
-  // Real demo copy from pathways-spec.html's "3 cards" example. Each
-  // card's colour (--aubergine/--squid/--orange/--smoke) is a
-  // per-card content choice in the real component, not a whole-
-  // section look toggle, so it isn't exposed as a PB variant — no
-  // meaningfully different section-level variant exists here, per
-  // this porting pass's guidance. Icons reused as-is from this DS's
-  // existing icons/ set, same as the spec itself does.
+  var o = sec.overrides || {};
+  var icons = sec.icons || {};
+  var count = [3, 4, 5].includes(sec.cardCount) ? sec.cardCount : 3;
+  var heading = o.heading || 'What do you want to do today?';
   var chevron = '<span class="ufs-pathways__chevron" aria-hidden="true"><svg viewBox="0 0 7 14" fill="none"><path d="M1 1l5 6-5 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+
+  var cardsHTML = '';
+  for (var i = 0; i < count; i++) {
+    var d = PB._PATHWAYS_DEFAULTS[i % PB._PATHWAYS_DEFAULTS.length];
+    var color = PB._PATHWAYS_COLORS[i % PB._PATHWAYS_COLORS.length];
+    var iconFile = icons[i] || d.icon;
+    var label = o['label' + i] || d.label;
+    cardsHTML += '<a href="#" class="ufs-pathways__card ufs-pathways__card--' + color + '" onclick="return false;">'
+      + '<div class="ufs-pathways__icon pb-icon-slot" title="Change icon" onclick="event.preventDefault();event.stopPropagation();PB.openIconPicker(\'' + sec.id + '\',' + i + ',this)">'
+      + '<img src="icons/' + iconFile + '.svg" alt="">'
+      + '</div>'
+      + '<span class="ufs-pathways__label" data-pb-edit="label' + i + '">' + label + '</span>'
+      + chevron
+      + '</a>';
+  }
+
   return `<div class="ufs-pathways">
-    <h2 class="ufs-pathways__heading">What do you want to do today?</h2>
-    <div class="ufs-pathways__list">
-      <a href="#" class="ufs-pathways__card ufs-pathways__card--aubergine">
-        <div class="ufs-pathways__icon"><img src="icons/products.svg" alt=""></div>
-        <span class="ufs-pathways__label">Products</span>
-        ${chevron}
-      </a>
-      <a href="#" class="ufs-pathways__card ufs-pathways__card--squid">
-        <div class="ufs-pathways__icon"><img src="icons/flame.svg" alt=""></div>
-        <span class="ufs-pathways__label">Inspiration</span>
-        ${chevron}
-      </a>
-      <a href="#" class="ufs-pathways__card ufs-pathways__card--orange">
-        <div class="ufs-pathways__icon"><img src="icons/chef.svg" alt=""></div>
-        <span class="ufs-pathways__label">Trainings</span>
-        ${chevron}
-      </a>
-    </div>
+    <h2 class="ufs-pathways__heading" data-pb-edit="heading">${heading}</h2>
+    <div class="ufs-pathways__list">${cardsHTML}</div>
   </div>`;
+};
+
+/* Icon library picker — searchable popover over this DS's real icons/
+   set (the same flat SVG folder already used elsewhere in this file,
+   e.g. icons/timer.svg, icons/pdf.svg). Lazily created once and kept
+   outside #pb-canvas (appended to document.body), same technique as
+   PB.openTrailerLB's lightbox, so PB.render()'s full-canvas replace
+   never tears it down mid-interaction — render() explicitly closes it
+   instead (see the top of render()) since a re-render can move or
+   remove the card it was anchored to. */
+PB.ICONS = [
+  'Search','add','all_seasons','appetizers','arrow','at','autumn','beef','bookmark','cart','chat','check',
+  'chef','close','coin','cold','create','delete','desserts','dowload','edit','email','export','facebook',
+  'fav','flame','food-calculator','futuremenus','gluten_free','hide','home','hot','icon_game','icon_soup',
+  'info','instagram','issue','linkedin','main_course','menu','notifications','pastry','pdf','phone',
+  'play_no_bg','pork','poultry','print','products','profile','promos','recipes','remove','reveal','salads',
+  'scan','seafood','settings','spring','sprinkle','summer','tiktok','timer','track','upload','vegan',
+  'vegetarian','warning','whatsapp','winter','youtube','zoom'
+].map(function (file) {
+  return { file: file, label: file.replace(/[_-]/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }) };
+});
+
+PB.openIconPicker = function (sectionId, idx, anchorEl) {
+  var picker = document.getElementById('pb-icon-picker');
+  if (!picker) {
+    picker = document.createElement('div');
+    picker.id = 'pb-icon-picker';
+    picker.className = 'pb-icon-picker';
+    picker.innerHTML = '<input type="text" class="pb-icon-picker__search" placeholder="Search icons…" oninput="PB._renderIconGrid(this.value)">'
+      + '<div class="pb-icon-picker__grid" id="pb-icon-picker-grid"></div>';
+    picker.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.body.appendChild(picker);
+    // Outside click closes it — bound once, reused for every open.
+    document.addEventListener('click', function () { PB.closeIconPicker(); });
+  }
+
+  PB._iconPickerTarget = { sectionId: sectionId, idx: idx };
+  picker.classList.add('is-open');
+
+  // Position under the icon that opened it, clamped to the viewport.
+  var r = anchorEl.getBoundingClientRect();
+  var top = r.bottom + 6, left = r.left;
+  if (left + 300 > window.innerWidth - 8) left = window.innerWidth - 308;
+  if (top + 360 > window.innerHeight - 8) top = Math.max(8, r.top - 366);
+  picker.style.top = top + 'px';
+  picker.style.left = left + 'px';
+
+  var search = picker.querySelector('.pb-icon-picker__search');
+  search.value = '';
+  PB._renderIconGrid('');
+  search.focus();
+};
+
+PB._renderIconGrid = function (query) {
+  var grid = document.getElementById('pb-icon-picker-grid');
+  if (!grid) return;
+  var q = (query || '').trim().toLowerCase();
+  var current = PB._iconPickerTarget && PB._currentPathwaysIcon
+    ? PB._currentPathwaysIcon()
+    : null;
+  var matches = PB.ICONS.filter(function (ic) {
+    return !q || ic.file.toLowerCase().indexOf(q) !== -1 || ic.label.toLowerCase().indexOf(q) !== -1;
+  });
+  if (!matches.length) {
+    grid.innerHTML = '<div class="pb-icon-picker__empty">No icons found</div>';
+    return;
+  }
+  grid.innerHTML = matches.map(function (ic) {
+    var selected = ic.file === current ? ' is-selected' : '';
+    return '<button type="button" class="pb-icon-picker__item' + selected + '" title="' + ic.label + '" onclick="PB.selectIcon(\'' + ic.file + '\')">'
+      + '<img src="icons/' + ic.file + '.svg" alt="">'
+      + '<span>' + ic.label + '</span>'
+      + '</button>';
+  }).join('');
+};
+
+PB._currentPathwaysIcon = function () {
+  var t = PB._iconPickerTarget;
+  if (!t) return null;
+  var sec = PB.sections.find(function (s) { return s.id === t.sectionId; });
+  if (!sec) return null;
+  var d = PB._PATHWAYS_DEFAULTS[t.idx % PB._PATHWAYS_DEFAULTS.length];
+  return (sec.icons && sec.icons[t.idx]) || d.icon;
+};
+
+PB.selectIcon = function (file) {
+  var t = PB._iconPickerTarget;
+  if (!t) return;
+  var sec = PB.sections.find(function (s) { return s.id === t.sectionId; });
+  if (!sec) return;
+  sec.icons = sec.icons || {};
+  sec.icons[t.idx] = file;
+  PB.render();
+};
+
+PB.closeIconPicker = function () {
+  var picker = document.getElementById('pb-icon-picker');
+  if (picker) picker.classList.remove('is-open');
+  PB._iconPickerTarget = null;
 };
 
     // ---- video-embed ----
