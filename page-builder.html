@@ -347,7 +347,26 @@
     }
     .pb-panel-desc { font-size: 12px; color: var(--color-mushroom-700); line-height: 18px; }
 
+    .pb-panel-search {
+      position: relative; padding: 10px 16px;
+      border-bottom: 1px solid var(--color-mushroom-300);
+    }
+    .pb-panel-search-icon {
+      position: absolute; left: 28px; top: 50%; transform: translateY(-50%);
+      color: var(--color-mushroom-700); pointer-events: none;
+    }
+    .pb-panel-search-input {
+      width: 100%; height: 32px; padding: 0 10px 0 30px;
+      border: 1.5px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: 12px; color: var(--color-brand-dark);
+      background: var(--color-mushroom-100);
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .pb-panel-search-input::placeholder { color: var(--color-mushroom-700); }
+    .pb-panel-search-input:focus { outline: none; border-color: var(--color-brand-primary); background: white; }
+
     .pb-library { padding: 12px 10px; display: flex; flex-direction: column; gap: 6px; }
+    .pb-lib-empty { padding: 24px 16px; text-align: center; font-size: 12px; color: var(--color-mushroom-700); }
 
     .pb-lib-item {
       border: 1.5px solid var(--color-mushroom-300);
@@ -2244,6 +2263,142 @@
 .ufs-carousel-card.ufs-video-embed--tile { width: 350px; height: auto; background: transparent; }
 
     /* ================================================================
+       BANNER CAROUSEL — ported from handover/banner-carousel-spec.html
+    ================================================================ */
+/* ================================================================
+   BANNER CAROUSEL — a fixed intro panel beside the same .ufs-carousel-
+   track/__spacer/-dots/-arrow engine Flex Carousel uses above (see
+   PB._bannerCarousel). The .ufs-carousel-arrow/.ufs-carousel-dot rules
+   and the .ufs-carousel-card:has(.ufs-tile) sizing rule above are all
+   reused as-is, unscoped — only what's genuinely different from Flex
+   Carousel is declared here, scoped under .ufs-banner-carousel so it
+   doesn't leak into Flex Carousel's own track.
+================================================================ */
+.ufs-banner-carousel {
+  --carousel-title-color: var(--color-brand-dark);
+  --carousel-desc-color: var(--color-mushroom-900);
+  --carousel-btn-hover-bg: var(--color-mushroom-100);
+  --carousel-dot-inactive: var(--color-squid-300);
+  --carousel-arrow-border: var(--color-squid-300);
+  --carousel-arrow-color: var(--color-squid-300);
+  --carousel-arrow-bg: var(--color-salt);
+  --carousel-arrow-active-bg: var(--color-mushroom-300);
+  background: var(--color-salt);
+  padding: var(--space-20) var(--space-24) var(--space-16);
+  display: flex; align-items: flex-start; gap: var(--space-14);
+}
+.ufs-banner-carousel__panel {
+  flex: 0 0 378px;
+  display: flex; flex-direction: column; gap: var(--space-10);
+  padding-top: var(--space-10);
+}
+.ufs-banner-carousel__logo { width: 234px; height: auto; display: block; }
+/* Editable logo — generic .pb-img-slot pattern (see PB._bannerCarousel)
+   layered on a wrapper around the <img>, since an <img> is a void
+   element and can't hold the .pb-img-overlay hover-hint child itself.
+   align-self:flex-start keeps the wrapper from being stretched to
+   __panel's full 378px width by the column flex container's default
+   cross-axis stretch — the plain <img> it replaces never had this
+   problem, since its own explicit width already overrode stretch. */
+.ufs-banner-carousel__logo-slot { display: inline-block; align-self: flex-start; }
+.ufs-banner-carousel__intro { display: flex; flex-direction: column; gap: var(--space-4); }
+.ufs-banner-carousel__title { margin: 0; color: var(--carousel-title-color); font-size: 30px; line-height: 1.2; font-weight: 900; letter-spacing: -0.3px; }
+.ufs-banner-carousel__desc { margin: 0; color: var(--carousel-desc-color); font-size: var(--text-body-size); line-height: var(--text-body-lh); }
+.ufs-banner-carousel__cta { align-self: flex-start; }
+
+.ufs-banner-carousel__carousel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-8); }
+/* Trailing edge only — the carousel's leading edge sits against
+   __panel, not the viewport edge, unlike Flex Carousel which bleeds on
+   both sides. .ufs-carousel-spacer is reset to 0 (Flex Carousel's own
+   rule gives it --space-24) for the same reason, reinstated on mobile
+   below once __panel stacks above and __carousel reclaims the full
+   bled width itself. */
+.ufs-banner-carousel__track-wrap { align-self: stretch; margin-right: calc(-1 * var(--space-24)); min-width: 0; }
+.ufs-banner-carousel .ufs-carousel-track { padding-right: var(--space-24); padding-top: var(--space-2); padding-bottom: 0; scroll-snap-type: none; }
+.ufs-banner-carousel .ufs-carousel-spacer { flex: 0 0 0; }
+.ufs-banner-carousel .ufs-carousel-card { margin-right: var(--space-8); }
+.ufs-banner-carousel .ufs-carousel-card:last-child { margin-right: 0; }
+
+.ufs-banner-carousel__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+/* Missing this made the two arrow buttons stack vertically instead of
+   side by side: .ufs-carousel-arrow itself sets display:flex (to
+   centre its own icon), which is a block-level box by default, so two
+   of them inside a plain (non-flex) parent stack like any other block
+   siblings. */
+.ufs-banner-carousel__arrows { display: flex; align-items: center; gap: var(--space-4); }
+
+/* ── Colour variants — pure token swaps, identical mechanism to Flex
+   Carousel. The card itself is NOT recoloured by any variant — see the
+   spec's own Card Content notice. ── */
+.ufs-banner-carousel--squid {
+  background: var(--color-brand-dark);
+  --carousel-title-color: var(--color-salt);
+  --carousel-desc-color: rgba(255,255,255,0.75);
+  --carousel-btn-hover-bg: rgba(255,255,255,0.12);
+  --carousel-dot-inactive: var(--color-mushroom-500);
+  --carousel-arrow-border: var(--color-mushroom-500);
+  --carousel-arrow-color: var(--color-mushroom-500);
+  --carousel-arrow-bg: transparent;
+  --carousel-arrow-active-bg: rgba(255,255,255,0.2);
+}
+.ufs-banner-carousel--mushroom {
+  background: var(--color-mushroom-100);
+  --carousel-btn-hover-bg: var(--color-salt);
+  --carousel-arrow-bg: transparent;
+}
+.ufs-banner-carousel--mushroom .ufs-carousel-dot.is-active { background: var(--color-orange-700); }
+.ufs-banner-carousel--image {
+  background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/M_GPP_6074.jpg');
+  background-size: cover; background-position: center; background-repeat: no-repeat;
+  --carousel-title-color: var(--color-salt);
+  --carousel-desc-color: rgba(255,255,255,0.75);
+  --carousel-btn-hover-bg: rgba(255,255,255,0.15);
+  --carousel-dot-inactive: var(--color-salt);
+  --carousel-arrow-border: var(--color-salt);
+  --carousel-arrow-color: var(--color-salt);
+  --carousel-arrow-bg: transparent;
+  --carousel-arrow-active-bg: rgba(255,255,255,0.25);
+}
+
+@media (max-width: 768px) {
+  .ufs-banner-carousel { flex-direction: column; align-items: stretch; padding: var(--space-10) var(--space-4); gap: var(--space-8); }
+  .ufs-banner-carousel__panel { flex-basis: auto; width: 100%; align-items: center; text-align: center; }
+  /* Resets the desktop-only align-self:flex-start (see the logo-slot
+     rule above) so the logo follows __panel's own centring here instead
+     of staying pinned left. */
+  .ufs-banner-carousel__logo-slot { align-self: center; }
+  .ufs-banner-carousel__title { font-size: var(--text-h3-mob-size); letter-spacing: -0.24px; }
+  .ufs-banner-carousel__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+  .ufs-banner-carousel__cta { width: 100%; align-self: stretch; margin-top: calc(var(--space-6) - var(--space-10)); }
+  .ufs-banner-carousel__carousel { gap: var(--space-6); }
+  .ufs-banner-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); }
+  .ufs-banner-carousel .ufs-carousel-track { padding-right: var(--space-4); }
+  .ufs-banner-carousel .ufs-carousel-spacer { flex: 0 0 var(--space-4); }
+  .ufs-banner-carousel .ufs-carousel-card { margin-right: var(--space-6); }
+  .ufs-banner-carousel__foot { justify-content: center; }
+  .ufs-banner-carousel .ufs-carousel-dots { flex: 1; justify-content: center; }
+  .ufs-banner-carousel__arrows { display: none; }
+}
+
+/* Mobile preview — scoped to .pb-canvas-inner.is-mobile (page-builder's
+   own mobile-preview container) instead of relying on a real viewport
+   change. Values mirrored 1:1 from the @media block above. */
+.pb-canvas-inner.is-mobile .ufs-banner-carousel { flex-direction: column; align-items: stretch; padding: var(--space-10) var(--space-4); gap: var(--space-8); }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel__panel { flex-basis: auto; width: 100%; align-items: center; text-align: center; }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel__logo-slot { align-self: center; }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel__title { font-size: var(--text-h3-mob-size); letter-spacing: -0.24px; }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel__cta { width: 100%; align-self: stretch; margin-top: calc(var(--space-6) - var(--space-10)); }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel__carousel { gap: var(--space-6); }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel .ufs-carousel-track { padding-right: var(--space-4); }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel .ufs-carousel-spacer { flex: 0 0 var(--space-4); }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel .ufs-carousel-card { margin-right: var(--space-6); }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel__foot { justify-content: center; }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel .ufs-carousel-dots { flex: 1; justify-content: center; }
+.pb-canvas-inner.is-mobile .ufs-banner-carousel__arrows { display: none; }
+
+    /* ================================================================
        TILES — ported from handover/tiles-spec.html
     ================================================================ */
 /* ==========================================================================
@@ -3560,7 +3715,15 @@
         <div class="pb-panel-desc">Drag a section onto the canvas to add it to your page.</div>
       </div>
 
+      <div class="pb-panel-search">
+        <svg class="pb-panel-search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="6" cy="6" r="4.5"/><line x1="12.4" y1="12.4" x2="9.3" y2="9.3"/>
+        </svg>
+        <input type="text" class="pb-panel-search-input" id="pb-search-input" placeholder="Search components…" oninput="PB.filterLibrary(this.value)" />
+      </div>
+
       <div class="pb-library" id="pb-library"></div>
+      <div class="pb-lib-empty" id="pb-lib-empty" hidden>No components match your search.</div>
     </aside>
 
     <button class="pb-panel-toggle" id="pb-panel-toggle" onclick="PB.togglePanel()" title="Collapse panel">
@@ -3610,13 +3773,13 @@
       SPLIT_ALLOWED: ['title', 'text-block', 'ingredients-panel', 'steps-panel', 'chef-tip', 'utility-bar'],
 
       GROUPS: [
-        { label: 'Layout',            types: ['split-row'] },
-        { label: 'Structure',         types: ['utility-bar', 'nav', 'breadcrumb'] },
+        { label: 'Navigation',        types: ['nav'] },
+        { label: 'Breadcrumb',        types: ['breadcrumb'] },
         { label: 'Heroes',            types: ['campaign-hero', 'product-hero', 'recipe-hero', 'training-hero'] },
         { label: 'Marketing Banners', types: ['promo-banner', 'announcement-banner'] },
-        { label: 'Carousels',         types: ['carousel-full-width-banner', 'flex-carousel'] },
-        { label: 'Product & Recipe',  types: ['tiles', 'ingredients-panel', 'steps-panel', 'filters-catalog', 'chef-tip', 'product-tip'] },
+        { label: 'Carousels',         types: ['carousel-full-width-banner', 'flex-carousel', 'banner-carousel'] },
         { label: 'Content',           types: ['title', 'text-block', 'teaser', 'pathways', 'video-embed'] },
+        { label: 'Product & Recipe',  types: ['split-row', 'utility-bar', 'tiles', 'ingredients-panel', 'steps-panel', 'filters-catalog', 'chef-tip', 'product-tip'] },
         { label: 'Footer',            types: ['footer'] },
       ],
 
@@ -3629,7 +3792,7 @@
         'utility-bar': 'structural', nav: 'nav', breadcrumb: 'structural',
         'campaign-hero': 'dark', 'product-hero': 'dark', 'recipe-hero': 'dark', 'training-hero': 'dark',
         'promo-banner': 'dark', 'announcement-banner': 'dark',
-        'carousel-full-width-banner': 'dark', 'flex-carousel': 'light',
+        'carousel-full-width-banner': 'dark', 'flex-carousel': 'light', 'banner-carousel': 'light',
         tiles: 'light', 'ingredients-panel': 'light', 'steps-panel': 'light',
         'filters-catalog': 'light', 'chef-tip': 'light', 'product-tip': 'light',
         title: 'light', 'text-block': 'light', teaser: 'light', pathways: 'light', 'video-embed': 'light',
@@ -3641,7 +3804,7 @@
         'utility-bar': [], nav: [], breadcrumb: [],
         'campaign-hero': [], 'product-hero': [], 'recipe-hero': [], 'training-hero': [],
         'promo-banner': [], 'announcement-banner': [],
-        'carousel-full-width-banner': [], 'flex-carousel': [],
+        'carousel-full-width-banner': [], 'flex-carousel': [], 'banner-carousel': [],
         tiles: [], 'ingredients-panel': [], 'steps-panel': [],
         'filters-catalog': [], 'chef-tip': [], 'product-tip': [],
         title: [], 'text-block': [], teaser: [], pathways: [], 'video-embed': [],
@@ -3653,7 +3816,7 @@
         'utility-bar': 'default', nav: 'light', breadcrumb: 'default',
         'campaign-hero': 'default', 'product-hero': 'default', 'recipe-hero': 'default', 'training-hero': 'default',
         'promo-banner': 'default', 'announcement-banner': 'default',
-        'carousel-full-width-banner': 'default', 'flex-carousel': 'default',
+        'carousel-full-width-banner': 'default', 'flex-carousel': 'default', 'banner-carousel': 'default',
         tiles: 'default', 'ingredients-panel': 'default', 'steps-panel': 'default',
         'filters-catalog': 'default', 'chef-tip': 'default', 'product-tip': 'default',
         title: 'default', 'text-block': 'default', teaser: 'default', pathways: 'default', 'video-embed': 'default',
@@ -3665,7 +3828,7 @@
         'utility-bar': 'Utility Bar', nav: 'Navigation', breadcrumb: 'Breadcrumb',
         'campaign-hero': 'Campaign Hero', 'product-hero': 'Product Hero', 'recipe-hero': 'Recipe Hero', 'training-hero': 'Training Hero',
         'promo-banner': 'Promo Banner', 'announcement-banner': 'Announcement Banner',
-        'carousel-full-width-banner': 'Full-Width Banner Carousel', 'flex-carousel': 'Flex Carousel',
+        'carousel-full-width-banner': 'Full-Width Banner Carousel', 'flex-carousel': 'Flex Carousel', 'banner-carousel': 'Banner Carousel',
         tiles: 'Tiles', 'ingredients-panel': 'Ingredients Panel', 'steps-panel': 'Steps Panel',
         'filters-catalog': 'Filters & Catalog Toolbar', 'chef-tip': "Chef's Tip", 'product-tip': 'Product Tip',
         title: 'Title', 'text-block': 'Text Block', teaser: 'Teaser', pathways: 'Pathways', 'video-embed': 'Video Embed',
@@ -3719,6 +3882,27 @@
             </div>`;
           }).join('')}
         `).join('');
+      },
+
+      // Hides non-matching items/groups in place (rather than
+      // re-rendering) so the dragstart/dragend listeners bound to each
+      // .pb-lib-item in init() stay attached.
+      filterLibrary(query) {
+        const q = query.trim().toLowerCase();
+        let anyVisible = false;
+        document.querySelectorAll('#pb-library .pb-lib-group-label').forEach(label => {
+          let groupHasMatch = false;
+          let el = label.nextElementSibling;
+          while (el && !el.classList.contains('pb-lib-group-label')) {
+            const match = !q || (this.LABELS[el.dataset.type] || '').toLowerCase().includes(q);
+            el.hidden = !match;
+            if (match) groupHasMatch = true;
+            el = el.nextElementSibling;
+          }
+          label.hidden = !groupHasMatch;
+          if (groupHasMatch) anyVisible = true;
+        });
+        document.getElementById('pb-lib-empty').hidden = anyVisible;
       },
 
       /* ── Init ──────────────────────────────────────────────── */
@@ -4205,6 +4389,21 @@
               </select>`
             : '';
           cardTypeHTML = typeSelectHTML + countSelectHTML;
+        } else if (sec.type === 'banner-carousel') {
+          // Same toolbar-select treatment as Flex Carousel's own picker
+          // (PB.setCarouselCardType is already generic — keyed by
+          // sec.id, not by type — so it's reused as-is). No tile-count
+          // picker: only 3 real cards exist per type here, vs. Flex
+          // Carousel's 5, and the spec doesn't document a count choice
+          // for this component. Falls back to this variant's own
+          // showcase pairing (see PB._BANNER_CAROUSEL_TILE_TYPE) until
+          // the marketer picks a type explicitly.
+          const activeType = sec.cardType || PB._BANNER_CAROUSEL_TILE_TYPE[sec.variant || 'default'] || 'recipe';
+          cardTypeHTML = `<select class="pb-var-select" onclick="event.stopPropagation()" onchange="PB.setCarouselCardType('${sec.id}',this.value)">
+              ${Object.keys(PB._BANNER_CAROUSEL_CARD_LABELS).map(t =>
+                `<option value="${t}"${t === activeType ? ' selected' : ''}>${PB._BANNER_CAROUSEL_CARD_LABELS[t]}</option>`
+              ).join('')}
+            </select>`;
         }
 
         // Split Row's left/right content-type pickers live in the
@@ -4363,6 +4562,7 @@
           case 'announcement-banner':         return this._announcementBanner(sec.variant, sec);
           case 'carousel-full-width-banner':  return this._carouselFullWidthBanner(sec.variant, sec);
           case 'flex-carousel':               return this._flexCarousel(sec.variant, sec);
+          case 'banner-carousel':             return this._bannerCarousel(sec.variant, sec);
           case 'tiles':                       return this._tiles(sec.variant, sec);
           case 'ingredients-panel':           return this._ingredientsPanel(sec.variant, sec);
           case 'steps-panel':                 return this._stepsPanel(sec.variant, sec);
@@ -5660,9 +5860,15 @@ PB._flexCarousel = function (variant, sec) {
     </section>`;
 };
 
-/* Arrow nav — scrolls the track by ~80% of its own visible width. */
+/* Arrow nav — scrolls the track by ~80% of its own visible width.
+   Root-agnostic (.ufs-flex-carousel OR .ufs-banner-carousel) — same
+   spirit as the real spec's own initFlexCarousel(root), which is
+   shared verbatim between both components and "doesn't need to know
+   or care" which root it's given (see banner-carousel-spec.html's own
+   Pagination & Arrows section). PB._bannerCarousel reuses these two
+   handlers rather than duplicating them for that reason. */
 PB.flexNav = function (ctrl, dir) {
-  const wrap = ctrl.closest('.ufs-flex-carousel');
+  const wrap = ctrl.closest('.ufs-flex-carousel, .ufs-banner-carousel');
   const track = wrap && wrap.querySelector('.ufs-carousel-track');
   if (!track) return;
   const amount = Math.round(track.clientWidth * 0.8) * (dir === 'prev' ? -1 : 1);
@@ -5672,11 +5878,139 @@ PB.flexNav = function (ctrl, dir) {
 /* Dot nav — scrolls the matching card into view and marks its dot
    active (a manual highlight, not a live-scroll-position sync). */
 PB.flexNavDot = function (dotEl, index) {
-  const wrap = dotEl.closest('.ufs-flex-carousel');
+  const wrap = dotEl.closest('.ufs-flex-carousel, .ufs-banner-carousel');
   if (!wrap) return;
   const cards = wrap.querySelectorAll('.ufs-carousel-card');
   if (cards[index]) cards[index].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
   wrap.querySelectorAll('.ufs-carousel-dot').forEach(function (d, i) { d.classList.toggle('is-active', i === index); });
+};
+
+    // ---- banner-carousel ----
+/* ==========================================================================
+   BANNER CAROUSEL — ported from handover/banner-carousel-spec.html.
+
+   "A Flex Carousel variant" per the spec's own doc-header: a fixed intro
+   panel (logo/title/desc/CTA) beside the exact same .ufs-carousel-track/
+   __spacer/-dots/-arrow engine Flex Carousel uses above — same shared
+   .ufs-carousel-arrow/.ufs-carousel-dot CSS, same PB.flexNav/PB.flexNavDot
+   handlers (generalised above to accept either root), same card-content
+   approach via PB._tileCardBuilders. Nothing carousel-specific is
+   reimplemented here.
+
+   Unlike Flex Carousel's card-type picker, this port doesn't expose one:
+   the spec's own Colour Variants section pairs each background with a
+   specific real .ufs-tile type to demonstrate "different tile types, same
+   engine" in context — default/Recipe, --squid/Product, --mushroom/
+   Training, --image/Article — so that pairing is reused directly as this
+   port's fixed per-variant content instead of adding a second, redundant
+   picker control. The card is never recoloured by the variant either way
+   (see the spec's own Card Content notice) — only __panel and the dots/
+   arrows respond to colour.
+
+   3 real cards per type, the same real items (same copy, ratings, tags)
+   PB._flexCarousel's own tileFamilyCardsHTML already uses for these 4
+   types — reused rather than duplicated content.
+========================================================================== */
+Object.assign(PB.VARIANTS, { 'banner-carousel': ['default', 'squid', 'mushroom', 'image'] });
+Object.assign(PB.DEFAULT_VARIANT, { 'banner-carousel': 'default' });
+
+PB._BANNER_CAROUSEL_TILE_TYPE = { default: 'recipe', squid: 'product', mushroom: 'training', image: 'article' };
+// Toolbar picker labels — a subset of PB._FLEX_CARD_LABELS: only the 4
+// types PB._BANNER_CAROUSEL_CARDS actually has real content for (the
+// same 4 the spec's own Colour Variants section demonstrates in this
+// slot), not Flex Carousel's full 10-type roster.
+PB._BANNER_CAROUSEL_CARD_LABELS = { recipe: 'Recipe Tile', product: 'Product Tile', training: 'Training Tile', article: 'Article Tile' };
+PB._BANNER_CAROUSEL_CARDS = {
+  recipe: [
+    ['bc0', 'handover/images/tiles/recipe.jpg', 'Herb-Roasted Chicken with Pan Sauce', 'Popular', 332, ['Chicken', 'Main', 'Gluten Free']],
+    ['bc1', 'handover/images/hero/recipe.jpg', 'Meadowland Mash', '', 198, ['Potato', 'Side', 'Banquet']],
+    ['bc2', 'images/M_GPP_6074.jpg', 'Mediterranean Baked Fish with Herbs', '', 276, ['Fish &amp; Seafood', 'Mediterranean', 'Main']],
+  ],
+  product: [
+    ['bc0', 'handover/images/tiles/product.jpg', 'Sauces', 'Knorr Professional Garde D&oacute;r Hollandaise sauce &ndash; 600ml', 'New', 332, ['Vegetarian', 'Gluten Free', 'No MSG']],
+    ['bc1', 'handover/images/tiles/packshot.webp', 'Fats &amp; Oils', 'MEADOWLAND Professional Liquid Margarine, 10 L', "Chef's pick", 332, ['Gluten Free', 'Vegetarian']],
+    ['bc2', 'images/K_GPP_3996.jpg', 'Culinary Bases', 'Knorr Professional Chicken Stock Granules, 1 kg', 'Bestseller', 215, ['Gluten Free', 'No MSG']],
+  ],
+  training: [
+    ['bc0', 'handover/images/tiles/training.jpg', 'Culinary Techniques', 'Middle Eastern Cuisine with Chef Rabeh', 'Certified', 332, '3 videos', 'Intermediate'],
+    ['bc1', 'images/academy/74770da0-cda1-486b-b4ae-85a2a9fe1c46.jpg', 'Knife Skills', 'Knife Skills Fundamentals for Professional Kitchens', 'New', 140, '5 videos', 'Beginner'],
+    ['bc2', 'images/academy/47ed07c4-9091-4eb1-aab8-73da86e1b556.jpg', 'Menu Design', 'Building Plant-Forward Menus That Sell', 'Popular', 96, '4 videos', 'Advanced'],
+  ],
+  article: [
+    ['bc0', 'handover/images/tiles/article.jpg', 'Trend Watch', 'How to update your menus: new trends and designs', 'Trending', '5 minutes read'],
+    ['bc1', 'images/banners/promo-2.jpg', 'Food Trends', 'The Rise of Plant-Forward Menus in Foodservice', '', '4 minutes read'],
+    ['bc2', 'images/banners/promo-3.jpg', 'Sustainability', 'Reducing Food Waste in High-Volume Kitchens', '', '7 minutes read'],
+  ],
+};
+
+PB._bannerCarousel = function (variant, sec) {
+  const v = variant || 'default';
+  const modClass = v !== 'default' ? ' ufs-banner-carousel--' + v : '';
+  // Logo swaps to the reversed (light) asset on the two dark backgrounds
+  // — same convention already used on Campaign Hero and Takeover Banner
+  // for a logo sitting over a dark background (see the spec's own tip
+  // in Colour Variants).
+  const isDark = v === 'squid' || v === 'image';
+  // Uploaded override (sec.images.logo) wins when present — persists
+  // across variant switches, same PB.replaceImage contract as every
+  // other image slot — else falls back to this variant's own default
+  // asset (reversed on the two dark backgrounds).
+  const defaultLogoSrc = isDark ? 'handover/images/academy/ufs-academy-logo-reversed.svg' : 'handover/images/academy/ufs-academy-logo.svg';
+  const logoSrc = (sec.images && sec.images['logo']) || defaultLogoSrc;
+  const o = sec.overrides || {};
+  const headTitle = o.title || 'Title of the banner';
+  const headDesc = o.desc || 'Free videos created by professional chefs making dishes and revealing techniques only for you and your team.';
+  const ctaLabel = o.cta || 'Start learning now';
+  const arrowIcon = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>';
+  const uploadIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+
+  // Manual picker (sec.cardType, set via the toolbar dropdown) wins
+  // when present; otherwise falls back to this variant's own showcase
+  // pairing — same "explicit choice beats the default" precedence
+  // every other picker in this file follows.
+  const tileType = sec.cardType || PB._BANNER_CAROUSEL_TILE_TYPE[v] || 'recipe';
+  const builder = PB._tileCardBuilders[tileType];
+  const cardsArr = PB._BANNER_CAROUSEL_CARDS[tileType].map(function (args) {
+    return '<div class="ufs-carousel-card">' + builder.apply(null, [sec].concat(args)) + '</div>';
+  });
+  const cardsHTML = cardsArr.join('');
+
+  const dotsHTML = cardsArr.map(function (_, i) {
+    return `<button type="button" class="ufs-carousel-dot${i === 0 ? ' is-active' : ''}" aria-label="Go to item ${i + 1}" onclick="event.stopPropagation();PB.flexNavDot(this,${i})"></button>`;
+  }).join('');
+
+  return `<section class="ufs-banner-carousel${modClass}">
+      <div class="ufs-banner-carousel__panel">
+        <div class="ufs-banner-carousel__logo-slot pb-img-slot" onclick="PB.replaceImage('${sec.id}','logo',this)">
+          <img class="ufs-banner-carousel__logo" src="${logoSrc}" alt="UFS Academy" />
+          <div class="pb-img-overlay">
+            <div class="pb-img-overlay-icon">${uploadIcon}</div>
+            <span class="pb-img-overlay-label">Replace image</span>
+          </div>
+        </div>
+        <div class="ufs-banner-carousel__intro">
+          <h2 class="ufs-banner-carousel__title" data-pb-edit="title">${headTitle}</h2>
+          <p class="ufs-banner-carousel__desc" data-pb-edit="desc">${headDesc}</p>
+        </div>
+        <button type="button" class="btn btn-primary ufs-banner-carousel__cta" data-pb-edit="cta">${ctaLabel}</button>
+      </div>
+
+      <div class="ufs-banner-carousel__carousel">
+        <div class="ufs-banner-carousel__track-wrap">
+          <div class="ufs-carousel-track">
+            <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+            ${cardsHTML}
+          </div>
+        </div>
+        <div class="ufs-banner-carousel__foot">
+          <div class="ufs-carousel-dots">${dotsHTML}</div>
+          <div class="ufs-banner-carousel__arrows">
+            <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items" onclick="event.stopPropagation();PB.flexNav(this,'prev')">${arrowIcon}</button>
+            <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items" onclick="event.stopPropagation();PB.flexNav(this,'next')">${arrowIcon}</button>
+          </div>
+        </div>
+      </div>
+    </section>`;
 };
 
     // ---- tiles ----

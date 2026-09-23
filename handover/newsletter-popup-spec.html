@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Newsletter Popup — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-light { background: var(--color-mushroom-100); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark, .pv-mobile.pv-light { padding: 24px 16px; }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the popup's own base (mobile-first) declarations scoped to
+       .pv-mobile with !important, the same doc-only technique used by
+       Promo Banner's own spec (this component is mobile-first too, unlike
+       Takeover Banner's desktop-first max-width block). */
+    .pv-mobile .ufs-newsletter-popup__card { display: flex !important; flex-direction: column-reverse !important; width: 100% !important; min-height: 0 !important; border-radius: var(--radius-xxxl) var(--radius-xxxl) var(--radius-sm) var(--radius-sm) !important; }
+    .pv-mobile .ufs-newsletter-popup__image {
+      flex: none !important; align-self: auto !important;
+      position: relative !important; inset: auto !important; left: auto !important; width: 100% !important; z-index: auto !important;
+      aspect-ratio: 390 / 295 !important;
+      border-radius: var(--radius-md) var(--radius-xxl) 0 0 !important;
+    }
+    .pv-mobile .ufs-newsletter-popup__close { top: var(--space-3) !important; inset-inline-end: var(--space-3) !important; width: var(--space-8) !important; height: var(--space-8) !important; }
+    .pv-mobile .ufs-newsletter-popup__close svg { width: 12px !important; height: 12px !important; }
+    .pv-mobile .ufs-newsletter-popup__panel { flex: none !important; flex-direction: column !important; align-items: center !important; text-align: center !important; justify-content: flex-start !important; gap: var(--space-6) !important; padding: var(--space-8) var(--space-6) var(--space-7) !important; }
+    .pv-mobile .ufs-newsletter-popup__heading { align-items: center !important; }
+    .pv-mobile .ufs-newsletter-popup__title { font-size: var(--text-h3-mob-size) !important; }
+    .pv-mobile .ufs-newsletter-popup__desc { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mobile .ufs-newsletter-popup__form { flex-direction: column !important; align-items: stretch !important; }
+    .pv-mobile .ufs-newsletter-popup__input { flex: none !important; width: 100% !important; }
+    .pv-mobile .ufs-newsletter-popup__form .btn { width: 100% !important; flex-shrink: 1 !important; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       promo-banner-spec.html / takeover-banner-spec.html. This
+       component's Continue CTA depends on it; not itself part of
+       this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+
+    /* ═══════════════════════════════════════
+       NEWSLETTER POPUP COMPONENT CSS — new component, no template
+       source of truth yet. Composed from three existing recipes
+       rather than built from scratch: the left-panel/right-image
+       split is Promo Banner's anatomy, the fixed-overlay dialog
+       chrome (__backdrop, open/close, Esc, outside-click, scale-in)
+       mirrors Takeover Banner 1:1, and the email + button row follows
+       the shape of Footer's newsletter band (see the Email Form
+       notice below for where it deliberately departs from that one).
+       Mobile-first, same 1024px breakpoint as Promo Banner (Takeover
+       Banner is desktop-first with a 768px breakpoint instead — the
+       two components don't share a breakpoint convention).
+    ═══════════════════════════════════════ */
+    .ufs-newsletter-popup {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      padding: var(--space-4);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .ufs-newsletter-popup.is-open { opacity: 1; pointer-events: all; }
+    .ufs-newsletter-popup__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(2px); }
+    .ufs-newsletter-popup__card {
+      position: relative; z-index: 1;
+      width: 100%; max-width: 1200px;
+      background: var(--color-salt);
+      /* Both top corners get the large accent on mobile (not just one,
+         like desktop's single overlap-corner accent) — there's no
+         image-overlap side to bias toward once the image sits full-
+         width across the top, so it reads as a symmetric soft-top
+         card instead. Bottom corners stay tight (--radius-sm). */
+      border-radius: var(--radius-xxxl) var(--radius-xxxl) var(--radius-sm) var(--radius-sm);
+      box-shadow: var(--shadow-xl);
+      transform: scale(0.96); transition: transform 0.25s;
+      /* No overflow:hidden here — on purpose. Promo Banner's own
+         container never clips its children either, which is exactly
+         what lets its __image bleed past the container's own edges
+         and its corner radius read as a soft, uncropped curve. Card
+         and panel both paint their own background inside their own
+         border-radius regardless (that's default CSS box painting,
+         not something overflow:hidden provides) — the only thing
+         losing the clip changes is that __image is now free to poke
+         past the card exactly like Promo Banner's image does. See the
+         Anatomy warning below for the corollary: this also means no
+         max-height/overflow-y scroll safety net, matching Takeover
+         Banner's own dialog (which doesn't have one either).
+         column-reverse, not column: __image is the second DOM child
+         (after __close and __panel), so a plain column stack would put
+         the panel on top and the image below — backwards from Promo
+         Banner's own mobile convention (image above panel). Reversing
+         the main axis puts the last child (__image) first visually
+         without reordering the DOM, so reading/focus order stays
+         close → panel → image while the visual stack is image → panel. */
+      display: flex; flex-direction: column-reverse;
+    }
+    .ufs-newsletter-popup.is-open .ufs-newsletter-popup__card { transform: scale(1); }
+    .ufs-newsletter-popup__close {
+      position: absolute; top: var(--space-3); inset-inline-end: var(--space-3); z-index: 2;
+      width: var(--space-8); height: var(--space-8); border-radius: var(--radius-full);
+      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      background: color-mix(in srgb, #0c0c0c 65%, transparent); color: var(--color-salt);
+      transition: background 0.15s;
+    }
+    /* Deepens toward opaque on hover — same "same colour, higher
+       opacity" pattern as the rest of this file's hover states, just
+       applied to this component's own dark scrim instead of Takeover
+       Banner's light salt tint (a straight 15%→22% salt bump would
+       have flipped the background from dark to light on hover). */
+    .ufs-newsletter-popup__close:hover { background: color-mix(in srgb, #0c0c0c 78%, transparent); }
+    .ufs-newsletter-popup__close svg { width: 12px; height: 12px; }
+    /* Top corners only, radius-md/xxl — same values as Promo Banner's
+       own mobile __image. Needed now that the card no longer clips its
+       children: without its own radius here, the image's square
+       corners would visibly poke past the card's rounded top edge. */
+    .ufs-newsletter-popup__image { position: relative; aspect-ratio: 390 / 295; overflow: hidden; border-radius: var(--radius-md) var(--radius-xxl) 0 0; }
+    .ufs-newsletter-popup__image img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ufs-newsletter-popup__panel {
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      gap: var(--space-6);
+      padding: var(--space-8) var(--space-6) var(--space-7);
+    }
+    .ufs-newsletter-popup__heading { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); width: 100%; }
+    .ufs-newsletter-popup__title { margin: 0; color: var(--color-brand-dark); font-size: var(--text-h3-mob-size); line-height: var(--text-h3-lh); letter-spacing: var(--text-h3-ls); font-weight: var(--text-h3-w); }
+    .ufs-newsletter-popup__desc { margin: 0; color: var(--color-brand-dark); font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+    .ufs-newsletter-popup__form { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+    .ufs-newsletter-popup__input {
+      width: 100%; height: var(--space-12);
+      padding: 0 var(--space-4);
+      border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm);
+      background: var(--color-mushroom-100);
+      font-size: var(--text-body-sm-size); font-family: var(--font-family); color: var(--color-brand-dark);
+      outline: none; box-sizing: border-box; transition: border-color 0.15s;
+    }
+    .ufs-newsletter-popup__input::placeholder { color: var(--color-mushroom-700); }
+    .ufs-newsletter-popup__input:focus { border-color: var(--color-brand-dark); }
+    .ufs-newsletter-popup__form .btn { width: 100%; }
+    @media (min-width: 1024px) {
+      /* border-top-right-radius accent mirrors Promo Banner's own card
+         (--radius-xl base, --radius-xxxl on the corner __image overlaps)
+         — flipped to top-left under dir="rtl" below, matching the side
+         __image moves to there. */
+      .ufs-newsletter-popup__card { display: flex; flex-direction: row; min-height: 520px; border-radius: var(--radius-xl); border-top-right-radius: var(--radius-xxxl); }
+      .ufs-newsletter-popup__close { top: var(--space-4); inset-inline-end: var(--space-4); width: var(--space-10); height: var(--space-10); }
+      .ufs-newsletter-popup__close svg { width: 14px; height: 14px; }
+      .ufs-newsletter-popup__panel {
+        flex: 0 0 52%; min-width: 0;
+        align-items: flex-start; text-align: left; justify-content: center;
+        gap: var(--space-8);
+        /* Generous right padding (--space-20, wider than the top's
+           --space-16 and the left/bottom's --space-14) — same asymmetry
+           as Promo Banner's own panel, there to keep text clear of
+           __image's overlapping left edge (it starts at left:49%,
+           inside this panel's own 52%). */
+        padding: var(--space-16) var(--space-20) var(--space-14) var(--space-14);
+      }
+      .ufs-newsletter-popup__heading { align-items: flex-start; }
+      .ufs-newsletter-popup__title { font-size: var(--text-h3-size); }
+      .ufs-newsletter-popup__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); }
+      /* Image sizing/position/radius mirrored 1:1 from Promo Banner's
+         own desktop __image — same "nested pill" recipe, values and
+         all: pulled out of flow, 12px taller than the panel (inset
+         -12px top/bottom), starting at left:49% so it overlaps 3% into
+         the panel's own 52%, with a large radius accent on the corner
+         that sits over the panel. Because the card itself doesn't clip
+         (see the __card comment above), the 12px bleed past the card's
+         own top/bottom edge is genuinely visible here, not just the
+         interior notch — the same authentic effect Promo Banner has,
+         reading the dark backdrop behind the dialog instead of Promo
+         Banner's own page background. */
+      .ufs-newsletter-popup__image {
+        position: absolute; inset: -12px 0 -12px auto; left: 49%;
+        aspect-ratio: auto; width: auto;
+        border-radius: var(--radius-xl) var(--radius-xxxl) var(--radius-xl) var(--radius-xl);
+        z-index: 1;
+      }
+      .ufs-newsletter-popup__form { flex-direction: row; align-items: flex-start; }
+      .ufs-newsletter-popup__input { flex: 1; }
+      .ufs-newsletter-popup__form .btn { width: auto; flex-shrink: 0; }
+      /* Flex order + align-items:flex-start already auto-mirror under
+         dir="rtl" — same verified behaviour as Promo Banner's own row
+         split. Everything else here is a physical value (padding,
+         border-radius corners, left/right positioning) that never
+         flips on its own and needs its own explicit override — same
+         set of overrides Promo Banner's own RTL section makes.
+         __card itself is selected as .ufs-newsletter-popup__card[dir="rtl"]
+         — an attribute selector on the SAME element — not [dir="rtl"] .ufs-…,
+         which is a descendant combinator and only matches when dir="rtl"
+         sits on an ANCESTOR. This markup puts dir="rtl" directly on
+         __card (same convention as Promo Banner's own root), so the
+         descendant form silently never matches and the LTR radius wins
+         by default; __panel and __image below are genuine descendants
+         of __card, so the descendant form is correct for those two. */
+      .ufs-newsletter-popup__card[dir="rtl"] { border-top-right-radius: var(--radius-xl); border-top-left-radius: var(--radius-xxxl); }
+      [dir="rtl"] .ufs-newsletter-popup__panel {
+        text-align: right;
+        /* Same padding values, sides swapped: __image now overlaps the
+           panel's LEFT edge instead of its right (it moves to left:0
+           under RTL, see __image below), so the generous --space-20
+           clearance has to move with it — otherwise text would hug the
+           overlapping image on one side while wasting extra space on
+           the other, unclipped side. */
+        padding: var(--space-16) var(--space-14) var(--space-14) var(--space-20);
+      }
+      [dir="rtl"] .ufs-newsletter-popup__image {
+        left: 0; right: 49%;
+        border-radius: var(--radius-xxxl) var(--radius-xl) var(--radius-xl) var(--radius-xl);
+      }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#layout" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop &amp; Mobile Layout</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#trigger" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Trigger &amp; Auto-Open</a>
+      <a href="#form" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Email Form</a>
+      <a href="#dismiss" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Dismiss</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#background" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Background</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New component — not yet embedded in any template.<br/>Composed from Promo Banner (anatomy), Takeover Banner (dialog chrome) and Footer's newsletter band (form shape). No Figma reference yet.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Newsletter Popup</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Newsletter <span>Popup</span></h1>
+        <p class="doc-header-desc">Lead-capture dialog, centred over a dimmed/blurred backdrop — left info panel (mandatory title, optional description, mandatory email field + Continue button) and a right full-bleed image, stacking on mobile like Promo Banner. Mandatory close button. Structure, behavior and responsive rules, documented for implementation.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">New — composed component</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A single <code>&lt;div class="ufs-newsletter-popup"&gt;</code> — a fixed, full-viewport dialog: a dimmed/blurred <code>__backdrop</code> behind a centred, white <code>__card</code> carrying a close button, an info panel (title, description, email field, Continue button) and a full-bleed image. It opens over whatever page is currently showing, automatically on load by default — see Trigger &amp; Auto-Open below.</p>
+
+      <div class="notice notice--tip" style="margin-bottom:24px;">
+        <span class="notice-icon">💡</span>
+        <div>This preview opens on click, not automatically, so you can read the docs on this page without the popup firing over them. In production, the component's own init script opens it on page load after a short delay — see <a href="#trigger"><code>data-auto-open</code></a>.</div>
+      </div>
+
+      <div class="pv-dark">
+        <button type="button" class="btn btn-primary" onclick="openNewsletterPopup(document.getElementById('demo-newsletter-popup'))">Preview the popup</button>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Title, the email field + Continue button, and the close button are required. Description is optional — omit it per instance with no CSS changes needed. Unlike Promo Banner and Takeover Banner, there's no logo, countdown, secondary CTA or disclaimer slot — this component's anatomy is intentionally narrower, built for one job: capturing an email address.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Three children of <code>.ufs-newsletter-popup</code>'s <code>__card</code>: a <code>__close</code> button, a <code>__panel</code> (left info column) and an <code>__image</code> (right full-bleed photo) — the same two-region split as <a href="promo-banner-spec.html"><code>.ufs-promo-banner</code></a>'s <code>__panel</code>/<code>__image</code>, just renamed onto this component's own class. Inside the panel: a <code>__heading</code> wrapping <code>__title</code>/<code>__desc</code>, then a <code>__form</code> holding the email <code>__input</code> and a Continue <code>.btn.btn-primary</code>.</p>
+
+      <div class="notice notice--warn" style="margin-bottom:24px;">
+        <span class="notice-icon">⚠️</span>
+        <div>At desktop, <code>__image</code>'s size, position and radius are mirrored 1:1 from Promo Banner's own <code>__image</code> — same "nested pill" technique, same values: pulled out of flow, 12px taller than the panel on both edges, starting 3% inside the panel's own width, with a large radius accent on the corner that overlaps it. <code>__card</code> deliberately carries <strong>no <code>overflow: hidden</code></strong>, for the same reason Promo Banner's own container doesn't clip its children — it's what lets the 12px bleed and the full radius curve render uncropped, past the card's own top/bottom edge, instead of being clipped flush to it. The trade-off: this component now has no scroll safety net for very short viewports, the same as Takeover Banner's own dialog (see the notice in Desktop &amp; Mobile Layout below).</div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div><code>__image</code> is the <strong>last</strong> DOM child (after <code>__close</code> and <code>__panel</code>), on purpose: the base (mobile) <code>__card</code> is <code>display: flex; flex-direction: column-reverse</code>, which puts the last child first visually — image on top, panel below, matching Promo Banner's own mobile stacking — without reordering the markup itself. Reading and focus order stay <code>close → panel → image</code>; only the visual stack reverses. At the <code>1024px</code> breakpoint, <code>__image</code> switches to <code>position: absolute</code> (see the warning above) and is taken out of flex flow entirely, leaving <code>__panel</code> as the row's only flex item — pinned to the visual left by <code>flex-direction: row</code>, with the image's own <code>left: 49%</code> placing it on the right. Unlike the mobile stacking swap, this positioning is physical (not flex order), so it needs its own explicit flip under <code>dir="rtl"</code> — see i18n &amp; RTL below.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Full reference markup</div>
+        <div class="card-desc">Every optional piece included — the baseline every instance is a subset of.</div>
+        <div class="pv-label">Card only, static (see Overview above for the live interactive dialog)</div>
+        <div class="pv-dark" style="margin-bottom:20px;">
+          <div class="ufs-newsletter-popup__card" style="position:relative; transform:none;">
+            <button type="button" class="ufs-newsletter-popup__close" aria-label="Close">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+            </button>
+            <div class="ufs-newsletter-popup__panel">
+              <div class="ufs-newsletter-popup__heading">
+                <h2 class="ufs-newsletter-popup__title">Stay up to date with the latest trends.</h2>
+                <p class="ufs-newsletter-popup__desc">Find inspiration with recipes, food market trends, tips for your business, and much more. Subscribe and receive exclusive content.</p>
+              </div>
+              <form class="ufs-newsletter-popup__form" onsubmit="return false">
+                <input class="ufs-newsletter-popup__input" type="email" placeholder="Enter your email" aria-label="Email address" autocomplete="email" required />
+                <button type="submit" class="btn btn-primary">Continue</button>
+              </form>
+            </div>
+            <div class="ufs-newsletter-popup__image">
+              <img src="images/academy/promo-banner-courses.jpg" alt="" />
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anatomy-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup"</span> <span class="t-at">id</span>=<span class="t-str">"newsletter-popup"</span>
+     <span class="t-at">role</span>=<span class="t-str">"dialog"</span> <span class="t-at">aria-modal</span>=<span class="t-str">"true"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"newsletter-popup-title"</span>
+     <span class="t-at">data-auto-open</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__backdrop"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__card"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__close"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Close"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 14 14"</span><span class="t-tag">&gt;&lt;/svg&gt;</span> <span class="t-cm">&lt;!-- X glyph --&gt;</span>
+    <span class="t-tag">&lt;/button&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__panel"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__heading"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;h2</span> <span class="t-at">id</span>=<span class="t-str">"newsletter-popup-title"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__title"</span><span class="t-tag">&gt;</span>Title<span class="t-tag">&lt;/h2&gt;</span>
+        <span class="t-cm">&lt;!-- optional --&gt;</span>
+        <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__desc"</span><span class="t-tag">&gt;</span>Description<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+      <span class="t-tag">&lt;form</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__form"</span> <span class="t-at">onsubmit</span>=<span class="t-str">"return npSubmitEmail(event)"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;input</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__input"</span> <span class="t-at">type</span>=<span class="t-str">"email"</span>
+               <span class="t-at">placeholder</span>=<span class="t-str">"Enter your email"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Email address"</span>
+               <span class="t-at">autocomplete</span>=<span class="t-str">"email"</span> <span class="t-at">required</span> /<span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"submit"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span><span class="t-tag">&gt;</span>Continue<span class="t-tag">&lt;/button&gt;</span>
+      <span class="t-tag">&lt;/form&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-newsletter-popup__image"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"…"</span> <span class="t-at">alt</span>=<span class="t-str">""</span> <span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anatomy-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">.ufs-newsletter-popup</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">fixed</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">z-index</span>: <span class="t-vl">10000</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; <span class="t-pr">transition</span>: <span class="t-vl">opacity 0.25s</span>;
+}
+<span class="t-pr">.ufs-newsletter-popup.is-open</span> { <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">all</span>; }
+<span class="t-pr">.ufs-newsletter-popup__backdrop</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.75)</span>; <span class="t-pr">backdrop-filter</span>: <span class="t-vl">blur(2px)</span>; }
+<span class="t-pr">.ufs-newsletter-popup__card</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">max-width</span>: <span class="t-vl">1200px</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-xxxl) var(--radius-xxxl) var(--radius-sm) var(--radius-sm)</span>; <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-xl)</span>;
+  <span class="t-pr">transform</span>: <span class="t-vl">scale(0.96)</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform 0.25s</span>;
+}
+<span class="t-cm">/* No overflow:hidden — see the Anatomy warning above. */</span>
+<span class="t-pr">.ufs-newsletter-popup.is-open .ufs-newsletter-popup__card</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1)</span>; }
+<span class="t-pr">.ufs-newsletter-popup__image</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">390 / 295</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md) var(--radius-xxl)</span> <span class="t-vl">0 0</span>; }
+<span class="t-pr">.ufs-newsletter-popup__image img</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">100%</span>; <span class="t-pr">object-fit</span>: <span class="t-vl">cover</span>; }
+<span class="t-pr">.ufs-newsletter-popup__panel</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>;
+  <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-8) var(--space-6) var(--space-7)</span>;
+}
+<span class="t-pr">.ufs-newsletter-popup__title</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h3-mob-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h3-lh)</span>; }
+<span class="t-pr">.ufs-newsletter-popup__desc</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; }
+<span class="t-pr">.ufs-newsletter-popup__form</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-newsletter-popup__input</span> {
+  <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-12)</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-700)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+}
+<span class="t-pr">.ufs-newsletter-popup__close</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">inset-inline-end</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">z-index</span>: <span class="t-vl">2</span>;
+  <span class="t-pr">width</span>: <span class="t-va">var(--space-8)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-8)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">color-mix(in srgb, #0c0c0c 65%, transparent)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>;
+}
+<span class="t-pr">.ufs-newsletter-popup__close:hover</span> { <span class="t-pr">background</span>: <span class="t-vl">color-mix(in srgb, #0c0c0c 78%, transparent)</span>; }</pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Card size</span><span class="token-var">1200 × 520 min / 100% fluid</span><span class="token-note">desktop fixed max-width + min-height / mobile fluid to viewport minus --space-4 gutters</span></div>
+          <div class="token-row"><span class="token-prop">Card radius (base)</span><span class="token-var">--radius-xl / --radius-sm</span><span class="token-note">24px desktop, 8px mobile — bottom corners on mobile, all corners on desktop before the accent below</span></div>
+          <div class="token-row"><span class="token-prop">Card top corner accent</span><span class="token-var">--radius-xxxl</span><span class="token-note">desktop: top-right only, the corner __image overlaps (flips to top-left under RTL) — mobile: both top corners, since __image spans full-width with no side to bias toward</span></div>
+          <div class="token-row"><span class="token-prop">Card shadow</span><span class="token-var">--shadow-xl</span><span class="token-note">DS elevation token — not Takeover Banner's literal border + shadow, which exists specifically for its dark image-only panel</span></div>
+          <div class="token-row"><span class="token-prop">Backdrop</span><span class="token-var">rgba(0,0,0,0.75) + blur(2px)</span><span class="token-note">same values as Takeover Banner's __backdrop</span></div>
+          <div class="token-row"><span class="token-prop">Panel split</span><span class="token-var">flex: 0 0 52%</span><span class="token-note">desktop only — same 52/48 ratio as Promo Banner's panel/image</span></div>
+          <div class="token-row"><span class="token-prop">Image position (desktop)</span><span class="token-var">absolute, inset -12px 0 -12px auto, left:49%</span><span class="token-note">identical values to Promo Banner's own __image — the 12px bleed is visible, not clipped, see Anatomy notice above</span></div>
+          <div class="token-row"><span class="token-prop">Image radius (desktop)</span><span class="token-var">--radius-xl --radius-xxxl --radius-xl --radius-xl</span><span class="token-note">large radius only on the corner that overlaps the panel — the "nested pill" accent, same as Promo Banner</span></div>
+          <div class="token-row"><span class="token-prop">Image radius (mobile)</span><span class="token-var">--radius-md --radius-xxl 0 0</span><span class="token-note">top corners only, same as Promo Banner's mobile __image — self-managed since __card no longer clips</span></div>
+          <div class="token-row"><span class="token-prop">Title size</span><span class="token-var">--text-h3-mob-size / --text-h3-size</span><span class="token-note">24px mobile / 30px desktop — h3 scale, same convention as Promo Banner's title</span></div>
+          <div class="token-row"><span class="token-prop">Email input</span><span class="token-var">--space-12 tall, --color-mushroom-100</span><span class="token-note">48px — reuses the DS sign-in field treatment (nav-header-spec.html's <code>.fi-field</code>), not Footer's bespoke 54px pair</span></div>
+          <div class="token-row"><span class="token-prop">Close button size</span><span class="token-var">--space-10 / --space-8</span><span class="token-note">40px / 32px hit area — same sizing as Takeover Banner's __close</span></div>
+          <div class="token-row"><span class="token-prop">Close button background</span><span class="token-var">color-mix(in srgb, #0c0c0c 65%, transparent)</span><span class="token-note">a near-opaque dark scrim, not Takeover Banner's lighter salt-tinted circle — a literal hex, not a token, since no DS colour sits at that exact near-black shade; needed for contrast against this component's brighter, lighter food photography</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DESKTOP & MOBILE LAYOUT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="layout">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Desktop &amp; Mobile Layout</h2>
+      <p class="section-desc">Mobile-first, same <code>1024px</code> breakpoint as Promo Banner. Below it, the card stacks: image on top at a fixed 390:295 aspect ratio (identical to Promo Banner's mobile image), panel below in normal flow, everything centred. At <code>1024px</code> and up, the card becomes a flex row and <code>__image</code> is pulled out of flow the same way Promo Banner's own image is — panel takes a fixed 52%, and the image is absolutely positioned to fill the remaining 48%, 12px taller than the panel and starting 3% inside its width (see the Anatomy warning above for the full "nested pill" recipe and how it differs from Promo Banner's un-clipped version). The card's own <code>min-height: 520px</code> only applies at that breakpoint; on mobile, height is content-driven exactly like Promo Banner (no forced minimum), which is why this component doesn't carry a mobile min-height the way Takeover Banner's panel does.</p>
+
+      <div class="ds-card">
+        <div class="card-title">What changes at the 1024px breakpoint</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Card layout</span><span class="token-var">stacked column-reverse → flex row</span><span class="token-note">image moves from above the panel to beside it</span></div>
+          <div class="token-row"><span class="token-prop">Image</span><span class="token-var">in-flow, 390:295 → absolute, out of flow</span><span class="token-note">same transition Promo Banner's own __image makes at this breakpoint</span></div>
+          <div class="token-row"><span class="token-prop">Card width / height</span><span class="token-var">fluid → 1200px max-width, 520px min-height</span><span class="token-note">explicit desktop sizing per spec brief</span></div>
+          <div class="token-row"><span class="token-prop">Card radius</span><span class="token-var">--radius-xxxl/xxxl/sm/sm → --radius-xl + top-right accent</span><span class="token-note">both top corners soften on mobile → only the overlap corner does on desktop</span></div>
+          <div class="token-row"><span class="token-prop">Panel</span><span class="token-var">centered → left-aligned, 52% width</span><span class="token-note">text-align and align-items both flip from center to flex-start/left</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">24px → 30px</span><span class="token-note">--text-h3-mob-size → --text-h3-size</span></div>
+          <div class="token-row"><span class="token-prop">Description</span><span class="token-var">--text-body-sm-size → --text-body-size</span><span class="token-note">14px → 16px</span></div>
+          <div class="token-row"><span class="token-prop">Email form</span><span class="token-var">column, full-width → row, inline</span><span class="token-note">input flexes to fill remaining space; button stays intrinsic width</span></div>
+          <div class="token-row"><span class="token-prop">Close button</span><span class="token-var">--space-8 → --space-10</span><span class="token-note">32px → 40px</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><code>__card</code> has no <code>max-height</code>/<code>overflow-y: auto</code> scroll safety net — a deliberate trade-off, not an oversight. Promo Banner never needs one (it lives in normal scrollable page flow), and adding one here would clip the 12px image bleed described in the Anatomy warning above, since any non-<code>visible</code> overflow value clips to the box regardless of whether it triggers a scrollbar. This matches Takeover Banner's own dialog, which carries the same trade-off for the same reason. On a very short viewport (e.g. a landscape phone) the card can in principle exceed the viewport height with no way to scroll to what's cut off — acceptable here given the fixed, short copy, but worth flagging if this component's content is ever made longer or more variable.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ TRIGGER & AUTO-OPEN ═══════════════════════════════════════ -->
+    <section class="doc-section" id="trigger">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Trigger &amp; Auto-Open</h2>
+      <p class="section-desc">Mark the root <code>data-auto-open</code> and it opens itself automatically, <strong>1.5 seconds after page load</strong> — identical timing and mechanism to Takeover Banner, so the two full-page dialogs behave consistently if a page ever needs to choose between them. Only one popup should be marked <code>data-auto-open</code> per page. A popup without that attribute is inert until something else calls <code>openNewsletterPopup()</code> on it.</p>
+
+      <div class="ds-card">
+        <div class="card-title">JS — self-initializing on load</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0">document.addEventListener(<span class="t-str">'DOMContentLoaded'</span>, <span class="t-kw">function</span> () {
+  document.querySelectorAll(<span class="t-str">'.ufs-newsletter-popup[data-auto-open]'</span>).forEach(<span class="t-kw">function</span> (el) {
+    setTimeout(<span class="t-kw">function</span> () { openNewsletterPopup(el); }, 1500);
+  });
+});</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>This spec's own demo instance (see Overview) deliberately omits <code>data-auto-open</code> so it doesn't fire while you're reading — a "Preview the popup" button calls <code>openNewsletterPopup()</code> directly instead. Production usage should use <code>data-auto-open</code>, not a manual trigger. If a page also runs a Takeover Banner with <code>data-auto-open</code>, don't fire both — pick one lead-capture/promo dialog per page load.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ EMAIL FORM ═══════════════════════════════════════ -->
+    <section class="doc-section" id="form">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Email Form</h2>
+      <p class="section-desc">A single <code>&lt;input type="email" required&gt;</code> paired with a submit button, same overall shape as Footer's newsletter band — but two deliberate departures from that pattern, documented below. The form calls <code>npSubmitEmail(event)</code> on submit; wire the real subscribe request there, same integration point as Footer's own <code>nlSubmitFooterEmail()</code>.</p>
+
+      <div class="notice notice--warn" style="margin-bottom:24px;">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>Where this differs from Footer's newsletter band:</strong> (1) the input/button are <code>--space-12</code> (48px) tall, reusing the DS's existing <code>.fi-field</code> sign-in input treatment (mushroom-100 fill, mushroom-700 border) — not Footer's bespoke 54px mushroom-100-on-orange pair, which only exists because that band's background is orange and its button needs a ghost-on-orange ($1px salt border) treatment to read. (2) the Continue button is the shared <code>.btn.btn-primary</code> component, not a bespoke class — same reuse-the-CTA-component approach as Promo Banner and Takeover Banner. Footer's own spec explicitly calls out that its pair does <em>not</em> use <code>.btn</code>/form-field; that's a footer-local exception, not a rule to carry forward here.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">JS — submit handler (presentational stub)</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-kw">function</span> npSubmitEmail(event) {
+  event.preventDefault();
+  <span class="t-kw">var</span> form  = event.target;
+  <span class="t-kw">var</span> input = form.querySelector(<span class="t-str">'.ufs-newsletter-popup__input'</span>);
+  <span class="t-cm">// Wire the real subscribe request here — this stub only
+  // validates and closes the dialog on success.</span>
+  <span class="t-kw">if</span> (!input.checkValidity()) { input.reportValidity(); <span class="t-kw">return</span> <span class="t-kw">false</span>; }
+  closeNewsletterPopup(form.closest(<span class="t-str">'.ufs-newsletter-popup'</span>));
+  <span class="t-kw">return</span> <span class="t-kw">false</span>;
+}</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Opening the dialog focuses the <strong>email input</strong>, not the close button — the opposite of Takeover Banner. That's not an inconsistency: Takeover Banner's own Dismiss section already scopes its focus-the-close-button rule to "a dialog with no form field." This component has one, so the same rule sends focus to it instead, for a faster type-and-submit flow.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DISMISS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="dismiss">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Dismiss</h2>
+      <p class="section-desc">Three ways to close: the <code>__close</code> button, the <kbd>Esc</kbd> key, or clicking the dimmed backdrop outside the card. All three call the same <code>closeNewsletterPopup()</code> — identical mechanism to Takeover Banner. Dismissal is <strong>session-only</strong>; there's no <code>localStorage</code>/cookie persistence, so the popup opens again from scratch on the next full page load, the same simplicity trade-off already made for both Takeover Banner and Announcement Banner.</p>
+
+      <div class="ds-card">
+        <div class="card-title">JS — open / close, wired once per instance</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-kw">function</span> openNewsletterPopup(el) {
+  el.classList.add(<span class="t-str">'is-open'</span>);
+  document.body.style.overflow = <span class="t-str">'hidden'</span>;
+  <span class="t-kw">var</span> input = el.querySelector(<span class="t-str">'.ufs-newsletter-popup__input'</span>);
+  <span class="t-kw">if</span> (input) input.focus();
+}
+<span class="t-kw">function</span> closeNewsletterPopup(el) {
+  el.classList.remove(<span class="t-str">'is-open'</span>);
+  document.body.style.overflow = <span class="t-str">''</span>;
+  document.activeElement.blur();
+}
+
+document.querySelectorAll(<span class="t-str">'.ufs-newsletter-popup'</span>).forEach(<span class="t-kw">function</span> (el) {
+  <span class="t-kw">var</span> backdrop = el.querySelector(<span class="t-str">'.ufs-newsletter-popup__backdrop'</span>);
+  <span class="t-kw">var</span> closeBtn = el.querySelector(<span class="t-str">'.ufs-newsletter-popup__close'</span>);
+  closeBtn.addEventListener(<span class="t-str">'click'</span>, <span class="t-kw">function</span> () { closeNewsletterPopup(el); });
+  backdrop.addEventListener(<span class="t-str">'click'</span>, <span class="t-kw">function</span> () { closeNewsletterPopup(el); });
+});
+document.addEventListener(<span class="t-str">'keydown'</span>, <span class="t-kw">function</span> (e) {
+  <span class="t-kw">if</span> (e.key !== <span class="t-str">'Escape'</span>) <span class="t-kw">return</span>;
+  document.querySelectorAll(<span class="t-str">'.ufs-newsletter-popup.is-open'</span>).forEach(<span class="t-kw">function</span> (el) { closeNewsletterPopup(el); });
+});</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ BACKGROUND ═══════════════════════════════════════ -->
+    <section class="doc-section" id="background">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Background</h2>
+      <p class="section-desc">One background only — white (<code>--color-salt</code>) — no colour modifier class exists for this component. Unlike Promo Banner, which ships a <code>--dark</code> modifier for its panel, Newsletter Popup doesn't need one: a lead-capture dialog reads better with a light, neutral panel setting off the photo and the form field's own bordered fill, and there's no second brand context (e.g. an on-image full-bleed treatment) this component needs to support today.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">White background (only variant)</div>
+        <div class="pv-dark">
+          <div class="ufs-newsletter-popup__card" style="position:relative; transform:none;">
+            <button type="button" class="ufs-newsletter-popup__close" aria-label="Close">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+            </button>
+            <div class="ufs-newsletter-popup__panel">
+              <div class="ufs-newsletter-popup__heading">
+                <h2 class="ufs-newsletter-popup__title">Stay up to date with the latest trends.</h2>
+                <p class="ufs-newsletter-popup__desc">Find inspiration with recipes, food market trends, tips for your business, and much more. Subscribe and receive exclusive content.</p>
+              </div>
+              <form class="ufs-newsletter-popup__form" onsubmit="return false">
+                <input class="ufs-newsletter-popup__input" type="email" placeholder="Enter your email" aria-label="Email address" autocomplete="email" required />
+                <button type="submit" class="btn btn-primary">Continue</button>
+              </form>
+            </div>
+            <div class="ufs-newsletter-popup__image">
+              <img src="images/academy/promo-banner-courses.jpg" alt="" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>If a dark instance is ever needed, treat it as a future extension the same way Promo Banner's <code>--dark</code> modifier works — recolour <code>__title</code>/<code>__desc</code> to <code>--color-salt</code>, swap the input's border/fill for a translucent-on-dark treatment, and confirm the Continue button's existing <code>.btn-primary</code> (already high-contrast orange) still reads. Out of scope for this spec — not built.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">Below the <code>1024px</code> breakpoint, the card stacks exactly like Promo Banner: image on top at a fixed 390:295 aspect ratio, panel below it in normal flow, everything centred, the email form dropping into a full-width column with the Continue button stretched to match the input. These previews force the mobile CSS at any window width by re-declaring the card's own base (mobile-first) rules scoped to <code>.pv-mobile</code> — the same doc-only technique used by Promo Banner's own spec.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Full content, forced ≤1024px width</div>
+        <div class="pv-mobile pv-dark" style="margin-bottom:24px;">
+          <div class="ufs-newsletter-popup__card" style="position:relative; transform:none;">
+            <button type="button" class="ufs-newsletter-popup__close" aria-label="Close">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+            </button>
+            <div class="ufs-newsletter-popup__panel">
+              <div class="ufs-newsletter-popup__heading">
+                <h2 class="ufs-newsletter-popup__title">Stay up to date with the latest trends.</h2>
+                <p class="ufs-newsletter-popup__desc">Find inspiration with recipes, food market trends, tips for your business, and much more. Subscribe and receive exclusive content.</p>
+              </div>
+              <form class="ufs-newsletter-popup__form" onsubmit="return false">
+                <input class="ufs-newsletter-popup__input" type="email" placeholder="Enter your email" aria-label="Email address" autocomplete="email" required />
+                <button type="submit" class="btn btn-primary">Continue</button>
+              </form>
+            </div>
+            <div class="ufs-newsletter-popup__image">
+              <img src="images/academy/promo-banner-courses.jpg" alt="" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Same split verified behaviour as Promo Banner's own RTL section, now that <code>__image</code> uses the same absolute-positioning recipe: <code>__panel</code> is the row's only in-flow flex item, so its <code>align-items: flex-start</code> auto-mirrors to the visual right under <code>dir="rtl"</code> with no override. Everything else needs an explicit flip, because it's a physical value: <code>text-align: left</code> never flips on its own; <code>__panel</code>'s asymmetric padding has its generous <code>--space-20</code> side hard-coded to <code>right</code>, which has to move to <code>left</code> once <code>__image</code> overlaps that edge instead; <code>__image</code>'s own <code>left: 49%</code> and asymmetric radius are physical too — same as Promo Banner's own image; and so is <code>__card</code>'s own corner accent. All four are scoped to the same <code>1024px</code> breakpoint. The close button's <code>inset-inline-end</code> (rather than a physical <code>right</code>) already flips to the visual left automatically. Route every visible string — title, description, placeholder, Continue label, close button's <code>aria-label</code> — through the same <code>data-i18n</code>/<code>data-i18n-ph</code> mechanism as the rest of the header/footer/Announcement Banner.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Mirrored under <code>dir="rtl"</code></div>
+        <div class="pv-dark">
+          <div class="ufs-newsletter-popup__card" style="position:relative; transform:none;" dir="rtl">
+            <button type="button" class="ufs-newsletter-popup__close" aria-label="إغلاق">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+            </button>
+            <div class="ufs-newsletter-popup__panel">
+              <div class="ufs-newsletter-popup__heading">
+                <h2 class="ufs-newsletter-popup__title">ابقَ مطلعًا على أحدث الاتجاهات.</h2>
+                <p class="ufs-newsletter-popup__desc">استلهم من الوصفات واتجاهات سوق الأغذية ونصائح لعملك والمزيد. اشترك واحصل على محتوى حصري.</p>
+              </div>
+              <form class="ufs-newsletter-popup__form" onsubmit="return false" dir="rtl">
+                <input class="ufs-newsletter-popup__input" type="email" dir="ltr" placeholder="أدخل بريدك الإلكتروني" aria-label="البريد الإلكتروني" autocomplete="email" required />
+                <button type="submit" class="btn btn-primary">متابعة</button>
+              </form>
+            </div>
+            <div class="ufs-newsletter-popup__image">
+              <img src="images/academy/promo-banner-courses.jpg" alt="" />
+            </div>
+          </div>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">/* align-items:flex-start on __panel (the row's only in-flow item)
+   already auto-mirrors under dir="rtl" — no override needed there.
+   Everything below is a physical value that never flips on its own —
+   text-align, __panel's asymmetric padding, __card's corner accent
+   and __image's absolute left/right + radius — same set of overrides
+   Promo Banner's own RTL section documents, scoped to the same
+   breakpoint as the rules they override.
+   __card uses an attribute selector on itself ([dir="rtl"] as a
+   suffix), not a descendant combinator — dir="rtl" sits directly on
+   __card in this markup, so a leading [dir="rtl"] .ufs-… selector
+   would look for it on an ancestor instead and silently never match. */</span>
+<span class="t-pr">@media (min-width: 1024px) {
+  .ufs-newsletter-popup__card[dir="rtl"]</span> { <span class="t-pr">border-top-right-radius</span>: <span class="t-va">var(--radius-xl)</span>; <span class="t-pr">border-top-left-radius</span>: <span class="t-va">var(--radius-xxxl)</span>; }
+<span class="t-pr">  [dir="rtl"] .ufs-newsletter-popup__panel</span> {
+    <span class="t-pr">text-align</span>: <span class="t-vl">right</span>;
+    <span class="t-pr">padding</span>: <span class="t-va">var(--space-16) var(--space-14) var(--space-14) var(--space-20)</span>;
+  <span class="t-pr">}
+  [dir="rtl"] .ufs-newsletter-popup__image</span> {
+    <span class="t-pr">left</span>: <span class="t-vl">0</span>; <span class="t-pr">right</span>: <span class="t-vl">49%</span>;
+    <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-xxxl) var(--radius-xl) var(--radius-xl) var(--radius-xl)</span>;
+  <span class="t-pr">}
+}</span></pre>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>The email <code>&lt;input&gt;</code> itself keeps <code>dir="ltr"</code> even inside an RTL form — same convention as Footer's newsletter input — since email addresses are always written left-to-right regardless of page direction.</div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Live demo instance for the Overview section's "Preview the popup" button.
+       No data-auto-open on purpose — see the Trigger & Auto-Open notice above. -->
+  <div class="ufs-newsletter-popup" id="demo-newsletter-popup" role="dialog" aria-modal="true" aria-labelledby="demo-newsletter-popup-title">
+    <div class="ufs-newsletter-popup__backdrop"></div>
+    <div class="ufs-newsletter-popup__card">
+      <button type="button" class="ufs-newsletter-popup__close" aria-label="Close">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+      </button>
+      <div class="ufs-newsletter-popup__panel">
+        <div class="ufs-newsletter-popup__heading">
+          <h2 id="demo-newsletter-popup-title" class="ufs-newsletter-popup__title">Stay up to date with the latest trends.</h2>
+          <p class="ufs-newsletter-popup__desc">Find inspiration with recipes, food market trends, tips for your business, and much more. Subscribe and receive exclusive content.</p>
+        </div>
+        <form class="ufs-newsletter-popup__form" onsubmit="return npSubmitEmail(event)">
+          <input class="ufs-newsletter-popup__input" type="email" placeholder="Enter your email" aria-label="Email address" autocomplete="email" required />
+          <button type="submit" class="btn btn-primary">Continue</button>
+        </form>
+      </div>
+      <div class="ufs-newsletter-popup__image" aria-hidden="true">
+        <img src="images/academy/promo-banner-courses.jpg" alt="" />
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    /* ── Newsletter Popup: open/close, Esc, outside-click, submit ──────── */
+    function openNewsletterPopup(el) {
+      el.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      var input = el.querySelector('.ufs-newsletter-popup__input');
+      if (input) input.focus();
+    }
+    function closeNewsletterPopup(el) {
+      el.classList.remove('is-open');
+      document.body.style.overflow = '';
+      document.activeElement.blur();
+    }
+    document.querySelectorAll('.ufs-newsletter-popup').forEach(function (el) {
+      var backdrop = el.querySelector('.ufs-newsletter-popup__backdrop');
+      var closeBtn = el.querySelector('.ufs-newsletter-popup__close');
+      if (closeBtn) closeBtn.addEventListener('click', function () { closeNewsletterPopup(el); });
+      if (backdrop) backdrop.addEventListener('click', function () { closeNewsletterPopup(el); });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      document.querySelectorAll('.ufs-newsletter-popup.is-open').forEach(function (el) { closeNewsletterPopup(el); });
+    });
+
+    function npSubmitEmail(event) {
+      event.preventDefault();
+      var form  = event.target;
+      var input = form.querySelector('.ufs-newsletter-popup__input');
+      if (!input.checkValidity()) { input.reportValidity(); return false; }
+      closeNewsletterPopup(form.closest('.ufs-newsletter-popup'));
+      return false;
+    }
+  </script>
+</body>
+</html>
