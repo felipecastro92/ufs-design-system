@@ -2166,6 +2166,22 @@
 .ufs-flex-carousel__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); margin-top: calc(var(--space-2) - var(--space-8)); }
 .ufs-flex-carousel__arrows { display: flex; align-items: center; gap: var(--space-4); }
 
+/* No-scroll / "compact" state — mirrored 1:1 from flex-carousel-spec.html.
+   Toggled by JS (PB.measureCarouselCompact, see below PB.flexNavDot)
+   whenever the cards already fit the track without scrolling — a
+   measured-overflow condition, not a fixed tile count, same as the real
+   component. Desktop only; mobile keeps its swipeable layout regardless. */
+@media (min-width: 769px) {
+  .ufs-flex-carousel.is-compact .ufs-flex-carousel__head { flex-direction: column; align-items: center; text-align: center; }
+  .ufs-flex-carousel.is-compact .ufs-flex-carousel__intro { max-width: 720px; }
+  .ufs-flex-carousel.is-compact .ufs-flex-carousel__head .ufs-flex-carousel__cta { display: none; }
+  .ufs-flex-carousel.is-compact .ufs-flex-carousel__cta--mobile { display: inline-flex; width: auto; align-self: center; }
+  .ufs-flex-carousel.is-compact .ufs-flex-carousel__track-wrap { margin-left: 0; margin-right: 0; }
+  .ufs-flex-carousel.is-compact .ufs-carousel-track { justify-content: center; padding: 0; overflow: visible; }
+  .ufs-flex-carousel.is-compact .ufs-carousel-spacer { display: none; }
+  .ufs-flex-carousel.is-compact .ufs-flex-carousel__foot { display: none; }
+}
+
 /* Colour variants — pure token swaps against the custom properties above. */
 .ufs-flex-carousel--squid {
   background: var(--color-brand-dark);
@@ -2326,6 +2342,21 @@
    of them inside a plain (non-flex) parent stack like any other block
    siblings. */
 .ufs-banner-carousel__arrows { display: flex; align-items: center; gap: var(--space-4); }
+
+/* No-scroll / "compact" state — mirrored 1:1 from banner-carousel-
+   spec.html, toggled by the same PB.measureCarouselCompact JS as Flex
+   Carousel above (see below PB.flexNavDot). Unlike Flex Carousel's own
+   compact state, the track stays overflow:auto (not visible) — spilling
+   would overlap __panel here, since __carousel sits flush against it
+   with no viewport-edge safety margin the way Flex Carousel's full-
+   bleed layout has. Desktop only. */
+@media (min-width: 769px) {
+  .ufs-banner-carousel.is-compact { justify-content: center; }
+  .ufs-banner-carousel.is-compact .ufs-banner-carousel__carousel { flex: 0 0 auto; }
+  .ufs-banner-carousel.is-compact .ufs-banner-carousel__track-wrap { margin-right: 0; }
+  .ufs-banner-carousel.is-compact .ufs-carousel-track { padding: 0; }
+  .ufs-banner-carousel.is-compact .ufs-banner-carousel__foot { display: none; }
+}
 
 /* ── Colour variants — pure token swaps, identical mechanism to Flex
    Carousel. The card itself is NOT recoloured by any variant — see the
@@ -3947,6 +3978,19 @@
             this._dragType = null;
           }
         });
+
+        // Carousel .is-compact state — see PB.measureAllCarousels (below
+        // PB.flexNavDot). Attached once, rather than per-render: window
+        // is never destroyed by render()'s innerHTML swap of #pb-canvas,
+        // so a listener attached directly to it survives across every
+        // re-render — unlike the real spec's own per-instance resize
+        // listener in initFlexCarousel, which this port can't replicate
+        // as-is since sections here are actually destroyed and
+        // recreated (added/removed/reordered), not just resized in
+        // place. setViewport and togglePanel re-measure on their own
+        // timers instead of a transitionend listener here — see the
+        // comment on each for why.
+        window.addEventListener('resize', () => this.measureAllCarousels());
       },
 
       /* ── State ─────────────────────────────────────────────── */
@@ -3986,12 +4030,27 @@
         inner.className = 'pb-canvas-inner is-' + vp;
         document.querySelectorAll('.pb-vp-btn').forEach(b => b.classList.remove('is-active'));
         btn.classList.add('is-active');
+        // Re-measure carousel .is-compact once the width settles — see
+        // PB.measureAllCarousels. A transitionend listener would be the
+        // cleaner way to catch "once .pb-canvas-inner's own max-width
+        // transition (0.3s) finishes", but transitionend turned out not
+        // to reliably fire at all in testing (unrelated to this specific
+        // transition), so this calls straight from the one place that
+        // actually knows the transition just started, with a timer
+        // slightly longer than its duration instead.
+        setTimeout(() => this.measureAllCarousels(), 320);
       },
 
       togglePanel() {
         const panel = document.getElementById('pb-panel');
         const collapsed = panel.classList.toggle('is-collapsed');
         document.getElementById('pb-panel-toggle').title = collapsed ? 'Expand panel' : 'Collapse panel';
+        // Collapsing/expanding the library panel changes the canvas's
+        // available width (and therefore .is-compact) with no window
+        // resize event of its own — same re-measure-after-the-transition
+        // approach as setViewport above, timed to #pb-panel's own 0.18s
+        // width transition.
+        setTimeout(() => this.measureAllCarousels(), 200);
       },
 
       /* ── AI-assisted layout plans ──────────────────────────────
@@ -4261,6 +4320,10 @@
         this.sections.forEach(sec => this._bindSection(sec.id));
         // Inline text editing — see _bindInlineEdit()/_startInlineEdit()
         this.sections.forEach(sec => this._bindInlineEdit(sec));
+        // Carousel .is-compact state — re-measured on every render (new/
+        // removed/reordered sections, variant/card-type switches all go
+        // through here); see PB.measureAllCarousels below PB.flexNavDot.
+        this.measureAllCarousels();
       },
 
       /* ── Inline text editing ───────────────────────────────────
@@ -5883,6 +5946,35 @@ PB.flexNavDot = function (dotEl, index) {
   const cards = wrap.querySelectorAll('.ufs-carousel-card');
   if (cards[index]) cards[index].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
   wrap.querySelectorAll('.ufs-carousel-dot').forEach(function (d, i) { d.classList.toggle('is-active', i === index); });
+};
+
+/* No-scroll / "compact" state — same measured-overflow condition the
+   real initFlexCarousel() uses (see flex-carousel-spec.html: maxIndex
+   resolves to 0, i.e. track.scrollWidth <= track.clientWidth, when the
+   cards already fit without scrolling): toggle .is-compact accordingly.
+   Root-agnostic like PB.flexNav/PB.flexNavDot above — works on either
+   .ufs-flex-carousel or .ufs-banner-carousel.
+
+   Called from four places (see PB.init and PB.render): once per render
+   (covers add/remove/reorder/variant/card-type changes), on window
+   resize, and on transitionend for both #pb-canvas-inner (the desktop/
+   mobile viewport toggle) and #pb-panel (the library panel collapse
+   toggle — changes the canvas's available width with no window resize
+   event of its own). The real spec instead gives every carousel
+   instance its own resize listener with cached geometry, set up once
+   in initFlexCarousel — not reproduced here, since sections in this
+   tool are actually destroyed and recreated (not just resized in
+   place), which would leave stale listeners on detached nodes. A small
+   tolerance (1px) absorbs subpixel layout rounding that would
+   otherwise flip .is-compact on and off at the exact boundary width. */
+PB.measureCarouselCompact = function (root) {
+  const track = root.querySelector('.ufs-carousel-track');
+  if (!track) return;
+  const isCompact = track.scrollWidth <= track.clientWidth + 1;
+  root.classList.toggle('is-compact', isCompact);
+};
+PB.measureAllCarousels = function () {
+  document.querySelectorAll('.ufs-flex-carousel, .ufs-banner-carousel').forEach(PB.measureCarouselCompact);
 };
 
     // ---- banner-carousel ----
