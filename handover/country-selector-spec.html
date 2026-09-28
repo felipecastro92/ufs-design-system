@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Country Selector — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       campaign-hero-spec.html. The Overview demo button depends on
+       it; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       DRAWER SHELL — mirrored 1:1 from full-page-preview-v0.2.html
+       (.signin-backdrop / .signin-panel / -hd / -logo / -close / -body /
+       -title). Shared by Sign-in, Newsletter, Filters, Wholesaler Picker
+       and this component; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    :root { --mnav-h: 56px; }
+    .signin-backdrop {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900;
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(2px);
+      opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .signin-panel {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 901;
+      width: 420px; background: var(--color-salt);
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s;
+      box-shadow: none;
+      display: flex; flex-direction: column;
+    }
+    .signin-panel.is-open { transform: translateX(0); box-shadow: -8px 0 40px rgba(0,0,0,0.18); }
+    @media (max-width: 1024px) {
+      .signin-panel { width: calc(100% - 16px); }
+    }
+    .signin-panel-hd {
+      height: var(--mnav-h); padding: 0 var(--space-4); display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--color-mushroom-300); flex-shrink: 0;
+    }
+    .signin-panel-logo { height: var(--space-6); }
+    .signin-close {
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: var(--color-mushroom-100); border: none; cursor: pointer; color: var(--color-brand-dark);
+      display: flex; align-items: center; justify-content: center; transition: background 0.15s;
+    }
+    .signin-close:hover { background: var(--color-mushroom-300); }
+    .signin-close svg { width: 12px; height: 12px; }
+    .signin-panel-body { flex: 1; overflow-y: auto; padding: var(--space-7); }
+    .signin-panel-title { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); margin-bottom: var(--space-3); }
+    [dir="rtl"] .signin-panel { right: auto; left: 0; transform: translateX(-100%); box-shadow: none; }
+    [dir="rtl"] .signin-panel.is-open { transform: translateX(0); box-shadow: 8px 0 40px rgba(0,0,0,0.18); }
+
+    /* ═══════════════════════════════════════
+       COUNTRY SELECTOR COMPONENT CSS — source of truth is
+       full-page-preview-v0.2.html ("COUNTRY SELECTOR" block). Row card
+       + bordered image tile follow the Wholesaler Picker recipe in
+       template-products-catalog.html, without search or redirect icon.
+    ═══════════════════════════════════════ */
+    #country-panel .signin-panel-desc,
+    .pv-drawer .signin-panel-desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin: 0 0 var(--space-4); }
+    .ufs-country-list { display: flex; flex-direction: column; gap: var(--space-4); list-style: none; margin: 0; padding: 0; }
+    .ufs-country-item {
+      display: flex; align-items: center; gap: var(--space-4);
+      padding: var(--space-2); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md);
+      background: var(--color-salt); color: var(--color-brand-dark); text-decoration: none;
+      cursor: pointer; transition: background 0.15s; -webkit-tap-highlight-color: transparent;
+    }
+    .ufs-country-item:hover { background: var(--color-mushroom-100); }
+    .ufs-country-item:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 2px; }
+    .ufs-country-flag {
+      flex-shrink: 0; width: var(--space-10); height: var(--space-10); box-sizing: border-box;
+      border: 1px solid var(--color-mushroom-500); border-radius: var(--radius-sm); background: var(--color-salt);
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .ufs-country-flag img { display: block; }
+    .ufs-country-name { font-size: var(--text-body-size); line-height: var(--text-body-lh); font-weight: 600; }
+    @media (max-width: 768px) {
+      #country-panel .signin-panel-title { font-size: var(--text-h5-mob-size); }
+      .ufs-country-name { font-size: var(--text-body-sm-size); }
+    }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+       .pv-drawer pins a static copy of the drawer in page flow so it can
+       be read without opening the real, fixed-position one.
+    ═══════════════════════════════════════ */
+    .pv-drawer { background: var(--color-squid-900); border-radius: var(--radius-md); padding: 32px 24px; display: flex; justify-content: center; }
+    .pv-drawer .signin-panel { position: relative; top: auto; right: auto; bottom: auto; left: auto; z-index: auto; transform: none; transition: none; width: 420px; max-width: 100%; height: 640px; border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-lg); }
+    .pv-drawer.pv-drawer--auto .signin-panel { height: auto; }
+    .pv-mobile.pv-drawer { max-width: 390px; padding: 24px 0 24px 16px; justify-content: flex-end; border: none; }
+    .pv-mobile .signin-panel { width: 100% !important; border-radius: var(--radius-sm) 0 0 var(--radius-sm) !important; }
+    .pv-mobile .signin-panel-title { font-size: var(--text-h5-mob-size) !important; }
+    .pv-mobile .ufs-country-name { font-size: var(--text-body-sm-size) !important; }
+    [dir="rtl"].pv-drawer .signin-panel, .pv-drawer [dir="rtl"].signin-panel { transform: none; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#layout" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop &amp; Mobile Layout</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#trigger" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Trigger &amp; Auto-Open</a>
+      <a href="#selection" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Selection</a>
+      <a href="#dismiss" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Dismiss</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#content" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Country List</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Live in full-page-preview-v0.2.html.<br/>Figma: Rosana 2.0, node 3216:4572 (desktop).</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Country Selector</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Country <span>Selector</span></h1>
+        <p class="doc-header-desc">Side-panel drawer asking the visitor to pick their country, shown automatically only in markets that need it. Logo + close, title, description, then a list of flag + country-name rows. Picking a row sends the visitor to that country's site.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">full-page-preview-v0.2.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">It uses the same <code>.signin-panel</code> / <code>.signin-backdrop</code> drawer shell as Sign-in, Newsletter, Filters and the Wholesaler Picker: a 420px panel sliding in from the right (from the left in RTL) over a dimmed, blurred backdrop. Only the body content is new: <code>.ufs-country-list</code>, one bordered <code>.ufs-country-item</code> row per country.</p>
+
+      <div class="notice notice--tip" style="margin-bottom:24px;">
+        <span class="notice-icon">💡</span>
+        <div>On this page the drawer opens on click rather than on load, so it doesn't cover the docs while you read. In production it opens itself 1.5s after page load. See <a href="#trigger"><code>data-auto-open</code></a>.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label">Live drawer</div>
+        <div style="margin-bottom:28px;"><button type="button" class="btn btn-primary" onclick="openCountryPanel()">Open the country selector</button></div>
+        <div class="pv-label">Static copy: desktop, 420px (Figma node 3216:4572)</div>
+        <div class="pv-drawer">
+          <div class="signin-panel">
+            <div class="signin-panel-hd">
+              <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+              <button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button>
+            </div>
+            <div class="signin-panel-body">
+              <h2 class="signin-panel-title">Please select your country</h2>
+              <p class="signin-panel-desc">Help us show relevant products and prices based on your location</p>
+              <ul class="ufs-country-list">
+                <li><a href="#" class="ufs-country-item" data-country="bh" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/bahrain.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Bahrain</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="kw" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/kuwait.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Kuwait</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="om" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/oman.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Oman</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="qa" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/qatar.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Qatar</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="sa" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/saudi-arabia.png" alt="" width="20" height="13"/></span><span class="ufs-country-name">Saudi Arabia</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="ae" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/uae.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">United Arab Emirates</span></a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Header: the shared <code>.signin-panel-hd</code> with the UFS logo and round close button. Body: <code>.signin-panel-title</code> (H5), <code>.signin-panel-desc</code> (Body/Small), then <code>.ufs-country-list</code>, a <code>&lt;ul&gt;</code> of links. Each <code>.ufs-country-item</code> holds a 40px bordered <code>__flag</code> tile and a <code>__name</code>. Unlike the Wholesaler Picker there is no search field, no price or caption lines, and no external-link icon.</p>
+
+      <div class="ds-card">
+        <div class="card-title">Reference markup</div>
+        <div class="card-desc">One row shown; repeat the <code>&lt;li&gt;</code> for each country the market offers.</div>
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anatomy-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-backdrop"</span> <span class="t-at">id</span>=<span class="t-str">"country-backdrop"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeCountryPanel()"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel"</span> <span class="t-at">id</span>=<span class="t-str">"country-panel"</span> <span class="t-at">role</span>=<span class="t-str">"dialog"</span> <span class="t-at">aria-modal</span>=<span class="t-str">"true"</span>
+     <span class="t-at">aria-labelledby</span>=<span class="t-str">"country-panel-title"</span> <span class="t-at">data-auto-open</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-hd"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"images/ufs-logo.png"</span> <span class="t-at">alt</span>=<span class="t-str">"UFS"</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-logo"</span><span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"signin-close"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeCountryPanel()"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Close"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- X glyph --&gt;</span> <span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-body"</span> <span class="t-at">id</span>=<span class="t-str">"country-panel-body"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-title"</span> <span class="t-at">id</span>=<span class="t-str">"country-panel-title"</span><span class="t-tag">&gt;</span>Please select your country<span class="t-tag">&lt;/h2&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-desc"</span><span class="t-tag">&gt;</span>Help us show relevant products and prices based on your location<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;ul</span> <span class="t-at">class</span>=<span class="t-str">"ufs-country-list"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"country-panel-title"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;li&gt;&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"https://www.unileverfoodsolutions.ae/"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-country-item"</span> <span class="t-at">data-country</span>=<span class="t-str">"ae"</span>
+             <span class="t-at">onclick</span>=<span class="t-str">"selectCountry(this, event)"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-country-flag"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"images/flags/uae.png"</span> <span class="t-at">alt</span>=<span class="t-str">""</span> <span class="t-at">width</span>=<span class="t-str">"24"</span> <span class="t-at">height</span>=<span class="t-str">"21"</span><span class="t-tag">/&gt;&lt;/span&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-country-name"</span><span class="t-tag">&gt;</span>United Arab Emirates<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;/a&gt;&lt;/li&gt;</span>
+      <span class="t-cm">&lt;!-- …one &lt;li&gt; per country --&gt;</span>
+    <span class="t-tag">&lt;/ul&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anatomy-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">/* Drawer shell (.signin-panel etc.) is shared — see full-page-preview-v0.2.html */</span>
+<span class="t-pr">#country-panel .signin-panel-desc</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 0</span> <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-country-list</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">list-style</span>: <span class="t-vl">none</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-country-item</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">none</span>;
+  <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">transition</span>: <span class="t-vl">background 0.15s</span>;
+}
+<span class="t-pr">.ufs-country-item:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }
+<span class="t-pr">.ufs-country-item:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px solid</span> <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">outline-offset</span>: <span class="t-vl">2px</span>; }
+<span class="t-pr">.ufs-country-flag</span> {
+  <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">box-sizing</span>: <span class="t-vl">border-box</span>;
+  <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-500)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>;
+}
+<span class="t-pr">.ufs-country-flag img</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; } <span class="t-cm">/* size comes from the img's own width/height attributes */</span>
+<span class="t-pr">.ufs-country-name</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-pr">#country-panel .signin-panel-title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h5-mob-size)</span>; }
+  <span class="t-pr">.ufs-country-name</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; }
+}</pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Panel</span><span class="token-var">420px / calc(100% − 16px)</span><span class="token-note">shared drawer width, ≥1025px / ≤1024px</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">--text-h5-size → --text-h5-mob-size</span><span class="token-note">20px → 18px at 768px, weight 600, lh 1.4</span></div>
+          <div class="token-row"><span class="token-prop">Description</span><span class="token-var">--text-body-sm-size / --color-brand-dark</span><span class="token-note">14px/1.5, black in Figma (Wholesaler Picker uses mushroom-900 instead)</span></div>
+          <div class="token-row"><span class="token-prop">List gap</span><span class="token-var">--space-4</span><span class="token-note">16px between rows; same 16px below the description</span></div>
+          <div class="token-row"><span class="token-prop">Row</span><span class="token-var">--space-2 padding · --radius-md</span><span class="token-note">8px padding, 12px radius, 58px tall with the 40px tile</span></div>
+          <div class="token-row"><span class="token-prop">Row border</span><span class="token-var">--color-mushroom-300</span><span class="token-note">Figma "mid-mushroom" #E5E2E3 → nearest token #E2DFE0</span></div>
+          <div class="token-row"><span class="token-prop">Row hover</span><span class="token-var">--color-mushroom-100</span><span class="token-note">same as Wholesaler Picker rows</span></div>
+          <div class="token-row"><span class="token-prop">Flag tile</span><span class="token-var">--space-10 · --radius-sm · --color-mushroom-500</span><span class="token-note">40×40, 8px radius, 1px #CBC5C7 border</span></div>
+          <div class="token-row"><span class="token-prop">Flag image</span><span class="token-var">24 × 21 (Saudi Arabia 20 × 13)</span><span class="token-note">sizes as placed in Figma; PNGs exported @4x in images/flags/</span></div>
+          <div class="token-row"><span class="token-prop">Name</span><span class="token-var">--text-body-size → --text-body-sm-size</span><span class="token-note">16px → 14px at 768px, weight 600</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DESKTOP & MOBILE LAYOUT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="layout">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Desktop &amp; Mobile Layout</h2>
+      <p class="section-desc">Mobile keeps the structure and only steps type down, the same approach as the Wholesaler Picker. The 40px flag tile and the row padding stay the same at every size.</p>
+      <div class="ds-card">
+        <div class="card-title">What changes at each breakpoint</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Panel width (≤1024px)</span><span class="token-var">420px → calc(100% − 16px)</span><span class="token-note">shared drawer rule; leaves a 16px strip of backdrop visible</span></div>
+          <div class="token-row"><span class="token-prop">Title (≤768px)</span><span class="token-var">20px → 18px</span><span class="token-note">--text-h5-mob-size</span></div>
+          <div class="token-row"><span class="token-prop">Country name (≤768px)</span><span class="token-var">16px → 14px</span><span class="token-note">--text-body-sm-size</span></div>
+          <div class="token-row"><span class="token-prop">Description</span><span class="token-var">14px, unchanged</span><span class="token-note">already Body/Small on desktop</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ TRIGGER ═══════════════════════════════════════ -->
+    <section class="doc-section" id="trigger">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Trigger &amp; Auto-Open</h2>
+      <p class="section-desc">The component only renders in markets that need an explicit country choice (e.g. one regional site serving the GCC countries). Whether a market gets it is a CMS/backend decision: markets that don't need it simply omit the markup. When present with <code>data-auto-open</code>, it opens itself <strong>1.5 seconds after page load</strong>, the same delay as the Takeover Banner.</p>
+      <div class="ds-card">
+        <div class="card-title">JS — open / close / auto-open</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-kw">function</span> openCountryPanel() {
+  document.getElementById(<span class="t-str">'country-backdrop'</span>).classList.add(<span class="t-str">'is-open'</span>);
+  document.getElementById(<span class="t-str">'country-panel'</span>).classList.add(<span class="t-str">'is-open'</span>);
+  document.body.style.overflow = <span class="t-str">'hidden'</span>;
+  document.getElementById(<span class="t-str">'country-panel-body'</span>).scrollTop = 0;
+}
+<span class="t-kw">function</span> closeCountryPanel() {
+  document.getElementById(<span class="t-str">'country-backdrop'</span>).classList.remove(<span class="t-str">'is-open'</span>);
+  document.getElementById(<span class="t-str">'country-panel'</span>).classList.remove(<span class="t-str">'is-open'</span>);
+  document.body.style.overflow = <span class="t-str">''</span>;
+  document.activeElement.blur();
+}
+<span class="t-cm">// Auto-open once per full page load</span>
+(<span class="t-kw">function</span> () {
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'country-panel'</span>);
+  <span class="t-kw">if</span> (!panel || !panel.hasAttribute(<span class="t-str">'data-auto-open'</span>)) <span class="t-kw">return</span>;
+  setTimeout(openCountryPanel, 1500);
+})();</pre>
+        </div>
+      </div>
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>Only one auto-opening drawer or dialog per page. If a market has both a Country Selector and a Takeover Banner marked <code>data-auto-open</code>, the Country Selector should win and the takeover should wait for a later page view. Otherwise the visitor gets two stacked interruptions.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ SELECTION ═══════════════════════════════════════ -->
+    <section class="doc-section" id="selection">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Selection</h2>
+      <p class="section-desc">Every row is a real link (<code>&lt;a href&gt;</code>) to that country's site or locale. One click selects the country: there is no confirm button and no selected state, and the panel closes as navigation starts. Because the rows are links, keyboard (Tab / Enter), middle-click and "open in new tab" all work without extra code.</p>
+      <div class="ds-card">
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">// Production rows carry the country URL, so the default navigation runs.
+// Prototype rows use href="#", so this only closes the panel.</span>
+<span class="t-kw">function</span> selectCountry(el, e) {
+  <span class="t-kw">if</span> (el.getAttribute(<span class="t-str">'href'</span>) === <span class="t-str">'#'</span>) e.preventDefault();
+  closeCountryPanel();
+}</pre>
+        </div>
+      </div>
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Unlike the Wholesaler Picker, rows have no external-link icon. The destination is another UFS site, not a third-party shop, so no "you're leaving" cue is needed.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DISMISS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="dismiss">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Dismiss</h2>
+      <p class="section-desc">Three ways to close without choosing: the round X in the header, the <kbd>Esc</kbd> key, or a click on the backdrop. Dismissal is <strong>session-only</strong>. Nothing is stored, so the panel opens again on the next full page load until the visitor picks a country (and is sent to that country's site). This matches the Takeover Banner and Announcement Banner.</p>
+      <div class="ds-card">
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0">document.addEventListener(<span class="t-str">'keydown'</span>, <span class="t-kw">function</span> (e) {
+  <span class="t-kw">if</span> (e.key === <span class="t-str">'Escape'</span> &amp;&amp; document.getElementById(<span class="t-str">'country-panel'</span>).classList.contains(<span class="t-str">'is-open'</span>)) closeCountryPanel();
+});</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ COUNTRY LIST ═══════════════════════════════════════ -->
+    <section class="doc-section" id="content">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Country List</h2>
+      <p class="section-desc">The list is market data, not a fixed set. Any number of rows works: <code>.signin-panel-body</code> already scrolls (<code>overflow-y: auto</code>) once the list is taller than the viewport, and the header stays pinned. Long names such as "United Arab Emirates" sit on one line at 420px and wrap cleanly on narrow phones, since the name column is flexible and the flag tile doesn't shrink.</p>
+      <div class="ds-card">
+        <div class="pv-label">Two-country market, content-height panel</div>
+        <div class="pv-drawer pv-drawer--auto">
+          <div class="signin-panel">
+            <div class="signin-panel-hd">
+              <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+              <button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button>
+            </div>
+            <div class="signin-panel-body">
+              <h2 class="signin-panel-title">Please select your country</h2>
+              <p class="signin-panel-desc">Help us show relevant products and prices based on your location</p>
+              <ul class="ufs-country-list">
+                <li><a href="#" class="ufs-country-item" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/saudi-arabia.png" alt="" width="20" height="13"/></span><span class="ufs-country-name">Saudi Arabia</span></a></li>
+                <li><a href="#" class="ufs-country-item" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/uae.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">United Arab Emirates</span></a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div><strong>Flag assets:</strong> exported from Figma at 4× into <code>images/flags/</code>. Each PNG already has its rounded corners and light border baked in, so it goes into the tile as-is. When a market adds a country, export its flag the same way and set the <code>&lt;img&gt;</code> <code>width</code>/<code>height</code> to its Figma size. Flags are decorative (<code>alt=""</code>) because the country name next to them is the accessible label.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">At 390px the panel fills the viewport minus a 16px backdrop strip on the leading edge. The title drops to 18px and country names to 14px. This preview forces the mobile rules at any window width by restating them under <code>.pv-mobile</code>, the doc-only technique used on every other spec page.</p>
+      <div class="ds-card">
+        <div class="pv-label">Forced ≤768px, 390px frame</div>
+        <div class="pv-drawer pv-mobile" style="margin:0 auto;">
+          <div class="signin-panel">
+            <div class="signin-panel-hd">
+              <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+              <button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button>
+            </div>
+            <div class="signin-panel-body">
+              <h2 class="signin-panel-title">Please select your country</h2>
+              <p class="signin-panel-desc">Help us show relevant products and prices based on your location</p>
+              <ul class="ufs-country-list">
+                <li><a href="#" class="ufs-country-item" data-country="bh" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/bahrain.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Bahrain</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="kw" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/kuwait.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Kuwait</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="om" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/oman.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Oman</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="qa" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/qatar.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Qatar</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="sa" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/saudi-arabia.png" alt="" width="20" height="13"/></span><span class="ufs-country-name">Saudi Arabia</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="ae" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/uae.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">United Arab Emirates</span></a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">No component-specific RTL rules are needed. The drawer shell already slides in from the left under <code>dir="rtl"</code>, and the header and rows are plain flexbox, so the flag tile and close button mirror automatically. Title, description, close label and each country name go through the same <code>data-i18n</code> / <code>data-i18n-aria</code> keys as the rest of the prototype (<code>cs-title</code>, <code>cs-desc</code>, <code>cs-close</code>, <code>cs-&lt;iso&gt;</code>). Translate country names per locale rather than showing them in their own language.</p>
+      <div class="ds-card">
+        <div class="pv-label">Arabic, dir="rtl"</div>
+        <div class="pv-drawer" dir="rtl">
+          <div class="signin-panel" dir="rtl">
+            <div class="signin-panel-hd">
+              <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+              <button class="signin-close" aria-label="إغلاق"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button>
+            </div>
+            <div class="signin-panel-body">
+              <h2 class="signin-panel-title">يرجى اختيار دولتك</h2>
+              <p class="signin-panel-desc">ساعدنا في عرض المنتجات والأسعار المناسبة لموقعك</p>
+              <ul class="ufs-country-list">
+                <li><a href="#" class="ufs-country-item" data-country="bh" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/bahrain.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">البحرين</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="kw" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/kuwait.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">الكويت</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="om" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/oman.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">عُمان</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="qa" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/qatar.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">قطر</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="sa" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/saudi-arabia.png" alt="" width="20" height="13"/></span><span class="ufs-country-name">المملكة العربية السعودية</span></a></li>
+                <li><a href="#" class="ufs-country-item" data-country="ae" onclick="return false;"><span class="ufs-country-flag"><img src="images/flags/uae.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">الإمارات العربية المتحدة</span></a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Live instance for the Overview "Open" button. No data-auto-open on
+       purpose, so it doesn't fire over the docs. -->
+  <div class="signin-backdrop" id="country-backdrop" onclick="closeCountryPanel()"></div>
+  <div class="signin-panel" id="country-panel" role="dialog" aria-modal="true" aria-labelledby="country-panel-title">
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeCountryPanel()" aria-label="Close">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="signin-panel-body" id="country-panel-body">
+      <h2 class="signin-panel-title" id="country-panel-title">Please select your country</h2>
+      <p class="signin-panel-desc">Help us show relevant products and prices based on your location</p>
+      <ul class="ufs-country-list" aria-labelledby="country-panel-title">
+        <li><a href="#" class="ufs-country-item" data-country="bh" onclick="selectCountry(this, event)"><span class="ufs-country-flag"><img src="images/flags/bahrain.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Bahrain</span></a></li>
+        <li><a href="#" class="ufs-country-item" data-country="kw" onclick="selectCountry(this, event)"><span class="ufs-country-flag"><img src="images/flags/kuwait.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Kuwait</span></a></li>
+        <li><a href="#" class="ufs-country-item" data-country="om" onclick="selectCountry(this, event)"><span class="ufs-country-flag"><img src="images/flags/oman.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Oman</span></a></li>
+        <li><a href="#" class="ufs-country-item" data-country="qa" onclick="selectCountry(this, event)"><span class="ufs-country-flag"><img src="images/flags/qatar.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">Qatar</span></a></li>
+        <li><a href="#" class="ufs-country-item" data-country="sa" onclick="selectCountry(this, event)"><span class="ufs-country-flag"><img src="images/flags/saudi-arabia.png" alt="" width="20" height="13"/></span><span class="ufs-country-name">Saudi Arabia</span></a></li>
+        <li><a href="#" class="ufs-country-item" data-country="ae" onclick="selectCountry(this, event)"><span class="ufs-country-flag"><img src="images/flags/uae.png" alt="" width="24" height="21"/></span><span class="ufs-country-name">United Arab Emirates</span></a></li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    /* ── Country Selector: open/close, selection, Esc ────── */
+    function openCountryPanel() {
+      document.getElementById('country-backdrop').classList.add('is-open');
+      document.getElementById('country-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('country-panel-body').scrollTop = 0;
+    }
+    function closeCountryPanel() {
+      document.getElementById('country-backdrop').classList.remove('is-open');
+      document.getElementById('country-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+      document.activeElement.blur();
+    }
+    function selectCountry(el, e) {
+      if (el.getAttribute('href') === '#') e.preventDefault();
+      closeCountryPanel();
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && document.getElementById('country-panel').classList.contains('is-open')) closeCountryPanel();
+    });
+  </script>
+</body>
+</html>

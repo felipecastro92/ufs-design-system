@@ -117,6 +117,33 @@
     .ufs-util__link:first-child { padding-left: 0; }
     .ufs-util--light .ufs-util__link:hover { color: var(--color-brand-dark); }
     .ufs-util__sep { width: 1px; height: 10px; background: currentColor; opacity: 0.2; }
+    .ufs-util__link:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; border-radius: 2px; color: var(--color-brand-dark); }
+
+    /* ── Jump to content (skip link) ─────────────────────────
+       First keyboard stop on the page: it's the first child of
+       .ufs-util__links in the DOM, but `order` draws it right AFTER
+       whichever link follows it (About Us). Visually hidden (still
+       focusable + announced) until focused, then it drops into the
+       row as an in-flow pill and pushes the other links aside.
+       Desktop-only by construction — .ufs-util is display:none on
+       mobile. See nav-header-spec.html#skip-link. */
+    .ufs-util__links > * { order: 2; }
+    .ufs-util__links > .ufs-skip-link { order: 1; }
+    .ufs-util__links > .ufs-skip-link + * { order: 0; padding-inline-start: 0; }
+    .ufs-skip-link {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+    }
+    .ufs-skip-link:focus {
+      position: static; width: auto; height: auto; overflow: visible; clip-path: none;
+      margin: 0; margin-inline-end: var(--space-3); padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-xs); background: var(--color-brand-dark); color: var(--color-salt);
+      font-size: var(--text-body-xs-size); font-weight: 600; letter-spacing: var(--text-body-xs-ls); line-height: 1;
+      outline: 2px solid var(--color-accessible-orange); outline-offset: 2px;
+    }
+    /* <main> gets tabindex="-1" only so it can take focus from the skip
+       link — it isn't a control, so no focus ring on it. */
+    main[tabindex="-1"]:focus { outline: none; }
     .ufs-util__right { display: flex; align-items: center; gap: var(--space-2); }
     .ufs-util__lang { display: flex; align-items: center; gap: var(--space-1); cursor: pointer; font-size: var(--text-body-xs-size); font-weight: var(--text-body-w); letter-spacing: var(--text-body-xs-ls); }
 
@@ -1645,7 +1672,7 @@
     ================================================================ */
     .signin-backdrop {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900;
-      background: color-mix(in srgb, var(--color-squid-900) 55%, transparent); backdrop-filter: blur(3px);
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(2px);
       opacity: 0; pointer-events: none; transition: opacity 0.3s;
     }
     .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
@@ -2082,6 +2109,73 @@
     [dir="rtl"] .ufs-nav-search-input { padding: 0 calc(var(--space-3) + var(--space-5) + var(--space-2)) 0 var(--space-4); }
     [dir="rtl"] .ufs-nav.search-active .ufs-nav__actions { margin-left: 0; margin-right: auto; }
     [dir="rtl"] .ufs-nav.search-active .ufs-nav-search-input { padding-right: var(--space-4); padding-left: calc(var(--space-2) + var(--space-8) + var(--space-2)); }
+
+    /* ================================================================
+       COMPACT DESKTOP HEADER (1025–1369px) — the inline search no longer
+       fits beside the primary nav, so it drops to its own full-width row
+       under the nav (like mobile's .ufs-msearch-bar) while the utility
+       bar + primary nav stay exactly as on desktop (no burger).
+       Same .ufs-nav-search element and JS as desktop — it stays inside
+       #main-nav and is only re-laid-out here, so activateNavSearch() /
+       closeSearchOverlay('nav') / the desktop results panel all keep
+       working. Being a child of the sticky nav, the row is sticky too.
+       Hides on scroll down / returns on scroll up (like mobile); while
+       hidden, #nav-search-toggle appears in the nav actions to bring it
+       back. State lives in a data-search-row attribute, not a class,
+       because syncNavAppearance() rewrites #main-nav's className.
+    ================================================================ */
+    .ufs-nav__search-toggle { display: none; }
+    @media (min-width: 1025px) and (max-width: 1369.98px) {
+      .ufs-nav {
+        --nav-search-row-h: calc(var(--space-12) + var(--space-2) * 2 + 1px);
+        margin-bottom: var(--nav-search-row-h); /* reserves the row's space in flow */
+      }
+      .ufs-nav-search,
+      .ufs-nav.search-active .ufs-nav-search {
+        position: absolute; top: calc(100% + 1px); left: 0; right: 0; z-index: 1; /* +1px: clear the nav's own bottom border */
+        margin: 0; transform: none;
+        padding: var(--space-2) var(--space-8);
+        background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300);
+        /* translate + matching clip = slides up "under" the nav's bottom edge */
+        clip-path: inset(0); transition: transform 0.3s ease, clip-path 0.3s ease;
+      }
+      [dir="rtl"] .ufs-nav-search { margin: 0; }
+      .ufs-nav-search-input,
+      .ufs-nav.search-active .ufs-nav-search-input { flex: 1; width: auto; min-width: 0; }
+      .ufs-nav-search-icon { left: calc(var(--space-8) + var(--space-3)); }
+      [dir="rtl"] .ufs-nav-search-icon { left: auto; right: calc(var(--space-8) + var(--space-3)); }
+      .ufs-nav-search-mic { right: calc(var(--space-8) + var(--space-10) + var(--space-2) + var(--space-2)); }
+      [dir="rtl"] .ufs-nav-search-mic { right: auto; left: calc(var(--space-8) + var(--space-10) + var(--space-2) + var(--space-2)); }
+
+      /* The search has its own row, so the primary nav stays visible
+         while searching (desktop hides it to make room). */
+      .ufs-nav.search-active .ufs-nav__links { opacity: 1; pointer-events: auto; flex: 1; overflow: visible; }
+
+      /* Desktop results panel opens under the search row, edges aligned
+         with the input. */
+      .ufs-search-overlay { top: calc(100% + var(--nav-search-row-h)); padding-left: var(--space-8); padding-right: var(--space-8); }
+      .ufs-search-overlay-inner { margin-left: 0; margin-right: 0; }
+
+      /* Hidden on scroll down — keyboard focus inside still reveals it */
+      .ufs-nav[data-search-row="hidden"] .ufs-nav-search { transform: translateY(-100%); clip-path: inset(100% 0 0 0); pointer-events: none; }
+      .ufs-nav[data-search-row="hidden"] .ufs-nav-search:focus-within { transform: none; clip-path: inset(0); pointer-events: auto; }
+      .ufs-nav[data-search-row="hidden"] .ufs-nav__search-toggle { display: flex; }
+
+      /* Journeys / modes without search get no row */
+      body.ai-on .ufs-nav,
+      body.ctx-landing .ufs-nav, body.ctx-registration .ufs-nav, body.ctx-checkout .ufs-nav { margin-bottom: 0; }
+      body.ai-on .ufs-nav__search-toggle,
+      body.ctx-landing .ufs-nav__search-toggle, body.ctx-registration .ufs-nav__search-toggle, body.ctx-checkout .ufs-nav__search-toggle { display: none !important; }
+    }
+    /* Narrowest slice of the range: even without the search the nav row
+       is ~45px too wide at 1025px (Account button clipped), so tighten
+       primary-link padding (12→8px) and the gap before the Account
+       button (32→16px). Saves ~56px; 1100px+ is untouched. */
+    @media (min-width: 1025px) and (max-width: 1099.98px) {
+      .ufs-nav__link { padding: 0 var(--space-2); }
+      .ufs-nav__actions .btn { margin-left: var(--space-4); }
+      [dir="rtl"] .ufs-nav__actions .btn { margin-left: 0; margin-right: var(--space-4); }
+    }
 
     /* Nav icon buttons — spacing flips sides */
     [dir="rtl"] .ufs-nav__icon-btn + .ufs-nav__icon-btn { margin-left: 0; margin-right: var(--space-3); }
@@ -3297,11 +3391,12 @@
     <!-- Utility bar -->
     <div class="ufs-util ufs-util--light" id="util-bar">
       <div class="ufs-util__links">
-        <span class="ufs-util__link" data-i18n="about">About Us</span>
+        <a href="#main-content" class="ufs-skip-link" onclick="skipToContent(event)" data-i18n="skip-content">Jump to content</a>
+        <a href="#" class="ufs-util__link" data-i18n="about">About Us</a>
         <span class="ufs-util__sep"></span>
-        <span class="ufs-util__link" data-i18n="support">Contact &amp; Support</span>
+        <a href="#" class="ufs-util__link" data-i18n="support">Contact &amp; Support</a>
         <span class="ufs-util__sep"></span>
-        <span class="ufs-util__link" id="util-ws-link">Track Your Order</span>
+        <a href="#" class="ufs-util__link" id="util-ws-link">Track Your Order</a>
       </div>
       <div class="ufs-util__right">
         <div class="ufs-util__lang-wrap" id="lang-wrap-1">
@@ -3357,6 +3452,9 @@
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
           </button>
         </div>
+        <!-- Search toggle — compact desktop (1025–1369px) only, shown
+             while the search row is scrolled away -->
+        <button class="ufs-nav__icon-btn ufs-nav__search-toggle" id="nav-search-toggle" onclick="showNavSearchRow(true)" aria-label="Search"><img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt=""/></button>
         <!-- Fav (auth only) -->
         <button class="ufs-nav__icon-btn" id="nav-fav"><img class="ufs-icon ufs-icon--24" src="icons/fav.svg" alt="Favourites"/></button>
         <!-- Cart (webshop only) -->
@@ -5686,6 +5784,21 @@
       var filtersBar = document.getElementById('filters-bar');
       if (filtersBar) filtersBar.classList.add('is-hidden');
     }
+    /* Compact desktop (1025–1369px) search row — same scroll rule as the
+       mobile bar above. Attribute is harmless outside that range (the
+       CSS that reads it is scoped to the media query). */
+    var navSearchRowHidden = false;
+    function hideNavSearchRow() {
+      var nav = document.getElementById('main-nav');
+      if (navSearchRowHidden || nav.classList.contains('search-active')) return;
+      navSearchRowHidden = true;
+      nav.setAttribute('data-search-row', 'hidden');
+    }
+    function showNavSearchRow(withFocus) {
+      navSearchRowHidden = false;
+      document.getElementById('main-nav').removeAttribute('data-search-row');
+      if (withFocus) setTimeout(function() { document.getElementById('nav-search-btn').focus(); }, 300);
+    }
     var megamenuOpen = false;
     var searchOverlayOpen = false;
     var NAV_SCROLL_SWAP_Y = 250;
@@ -5707,7 +5820,7 @@
        TRANSLATIONS & DIRECTION
     ================================================================ */
     var T_EN = {
-      'about':'About Us','contact':'Contact','support':'Contact & Support','track':'Track Your Order','where-to-buy':'Where to Buy',
+      'skip-content':'Jump to content','about':'About Us','contact':'Contact','support':'Contact & Support','track':'Track Your Order','where-to-buy':'Where to Buy',
       'country-locale':'United States · EN','lang-country':'You\'re on the <span class="ufs-lang-drop__website-country">United States</span> website','change-country':'Change country',
       'nav-products':'Products','nav-recipes':'Recipes','nav-training':'Training & Inspiration','nav-promotions':'Promotions','nav-loyalty':'Loyalty Program',
       'nav-sign-in':'Sign In','nav-create':'Account',
@@ -5783,7 +5896,7 @@
     };
 
     var T_AR = {
-      'about':'من نحن','contact':'اتصل بنا','support':'التواصل والدعم','track':'تتبع طلبك','where-to-buy':'أين تشتري',
+      'skip-content':'انتقل إلى المحتوى','about':'من نحن','contact':'اتصل بنا','support':'التواصل والدعم','track':'تتبع طلبك','where-to-buy':'أين تشتري',
       'country-locale':'المملكة العربية السعودية · AR','lang-country':'أنت على الموقع السعودي','change-country':'تغيير الدولة',
       'nav-products':'المنتجات','nav-recipes':'الوصفات','nav-training':'التدريب والإلهام','nav-promotions':'العروض','nav-loyalty':'برنامج الولاء',
       'nav-sign-in':'تسجيل الدخول','nav-create':'إنشاء حساب',
@@ -5859,7 +5972,7 @@
     };
 
     var T_DE = {
-      'about':'Über uns','contact':'Kontakt','support':'Kontakt & Support','track':'Bestellung verfolgen','where-to-buy':'Wo kaufen',
+      'skip-content':'Zum Inhalt springen','about':'Über uns','contact':'Kontakt','support':'Kontakt & Support','track':'Bestellung verfolgen','where-to-buy':'Wo kaufen',
       'country-locale':'Deutschland · DE','lang-country':'Sie befinden sich auf der deutschen <span class="ufs-lang-drop__website-country">Website</span>','change-country':'Land wechseln',
       'nav-products':'Produkte','nav-recipes':'Rezepte','nav-training':'Training & Inspiration','nav-promotions':'Aktionen','nav-loyalty':'Treueprogramm',
       'nav-sign-in':'Anmelden','nav-create':'Konto',
@@ -7325,6 +7438,11 @@
       } else if (currentY < lastScrollY && mSearchBarHidden) {
         showMobileSearchBar(false);
       }
+      if (currentY > lastScrollY && currentY > 300 && !navSearchRowHidden) {
+        hideNavSearchRow();
+      } else if (currentY < lastScrollY && navSearchRowHidden) {
+        showNavSearchRow(false);
+      }
       var bottomNav = document.getElementById('bottom-nav');
       var aiFab = document.getElementById('bottom-nav-ai-fab');
       if (bottomNav) {
@@ -7490,6 +7608,33 @@
         if (d) d.classList.remove('is-open');
       });
     }
+    /* Jump to content — moves keyboard focus past the whole header to
+       the start of the page's main content. The prototype has one <main>
+       per page context (homepage/landing/…), so target the visible one;
+       production has a single <main id="main-content">. tabindex="-1"
+       makes <main> focusable by script without adding a Tab stop. */
+    function skipToContent(e) {
+      e.preventDefault();
+      var main = Array.prototype.find.call(document.querySelectorAll('main'), function(m) { return m.getClientRects().length > 0; });
+      if (!main) return;
+      if (!main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1');
+      // A plain focus() scrolls a tall <main> to the very top of the
+      // viewport — underneath the sticky nav. Focus without scrolling,
+      // then only nudge if the content start is actually hidden behind it.
+      main.focus({ preventScroll: true });
+      var nav = document.getElementById('main-nav');
+      var navBottom = nav.getBoundingClientRect().bottom;
+      // Compact desktop: the search row sits under the nav. Count it even
+      // while it's scrolled away — scrolling back up to <main> brings it
+      // back, and it would then cover the start of the content.
+      var row = nav.querySelector('.ufs-nav-search');
+      if (row && getComputedStyle(row).position === 'absolute') {
+        navBottom += row.offsetHeight;
+      }
+      var top = main.getBoundingClientRect().top;
+      if (top < navBottom) window.scrollBy(0, top - navBottom);
+    }
+
     function toggleLangDrop(wrapId, dropId) {
       var wrap = document.getElementById(wrapId);
       var drop = document.getElementById(dropId);

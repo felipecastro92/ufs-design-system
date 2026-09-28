@@ -206,6 +206,32 @@
     .pv-drawer .ufs-drawer { position: relative !important; width: 100% !important; height: auto !important; max-height: 640px; transform: none !important; box-shadow: none !important; }
     .pv-msearch .ufs-msearch-overlay { position: relative !important; inset: auto !important; top: auto !important; bottom: auto !important; transform: none !important; }
     .pv-msearch { border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    /* Preview-only: force the compact-desktop (1025–1369px) rules regardless
+       of the doc's actual viewport width — same technique as .pv-mobile.
+       The real rules (in the #compact-desktop code block) are NOT applied
+       live on this page, otherwise every nav preview in this doc would
+       switch layout when read on a 1280–1366px laptop. */
+    /* compound selector: this block sits above .ufs-nav__icon-btn's own
+       display:flex in source order, so a bare class would lose */
+    .ufs-nav__icon-btn.ufs-nav__search-toggle { display: none; }
+    .pv-compact { max-width: 1200px; }
+    .pv-compact .ufs-nav { --nav-search-row-h: calc(var(--space-12) + var(--space-2) * 2 + 1px); margin-bottom: var(--nav-search-row-h); }
+    .pv-compact .ufs-nav-search,
+    .pv-compact .ufs-nav.search-active .ufs-nav-search {
+      position: absolute; top: calc(100% + 1px); left: 0; right: 0; z-index: 1;
+      margin: 0; transform: none; padding: var(--space-2) var(--space-8);
+      background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300);
+    }
+    .pv-compact .ufs-nav-search-input,
+    .pv-compact .ufs-nav.search-active .ufs-nav-search-input { flex: 1; width: auto; min-width: 0; }
+    .pv-compact .ufs-nav-search-icon { left: calc(var(--space-8) + var(--space-3)); }
+    .pv-compact .ufs-nav-search-mic { right: calc(var(--space-8) + var(--space-10) + var(--space-2) + var(--space-2)); }
+    .pv-compact .ufs-nav.search-active .ufs-nav__links { opacity: 1; pointer-events: auto; flex: 1; overflow: visible; }
+    /* Static stand-in for the scrolled-away state (production slides the
+       row up under the sticky nav instead of removing it). */
+    .pv-compact .ufs-nav[data-search-row="hidden"] { margin-bottom: 0; }
+    .pv-compact .ufs-nav[data-search-row="hidden"] .ufs-nav-search { display: none; }
+    .pv-compact .ufs-nav[data-search-row="hidden"] .ufs-nav__search-toggle { display: flex; }
 
     /* ═══════════════════════════════════════
        NAV / HEADER COMPONENT CSS — mirrored 1:1 from
@@ -250,6 +276,29 @@
 .ufs-util--light .ufs-util__link:hover { color: var(--color-brand-dark); }
 
 .ufs-util__sep { width: 1px; height: 10px; background: currentColor; opacity: 0.2; }
+
+.ufs-util__link:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; border-radius: 2px; color: var(--color-brand-dark); }
+    .ufs-util--dark .ufs-util__link:focus-visible,
+    .ufs-util--glass .ufs-util__link:focus-visible { outline-color: var(--color-salt); color: var(--color-salt); }
+
+/* Jump to content (skip link) — first Tab stop, drawn right after the
+   link that follows it in the DOM. See #skip-link below. */
+.ufs-util__links > * { order: 2; }
+    .ufs-util__links > .ufs-skip-link { order: 1; }
+    .ufs-util__links > .ufs-skip-link + * { order: 0; padding-inline-start: 0; }
+    .ufs-skip-link {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+    }
+    .ufs-skip-link:focus, .pv-force-skip .ufs-skip-link {
+      position: static; width: auto; height: auto; overflow: visible; clip-path: none;
+      margin: 0; margin-inline-end: var(--space-3); padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-xs); background: var(--color-brand-dark); color: var(--color-salt);
+      font-size: var(--text-body-xs-size); font-weight: 600; letter-spacing: var(--text-body-xs-ls); line-height: 1;
+      outline: 2px solid var(--color-accessible-orange); outline-offset: 2px;
+    }
+    .ufs-util--dark .ufs-skip-link:focus, .ufs-util--glass .ufs-skip-link:focus { background: var(--color-salt); color: var(--color-brand-dark); }
+    main[tabindex="-1"]:focus { outline: none; }
 
 .ufs-util__right { display: flex; align-items: center; gap: var(--space-2); }
 
@@ -672,7 +721,7 @@
 
 .signin-backdrop {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900;
-  background: color-mix(in srgb, var(--color-squid-900) 55%, transparent); backdrop-filter: blur(3px);
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(2px);
   opacity: 0; pointer-events: none; transition: opacity 0.3s;
 }
 
@@ -1279,12 +1328,14 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
       <a href="#full-header" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Header Preview</a>
       <div class="sidebar-group-label" style="margin-top:8px">Desktop Header</div>
       <a href="#util-bar" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Utility Bar &amp; Language</a>
+      <a href="#skip-link" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Jump to Content (Keyboard)</a>
       <a href="#main-nav" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Primary Nav</a>
       <a href="#megamenu-a" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Megamenu — Layout A</a>
       <a href="#megamenu-b" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Megamenu — Layout B</a>
       <a href="#megamenu-c" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Megamenu — Layout C</a>
       <a href="#brands-carousel" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Brands Carousel</a>
       <a href="#search-desktop" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Search — Desktop</a>
+      <a href="#compact-desktop" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Compact Desktop (1025–1369px)</a>
       <div class="sidebar-group-label" style="margin-top:8px">Auth Panels</div>
       <a href="#signin-panel" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Sign-In Panel</a>
       <a href="#profile-panel" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Profile Panel</a>
@@ -1387,11 +1438,12 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         <div class="pv-light">
               <div class="ufs-util ufs-util--light" id="util-bar">
                 <div class="ufs-util__links">
-                  <span class="ufs-util__link" data-i18n="about">About Us</span>
+                  <a href="#main-content" class="ufs-skip-link" data-i18n="skip-content">Jump to content</a>
+                  <a href="#" class="ufs-util__link" data-i18n="about">About Us</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" data-i18n="support">Contact &amp; Support</span>
+                  <a href="#" class="ufs-util__link" data-i18n="support">Contact &amp; Support</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" id="util-ws-link">Track Your Order</span>
+                  <a href="#" class="ufs-util__link" id="util-ws-link">Track Your Order</a>
                 </div>
                 <div class="ufs-util__right">
                   <div class="ufs-util__lang-wrap" id="lang-wrap-1">
@@ -1425,11 +1477,12 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         <div class="pv-light" style="background:var(--color-brand-dark)">
               <div class="ufs-util ufs-util--dark" id="util-bar">
                 <div class="ufs-util__links">
-                  <span class="ufs-util__link" data-i18n="about">About Us</span>
+                  <a href="#main-content" class="ufs-skip-link" data-i18n="skip-content">Jump to content</a>
+                  <a href="#" class="ufs-util__link" data-i18n="about">About Us</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" data-i18n="support">Contact &amp; Support</span>
+                  <a href="#" class="ufs-util__link" data-i18n="support">Contact &amp; Support</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" id="util-ws-link">Track Your Order</span>
+                  <a href="#" class="ufs-util__link" id="util-ws-link">Track Your Order</a>
                 </div>
                 <div class="ufs-util__right">
                   <div class="ufs-util__lang-wrap" id="lang-wrap-1">
@@ -1463,11 +1516,12 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         <div class="pv-glass">
               <div class="ufs-util ufs-util--glass" id="util-bar">
                 <div class="ufs-util__links">
-                  <span class="ufs-util__link" data-i18n="about">About Us</span>
+                  <a href="#main-content" class="ufs-skip-link" data-i18n="skip-content">Jump to content</a>
+                  <a href="#" class="ufs-util__link" data-i18n="about">About Us</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" data-i18n="support">Contact &amp; Support</span>
+                  <a href="#" class="ufs-util__link" data-i18n="support">Contact &amp; Support</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" id="util-ws-link">Track Your Order</span>
+                  <a href="#" class="ufs-util__link" id="util-ws-link">Track Your Order</a>
                 </div>
                 <div class="ufs-util__right">
                   <div class="ufs-util__lang-wrap" id="lang-wrap-1">
@@ -1502,11 +1556,12 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         <div class="pv-light pv-dropdown-flow">
               <div class="ufs-util ufs-util--light" id="util-bar">
                 <div class="ufs-util__links">
-                  <span class="ufs-util__link" data-i18n="about">About Us</span>
+                  <a href="#main-content" class="ufs-skip-link" data-i18n="skip-content">Jump to content</a>
+                  <a href="#" class="ufs-util__link" data-i18n="about">About Us</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" data-i18n="support">Contact &amp; Support</span>
+                  <a href="#" class="ufs-util__link" data-i18n="support">Contact &amp; Support</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" id="util-ws-link">Track Your Order</span>
+                  <a href="#" class="ufs-util__link" id="util-ws-link">Track Your Order</a>
                 </div>
                 <div class="ufs-util__right">
                   <div class="ufs-util__lang-wrap is-open" id="lang-wrap-1">
@@ -1701,6 +1756,133 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
       </div>
     </section>
 
+    <!-- ═══════════════════════════════════════
+         JUMP TO CONTENT (SKIP LINK)
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="skip-link">
+      <div class="section-breadcrumb">Desktop Header · Accessibility</div>
+      <h2 class="section-title">Jump to Content (Keyboard)</h2>
+      <p class="section-desc">A "Jump to content" button for keyboard and screen-reader users that skips every header control (utility links, language switcher, primary nav, search, cart, account) and moves focus to the start of the page's main content. It is <strong>the first Tab stop on the page</strong> and is invisible until it receives focus. Then it appears in the utility bar right after "About Us", pushing the other links aside, and it hides again as soon as focus moves on. It's desktop-only by construction, because the utility bar itself is <code>display:none</code> on mobile. Meets WCAG 2.4.1 (Bypass Blocks).</p>
+
+      <div class="ds-card">
+        <div class="card-title">Focused state</div>
+        <div class="card-desc">Forced visible here with a doc-only <code>.pv-force-skip</code> class. On a real page it only shows while focused. Click into this card and press Tab to try the real behaviour on the utility bars above.</div>
+        <div class="pv-label">ufs-util--light, first Tab press</div>
+        <div class="pv-light pv-force-skip" style="margin-bottom:20px;">
+          <div class="ufs-util ufs-util--light">
+            <div class="ufs-util__links">
+              <a href="#main-content" class="ufs-skip-link" tabindex="-1">Jump to content</a>
+              <a href="#" class="ufs-util__link" tabindex="-1">About Us</a>
+              <span class="ufs-util__sep"></span>
+              <a href="#" class="ufs-util__link" tabindex="-1">Contact &amp; Support</a>
+              <span class="ufs-util__sep"></span>
+              <a href="#" class="ufs-util__link" tabindex="-1">Track Your Order</a>
+            </div>
+          </div>
+        </div>
+        <div class="pv-label">RTL (dir="rtl"), same rules, no overrides</div>
+        <div class="pv-light pv-force-skip" dir="rtl" style="margin-bottom:20px;">
+          <div class="ufs-util ufs-util--light">
+            <div class="ufs-util__links">
+              <a href="#main-content" class="ufs-skip-link" tabindex="-1">انتقل إلى المحتوى</a>
+              <a href="#" class="ufs-util__link" tabindex="-1">من نحن</a>
+              <span class="ufs-util__sep"></span>
+              <a href="#" class="ufs-util__link" tabindex="-1">التواصل والدعم</a>
+              <span class="ufs-util__sep"></span>
+              <a href="#" class="ufs-util__link" tabindex="-1">تتبع طلبك</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'skip-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'skip-css')">CSS</div>
+            <div class="code-tab" onclick="switchTab(this,'skip-js')">JS</div>
+          </div>
+          <div class="code-panel active" data-tab="skip-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-util__links"</span><span class="t-tag">&gt;</span>
+  <span class="t-cm">&lt;!-- MUST be the first child: it's the first Tab stop on the page --&gt;</span>
+  <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#main-content"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-skip-link"</span> <span class="t-at">onclick</span>=<span class="t-str">"skipToContent(event)"</span><span class="t-tag">&gt;</span>Jump to content<span class="t-tag">&lt;/a&gt;</span>
+  <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"/about"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-util__link"</span><span class="t-tag">&gt;</span>About Us<span class="t-tag">&lt;/a&gt;</span>
+  <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-util__sep"</span><span class="t-tag">&gt;&lt;/span&gt;</span>
+  <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"/support"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-util__link"</span><span class="t-tag">&gt;</span>Contact &amp;amp; Support<span class="t-tag">&lt;/a&gt;</span>
+  <span class="t-cm">&lt;!-- … --&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span>
+
+<span class="t-cm">&lt;!-- …header ends… --&gt;</span>
+<span class="t-tag">&lt;main</span> <span class="t-at">id</span>=<span class="t-str">"main-content"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span>
+  <span class="t-cm">&lt;!-- first component after the header (breadcrumb, hero, …) --&gt;</span>
+<span class="t-tag">&lt;/main&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="skip-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">/* DOM-first for Tab order, but drawn right after the link that follows it */</span>
+<span class="t-pr">.ufs-util__links &gt; *</span> { <span class="t-pr">order</span>: <span class="t-vl">2</span>; }
+<span class="t-pr">.ufs-util__links &gt; .ufs-skip-link</span> { <span class="t-pr">order</span>: <span class="t-vl">1</span>; }
+<span class="t-pr">.ufs-util__links &gt; .ufs-skip-link + *</span> { <span class="t-pr">order</span>: <span class="t-vl">0</span>; <span class="t-pr">padding-inline-start</span>: <span class="t-vl">0</span>; }
+
+<span class="t-cm">/* Visually hidden, still focusable and announced */</span>
+<span class="t-pr">.ufs-skip-link</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">width</span>: <span class="t-vl">1px</span>; <span class="t-pr">height</span>: <span class="t-vl">1px</span>; <span class="t-pr">margin</span>: <span class="t-vl">-1px</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span>; <span class="t-pr">border</span>: <span class="t-vl">0</span>;
+  <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">clip-path</span>: <span class="t-vl">inset(50%)</span>; <span class="t-pr">white-space</span>: <span class="t-vl">nowrap</span>;
+}
+<span class="t-cm">/* Focused: drops into the row as an in-flow pill, pushing the links aside */</span>
+<span class="t-pr">.ufs-skip-link:focus</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">static</span>; <span class="t-pr">width</span>: <span class="t-vl">auto</span>; <span class="t-pr">height</span>: <span class="t-vl">auto</span>; <span class="t-pr">overflow</span>: <span class="t-vl">visible</span>; <span class="t-pr">clip-path</span>: <span class="t-vl">none</span>;
+  <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-inline-end</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-1) var(--space-2)</span>;
+  <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-xs)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>;
+  <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1</span>;
+  <span class="t-pr">outline</span>: <span class="t-vl">2px solid</span> <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">outline-offset</span>: <span class="t-vl">2px</span>;
+}
+<span class="t-cm">/* Dark / glass utility bars invert the pill */</span>
+<span class="t-pr">.ufs-util--dark .ufs-skip-link:focus, .ufs-util--glass .ufs-skip-link:focus</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-cm">/* &lt;main&gt; is only focusable so it can receive focus from the skip link */</span>
+<span class="t-pr">main[tabindex="-1"]:focus</span> { <span class="t-pr">outline</span>: <span class="t-vl">none</span>; }</pre>
+          </div>
+          <div class="code-panel" data-tab="skip-js">
+            <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-kw">function</span> skipToContent(e) {
+  e.preventDefault();
+  <span class="t-kw">var</span> main = document.getElementById(<span class="t-str">'main-content'</span>);
+  <span class="t-kw">if</span> (!main) <span class="t-kw">return</span>;
+  <span class="t-cm">// A plain focus() scrolls a tall &lt;main&gt; to the very top of the
+  // viewport, under the sticky nav. Focus without scrolling, then only
+  // nudge if the content start is actually hidden behind the nav.</span>
+  main.focus({ preventScroll: <span class="t-kw">true</span> });
+  <span class="t-kw">var</span> nav = document.querySelector(<span class="t-str">'.ufs-nav'</span>);
+  <span class="t-kw">var</span> navBottom = nav.getBoundingClientRect().bottom;
+  <span class="t-cm">// Compact desktop (1025–1369px): count the search row under the nav, even
+  // while it's scrolled away, since scrolling up to &lt;main&gt; brings it back.</span>
+  <span class="t-kw">var</span> row = nav.querySelector(<span class="t-str">'.ufs-nav-search'</span>);
+  <span class="t-kw">if</span> (row &amp;&amp; getComputedStyle(row).position === <span class="t-str">'absolute'</span>) navBottom += row.offsetHeight;
+  <span class="t-kw">var</span> top = main.getBoundingClientRect().top;
+  <span class="t-kw">if</span> (top &lt; navBottom) window.scrollBy(0, top - navBottom);
+}</pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Background / text</span><span class="token-var">--color-brand-dark / --color-salt</span><span class="token-note">inverted (salt / brand-dark) on --dark and --glass bars</span></div>
+          <div class="token-row"><span class="token-prop">Type</span><span class="token-var">--text-body-xs-size · 600</span><span class="token-note">same 12px as the utility links, semibold</span></div>
+          <div class="token-row"><span class="token-prop">Padding / radius</span><span class="token-var">--space-1 --space-2 / --radius-xs</span><span class="token-note">4px × 8px, 4px corners, ≈20px tall in the 36px bar</span></div>
+          <div class="token-row"><span class="token-prop">Focus ring</span><span class="token-var">2px --color-accessible-orange, offset 2px</span><span class="token-note">same ring as .btn:focus-visible</span></div>
+          <div class="token-row"><span class="token-prop">Spacing</span><span class="token-var">About Us padding + --space-3</span><span class="token-note">12px either side, matching the gap around each separator</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div><strong>Keyboard sequence:</strong> Tab ① "Jump to content" appears → <kbd>Enter</kbd> moves focus to <code>&lt;main&gt;</code> (screen readers announce the main landmark) → next Tab lands on the first interactive element of the first component (e.g. the breadcrumb's Home link). If the user Tabs past it instead, it hides and focus continues normally: About Us → Contact &amp; Support → Track Your Order → language → nav.</div>
+      </div>
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>Production requirements:</strong> exactly one <code>&lt;main id="main-content" tabindex="-1"&gt;</code> per page, and nothing focusable in the DOM before the skip link (no cookie banner, chat widget or announcement link above it in source order). Utility links must be real <code>&lt;a href&gt;</code> elements, not <code>&lt;span&gt;</code>s, or keyboard users can't reach them at all. The Landing, Registration and Checkout journeys hide the utility bar entirely, so the skip link goes with it. Their minimal headers have only a couple of controls, so skipping them adds little.</div>
+      </div>
+    </section>
+
 
     <!-- ═══════════════════════════════════════
          PRIMARY NAV
@@ -1708,7 +1890,7 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
     <section class="doc-section" id="main-nav">
       <div class="section-breadcrumb">Desktop Header</div>
       <h2 class="section-title">Primary Nav</h2>
-      <p class="section-desc">Logo, top-level links (megamenu triggers), a persistent search field and a right-aligned actions area whose content depends on auth/webshop state. Desktop-only (&gt; 1024px, via <code>@media (max-width: 1024px) { .ufs-util, .ufs-nav { display: none; } }</code>); below that the header switches entirely to the Mobile Nav Bar component, it is not a squeezed version of this row.</p>
+      <p class="section-desc">Logo, top-level links (megamenu triggers), a persistent search field and a right-aligned actions area whose content depends on auth/webshop state. Desktop-only (&gt; 1024px, via <code>@media (max-width: 1024px) { .ufs-util, .ufs-nav { display: none; } }</code>); below that the header switches entirely to the Mobile Nav Bar component, it is not a squeezed version of this row. Between 1025px and 1369px the search field moves to its own row under the nav. See <a href="#compact-desktop">Compact Desktop</a>.</p>
 
       <div class="ds-card">
         <div class="card-title">Colour contexts</div>
@@ -3375,6 +3557,237 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
 
 
     <!-- ═══════════════════════════════════════
+         COMPACT DESKTOP (1025–1369px)
+    ═══════════════════════════════════════ -->
+    <section class="doc-section" id="compact-desktop">
+      <div class="section-breadcrumb">Desktop Header · Responsive</div>
+      <h2 class="section-title">Compact Desktop (1025–1369px)</h2>
+      <p class="section-desc">Between <strong>1025px and 1369px</strong> the inline search no longer fits beside the primary nav. The header keeps its full desktop layout (utility bar and primary nav visible, no burger menu), but the search field drops to its own full-width row directly under the nav, like the mobile search bar. At ≤1024px the mobile header takes over as before, and from 1370px the search goes back inline.</p>
+
+      <div class="ds-card">
+        <div class="card-title">States</div>
+        <div class="card-desc">Forced with a doc-only <code>.pv-compact</code> class so they render at any window width. The real rules are in the code block below. Utility bar omitted, since it's unchanged.</div>
+        <div class="pv-label">Default: search row under the nav, edges aligned with the logo and Account button</div>
+        <div class="pv-light pv-compact" style="margin-bottom:20px;">
+              <nav class="ufs-nav ufs-nav--light">
+                <div class="ufs-nav__logo"><img src="images/ufs-logo.png" alt="UFS"/></div>
+                <div class="ufs-nav__links">
+                  <div class="ufs-nav__link"><span>Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Loyalty Program</span></div>
+                </div>
+                <div class="ufs-nav__actions">
+                  <div class="ufs-nav-search">
+                    <img class="ufs-nav-search-icon" src="icons/Search.svg" alt=""/>
+                    <input class="ufs-nav-search-input" type="text" placeholder="What are you looking for?" tabindex="-1" aria-hidden="true"/>
+                    <button class="ufs-nav-search-mic" tabindex="-1" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </button>
+                    <button class="ufs-nav-search-close" tabindex="-1" aria-hidden="true">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+                    </button>
+                  </div>
+                  <button class="ufs-nav__icon-btn ufs-nav__search-toggle" tabindex="-1" aria-hidden="true"><img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt=""/></button>
+                  <button class="ufs-nav__icon-btn" style="position:relative" tabindex="-1" aria-hidden="true">
+                    <img class="ufs-icon ufs-icon--24" src="icons/cart.svg" alt=""/>
+                    <span class="ufs-nav__badge">3</span>
+                  </button>
+                  <button class="btn btn-primary btn-icon-left" tabindex="-1" aria-hidden="true">
+                    <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="" style="filter:brightness(0) invert(1)"/><span>Account</span>
+                  </button>
+                </div>
+              </nav>
+        </div>
+        <div class="pv-label">Search focused (<code>.search-active</code>): primary nav stays visible, and mic and close appear in the row. The desktop results panel opens directly under the row (see Search — Desktop).</div>
+        <div class="pv-light pv-compact" style="margin-bottom:20px;">
+              <nav class="ufs-nav ufs-nav--light search-active">
+                <div class="ufs-nav__logo"><img src="images/ufs-logo.png" alt="UFS"/></div>
+                <div class="ufs-nav__links">
+                  <div class="ufs-nav__link"><span>Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Loyalty Program</span></div>
+                </div>
+                <div class="ufs-nav__actions">
+                  <div class="ufs-nav-search">
+                    <img class="ufs-nav-search-icon" src="icons/Search.svg" alt=""/>
+                    <input class="ufs-nav-search-input" type="text" placeholder="What are you looking for?" tabindex="-1" aria-hidden="true"/>
+                    <button class="ufs-nav-search-mic" tabindex="-1" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </button>
+                    <button class="ufs-nav-search-close" tabindex="-1" aria-hidden="true">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+                    </button>
+                  </div>
+                  <button class="ufs-nav__icon-btn ufs-nav__search-toggle" tabindex="-1" aria-hidden="true"><img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt=""/></button>
+                  <button class="ufs-nav__icon-btn" style="position:relative" tabindex="-1" aria-hidden="true">
+                    <img class="ufs-icon ufs-icon--24" src="icons/cart.svg" alt=""/>
+                    <span class="ufs-nav__badge">3</span>
+                  </button>
+                  <button class="btn btn-primary btn-icon-left" tabindex="-1" aria-hidden="true">
+                    <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="" style="filter:brightness(0) invert(1)"/><span>Account</span>
+                  </button>
+                </div>
+              </nav>
+        </div>
+        <div class="pv-label">Scrolled down: the row slides away and a search icon appears beside the cart to bring it back</div>
+        <div class="pv-light pv-compact" style="margin-bottom:20px;">
+              <nav class="ufs-nav ufs-nav--light" data-search-row="hidden">
+                <div class="ufs-nav__logo"><img src="images/ufs-logo.png" alt="UFS"/></div>
+                <div class="ufs-nav__links">
+                  <div class="ufs-nav__link"><span>Products</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Recipes</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Training &amp; Inspiration</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Promotions</span> <img class="ufs-nav__link-chev" src="icons/arrow.svg" alt=""/></div>
+                  <div class="ufs-nav__link"><span>Loyalty Program</span></div>
+                </div>
+                <div class="ufs-nav__actions">
+                  <div class="ufs-nav-search">
+                    <img class="ufs-nav-search-icon" src="icons/Search.svg" alt=""/>
+                    <input class="ufs-nav-search-input" type="text" placeholder="What are you looking for?" tabindex="-1" aria-hidden="true"/>
+                    <button class="ufs-nav-search-mic" tabindex="-1" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                    </button>
+                    <button class="ufs-nav-search-close" tabindex="-1" aria-hidden="true">
+                      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+                    </button>
+                  </div>
+                  <button class="ufs-nav__icon-btn ufs-nav__search-toggle" tabindex="-1" aria-hidden="true"><img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt=""/></button>
+                  <button class="ufs-nav__icon-btn" style="position:relative" tabindex="-1" aria-hidden="true">
+                    <img class="ufs-icon ufs-icon--24" src="icons/cart.svg" alt=""/>
+                    <span class="ufs-nav__badge">3</span>
+                  </button>
+                  <button class="btn btn-primary btn-icon-left" tabindex="-1" aria-hidden="true">
+                    <img class="ufs-icon ufs-icon--20" src="icons/profile.svg" alt="" style="filter:brightness(0) invert(1)"/><span>Account</span>
+                  </button>
+                </div>
+              </nav>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'compact-css')">CSS</div>
+            <div class="code-tab" onclick="switchTab(this,'compact-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'compact-js')">JS</div>
+          </div>
+          <div class="code-panel active" data-tab="compact-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">.ufs-nav__search-toggle</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+
+<span class="t-kw">@media</span> (<span class="t-pr">min-width</span>: <span class="t-vl">1025px</span>) <span class="t-kw">and</span> (<span class="t-pr">max-width</span>: <span class="t-vl">1369.98px</span>) {
+  <span class="t-pr">.ufs-nav</span> {
+    <span class="t-pr">--nav-search-row-h</span>: <span class="t-vl">calc(</span><span class="t-va">var(--space-12)</span> + <span class="t-va">var(--space-2)</span> * 2 + 1px<span class="t-vl">)</span>;
+    <span class="t-pr">margin-bottom</span>: <span class="t-va">var(--nav-search-row-h)</span>; <span class="t-cm">/* reserves the row's space in flow */</span>
+  }
+  <span class="t-cm">/* Same .ufs-nav-search element as desktop, re-laid-out as a row under the
+     (sticky) nav, so it's sticky too and all desktop search JS keeps working */</span>
+  <span class="t-pr">.ufs-nav-search,
+  .ufs-nav.search-active .ufs-nav-search</span> {
+    <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-vl">calc(100% + 1px)</span>; <span class="t-pr">left</span>: <span class="t-vl">0</span>; <span class="t-pr">right</span>: <span class="t-vl">0</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1</span>;
+    <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">transform</span>: <span class="t-vl">none</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-2) var(--space-8)</span>;
+    <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border-bottom</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-300)</span>;
+    <span class="t-pr">clip-path</span>: <span class="t-vl">inset(0)</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform 0.3s ease, clip-path 0.3s ease</span>;
+  }
+  [dir="rtl"] <span class="t-pr">.ufs-nav-search</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+  <span class="t-pr">.ufs-nav-search-input,
+  .ufs-nav.search-active .ufs-nav-search-input</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">width</span>: <span class="t-vl">auto</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; }
+  <span class="t-pr">.ufs-nav-search-icon</span> { <span class="t-pr">left</span>: <span class="t-vl">calc(</span><span class="t-va">var(--space-8)</span> + <span class="t-va">var(--space-3)</span><span class="t-vl">)</span>; }
+  [dir="rtl"] <span class="t-pr">.ufs-nav-search-icon</span> { <span class="t-pr">left</span>: <span class="t-vl">auto</span>; <span class="t-pr">right</span>: <span class="t-vl">calc(</span><span class="t-va">var(--space-8)</span> + <span class="t-va">var(--space-3)</span><span class="t-vl">)</span>; }
+  <span class="t-pr">.ufs-nav-search-mic</span> { <span class="t-pr">right</span>: <span class="t-vl">calc(</span><span class="t-va">var(--space-8)</span> + <span class="t-va">var(--space-10)</span> + <span class="t-va">var(--space-2)</span> + <span class="t-va">var(--space-2)</span><span class="t-vl">)</span>; }
+  [dir="rtl"] <span class="t-pr">.ufs-nav-search-mic</span> { <span class="t-pr">right</span>: <span class="t-vl">auto</span>; <span class="t-pr">left</span>: <span class="t-vl">calc(</span><span class="t-va">var(--space-8)</span> + <span class="t-va">var(--space-10)</span> + <span class="t-va">var(--space-2)</span> + <span class="t-va">var(--space-2)</span><span class="t-vl">)</span>; }
+
+  <span class="t-cm">/* Search has its own row, so the primary nav stays visible while searching */</span>
+  <span class="t-pr">.ufs-nav.search-active .ufs-nav__links</span> { <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">auto</span>; <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">overflow</span>: <span class="t-vl">visible</span>; }
+
+  <span class="t-cm">/* Desktop results panel opens under the row, aligned to the input */</span>
+  <span class="t-pr">.ufs-search-overlay</span> { <span class="t-pr">top</span>: <span class="t-vl">calc(100% +</span> <span class="t-va">var(--nav-search-row-h)</span><span class="t-vl">)</span>; <span class="t-pr">padding-left</span>: <span class="t-va">var(--space-8)</span>; <span class="t-pr">padding-right</span>: <span class="t-va">var(--space-8)</span>; }
+  <span class="t-pr">.ufs-search-overlay-inner</span> { <span class="t-pr">margin-left</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-right</span>: <span class="t-vl">0</span>; }
+
+  <span class="t-cm">/* Scrolled away: translate + matching clip = slides up "under" the nav edge.
+     Keyboard focus inside still reveals it. */</span>
+  <span class="t-pr">.ufs-nav[data-search-row="hidden"] .ufs-nav-search</span> { <span class="t-pr">transform</span>: <span class="t-vl">translateY(-100%)</span>; <span class="t-pr">clip-path</span>: <span class="t-vl">inset(100% 0 0 0)</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; }
+  <span class="t-pr">.ufs-nav[data-search-row="hidden"] .ufs-nav-search:focus-within</span> { <span class="t-pr">transform</span>: <span class="t-vl">none</span>; <span class="t-pr">clip-path</span>: <span class="t-vl">inset(0)</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">auto</span>; }
+  <span class="t-pr">.ufs-nav[data-search-row="hidden"] .ufs-nav__search-toggle</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; }
+
+  <span class="t-cm">/* Journeys / modes without search get no row */</span>
+  <span class="t-pr">body.ai-on .ufs-nav,
+  body.ctx-landing .ufs-nav, body.ctx-registration .ufs-nav, body.ctx-checkout .ufs-nav</span> { <span class="t-pr">margin-bottom</span>: <span class="t-vl">0</span>; }
+  <span class="t-pr">body.ai-on .ufs-nav__search-toggle,
+  body.ctx-landing .ufs-nav__search-toggle, body.ctx-registration .ufs-nav__search-toggle,
+  body.ctx-checkout .ufs-nav__search-toggle</span> { <span class="t-pr">display</span>: <span class="t-vl">none !important</span>; }
+}
+
+<span class="t-cm">/* Narrowest slice: the nav row is ~45px too wide at 1025px without this */</span>
+<span class="t-kw">@media</span> (<span class="t-pr">min-width</span>: <span class="t-vl">1025px</span>) <span class="t-kw">and</span> (<span class="t-pr">max-width</span>: <span class="t-vl">1099.98px</span>) {
+  <span class="t-pr">.ufs-nav__link</span> { <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-2)</span>; }
+  <span class="t-pr">.ufs-nav__actions .btn</span> { <span class="t-pr">margin-left</span>: <span class="t-va">var(--space-4)</span>; }
+  [dir="rtl"] <span class="t-pr">.ufs-nav__actions .btn</span> { <span class="t-pr">margin-left</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-right</span>: <span class="t-va">var(--space-4)</span>; }
+}</pre>
+          </div>
+          <div class="code-panel" data-tab="compact-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">&lt;!-- No new search markup: the existing .ufs-nav-search inside
+     .ufs-nav__actions is re-laid-out by CSS. Only addition: the toggle,
+     right after the search and before Fav/Cart. --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__actions"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav-search"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- unchanged --&gt;</span> <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-nav__icon-btn ufs-nav__search-toggle"</span> <span class="t-at">id</span>=<span class="t-str">"nav-search-toggle"</span>
+          <span class="t-at">onclick</span>=<span class="t-str">"showNavSearchRow(true)"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Search"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-icon ufs-icon--24"</span> <span class="t-at">src</span>=<span class="t-str">"icons/Search.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span>
+  <span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-cm">&lt;!-- Fav, Cart, Profile / Account … --&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="compact-js">
+            <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">// State lives in an attribute, not a class: syncNavAppearance() rewrites
+// #main-nav's className on scroll. Harmless outside 1025–1369px, since
+// the CSS that reads it is scoped to that media query.</span>
+<span class="t-kw">var</span> navSearchRowHidden = <span class="t-kw">false</span>;
+<span class="t-kw">function</span> hideNavSearchRow() {
+  <span class="t-kw">var</span> nav = document.getElementById(<span class="t-str">'main-nav'</span>);
+  <span class="t-kw">if</span> (navSearchRowHidden || nav.classList.contains(<span class="t-str">'search-active'</span>)) <span class="t-kw">return</span>;
+  navSearchRowHidden = <span class="t-kw">true</span>;
+  nav.setAttribute(<span class="t-str">'data-search-row'</span>, <span class="t-str">'hidden'</span>);
+}
+<span class="t-kw">function</span> showNavSearchRow(withFocus) {
+  navSearchRowHidden = <span class="t-kw">false</span>;
+  document.getElementById(<span class="t-str">'main-nav'</span>).removeAttribute(<span class="t-str">'data-search-row'</span>);
+  <span class="t-kw">if</span> (withFocus) setTimeout(<span class="t-kw">function</span> () { document.getElementById(<span class="t-str">'nav-search-btn'</span>).focus(); }, 300);
+}
+
+<span class="t-cm">// Inside the existing scroll listener, same rule as the mobile search bar:</span>
+<span class="t-kw">if</span> (currentY &gt; lastScrollY &amp;&amp; currentY &gt; 300 &amp;&amp; !navSearchRowHidden) hideNavSearchRow();
+<span class="t-kw">else if</span> (currentY &lt; lastScrollY &amp;&amp; navSearchRowHidden) showNavSearchRow(<span class="t-kw">false</span>);</pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">What changes in this range</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Range</span><span class="token-var">min-width: 1025px and max-width: 1369.98px</span><span class="token-note">≤1024px mobile header, ≥1370px inline search</span></div>
+          <div class="token-row"><span class="token-prop">Search row height</span><span class="token-var">--space-12 + --space-2 × 2 + 1px</span><span class="token-note">48px input + 8px top/bottom + 1px border = 65px</span></div>
+          <div class="token-row"><span class="token-prop">Row padding</span><span class="token-var">--space-2 --space-8</span><span class="token-note">32px sides = nav / utility bar padding, so the input lines up with the logo and Account button</span></div>
+          <div class="token-row"><span class="token-prop">Row background / divider</span><span class="token-var">--color-salt / --color-mushroom-300</span><span class="token-note">same as the nav row above it</span></div>
+          <div class="token-row"><span class="token-prop">Hide on scroll</span><span class="token-var">&gt; 300px, scrolling down</span><span class="token-note">returns on any scroll up, same rule as mobile; 0.3s slide</span></div>
+          <div class="token-row"><span class="token-prop">1025–1099px only</span><span class="token-var">link padding 12→8px · Account gap 32→16px</span><span class="token-note">recovers ~56px; without it Account is clipped at 1025px</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div><strong>Why CSS-only, not a moved element:</strong> the desktop search JS (<code>activateNavSearch()</code>, <code>closeSearchOverlay('nav')</code>) looks the field up inside <code>#main-nav</code>. Keeping <code>.ufs-nav-search</code> where it is and only re-positioning it means focus, typing, voice search, results and close all behave exactly as on wide desktop. It's also a child of the sticky nav, so the row stays sticky with no extra code.</div>
+      </div>
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div><strong>Interactions with other header parts:</strong> megamenus stay anchored to the nav row and open over the search row. The "Jump to content" link counts the search row as part of the header, so focus lands below it. The Landing, Registration and Checkout journeys and AI mode already hide search, so they get no row and no reserved space.</div>
+      </div>
+    </section>
+
+
+    <!-- ═══════════════════════════════════════
          SIGN-IN PANEL
     ═══════════════════════════════════════ -->
     <section class="doc-section" id="signin-panel">
@@ -3520,7 +3933,7 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
                     <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
         <pre class="code-body" tabindex="0">.signin-backdrop {
           position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900;
-          background: color-mix(in srgb, var(--color-squid-900) 55%, transparent); backdrop-filter: blur(3px);
+          background: rgba(0,0,0,0.75); backdrop-filter: blur(2px);
           opacity: 0; pointer-events: none; transition: opacity 0.3s;
         }
         <span class="t-pr">.signin-backdrop.is-open</span> { <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">all</span>; }
@@ -3589,7 +4002,7 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         <div class="token-list">
           <div class="token-row"><span class="token-prop">Panel width</span><span class="token-var">420px</span><span class="token-note">fixed, right-edge drawer (left in RTL)</span></div>
           <div class="token-row"><span class="token-prop">z-index</span><span class="token-var">901</span><span class="token-note">above bottom nav (200) and megamenus (100)</span></div>
-          <div class="token-row"><span class="token-prop">Backdrop</span><span class="token-var">--color-squid-900 @ 55%, blur(3px)</span><span class="token-note"></span></div>
+          <div class="token-row"><span class="token-prop">Backdrop</span><span class="token-var">rgba(0,0,0,0.75), blur(2px)</span><span class="token-note">same overlay as Takeover Banner's __backdrop</span></div>
           <div class="token-row"><span class="token-prop">Transition</span><span class="token-var">transform 0.35s cubic-bezier(0.4,0,0.2,1)</span><span class="token-note"></span></div>
           <div class="token-row"><span class="token-prop">Contact field icon</span><span class="token-var">.is-provisional (35%) / .is-resolved (85%)</span><span class="token-note">morphs email ↔ phone via regContactDetect()</span></div>
           <div class="token-row"><span class="token-prop">Field border</span><span class="token-var">--color-mushroom-700</span><span class="token-note">→ --color-brand-dark on focus</span></div>
@@ -5509,11 +5922,12 @@ body.ctx-landing .ufs-sticky-cta { display: block; }
         <div class="pv-light">
               <div class="ufs-util ufs-util--light" id="util-bar" dir="rtl">
                 <div class="ufs-util__links">
-                  <span class="ufs-util__link" data-i18n="about">من نحن</span>
+                  <a href="#main-content" class="ufs-skip-link" data-i18n="skip-content">انتقل إلى المحتوى</a>
+                  <a href="#" class="ufs-util__link" data-i18n="about">من نحن</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" data-i18n="support">التواصل والدعم</span>
+                  <a href="#" class="ufs-util__link" data-i18n="support">التواصل والدعم</a>
                   <span class="ufs-util__sep"></span>
-                  <span class="ufs-util__link" id="util-ws-link">تتبع طلبك</span>
+                  <a href="#" class="ufs-util__link" id="util-ws-link">تتبع طلبك</a>
                 </div>
                 <div class="ufs-util__right">
                   <div class="ufs-util__lang-wrap" id="lang-wrap-1">

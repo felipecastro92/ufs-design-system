@@ -118,6 +118,33 @@
     .ufs-util__link:first-child { padding-left: 0; }
     .ufs-util--light .ufs-util__link:hover { color: var(--color-brand-dark); }
     .ufs-util__sep { width: 1px; height: 10px; background: currentColor; opacity: 0.2; }
+    .ufs-util__link:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; border-radius: 2px; color: var(--color-brand-dark); }
+
+    /* ── Jump to content (skip link) ─────────────────────────
+       First keyboard stop on the page: it's the first child of
+       .ufs-util__links in the DOM, but `order` draws it right AFTER
+       whichever link follows it (About Us). Visually hidden (still
+       focusable + announced) until focused, then it drops into the
+       row as an in-flow pill and pushes the other links aside.
+       Desktop-only by construction — .ufs-util is display:none on
+       mobile. See nav-header-spec.html#skip-link. */
+    .ufs-util__links > * { order: 2; }
+    .ufs-util__links > .ufs-skip-link { order: 1; }
+    .ufs-util__links > .ufs-skip-link + * { order: 0; padding-inline-start: 0; }
+    .ufs-skip-link {
+      position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+      overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+    }
+    .ufs-skip-link:focus {
+      position: static; width: auto; height: auto; overflow: visible; clip-path: none;
+      margin: 0; margin-inline-end: var(--space-3); padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-xs); background: var(--color-brand-dark); color: var(--color-salt);
+      font-size: var(--text-body-xs-size); font-weight: 600; letter-spacing: var(--text-body-xs-ls); line-height: 1;
+      outline: 2px solid var(--color-accessible-orange); outline-offset: 2px;
+    }
+    /* <main> gets tabindex="-1" only so it can take focus from the skip
+       link — it isn't a control, so no focus ring on it. */
+    main[tabindex="-1"]:focus { outline: none; }
     .ufs-util__right { display: flex; align-items: center; gap: var(--space-2); }
     .ufs-util__lang { display: flex; align-items: center; gap: var(--space-1); cursor: pointer; font-size: var(--text-body-xs-size); font-weight: var(--text-body-w); letter-spacing: var(--text-body-xs-ls); }
 
@@ -1703,6 +1730,173 @@
     }
 
     /* ================================================================
+       BANNER CAROUSEL — a Flex Carousel variant: a fixed intro panel
+       (logo, title, description, primary CTA) beside the exact same
+       .ufs-carousel-track/-spacer/-card/-dots/-arrow* engine as
+       .ufs-flex-carousel above, initialised by the same
+       initFlexCarousel() (see the DOMContentLoaded call below). Only
+       __panel and the bleed direction are new — everything with a bare
+       .ufs-carousel-* class name (track/card/dots/arrow sizing, RTL
+       flips, mobile card-gap reduction) is inherited from the shared
+       rules above with no extra CSS needed here.
+       See handover/banner-carousel-spec.html for the full component spec.
+    ================================================================ */
+    .ufs-banner-carousel {
+      --carousel-title-color: var(--color-brand-dark);
+      --carousel-desc-color: var(--color-mushroom-900);
+      --carousel-btn-hover-bg: var(--color-mushroom-100);
+      --carousel-dot-inactive: var(--color-squid-300);
+      --carousel-arrow-border: var(--color-squid-300);
+      --carousel-arrow-color: var(--color-squid-300);
+      --carousel-arrow-bg: var(--color-salt);
+      --carousel-arrow-active-bg: var(--color-mushroom-300);
+      background: var(--color-salt);
+      padding: var(--space-20) var(--space-24) var(--space-16);
+      display: flex; align-items: flex-start; gap: var(--space-14);
+    }
+    .ufs-banner-carousel__panel {
+      flex: 0 0 378px;
+      display: flex; flex-direction: column; gap: var(--space-10);
+      padding-top: var(--space-10);
+    }
+    .ufs-banner-carousel__logo { width: 234px; height: auto; display: block; }
+    .ufs-banner-carousel__intro { display: flex; flex-direction: column; gap: var(--space-4); }
+    /* Bespoke banner scale, same principle as Campaign Hero's own title —
+       weight/line-height match --text-h3-w/-lh, but -0.3px letter-spacing
+       is a literal from this component's own Figma spec. */
+    .ufs-banner-carousel__title { margin: 0; color: var(--carousel-title-color); font-size: 30px; line-height: 1.2; font-weight: 900; letter-spacing: -0.3px; }
+    .ufs-banner-carousel__desc { margin: 0; color: var(--carousel-desc-color); font-size: var(--text-body-size); line-height: var(--text-body-lh); }
+    /* Solid/filled — unlike this component's own outlined arrows, a
+       filled primary button already reads fine on every background, so
+       it doesn't respond to the colour variant at all; colour/hover/
+       border come from .btn-primary, untouched. */
+    .ufs-banner-carousel__cta { align-self: flex-start; }
+
+    .ufs-banner-carousel__carousel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-8); }
+    /* Bleed — trailing edge only. Flex Carousel bleeds both sides because
+       it always spans the full viewport; here the carousel's leading
+       edge sits against __panel, not the viewport edge, so only the
+       trailing (right, LTR) edge needs the negative-margin trick — the
+       shared .ufs-carousel-track's own padding-right already does the
+       rest, unchanged. min-width:0 stops the track's real card content
+       from pushing this wrapper (and __panel with it) wider than the
+       viewport — see the mobile media query below for why this matters. */
+    .ufs-banner-carousel__track-wrap { align-self: stretch; margin-right: calc(-1 * var(--space-24)); min-width: 0; }
+    /* Real tile content (not the generic 270×270 placeholder) needs the
+       same width:320px/height:auto fix already used throughout the Flex
+       Carousel tile-type examples above — applied unconditionally since
+       every Banner Carousel card is real content, no variant needs its
+       own copy of this rule. */
+    .ufs-banner-carousel .ufs-carousel-card { width: 320px; height: auto; }
+    /* The shared .ufs-carousel-track carries padding-bottom: var(--space-10)
+       for Flex Carousel's own hover-shadow room. Scoped removal — Flex
+       Carousel's own tracks elsewhere on this page keep that padding. */
+    .ufs-banner-carousel .ufs-carousel-track { padding-bottom: 0; }
+    /* The shared .ufs-carousel-spacer defaults to --space-24 (96px) for
+       Flex Carousel's own leading-edge bleed. Banner Carousel's leading
+       edge sits against __panel, not the viewport, so it needs zero
+       leading space here — without this override the first card sits
+       96px right of __carousel's actual left edge, visibly misaligned
+       under __foot's dots/arrows (which correctly hug that edge, since
+       neither is affected by the spacer). Reinstated at mobile below. */
+    .ufs-banner-carousel .ufs-carousel-spacer { flex: 0 0 0; }
+
+    .ufs-banner-carousel__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+    .ufs-banner-carousel__arrows { display: flex; align-items: center; gap: var(--space-4); }
+
+    /* No-scroll / "compact" state — same trigger as Flex Carousel's own
+       .is-compact (measured overflow via initFlexCarousel, reused
+       unchanged), but a different visual treatment. The trigger condition
+       — "the tiles' own full width fits without scrolling" — is
+       mathematically the same test as "panel + gap + the tiles' full
+       width isn't wider than the viewport", since __carousel's available
+       width is always viewport − panel − gap. So when it fires, __panel
+       and __carousel both drop to their natural (unstretched) width and
+       the pair centres as one group in the middle of the section, rather
+       than __carousel staying stretched to fill the remaining row width
+       with just its cards centred inside that wider box.
+       Deliberately NOT `overflow: visible` on the track, unlike Flex
+       Carousel's own compact state — Flex Carousel is always full-bleed
+       with generous page padding on both sides, so its centred-and-
+       overflowing cards have room to spill safely. Banner Carousel's
+       __carousel column sits directly against __panel with no such
+       safety margin: `overflow: visible` on a still-overflowing row would
+       spill left into __panel — and, separately, permanently breaks
+       future re-measurement, since an element with no real scroll
+       container degenerates scrollWidth/clientWidth to always agree,
+       which is also why the arrows would stay stuck disabled even after a
+       resize. Leaving the track's default overflow (auto) in place means
+       a mis-detected compact state still clips safely instead of
+       overlapping, and self-corrects on the next resize.
+       Desktop only — inert below 769px, see Responsive. */
+    @media (min-width: 769px) {
+      .ufs-banner-carousel.is-compact { justify-content: center; }
+      /* Drop flex:1's forced growth — without this, __carousel would
+         still stretch to fill the entire remaining row width regardless
+         of how little its own content needs, leaving nothing for the
+         justify-content: center above to centre against. */
+      .ufs-banner-carousel.is-compact .ufs-banner-carousel__carousel { flex: 0 0 auto; }
+      .ufs-banner-carousel.is-compact .ufs-banner-carousel__track-wrap { margin-right: 0; }
+      .ufs-banner-carousel.is-compact .ufs-carousel-track { padding: 0; }
+      /* Nothing to page through — hide dots/arrows entirely, same rule
+         Flex Carousel already applies to its own __foot in this state. */
+      .ufs-banner-carousel.is-compact .ufs-banner-carousel__foot { display: none; }
+    }
+
+    /* Colour variants — pure custom-property swaps, identical mechanism
+       to Flex Carousel above. The card itself is never recoloured by any
+       variant (real content, not a colour-matched placeholder). */
+    .ufs-banner-carousel--squid {
+      background: var(--color-brand-dark);
+      --carousel-title-color: var(--color-salt);
+      --carousel-desc-color: rgba(255,255,255,0.75);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.12);
+      --carousel-dot-inactive: var(--color-mushroom-500);
+      --carousel-arrow-border: var(--color-mushroom-500);
+      --carousel-arrow-color: var(--color-mushroom-500);
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-active-bg: rgba(255,255,255,0.2);
+    }
+    .ufs-banner-carousel--mushroom {
+      background: var(--color-mushroom-100);
+      --carousel-btn-hover-bg: var(--color-salt);
+      --carousel-arrow-bg: transparent;
+    }
+    .ufs-banner-carousel--mushroom .ufs-carousel-dot.is-active { background: var(--color-orange-700); }
+    .ufs-banner-carousel--image {
+      background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/M_GPP_6074.jpg');
+      background-size: cover; background-position: center; background-repeat: no-repeat;
+      --carousel-title-color: var(--color-salt);
+      --carousel-desc-color: rgba(255,255,255,0.75);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.15);
+      --carousel-dot-inactive: var(--color-salt);
+      --carousel-arrow-border: var(--color-salt);
+      --carousel-arrow-color: var(--color-salt);
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-active-bg: rgba(255,255,255,0.25);
+    }
+
+    @media (max-width: 768px) {
+      .ufs-banner-carousel { flex-direction: column; align-items: stretch; padding: var(--space-10) var(--space-4); gap: var(--space-8); }
+      .ufs-banner-carousel__panel { flex-basis: auto; width: 100%; align-items: center; text-align: center; }
+      .ufs-banner-carousel__title { font-size: var(--text-h3-mob-size); letter-spacing: -0.24px; }
+      .ufs-banner-carousel__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      /* __panel's own gap (--space-10) is uniform on desktop; mobile
+         tightens description→CTA specifically to --space-6, same nested-
+         gap fix documented in banner-carousel-spec.html. */
+      .ufs-banner-carousel__cta { width: 100%; align-self: stretch; margin-top: calc(var(--space-6) - var(--space-10)); }
+      .ufs-banner-carousel__carousel { gap: var(--space-6); }
+      .ufs-banner-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); }
+      .ufs-banner-carousel__foot { justify-content: center; }
+      .ufs-banner-carousel__arrows { display: none; }
+    }
+
+    [dir="rtl"] .ufs-banner-carousel__track-wrap { margin-right: 0; margin-left: calc(-1 * var(--space-24)); }
+    @media (max-width: 768px) {
+      [dir="rtl"] .ufs-banner-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); }
+    }
+
+    /* ================================================================
        CAROUSEL — FULL WIDTH BANNER. A slide-swapping promo carousel (not
        a scrolling card row like .ufs-flex-carousel above) — 40% dark
        text panel + 60% image, crossfading between slides. Reuses the
@@ -2684,7 +2878,7 @@
     ================================================================ */
     .signin-backdrop {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 900;
-      background: color-mix(in srgb, var(--color-squid-900) 55%, transparent); backdrop-filter: blur(3px);
+      background: rgba(0,0,0,0.75); backdrop-filter: blur(2px);
       opacity: 0; pointer-events: none; transition: opacity 0.3s;
     }
     .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
@@ -2968,6 +3162,42 @@
     .av-check-badge img { width: 11px; height: 11px; filter: brightness(0) invert(1); }
 
     /* ================================================================
+       COUNTRY SELECTOR — new component, built from Figma "Rosana 2.0"
+       node 3216:4572. Same signin-panel/signin-backdrop drawer shell as
+       every other side panel here; row card + 40px image tile follow the
+       Wholesaler Picker's .ufs-wholesaler-row/-logo recipe (see
+       template-products-catalog.html), minus search and the redirect
+       icon. Shown only for markets that need it (data-auto-open).
+       See handover/country-selector-spec.html for the full spec.
+    ================================================================ */
+    /* Figma's description is Body/Small (14px/1.5) in black, not the
+       mushroom-900 grey the Wholesaler Picker uses for its own desc. */
+    #country-panel .signin-panel-desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin: 0 0 var(--space-4); }
+    .ufs-country-list { display: flex; flex-direction: column; gap: var(--space-4); list-style: none; margin: 0; padding: 0; }
+    .ufs-country-item {
+      display: flex; align-items: center; gap: var(--space-4);
+      padding: var(--space-2); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md);
+      background: var(--color-salt); color: var(--color-brand-dark); text-decoration: none;
+      cursor: pointer; transition: background 0.15s; -webkit-tap-highlight-color: transparent;
+    }
+    .ufs-country-item:hover { background: var(--color-mushroom-100); }
+    .ufs-country-item:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 2px; }
+    /* Flag PNGs keep their own intrinsic size via width/height attributes
+       (24x21, Saudi Arabia 20x13 — exactly as placed in Figma), centred
+       in the 40px bordered tile. */
+    .ufs-country-flag {
+      flex-shrink: 0; width: var(--space-10); height: var(--space-10); box-sizing: border-box;
+      border: 1px solid var(--color-mushroom-500); border-radius: var(--radius-sm); background: var(--color-salt);
+      display: flex; align-items: center; justify-content: center; overflow: hidden;
+    }
+    .ufs-country-flag img { display: block; }
+    .ufs-country-name { font-size: var(--text-body-size); line-height: var(--text-body-lh); font-weight: 600; }
+    @media (max-width: 768px) {
+      #country-panel .signin-panel-title { font-size: var(--text-h5-mob-size); }
+      .ufs-country-name { font-size: var(--text-body-sm-size); }
+    }
+
+    /* ================================================================
        PROFILE PANEL
     ================================================================ */
     #profile-panel .signin-panel-hd {
@@ -3121,6 +3351,73 @@
     [dir="rtl"] .ufs-nav-search-input { padding: 0 calc(var(--space-3) + var(--space-5) + var(--space-2)) 0 var(--space-4); }
     [dir="rtl"] .ufs-nav.search-active .ufs-nav__actions { margin-left: 0; margin-right: auto; }
     [dir="rtl"] .ufs-nav.search-active .ufs-nav-search-input { padding-right: var(--space-4); padding-left: calc(var(--space-2) + var(--space-8) + var(--space-2)); }
+
+    /* ================================================================
+       COMPACT DESKTOP HEADER (1025–1369px) — the inline search no longer
+       fits beside the primary nav, so it drops to its own full-width row
+       under the nav (like mobile's .ufs-msearch-bar) while the utility
+       bar + primary nav stay exactly as on desktop (no burger).
+       Same .ufs-nav-search element and JS as desktop — it stays inside
+       #main-nav and is only re-laid-out here, so activateNavSearch() /
+       closeSearchOverlay('nav') / the desktop results panel all keep
+       working. Being a child of the sticky nav, the row is sticky too.
+       Hides on scroll down / returns on scroll up (like mobile); while
+       hidden, #nav-search-toggle appears in the nav actions to bring it
+       back. State lives in a data-search-row attribute, not a class,
+       because syncNavAppearance() rewrites #main-nav's className.
+    ================================================================ */
+    .ufs-nav__search-toggle { display: none; }
+    @media (min-width: 1025px) and (max-width: 1369.98px) {
+      .ufs-nav {
+        --nav-search-row-h: calc(var(--space-12) + var(--space-2) * 2 + 1px);
+        margin-bottom: var(--nav-search-row-h); /* reserves the row's space in flow */
+      }
+      .ufs-nav-search,
+      .ufs-nav.search-active .ufs-nav-search {
+        position: absolute; top: calc(100% + 1px); left: 0; right: 0; z-index: 1; /* +1px: clear the nav's own bottom border */
+        margin: 0; transform: none;
+        padding: var(--space-2) var(--space-8);
+        background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300);
+        /* translate + matching clip = slides up "under" the nav's bottom edge */
+        clip-path: inset(0); transition: transform 0.3s ease, clip-path 0.3s ease;
+      }
+      [dir="rtl"] .ufs-nav-search { margin: 0; }
+      .ufs-nav-search-input,
+      .ufs-nav.search-active .ufs-nav-search-input { flex: 1; width: auto; min-width: 0; }
+      .ufs-nav-search-icon { left: calc(var(--space-8) + var(--space-3)); }
+      [dir="rtl"] .ufs-nav-search-icon { left: auto; right: calc(var(--space-8) + var(--space-3)); }
+      .ufs-nav-search-mic { right: calc(var(--space-8) + var(--space-10) + var(--space-2) + var(--space-2)); }
+      [dir="rtl"] .ufs-nav-search-mic { right: auto; left: calc(var(--space-8) + var(--space-10) + var(--space-2) + var(--space-2)); }
+
+      /* The search has its own row, so the primary nav stays visible
+         while searching (desktop hides it to make room). */
+      .ufs-nav.search-active .ufs-nav__links { opacity: 1; pointer-events: auto; flex: 1; overflow: visible; }
+
+      /* Desktop results panel opens under the search row, edges aligned
+         with the input. */
+      .ufs-search-overlay { top: calc(100% + var(--nav-search-row-h)); padding-left: var(--space-8); padding-right: var(--space-8); }
+      .ufs-search-overlay-inner { margin-left: 0; margin-right: 0; }
+
+      /* Hidden on scroll down — keyboard focus inside still reveals it */
+      .ufs-nav[data-search-row="hidden"] .ufs-nav-search { transform: translateY(-100%); clip-path: inset(100% 0 0 0); pointer-events: none; }
+      .ufs-nav[data-search-row="hidden"] .ufs-nav-search:focus-within { transform: none; clip-path: inset(0); pointer-events: auto; }
+      .ufs-nav[data-search-row="hidden"] .ufs-nav__search-toggle { display: flex; }
+
+      /* Journeys / modes without search get no row */
+      body.ai-on .ufs-nav,
+      body.ctx-landing .ufs-nav, body.ctx-registration .ufs-nav, body.ctx-checkout .ufs-nav { margin-bottom: 0; }
+      body.ai-on .ufs-nav__search-toggle,
+      body.ctx-landing .ufs-nav__search-toggle, body.ctx-registration .ufs-nav__search-toggle, body.ctx-checkout .ufs-nav__search-toggle { display: none !important; }
+    }
+    /* Narrowest slice of the range: even without the search the nav row
+       is ~45px too wide at 1025px (Account button clipped), so tighten
+       primary-link padding (12→8px) and the gap before the Account
+       button (32→16px). Saves ~56px; 1100px+ is untouched. */
+    @media (min-width: 1025px) and (max-width: 1099.98px) {
+      .ufs-nav__link { padding: 0 var(--space-2); }
+      .ufs-nav__actions .btn { margin-left: var(--space-4); }
+      [dir="rtl"] .ufs-nav__actions .btn { margin-left: 0; margin-right: var(--space-4); }
+    }
 
     /* Nav icon buttons — spacing flips sides */
     [dir="rtl"] .ufs-nav__icon-btn + .ufs-nav__icon-btn { margin-left: 0; margin-right: var(--space-3); }
@@ -4189,11 +4486,12 @@
     <!-- Utility bar -->
     <div class="ufs-util ufs-util--light" id="util-bar">
       <div class="ufs-util__links">
-        <span class="ufs-util__link" data-i18n="about">About Us</span>
+        <a href="#main-content" class="ufs-skip-link" onclick="skipToContent(event)" data-i18n="skip-content">Jump to content</a>
+        <a href="#" class="ufs-util__link" data-i18n="about">About Us</a>
         <span class="ufs-util__sep"></span>
-        <span class="ufs-util__link" data-i18n="support">Contact &amp; Support</span>
+        <a href="#" class="ufs-util__link" data-i18n="support">Contact &amp; Support</a>
         <span class="ufs-util__sep"></span>
-        <span class="ufs-util__link" id="util-ws-link">Track Your Order</span>
+        <a href="#" class="ufs-util__link" id="util-ws-link">Track Your Order</a>
       </div>
       <div class="ufs-util__right">
         <div class="ufs-util__lang-wrap" id="lang-wrap-1">
@@ -4249,6 +4547,9 @@
             <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
           </button>
         </div>
+        <!-- Search toggle — compact desktop (1025–1369px) only, shown
+             while the search row is scrolled away -->
+        <button class="ufs-nav__icon-btn ufs-nav__search-toggle" id="nav-search-toggle" onclick="showNavSearchRow(true)" aria-label="Search"><img class="ufs-icon ufs-icon--24" src="icons/Search.svg" alt=""/></button>
         <!-- Fav (auth only) -->
         <button class="ufs-nav__icon-btn" id="nav-fav"><img class="ufs-icon ufs-icon--24" src="icons/fav.svg" alt="Favourites"/></button>
         <!-- Cart (webshop only) -->
@@ -6701,22 +7002,32 @@
         function availableWidth() {
           /* track.clientWidth isn't used here on purpose — it's measured
              while the carousel is still in its normal, edge-bled state
-             (.ufs-flex-carousel__track-wrap's negative margins pull it past
-             the padding to the true screen edge), which is wider than the
-             padded width the carousel actually settles into once
-             .is-compact removes that bleed. Cards judged "fits" against the
-             wider bled number could then not actually fit once centered
-             back inside the narrower padding, with controls now hidden.
-             Deriving the threshold straight from the viewport and the
-             carousel's own left padding (doubled, assuming symmetric
-             left/right padding — true at every breakpoint here, no
-             max-width cap on .ufs-flex-carousel to diverge from) sidesteps
-             that: it's the same number regardless of which state the
-             carousel is currently in. clientWidth (not innerWidth) on
-             <html> excludes the scrollbar, matching what CSS media
-             queries/vw actually measure against. */
-          var padding = parseFloat(getComputedStyle(root).paddingLeft) || 0;
-          return document.documentElement.clientWidth - (padding * 2);
+             (__track-wrap's negative margins pull it past the padding to
+             the true screen edge), which is wider than the padded width
+             the carousel actually settles into once .is-compact removes
+             that bleed. Cards judged "fits" against the wider bled number
+             could then not actually fit once centered back inside the
+             narrower padding, with controls now hidden.
+             Instead: measure the settled width directly from the nearest
+             ancestor that does NOT itself bleed — track-wrap's own parent.
+             For .ufs-flex-carousel that's root itself (full viewport width,
+             which is what the old viewport-minus-padding formula was
+             approximating indirectly); for a narrower context like
+             .ufs-banner-carousel__carousel (a fixed-width column beside a
+             separate intro panel, not full-bleed) it's that column's own
+             width instead — the old formula always read the FULL viewport
+             there regardless of the panel eating part of it, permanently
+             overestimating available space and falsely triggering
+             .is-compact. clientWidth already excludes that ancestor's own
+             border/scrollbar; its own left/right padding (0 for
+             __carousel, which has none) still needs subtracting since a
+             non-bled track-wrap only fills the content box, not the
+             padding. */
+          var settledParent = track.parentElement.parentElement;
+          var cs = getComputedStyle(settledParent);
+          var padLeft = parseFloat(cs.paddingLeft) || 0;
+          var padRight = parseFloat(cs.paddingRight) || 0;
+          return settledParent.clientWidth - padLeft - padRight;
         }
         function measure() {
           var step = stepSize();
@@ -6802,7 +7113,10 @@
          exist before querying, so every carousel gets initialized
          regardless of where in the page it's placed. */
       document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.ufs-flex-carousel').forEach(initFlexCarousel);
+        /* .ufs-banner-carousel reuses this exact same function — it wraps
+           the identical .ufs-carousel-track/-dots/-arrow* engine, just
+           behind a different root selector. See handover/banner-carousel-spec.html. */
+        document.querySelectorAll('.ufs-flex-carousel, .ufs-banner-carousel').forEach(initFlexCarousel);
 
         /* Campaign Hero's background video is purely decorative — pause it
            (holding on the poster frame) for anyone who's asked the OS for
@@ -6970,6 +7284,294 @@
             <button type="button" class="btn btn-primary" data-i18n="promo-cta-primary">Discover All Courses</button>
           </div>
           <p class="ufs-promo-banner__disclaimer text-body-xs" data-i18n="promo-disclaimer">*Disclaimer text for specific use cases</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Banner Carousel — default (white) background, Recipe Tiles. See
+         handover/banner-carousel-spec.html for the full component spec. -->
+    <section class="ufs-banner-carousel">
+      <div class="ufs-banner-carousel__panel">
+        <img class="ufs-banner-carousel__logo" src="images/academy/ufs-academy-logo.svg" alt="UFS Academy" />
+        <div class="ufs-banner-carousel__intro">
+          <h2 class="ufs-banner-carousel__title">Title of the banner</h2>
+          <p class="ufs-banner-carousel__desc">Free videos created by professional chefs making dishes and revealing techniques only for you and your team.</p>
+        </div>
+        <button type="button" class="btn btn-primary ufs-banner-carousel__cta">Start learning now</button>
+      </div>
+      <div class="ufs-banner-carousel__carousel">
+        <div class="ufs-banner-carousel__track-wrap">
+          <div class="ufs-carousel-track">
+            <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+            <article class="ufs-tile ufs-carousel-card">
+              <div class="ufs-tile__image">
+                <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                  <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+              <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <h3 class="ufs-tile__title">Sour Cream and Bacon Deviled Eggs</h3>
+                  <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                    <span>(12)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Fish &amp; Seafood</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Traditional Cuisine</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <article class="ufs-tile ufs-carousel-card">
+              <div class="ufs-tile__image">
+                <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                  <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+              <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <h3 class="ufs-tile__title">Plant-Powered Protein Bowl</h3>
+                  <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                    <span>(48)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Gluten Free</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <article class="ufs-tile ufs-carousel-card">
+              <div class="ufs-tile__image">
+                <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                  <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+              <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <h3 class="ufs-tile__title">Korean-Style Flatbread</h3>
+                  <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path fill="none" stroke="currentColor" d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path fill="none" stroke="currentColor" d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                    <span>(6)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Vegan</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Street Food</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <article class="ufs-tile ufs-carousel-card">
+              <div class="ufs-tile__image">
+                <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                  <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+              <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <h3 class="ufs-tile__title">Fermented Mushroom Broth</h3>
+                  <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                    <span>(21)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Fermented</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Low Waste</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+            <article class="ufs-tile ufs-carousel-card">
+              <div class="ufs-tile__image">
+                <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                  <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+              <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <h3 class="ufs-tile__title">Steamed Dumpling Trio</h3>
+                  <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path fill="none" stroke="currentColor" d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                    <span>(15)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Feel Good Food</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Shareable</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div class="ufs-banner-carousel__foot">
+          <div class="ufs-carousel-dots"></div>
+          <div class="ufs-banner-carousel__arrows">
+            <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+            </button>
+            <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Banner Carousel — squid-ink variant, Product Tiles (demonstrates
+         both the colour-variant system and swapping in a different real
+         .ufs-tile type — see handover/banner-carousel-spec.html#variants). -->
+    <section class="ufs-banner-carousel ufs-banner-carousel--squid">
+      <div class="ufs-banner-carousel__panel">
+        <img class="ufs-banner-carousel__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+        <div class="ufs-banner-carousel__intro">
+          <h2 class="ufs-banner-carousel__title">Title of the banner</h2>
+          <p class="ufs-banner-carousel__desc">Free videos created by professional chefs making dishes and revealing techniques only for you and your team.</p>
+        </div>
+        <button type="button" class="btn btn-primary ufs-banner-carousel__cta">Start learning now</button>
+      </div>
+      <div class="ufs-banner-carousel__carousel">
+        <div class="ufs-banner-carousel__track-wrap">
+          <div class="ufs-carousel-track">
+            <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+            <article class="ufs-tile ufs-carousel-card">
+              <div class="ufs-tile__image">
+                <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                  <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+              <span class="ufs-tile__badge">New</span>
+              <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <div class="ufs-tile__eyebrow">Sauces</div>
+                  <h3 class="ufs-tile__title">Knorr Professional Garde D&oacute;r Hollandaise sauce &ndash; 600ml</h3>
+                  <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                    <span>(332)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">No MSG</span>
+                  </div>
+                </div>
+                <div class="ufs-tile__cta"><button class="btn btn-primary">Buy it now</button></div>
+              </div>
+            </article>
+            <article class="ufs-tile ufs-carousel-card">
+              <div class="ufs-tile__image">
+                <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                  <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+              <span class="ufs-tile__badge">Bestseller</span>
+              <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <div class="ufs-tile__eyebrow">Condiments</div>
+                  <h3 class="ufs-tile__title">Hellmann&rsquo;s Professional Real Mayonnaise &ndash; 3.4L</h3>
+                  <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                    <span>(215)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">No MSG</span>
+                  </div>
+                </div>
+                <div class="ufs-tile__cta"><button class="btn btn-primary">Buy it now</button></div>
+              </div>
+            </article>
+            <article class="ufs-tile ufs-carousel-card">
+              <div class="ufs-tile__image">
+                <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                  <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                </button>
+              </div>
+              <div class="ufs-tile__content">
+                <div class="ufs-tile__body">
+                  <div class="ufs-tile__eyebrow">Bases</div>
+                  <h3 class="ufs-tile__title">Knorr Professional Chicken Bouillon Base &ndash; 3kg</h3>
+                  <div class="ufs-tile__rating">
+                    <span class="ufs-tile__stars">
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                      <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                    </span>
+                    <span>(89)</span>
+                  </div>
+                  <div class="ufs-tile__meta">
+                    <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
+                    <span class="ufs-tile__meta-item">Halal</span>
+                  </div>
+                </div>
+                <div class="ufs-tile__cta"><button class="btn btn-primary">Buy it now</button></div>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div class="ufs-banner-carousel__foot">
+          <div class="ufs-carousel-dots"></div>
+          <div class="ufs-banner-carousel__arrows">
+            <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+            </button>
+            <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+              <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -9079,6 +9681,52 @@
 
     </div>
   </div>
+  <!-- ================================================================
+       COUNTRY SELECTOR — auto-opens 1.5s after load for markets that
+       need an explicit country choice (data-auto-open). Picking a row
+       sends the user to that country's site and closes the panel.
+       See handover/country-selector-spec.html for the full spec.
+  ================================================================ -->
+  <div class="signin-backdrop" id="country-backdrop" onclick="closeCountryPanel()"></div>
+  <div class="signin-panel" id="country-panel" role="dialog" aria-modal="true" aria-labelledby="country-panel-title" data-auto-open>
+    <div class="signin-panel-hd">
+      <img src="images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="closeCountryPanel()" aria-label="Close" data-i18n-aria="cs-close">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="signin-panel-body" id="country-panel-body">
+      <h2 class="signin-panel-title" id="country-panel-title" data-i18n="cs-title">Please select your country</h2>
+      <p class="signin-panel-desc" data-i18n="cs-desc">Help us show relevant products and prices based on your location</p>
+      <ul class="ufs-country-list" aria-labelledby="country-panel-title">
+        <li><a href="#" class="ufs-country-item" data-country="bh" onclick="selectCountry(this, event)">
+          <span class="ufs-country-flag"><img src="images/flags/bahrain.png" alt="" width="24" height="21"/></span>
+          <span class="ufs-country-name" data-i18n="cs-bh">Bahrain</span>
+        </a></li>
+        <li><a href="#" class="ufs-country-item" data-country="kw" onclick="selectCountry(this, event)">
+          <span class="ufs-country-flag"><img src="images/flags/kuwait.png" alt="" width="24" height="21"/></span>
+          <span class="ufs-country-name" data-i18n="cs-kw">Kuwait</span>
+        </a></li>
+        <li><a href="#" class="ufs-country-item" data-country="om" onclick="selectCountry(this, event)">
+          <span class="ufs-country-flag"><img src="images/flags/oman.png" alt="" width="24" height="21"/></span>
+          <span class="ufs-country-name" data-i18n="cs-om">Oman</span>
+        </a></li>
+        <li><a href="#" class="ufs-country-item" data-country="qa" onclick="selectCountry(this, event)">
+          <span class="ufs-country-flag"><img src="images/flags/qatar.png" alt="" width="24" height="21"/></span>
+          <span class="ufs-country-name" data-i18n="cs-qa">Qatar</span>
+        </a></li>
+        <li><a href="#" class="ufs-country-item" data-country="sa" onclick="selectCountry(this, event)">
+          <span class="ufs-country-flag"><img src="images/flags/saudi-arabia.png" alt="" width="20" height="13"/></span>
+          <span class="ufs-country-name" data-i18n="cs-sa">Saudi Arabia</span>
+        </a></li>
+        <li><a href="#" class="ufs-country-item" data-country="ae" onclick="selectCountry(this, event)">
+          <span class="ufs-country-flag"><img src="images/flags/uae.png" alt="" width="24" height="21"/></span>
+          <span class="ufs-country-name" data-i18n="cs-ae">United Arab Emirates</span>
+        </a></li>
+      </ul>
+    </div>
+  </div>
+
   </div><!-- /real-page-content -->
 
   <footer class="ufs-footer" id="site-footer">
@@ -9183,6 +9831,21 @@
       document.getElementById('mnav-search-toggle').style.display = 'none';
       if (withFocus) setTimeout(function() { document.getElementById('mnav-search-btn').focus(); }, 300);
     }
+    /* Compact desktop (1025–1369px) search row — same scroll rule as the
+       mobile bar above. Attribute is harmless outside that range (the
+       CSS that reads it is scoped to the media query). */
+    var navSearchRowHidden = false;
+    function hideNavSearchRow() {
+      var nav = document.getElementById('main-nav');
+      if (navSearchRowHidden || nav.classList.contains('search-active')) return;
+      navSearchRowHidden = true;
+      nav.setAttribute('data-search-row', 'hidden');
+    }
+    function showNavSearchRow(withFocus) {
+      navSearchRowHidden = false;
+      document.getElementById('main-nav').removeAttribute('data-search-row');
+      if (withFocus) setTimeout(function() { document.getElementById('nav-search-btn').focus(); }, 300);
+    }
     var megamenuOpen = false;
     var searchOverlayOpen = false;
     var NAV_SCROLL_SWAP_Y = 250;
@@ -9204,8 +9867,8 @@
        TRANSLATIONS & DIRECTION
     ================================================================ */
     var T_EN = {
-      'about':'About Us','contact':'Contact','support':'Contact & Support','track':'Track Your Order','where-to-buy':'Where to Buy',
-      'country-locale':'United States · EN','lang-country':'You\'re on the <span class="ufs-lang-drop__website-country">United States</span> website','change-country':'Change country',
+      'skip-content':'Jump to content','about':'About Us','contact':'Contact','support':'Contact & Support','track':'Track Your Order','where-to-buy':'Where to Buy',
+      'country-locale':'United States · EN','lang-country':'You\'re on the <span class="ufs-lang-drop__website-country">United States</span> website','change-country':'Change country','cs-title':'Please select your country','cs-desc':'Help us show relevant products and prices based on your location','cs-close':'Close','cs-bh':'Bahrain','cs-kw':'Kuwait','cs-om':'Oman','cs-qa':'Qatar','cs-sa':'Saudi Arabia','cs-ae':'United Arab Emirates',
       'nav-products':'Products','nav-recipes':'Recipes','nav-training':'Training & Inspiration','nav-promotions':'Promotions','nav-loyalty':'Loyalty Program',
       'nav-sign-in':'Sign In','nav-create':'Account',
       'landing-cta':'Get Started','reg-have-account':'Already registered?','jc-secure':'Secure','jc-back-to-cart':'← Back to cart',
@@ -9314,8 +9977,8 @@
     };
 
     var T_AR = {
-      'about':'من نحن','contact':'اتصل بنا','support':'التواصل والدعم','track':'تتبع طلبك','where-to-buy':'أين تشتري',
-      'country-locale':'المملكة العربية السعودية · AR','lang-country':'أنت على الموقع السعودي','change-country':'تغيير الدولة',
+      'skip-content':'انتقل إلى المحتوى','about':'من نحن','contact':'اتصل بنا','support':'التواصل والدعم','track':'تتبع طلبك','where-to-buy':'أين تشتري',
+      'country-locale':'المملكة العربية السعودية · AR','lang-country':'أنت على الموقع السعودي','change-country':'تغيير الدولة','cs-title':'يرجى اختيار دولتك','cs-desc':'ساعدنا في عرض المنتجات والأسعار المناسبة لموقعك','cs-close':'إغلاق','cs-bh':'البحرين','cs-kw':'الكويت','cs-om':'عُمان','cs-qa':'قطر','cs-sa':'المملكة العربية السعودية','cs-ae':'الإمارات العربية المتحدة',
       'nav-products':'المنتجات','nav-recipes':'الوصفات','nav-training':'التدريب والإلهام','nav-promotions':'العروض','nav-loyalty':'برنامج الولاء',
       'nav-sign-in':'تسجيل الدخول','nav-create':'إنشاء حساب',
       'landing-cta':'ابدأ الآن','reg-have-account':'مسجّل بالفعل؟','jc-secure':'آمن','jc-back-to-cart':'→ العودة إلى السلة',
@@ -9424,8 +10087,8 @@
     };
 
     var T_DE = {
-      'about':'Über uns','contact':'Kontakt','support':'Kontakt & Support','track':'Bestellung verfolgen','where-to-buy':'Wo kaufen',
-      'country-locale':'Deutschland · DE','lang-country':'Sie befinden sich auf der deutschen <span class="ufs-lang-drop__website-country">Website</span>','change-country':'Land wechseln',
+      'skip-content':'Zum Inhalt springen','about':'Über uns','contact':'Kontakt','support':'Kontakt & Support','track':'Bestellung verfolgen','where-to-buy':'Wo kaufen',
+      'country-locale':'Deutschland · DE','lang-country':'Sie befinden sich auf der deutschen <span class="ufs-lang-drop__website-country">Website</span>','change-country':'Land wechseln','cs-title':'Bitte wählen Sie Ihr Land','cs-desc':'Helfen Sie uns, relevante Produkte und Preise für Ihren Standort anzuzeigen','cs-close':'Schließen','cs-bh':'Bahrain','cs-kw':'Kuwait','cs-om':'Oman','cs-qa':'Katar','cs-sa':'Saudi-Arabien','cs-ae':'Vereinigte Arabische Emirate',
       'nav-products':'Produkte','nav-recipes':'Rezepte','nav-training':'Training & Inspiration','nav-promotions':'Aktionen','nav-loyalty':'Treueprogramm',
       'nav-sign-in':'Anmelden','nav-create':'Konto',
       'landing-cta':'Jetzt starten','reg-have-account':'Bereits registriert?','jc-secure':'Sicher','jc-back-to-cart':'← Zurück zum Warenkorb',
@@ -10578,6 +11241,40 @@
       document.body.style.overflow = '';
     }
 
+    /* ================================================================
+       COUNTRY SELECTOR
+    ================================================================ */
+    function openCountryPanel() {
+      document.getElementById('country-backdrop').classList.add('is-open');
+      document.getElementById('country-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('country-panel-body').scrollTop = 0;
+    }
+    function closeCountryPanel() {
+      document.getElementById('country-backdrop').classList.remove('is-open');
+      document.getElementById('country-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+      document.activeElement.blur();
+    }
+    /* Production: each row's href is that country's site, so the click
+       just navigates. Prototype rows point at "#", so this only closes. */
+    function selectCountry(el, e) {
+      if (el.getAttribute('href') === '#') e.preventDefault();
+      closeCountryPanel();
+    }
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && document.getElementById('country-panel').classList.contains('is-open')) closeCountryPanel();
+    });
+    /* Auto-open once per full page load (session-only, no persistence).
+       Skipped in the desktop shell while Mobile view is active — the
+       embedded mobile iframe opens its own copy instead. */
+    (function() {
+      var panel = document.getElementById('country-panel');
+      if (!panel || !panel.hasAttribute('data-auto-open')) return;
+      if (S.view === 'mobile' && !isEmbedded) return;
+      setTimeout(openCountryPanel, 1500);
+    })();
+
     function nlEditEmail() {
       document.getElementById('nl-email-chip-display').style.display = 'none';
       document.getElementById('nl-email-chip-edit').style.display    = '';
@@ -10863,6 +11560,11 @@
       } else if (currentY < lastScrollY && mSearchBarHidden) {
         showMobileSearchBar(false);
       }
+      if (currentY > lastScrollY && currentY > 300 && !navSearchRowHidden) {
+        hideNavSearchRow();
+      } else if (currentY < lastScrollY && navSearchRowHidden) {
+        showNavSearchRow(false);
+      }
       var bottomNav = document.getElementById('bottom-nav');
       var aiFab = document.getElementById('bottom-nav-ai-fab');
       if (bottomNav) {
@@ -11028,6 +11730,33 @@
         if (d) d.classList.remove('is-open');
       });
     }
+    /* Jump to content — moves keyboard focus past the whole header to
+       the start of the page's main content. The prototype has one <main>
+       per page context (homepage/landing/…), so target the visible one;
+       production has a single <main id="main-content">. tabindex="-1"
+       makes <main> focusable by script without adding a Tab stop. */
+    function skipToContent(e) {
+      e.preventDefault();
+      var main = Array.prototype.find.call(document.querySelectorAll('main'), function(m) { return m.getClientRects().length > 0; });
+      if (!main) return;
+      if (!main.hasAttribute('tabindex')) main.setAttribute('tabindex', '-1');
+      // A plain focus() scrolls a tall <main> to the very top of the
+      // viewport — underneath the sticky nav. Focus without scrolling,
+      // then only nudge if the content start is actually hidden behind it.
+      main.focus({ preventScroll: true });
+      var nav = document.getElementById('main-nav');
+      var navBottom = nav.getBoundingClientRect().bottom;
+      // Compact desktop: the search row sits under the nav. Count it even
+      // while it's scrolled away — scrolling back up to <main> brings it
+      // back, and it would then cover the start of the content.
+      var row = nav.querySelector('.ufs-nav-search');
+      if (row && getComputedStyle(row).position === 'absolute') {
+        navBottom += row.offsetHeight;
+      }
+      var top = main.getBoundingClientRect().top;
+      if (top < navBottom) window.scrollBy(0, top - navBottom);
+    }
+
     function toggleLangDrop(wrapId, dropId) {
       var wrap = document.getElementById(wrapId);
       var drop = document.getElementById(dropId);
