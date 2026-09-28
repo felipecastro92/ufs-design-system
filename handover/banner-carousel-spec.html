@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Banner Carousel — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-light { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow-x: auto; }
+    /* No overflow-x:auto here, unlike other specs' .pv-mobile — with
+       min-width:0 on __track-wrap (see below) the component already fits
+       390px on its own, and a second scroll container at this level would
+       compete with .ufs-carousel-track's own swipe for the same gesture,
+       scrolling the whole preview (__panel included) instead of just the
+       card row. */
+    .pv-mobile { max-width: 390px; margin: 0 auto; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow: hidden; }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the component's own @media (max-width: 768px) block scoped
+       to .pv-mobile with !important. Doc-only; not a production class. Same
+       technique used on every other spec page, incl. flex-carousel-spec.html. */
+    .pv-mobile .ufs-banner-carousel { flex-direction: column !important; align-items: stretch !important; padding: var(--space-10) var(--space-4) !important; gap: var(--space-8) !important; }
+    .pv-mobile .ufs-banner-carousel__panel { flex-basis: auto !important; width: 100% !important; align-items: center !important; text-align: center !important; }
+    .pv-mobile .ufs-banner-carousel__title { font-size: var(--text-h3-mob-size) !important; letter-spacing: -0.24px !important; }
+    .pv-mobile .ufs-banner-carousel__desc { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mobile .ufs-banner-carousel__cta { width: 100% !important; align-self: stretch !important; margin-top: calc(var(--space-6) - var(--space-10)) !important; }
+    .pv-mobile .ufs-banner-carousel__carousel { gap: var(--space-6) !important; }
+    .pv-mobile .ufs-banner-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)) !important; margin-right: calc(-1 * var(--space-4)) !important; }
+    .pv-mobile .ufs-carousel-track { padding-right: var(--space-4) !important; }
+    .pv-mobile .ufs-carousel-spacer { flex: 0 0 var(--space-4) !important; }
+    .pv-mobile .ufs-carousel-card { margin-right: var(--space-6) !important; }
+    .pv-mobile .ufs-banner-carousel__foot { justify-content: center !important; }
+    .pv-mobile .ufs-carousel-dots { flex: 1 !important; justify-content: center !important; }
+    .pv-mobile .ufs-banner-carousel__arrows { display: none !important; }
+
+    /* DS buttons — the panel CTA reuses .btn/.btn-primary, and the tile CTA
+       (Product Tile example) reuses .btn/.btn-primary too, so the previews
+       below need the base button system available. */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+
+    /* ═══════════════════════════════════════
+       BANNER CAROUSEL COMPONENT CSS — new component, no template
+       source of truth yet. The carousel half (__carousel onward, plus the
+       shared .ufs-carousel-track/__spacer/__card/-dots/-arrow engine) is
+       Flex Carousel's own CSS, unchanged — see flex-carousel-spec.html.
+       Only __panel and the bleed direction are new.
+    ═══════════════════════════════════════ */
+    .ufs-banner-carousel {
+      /* Same custom-property system as Flex Carousel — a colour variant is
+         still a pure token swap, no rule duplication. --carousel-card-bg is
+         dropped: unlike Flex Carousel's generic placeholder, this component's
+         default card is real content (a Product Tile, see Card Content) that
+         carries its own fixed white background in every variant — see the
+         notice in that section for why it isn't recoloured per variant. */
+      --carousel-title-color: var(--color-brand-dark);
+      --carousel-desc-color: var(--color-mushroom-900);
+      --carousel-btn-hover-bg: var(--color-mushroom-100);
+      --carousel-dot-inactive: var(--color-squid-300);
+      --carousel-arrow-border: var(--color-squid-300);
+      --carousel-arrow-color: var(--color-squid-300);
+      --carousel-arrow-bg: var(--color-salt);
+      --carousel-arrow-active-bg: var(--color-mushroom-300);
+      background: var(--color-salt);
+      padding: var(--space-20) var(--space-24) var(--space-16);
+      display: flex; align-items: flex-start; gap: var(--space-14);
+    }
+    .ufs-banner-carousel__panel {
+      flex: 0 0 378px;
+      display: flex; flex-direction: column; gap: var(--space-10);
+      padding-top: var(--space-10);
+    }
+    .ufs-banner-carousel__logo { width: 234px; height: auto; display: block; }
+    .ufs-banner-carousel__intro { display: flex; flex-direction: column; gap: var(--space-4); }
+    /* Bespoke banner scale — same principle as Campaign Hero's own title:
+       weight/line-height happen to match --text-h3-w/-lh, but the -0.3px
+       letter-spacing is a literal from this component's own Figma spec,
+       not the -1px --text-h3-ls token. */
+    .ufs-banner-carousel__title { margin: 0; color: var(--carousel-title-color); font-size: 30px; line-height: 1.2; font-weight: 900; letter-spacing: -0.3px; }
+    .ufs-banner-carousel__desc { margin: 0; color: var(--carousel-desc-color); font-size: var(--text-body-size); line-height: var(--text-body-lh); }
+    /* Solid/filled — unlike Flex Carousel's own outlined __cta, a filled
+       primary button already reads fine on every background (white,
+       squid-ink, mushroom, or a photo), so it doesn't need to respond to
+       the colour variant at all. Only its position is component-specific;
+       colour/hover/border come from .btn-primary, untouched. */
+    .ufs-banner-carousel__cta { align-self: flex-start; }
+
+    .ufs-banner-carousel__carousel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-8); }
+
+    /* Bleed — trailing edge only. Flex Carousel bleeds on BOTH sides because
+       it always spans the full viewport; here the carousel's leading edge
+       sits against __panel, not the viewport edge, so only the trailing
+       (right, LTR) edge needs the negative-margin + track padding trick.
+       The leading .ufs-carousel-spacer stays at 0 width on desktop for
+       exactly this reason — it's only reinstated on mobile, once __panel
+       stacks above and __carousel reclaims the full bled width itself. */
+    /* min-width:0 overrides the flex-item default of min-width:auto, which
+       would otherwise let .ufs-carousel-track's own content (many
+       fixed-width cards in a row) push this wrapper — and everything
+       above it, all the way out to the section itself — wider than the
+       viewport instead of scrolling internally. Without this, mobile gets
+       one whole-component horizontal scroll (dragging __panel along with
+       it) instead of a swipe confined to the card row. */
+    .ufs-banner-carousel__track-wrap { align-self: stretch; margin-right: calc(-1 * var(--space-24)); min-width: 0; }
+    .ufs-carousel-track {
+      display: flex;
+      overflow-x: auto; scroll-behavior: smooth;
+      touch-action: pan-x; -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; -ms-overflow-style: none;
+      padding-right: var(--space-24);
+      padding-top: var(--space-2);
+    }
+    .ufs-carousel-track::-webkit-scrollbar { display: none; }
+    .ufs-carousel-spacer { flex: 0 0 0; }
+    /* Generic engine box — same class Flex Carousel uses for its own
+       placeholder card. Here it's reused purely for spacing (margin-right,
+       flex-shrink) with its own width/height/background/radius neutralised,
+       since the real content is a .ufs-tile placed inside — see Card
+       Content for the full 2-class technique and why. */
+    .ufs-carousel-card { flex-shrink: 0; margin-right: var(--space-8); }
+    .ufs-carousel-card:last-child { margin-right: 0; }
+
+    .ufs-banner-carousel__foot { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+
+    /* Pagination — identical dynamic/"shrinking window" bullets as Flex
+       Carousel, unchanged. See flex-carousel-spec.html's own Pagination
+       section for the full rationale; not re-explained here. */
+    .ufs-carousel-dots { display: flex; align-items: center; gap: var(--space-2); }
+    .ufs-carousel-dot {
+      width: 6px; height: 6px; border-radius: var(--radius-full);
+      background: var(--carousel-dot-inactive); border: none; padding: 0; cursor: pointer; flex-shrink: 0;
+      transition: width 0.25s ease, height 0.25s ease, background-color 0.25s ease, opacity 0.25s ease, margin 0.25s ease;
+    }
+    .ufs-carousel-dot.is-active { width: 30px; height: 6px; border-radius: 50px; background: var(--color-brand-primary); }
+    .ufs-carousel-dot.is-near   { width: 6px; height: 6px; }
+    .ufs-carousel-dot.is-far    { width: 4px; height: 4px; }
+    .ufs-carousel-dot.is-edge   { width: 2px; height: 2px; }
+    .ufs-carousel-dot.is-hidden { width: 0; height: 0; opacity: 0; margin-left: -4px; margin-right: -4px; pointer-events: none; }
+
+    .ufs-banner-carousel__arrows { display: flex; align-items: center; gap: var(--space-4); }
+    .ufs-carousel-arrow {
+      width: 40px; height: 40px; flex-shrink: 0;
+      border: 1px solid var(--carousel-arrow-border); border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs);
+      background: var(--carousel-arrow-bg); color: var(--carousel-arrow-color);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .ufs-carousel-arrow--next { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+    .ufs-carousel-arrow svg { width: 14px; height: 14px; display: block; }
+    .ufs-carousel-arrow--prev svg { transform: scaleX(-1); }
+    .ufs-carousel-arrow:hover:not(:disabled) { background: var(--carousel-btn-hover-bg); }
+    .ufs-carousel-arrow:active:not(:disabled) { background: var(--carousel-arrow-active-bg); }
+    .ufs-carousel-arrow:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* No-scroll / "compact" state — same trigger as Flex Carousel's own
+       .is-compact (measured overflow via initFlexCarousel, reused
+       unchanged), but a different visual treatment. The trigger condition
+       — "the tiles' own full width fits without scrolling" — is
+       mathematically the same test as "panel + gap + the tiles' full
+       width isn't wider than the viewport", since __carousel's available
+       width is always viewport − panel − gap. So when it fires, __panel
+       and __carousel both drop to their natural (unstretched) width and
+       the pair centres as one group in the middle of the section, rather
+       than __carousel staying stretched to fill the remaining row width
+       with just its cards centred inside that wider box.
+       Deliberately NOT `overflow: visible` on the track, unlike Flex
+       Carousel's own compact state — Flex Carousel is always full-bleed
+       with generous page padding on both sides, so its centred-and-
+       overflowing cards have room to spill safely. Banner Carousel's
+       __carousel column sits directly against __panel with no such
+       safety margin: `overflow: visible` on a still-overflowing row would
+       spill left into __panel — and, separately, permanently breaks
+       future re-measurement, since an element with no real scroll
+       container degenerates scrollWidth/clientWidth to always agree,
+       which is also why the arrows would stay stuck disabled even after a
+       resize. Leaving the track's default overflow (auto) in place means
+       a mis-detected compact state still clips safely instead of
+       overlapping, and self-corrects on the next resize.
+       Desktop only — inert below 769px, see Responsive. */
+    @media (min-width: 769px) {
+      .ufs-banner-carousel.is-compact { justify-content: center; }
+      /* Drop flex:1's forced growth — without this, __carousel would
+         still stretch to fill the entire remaining row width regardless
+         of how little its own content needs, leaving nothing for the
+         justify-content: center above to centre against. */
+      .ufs-banner-carousel.is-compact .ufs-banner-carousel__carousel { flex: 0 0 auto; }
+      .ufs-banner-carousel.is-compact .ufs-banner-carousel__track-wrap { margin-right: 0; }
+      .ufs-banner-carousel.is-compact .ufs-carousel-track { padding: 0; }
+      /* Nothing to page through — hide dots/arrows entirely, same rule
+         Flex Carousel already applies to its own __foot in this state. */
+      .ufs-banner-carousel.is-compact .ufs-banner-carousel__foot { display: none; }
+    }
+
+    /* ── Colour variants — pure token swaps, identical mechanism to Flex
+       Carousel (see flex-carousel-spec.html). The card itself (a .ufs-tile)
+       is NOT recoloured by any variant — see the Card Content notice. ── */
+    .ufs-banner-carousel--squid {
+      background: var(--color-brand-dark);
+      --carousel-title-color: var(--color-salt);
+      --carousel-desc-color: rgba(255,255,255,0.75);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.12);
+      --carousel-dot-inactive: var(--color-mushroom-500);
+      --carousel-arrow-border: var(--color-mushroom-500);
+      --carousel-arrow-color: var(--color-mushroom-500);
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-active-bg: rgba(255,255,255,0.2);
+    }
+    .ufs-banner-carousel--mushroom {
+      background: var(--color-mushroom-100);
+      --carousel-btn-hover-bg: var(--color-salt);
+      --carousel-arrow-bg: transparent;
+    }
+    /* mushroom-100 is too light for the #FF5A00 active dot — same fix as
+       Flex Carousel's own --mushroom variant. */
+    .ufs-banner-carousel--mushroom .ufs-carousel-dot.is-active { background: var(--color-orange-700); }
+    .ufs-banner-carousel--image {
+      background-image: linear-gradient(color-mix(in srgb, var(--color-brand-dark) 60%, transparent), color-mix(in srgb, var(--color-brand-dark) 60%, transparent)), url('images/M_GPP_6074.jpg');
+      background-size: cover; background-position: center; background-repeat: no-repeat;
+      --carousel-title-color: var(--color-salt);
+      --carousel-desc-color: rgba(255,255,255,0.75);
+      --carousel-btn-hover-bg: rgba(255,255,255,0.15);
+      --carousel-dot-inactive: var(--color-salt);
+      --carousel-arrow-border: var(--color-salt);
+      --carousel-arrow-color: var(--color-salt);
+      --carousel-arrow-bg: transparent;
+      --carousel-arrow-active-bg: rgba(255,255,255,0.25);
+    }
+
+    @media (max-width: 768px) {
+      /* align-items resets from the base rule's flex-start (needed on
+         desktop so __panel/__carousel top-align in a row instead of
+         stretching to match heights) back to the flex default of stretch.
+         Column mode needs stretch on the CROSS axis (width) so __carousel
+         is actually held to the row's width — without this override,
+         __carousel sizes to its own content instead (the track's full,
+         unscrolled card row), growing past the viewport and dragging
+         __panel out with it instead of letting only .ufs-carousel-track
+         scroll internally. */
+      .ufs-banner-carousel { flex-direction: column; align-items: stretch; padding: var(--space-10) var(--space-4); gap: var(--space-8); }
+      .ufs-banner-carousel__panel { flex-basis: auto; width: 100%; align-items: center; text-align: center; }
+      .ufs-banner-carousel__title { font-size: var(--text-h3-mob-size); letter-spacing: -0.24px; }
+      .ufs-banner-carousel__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      /* __panel's own gap (--space-10, 40px) is uniform on desktop —
+         matches Figma's flat logo/intro/CTA structure there. On mobile,
+         Figma nests intro+CTA in their own wrapper with a tighter --space-6
+         (24px) gap between description and CTA specifically, while
+         logo→intro stays at 40px. Rather than add a wrapper element (which
+         would ripple through every instance of this markup in the doc), a
+         scoped negative margin nets the same 24px without restructuring:
+         40px (inherited panel gap) + (24 - 40) = 24px. */
+      .ufs-banner-carousel__cta { width: 100%; align-self: stretch; margin-top: calc(var(--space-6) - var(--space-10)); }
+      .ufs-banner-carousel__carousel { gap: var(--space-6); }
+      .ufs-banner-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); }
+      .ufs-carousel-track { padding-right: var(--space-4); }
+      .ufs-carousel-spacer { flex: 0 0 var(--space-4); }
+      .ufs-carousel-card { margin-right: var(--space-6); }
+      .ufs-banner-carousel__foot { justify-content: center; }
+      .ufs-carousel-dots { flex: 1; justify-content: center; }
+      .ufs-banner-carousel__arrows { display: none; }
+    }
+
+    /* ── RTL (full mirror) — identical technique to Flex Carousel: physical
+       properties flipped, everything else re-orders automatically via
+       plain flexbox (no explicit row-reverse needed on __panel/__carousel,
+       or on __foot's dots/arrows). ── */
+    [dir="rtl"] .ufs-banner-carousel__track-wrap { margin-right: 0; margin-left: calc(-1 * var(--space-24)); }
+    [dir="rtl"] .ufs-carousel-track { padding-right: 0; padding-left: var(--space-24); }
+    [dir="rtl"] .ufs-carousel-card { margin-right: 0; margin-left: var(--space-8); }
+    [dir="rtl"] .ufs-carousel-card:last-child { margin-left: 0; }
+    [dir="rtl"] .ufs-carousel-arrow { border-radius: var(--radius-xs) var(--radius-md) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-carousel-arrow--next { border-radius: var(--radius-md) var(--radius-xs) var(--radius-xs) var(--radius-xs); }
+    [dir="rtl"] .ufs-carousel-arrow--prev svg { transform: none; }
+    [dir="rtl"] .ufs-carousel-arrow--next svg { transform: scaleX(-1); }
+    @media (max-width: 768px) {
+      [dir="rtl"] .ufs-banner-carousel__track-wrap { margin-left: calc(-1 * var(--space-4)); }
+      [dir="rtl"] .ufs-carousel-track { padding-right: 0; padding-left: var(--space-4); }
+      [dir="rtl"] .ufs-carousel-card { margin-right: 0; margin-left: var(--space-6); }
+    }
+
+    /* ═══════════════════════════════════════
+       TILE — mirrored 1:1 from tiles-spec.html's Product Tile (base
+       .ufs-tile anatomy, no modifier). Not itself part of this spec; the
+       card slot documented here works with any .ufs-tile type, or any
+       future tile-shaped component. See Card Content.
+    ═══════════════════════════════════════ */
+    .ufs-tile {
+      position: relative;
+      background: var(--color-salt);
+      border: 1px solid var(--color-mushroom-300);
+      border-radius: var(--radius-md);
+      display: flex; flex-direction: column; gap: var(--space-4);
+      min-width: 320px;
+      padding-bottom: var(--space-4);
+      text-decoration: none; color: inherit;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    }
+    .ufs-tile__image { position: relative; width: 100%; height: 240px; flex-shrink: 0; background-color: var(--color-mushroom-100); border-radius: var(--radius-md) var(--radius-md) 0 0; overflow: hidden; }
+    .ufs-tile__image-media { display: block; width: 100%; height: 100%; background-size: cover; background-position: center; background-repeat: no-repeat; transition: transform 0.35s ease; }
+    @media (hover: hover) and (pointer: fine) {
+      .ufs-tile:hover .ufs-tile__image-media { transform: scale(1.06); }
+    }
+    .ufs-tile__fav {
+      position: absolute; top: var(--space-3); right: var(--space-3); z-index: 2;
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.8); backdrop-filter: blur(3px);
+      box-shadow: var(--shadow-xs), 1px 1px 0px rgba(255,255,255,0.5) inset, -1px -1px 0px rgba(255,255,255,0.5) inset;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      touch-action: pan-x;
+    }
+    .ufs-tile__fav svg { width: 20px; height: 18px; }
+    .ufs-tile__fav svg path { fill: none; stroke: var(--color-brand-dark); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
+    .ufs-tile__fav.is-active svg path { fill: var(--color-brand-primary); stroke: var(--color-brand-primary); stroke-width: 1; }
+    @keyframes ufs-tile-fav-pop { 0% { transform: scale(1); } 35% { transform: scale(1.5); } 65% { transform: scale(0.9); } 100% { transform: scale(1); } }
+    .ufs-tile__fav svg.fav-pop { animation: ufs-tile-fav-pop 0.32s ease forwards; }
+    [dir="rtl"] .ufs-tile__fav { right: auto; left: var(--space-3); }
+    .ufs-tile__badge {
+      position: absolute; top: var(--space-4); left: var(--space-4); z-index: 2;
+      background: var(--color-aubergine); border: 1px solid var(--color-brand-primary);
+      border-radius: var(--radius-full); height: var(--space-6);
+      display: inline-flex; align-items: center; padding: 0 var(--space-3);
+      color: var(--color-salt); font-size: var(--text-badge-size); font-weight: var(--text-badge-w);
+      letter-spacing: var(--text-badge-ls); line-height: var(--text-badge-lh); text-transform: uppercase;
+    }
+    [dir="rtl"] .ufs-tile__badge { left: auto; right: var(--space-4); }
+    .ufs-tile__content { display: contents; }
+    .ufs-tile__body { display: flex; flex-direction: column; gap: var(--space-1); padding: 0 var(--space-4); }
+    .ufs-tile__eyebrow { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); line-height: var(--text-overline-lh); text-transform: uppercase; color: var(--color-mushroom-900); }
+    .ufs-tile__title { font-size: var(--text-h6-size); font-weight: var(--text-h6-w); line-height: var(--text-h6-lh); color: var(--color-brand-dark); margin: 0; }
+    .ufs-tile__rating { display: flex; align-items: center; gap: var(--space-1); margin-top: var(--space-1); }
+    .ufs-tile__stars { display: flex; align-items: center; }
+    .ufs-tile__rating svg { width: 14px; height: 14px; fill: var(--color-brand-primary); }
+    .ufs-tile__rating span { font-size: var(--text-body-xs-size); color: var(--color-brand-dark); }
+    .ufs-tile__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); margin-top: var(--space-1); }
+    .ufs-tile__meta-item { display: inline-flex; align-items: center; gap: var(--space-1); font-size: var(--text-badge-size); font-weight: var(--text-badge-w); letter-spacing: var(--text-badge-ls); color: var(--color-mushroom-900); text-transform: uppercase; }
+    .ufs-tile__meta-item svg { width: 14px; height: 14px; }
+    .ufs-tile__meta-sep { color: var(--color-mushroom-500); font-size: var(--text-badge-size); }
+    .ufs-tile__cta { padding: 0 var(--space-4); margin-top: var(--space-1); }
+    .ufs-tile__cta .btn { width: 100%; touch-action: pan-x; }
+
+    /* Fixed size in a carousel context — same 2-class technique already
+       established in tiles-spec.html for Chef Tile: .ufs-carousel-card
+       provides the spacing/flex-shrink, .ufs-tile keeps its own width,
+       height:auto lets card height follow content (rating/tags wrap
+       differently per tile). Carousel-agnostic — works in any variant. */
+    .ufs-carousel-card.ufs-tile { width: 320px; min-width: 320px; height: auto; }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#card-content" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Card Content</a>
+      <a href="#pagination" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Pagination &amp; Arrows</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#responsive" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop vs. Mobile</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#variants" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Colour Variants</a>
+      <a href="#content" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Content Combinations</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New component — not yet embedded in any template.<br/>Figma: Rosana 2.0, nodes 3121:5999 (desktop) &amp; 3122:6599 (mobile).</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <nav class="doc-topbar" aria-label="Breadcrumb">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Banner Carousel</span>
+  </nav>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Banner <span>Carousel</span></h1>
+        <p class="doc-header-desc">A Flex Carousel variant: a fixed intro panel (logo, title, description, primary CTA) beside — or, on mobile, above — the same scrollable tile carousel, pagination and arrow controls as Flex Carousel. Structure, card content and the 4 colour variants, documented for implementation.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">New — Figma only</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A single <code>&lt;section class="ufs-banner-carousel"&gt;</code> — two top-level children: <code>__panel</code> (logo, title, description, primary CTA) and <code>__carousel</code>, which wraps the exact same <code>.ufs-carousel-track</code>/<code>__spacer</code>/<code>__card</code>/<code>-dots</code>/<code>-arrow</code> engine documented in <a href="flex-carousel-spec.html">Flex Carousel</a>, initialised by the same <code>initFlexCarousel()</code> function. The panel sits beside the carousel on desktop and stacks above it on mobile — pagination, swipe and the no-scroll ("compact") state all behave identically to Flex Carousel because it <em>is</em> Flex Carousel's engine, reused rather than reimplemented. The one difference is purely visual, not behavioural: when compact, Banner Carousel also groups <code>__panel</code> and <code>__carousel</code> together and centres them as one unit, rather than just centring the cards within an already-full-width carousel column — see Pagination &amp; Arrows.</p>
+
+      <div class="pv-light" style="padding:8px;">
+        <section class="ufs-banner-carousel" id="demo-overview">
+          <div class="ufs-banner-carousel__panel">
+            <img class="ufs-banner-carousel__logo" src="images/academy/ufs-academy-logo.svg" alt="UFS Academy" />
+            <div class="ufs-banner-carousel__intro">
+              <h2 class="ufs-banner-carousel__title">Title of the banner</h2>
+              <p class="ufs-banner-carousel__desc">Free videos created by professional chefs making dishes and revealing techniques only for you and your team.</p>
+            </div>
+            <button type="button" class="btn btn-primary ufs-banner-carousel__cta">Start learning now</button>
+          </div>
+          <div class="ufs-banner-carousel__carousel">
+            <div class="ufs-banner-carousel__track-wrap">
+              <div class="ufs-carousel-track">
+                <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Sour Cream and Bacon Deviled Eggs</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(12)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Fish &amp; Seafood</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Traditional Cuisine</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Plant-Powered Protein Bowl</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(48)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Gluten Free</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Korean-Style Flatbread</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(6)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Vegan</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Street Food</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Fermented Mushroom Broth</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(21)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Fermented</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Low Waste</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Steamed Dumpling Trio</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(15)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Feel Good Food</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Shareable</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="ufs-banner-carousel__foot">
+              <div class="ufs-carousel-dots"></div>
+              <div class="ufs-banner-carousel__arrows">
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items">
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                </button>
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items">
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Every preview on this page renders the real component CSS and JS (mirrored 1:1) — the carousel above genuinely scrolls, paginates and disables its arrows at the ends. Resize the window below 768px to see the panel restack above it live.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc"><code>__panel</code> is a fixed-width (<code>378px</code>) column: an optional <code>__logo</code>, an <code>__intro</code> wrapping <code>__title</code>/<code>__desc</code>, then a required primary CTA. <code>__carousel</code> is a flexible column that fills the remaining width: <code>__track-wrap</code> (the same bleed-and-clip wrapper Flex Carousel uses, but trailing-edge only — see the notice below) around <code>.ufs-carousel-track</code>, then <code>__foot</code> holding <code>.ufs-carousel-dots</code> and <code>__arrows</code>.</p>
+
+      <div class="notice notice--warn" style="margin-bottom:24px;">
+        <span class="notice-icon">⚠️</span>
+        <div>Flex Carousel bleeds its track to the true viewport edge on <strong>both</strong> sides, because the whole component spans full width. Banner Carousel's <code>__carousel</code> column only touches the viewport edge on its trailing side (<code>__panel</code> occupies the leading side) — so on desktop, only <code>__track-wrap</code>'s trailing margin is negative and the leading <code>.ufs-carousel-spacer</code> stays at zero width. Both come back on mobile, once <code>__panel</code> stacks above and <code>__carousel</code> reclaims the full bled width itself — see Desktop vs. Mobile.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Reference markup (card content simplified — see Card Content for the real .ufs-tile markup)</div>
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anatomy-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel__panel"</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- optional --&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel__logo"</span> <span class="t-at">src</span>=<span class="t-str">"…"</span> <span class="t-at">alt</span>=<span class="t-str">"…"</span> <span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel__intro"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel__title"</span><span class="t-tag">&gt;</span>Title<span class="t-tag">&lt;/h2&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel__desc"</span><span class="t-tag">&gt;</span>Description<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary ufs-banner-carousel__cta"</span><span class="t-tag">&gt;</span>Primary CTA<span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel__carousel"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel__track-wrap"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-track"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-spacer"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+        <span class="t-tag">&lt;article</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile ufs-carousel-card"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/article&gt;</span>
+        <span class="t-cm">&lt;!-- …more tiles, same shape --&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel__foot"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-dots"</span><span class="t-tag">&gt;&lt;/div&gt;</span> <span class="t-cm">&lt;!-- populated by JS, one dot per card found --&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-banner-carousel__arrows"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-arrow ufs-carousel-arrow--prev"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Previous"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"ufs-carousel-arrow ufs-carousel-arrow--next"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Next"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/section&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anatomy-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">.ufs-banner-carousel</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">flex-start</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-14)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-20) var(--space-24) var(--space-16)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.ufs-banner-carousel__panel</span> { <span class="t-pr">flex</span>: <span class="t-vl">0 0 378px</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">padding-top</span>: <span class="t-va">var(--space-10)</span>; }
+<span class="t-pr">.ufs-banner-carousel__logo</span> { <span class="t-pr">width</span>: <span class="t-vl">234px</span>; <span class="t-pr">height</span>: <span class="t-vl">auto</span>; }
+<span class="t-pr">.ufs-banner-carousel__intro</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-banner-carousel__title</span> { <span class="t-pr">color</span>: <span class="t-va">var(--carousel-title-color)</span>; <span class="t-pr">font-size</span>: <span class="t-vl">30px</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.2</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">900</span>; <span class="t-pr">letter-spacing</span>: <span class="t-vl">-0.3px</span>; }
+<span class="t-pr">.ufs-banner-carousel__desc</span> { <span class="t-pr">color</span>: <span class="t-va">var(--carousel-desc-color)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; }
+<span class="t-pr">.ufs-banner-carousel__cta</span> { <span class="t-pr">align-self</span>: <span class="t-vl">flex-start</span>; } <span class="t-cm">/* colour comes from .btn-primary — filled, so it doesn't need a variant override */</span>
+
+<span class="t-pr">.ufs-banner-carousel__carousel</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-8)</span>; }
+<span class="t-cm">/* Trailing-only bleed — see the Anatomy warning above */</span>
+<span class="t-pr">.ufs-banner-carousel__track-wrap</span> { <span class="t-pr">margin-right</span>: <span class="t-vl">calc(-1 * var(--space-24))</span>; }
+<span class="t-pr">.ufs-carousel-spacer</span> { <span class="t-pr">flex</span>: <span class="t-vl">0 0 0</span>; } <span class="t-cm">/* reinstated to --space-4 on mobile */</span>
+<span class="t-pr">.ufs-carousel-card</span> { <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-right</span>: <span class="t-va">var(--space-8)</span>; } <span class="t-cm">/* → --space-6 at ≤768px */</span>
+<span class="t-pr">.ufs-carousel-card:last-child</span> { <span class="t-pr">margin-right</span>: <span class="t-vl">0</span>; }
+
+<span class="t-pr">.ufs-banner-carousel__foot</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; }
+<span class="t-cm">/* .ufs-carousel-dots / .ufs-carousel-dot / .ufs-carousel-arrow* —
+   unchanged from Flex Carousel, see flex-carousel-spec.html Anatomy */</span></pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Panel width</span><span class="token-var">378px, fixed</span><span class="token-note">carousel column takes the rest via flex:1</span></div>
+          <div class="token-row"><span class="token-prop">Panel ↔ carousel gap</span><span class="token-var">--space-14 (56px)</span><span class="token-note">desktop only — becomes the column stack gap on mobile, see Responsive</span></div>
+          <div class="token-row"><span class="token-prop">Panel padding-top</span><span class="token-var">--space-10 (40px)</span><span class="token-note">same value both breakpoints</span></div>
+          <div class="token-row"><span class="token-prop">Title size</span><span class="token-var">30px / --text-h3-mob-size</span><span class="token-note">desktop literal / 24px mobile token — see the CSS comment on why desktop isn't tokenised</span></div>
+          <div class="token-row"><span class="token-prop">Logo width</span><span class="token-var">234px</span><span class="token-note">same both breakpoints, unlike Campaign Hero's logo which scales down on mobile</span></div>
+          <div class="token-row"><span class="token-prop">Card gap</span><span class="token-var">--space-8 → --space-6</span><span class="token-note">32px → 24px at ≤768px, same reduction Flex Carousel makes</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CARD CONTENT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="card-content">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Card Content</h2>
+      <p class="section-desc">Unlike Flex Carousel — whose card is still a deliberately empty placeholder — Banner Carousel ships with real content: a <a href="tiles-spec.html">Recipe Tile</a> (<code>.ufs-tile</code>, no eyebrow, no CTA — the whole tile is the click target), reused verbatim from <code>tiles-spec.html</code>, no new CSS. The carousel engine treats the card slot the same way either component: <code>.ufs-carousel-card</code> provides spacing and flex behaviour, and whatever sits inside it is content — <strong>any</strong> <code>.ufs-tile</code> type can be dropped in, exactly the same "different tile types, same engine" flexibility Flex Carousel already has. See Colour Variants below for three other types (Product, Training, Article) in the same slot.</p>
+
+      <div class="ds-card">
+        <div class="card-title">The 2-class technique</div>
+        <div class="card-desc">Already established in tiles-spec.html for Chef Tile inside Flex Carousel — reused here unchanged.</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">/* .ufs-carousel-card alone would apply its own generic width/height/
+   background/border-radius (see Flex Carousel), which .ufs-tile's own
+   rules — same specificity, later in source order — naturally override
+   for background/border/radius. Width/height still need an explicit
+   compound-selector override, since those are set at equal specificity
+   by BOTH .ufs-carousel-card and .ufs-tile individually. */</span>
+<span class="t-pr">.ufs-carousel-card.ufs-tile</span> { <span class="t-pr">width</span>: <span class="t-vl">320px</span>; <span class="t-pr">min-width</span>: <span class="t-vl">320px</span>; <span class="t-pr">height</span>: <span class="t-vl">auto</span>; }</pre>
+        </div>
+        <div class="code-block-wrap" style="margin-top:10px;">
+          <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">&lt;!-- Both classes on the same element — .ufs-tile's own markup
+     (image/fav/body/rating/meta/cta), completely unchanged --&gt;</span>
+<span class="t-tag">&lt;article</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile ufs-carousel-card"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__image"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__content"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__body"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h3</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__title"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/h3&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__rating"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/div&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__meta"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/article&gt;</span></pre>
+        </div>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>The Figma reference's desktop tile is 353px wide (320px on mobile). This spec fixes it at <strong>320px on every breakpoint</strong> instead — same simplification tiles-spec.html already made for Chef Tile in a carousel ("width fixed at every viewport, same rule as the other carousel tiles"), for the same reason: one width value to maintain, and <code>.ufs-tile</code>'s own <code>min-width:320px</code> already lands there with zero extra CSS.</div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>The card is <strong>never recoloured</strong> by a colour variant, unlike Flex Carousel's generic placeholder (which tints/blurs to match). Every <code>.ufs-tile</code> type already has an established look from <code>tiles-spec.html</code> that's reused everywhere else in the DS — changing it per-carousel-variant would break that consistency for no real benefit, since it's opaque, real content rather than a colour-matched placeholder. It stays a plain white card, border and all, on every background — including <code>--image</code>, over a photo. Colour Variants below get their visual variety from <strong>swapping the tile type itself</strong> per background, not from recolouring one fixed type.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ PAGINATION & ARROWS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="pagination">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Pagination &amp; Arrows</h2>
+      <p class="section-desc">Identical mechanics to <a href="flex-carousel-spec.html#pagination">Flex Carousel</a>: dynamic "shrinking window" dots (active pill, two near dots, one far, one at the edge, everything beyond collapses away), cached scroll-step geometry for smooth touch response, and <code>initFlexCarousel()</code> called on <em>this</em> component's root exactly as-is — no new JS, no renamed function. It queries <code>.ufs-carousel-track</code>/<code>-dots</code>/<code>-arrow--prev</code>/<code>-arrow--next</code>/<code>-card</code> inside whatever root it's given, so it doesn't need to know or care that the root is a <code>.ufs-banner-carousel</code> instead of a <code>.ufs-flex-carousel</code>.</p>
+
+      <div class="ds-card">
+        <div class="card-title">JS — same function, called on both root selectors</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-kw">function</span> initFlexCarousel(root) {
+  <span class="t-kw">var</span> track = root.querySelector(<span class="t-str">'.ufs-carousel-track'</span>);
+  <span class="t-kw">var</span> dotsWrap = root.querySelector(<span class="t-str">'.ufs-carousel-dots'</span>);
+  <span class="t-kw">var</span> prevBtn = root.querySelector(<span class="t-str">'.ufs-carousel-arrow--prev'</span>);
+  <span class="t-kw">var</span> nextBtn = root.querySelector(<span class="t-str">'.ufs-carousel-arrow--next'</span>);
+  <span class="t-kw">if</span> (!track || !dotsWrap) <span class="t-kw">return</span>;
+  <span class="t-kw">var</span> cards = Array.prototype.slice.call(track.querySelectorAll(<span class="t-str">'.ufs-carousel-card'</span>));
+  <span class="t-cm">// … measure / render / goTo — unchanged, see flex-carousel-spec.html</span>
+}
+<span class="t-cm">// Runs once per page load, covering every instance of either component</span>
+document.querySelectorAll(<span class="t-str">'.ufs-flex-carousel, .ufs-banner-carousel'</span>).forEach(initFlexCarousel);</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Because <code>measure()</code> reads actual rendered card positions rather than a hardcoded width, the fact that Banner Carousel's cards (320px, real <code>.ufs-tile</code> content) are a different size from Flex Carousel's own placeholder (270px) needs zero special-casing — the same function measures whatever it finds.</div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>One deliberate visual difference from Flex Carousel's own <code>.is-compact</code> state, reusing the identical trigger (the same <code>initFlexCarousel()</code>, unmodified — no new measurement logic). Flex Carousel centres its cards <em>within</em> the row, which stays full-width. Banner Carousel instead drops <code>__carousel</code>'s <code>flex:1</code> growth and centres <code>__panel</code> + <code>__carousel</code> together as one content-width group. This is a purely visual choice, not a different condition: "the tiles fit without scrolling" and "panel + gap + the tiles' own full width isn't wider than the viewport" are the same test algebraically, since <code>__carousel</code>'s available width is always <code>viewport − panel − gap</code>. <code>__foot</code> (dots/arrows) is hidden entirely in this state, same as Flex Carousel — nothing to page through, nothing needs to be shown.
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RESPONSIVE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="responsive">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Desktop vs. Mobile</h2>
+      <p class="section-desc">Below <code>768px</code>, <code>.ufs-banner-carousel</code> switches from a row to a column: <code>__panel</code> goes first, full width, centred text and a full-width CTA; <code>__carousel</code> follows, reclaiming the full bled width on both edges (unlike desktop's trailing-only bleed — see Anatomy). The carousel's own mobile behaviour — arrows hidden, dots centred and take over as the only control — is identical to Flex Carousel's mobile treatment, unchanged.</p>
+
+      <div class="ds-card">
+        <div class="card-title">What changes at the 768px breakpoint</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Layout</span><span class="token-var">row → column</span><span class="token-note">__panel above __carousel</span></div>
+          <div class="token-row"><span class="token-prop">Panel ↔ carousel gap</span><span class="token-var">--space-14 → --space-8</span><span class="token-note">56px → 32px, now a vertical stack gap</span></div>
+          <div class="token-row"><span class="token-prop">Panel alignment</span><span class="token-var">left → centred</span><span class="token-note">text-align + align-items both flip to center</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">30px literal → --text-h3-mob-size</span><span class="token-note">24px, -0.24px letter-spacing</span></div>
+          <div class="token-row"><span class="token-prop">Description</span><span class="token-var">--text-body-size → --text-body-sm-size</span><span class="token-note">16px → 14px</span></div>
+          <div class="token-row"><span class="token-prop">CTA</span><span class="token-var">auto width → 100%</span><span class="token-note">full-width, matches Flex Carousel's own mobile CTA</span></div>
+          <div class="token-row"><span class="token-prop">Description ↔ CTA gap</span><span class="token-var">--space-10 → --space-6</span><span class="token-note">40px → 24px — the only __panel gap that isn't uniform across breakpoints; logo↔intro stays 40px both</span></div>
+          <div class="token-row"><span class="token-prop">Card gap</span><span class="token-var">--space-8 → --space-6</span><span class="token-note">32px → 24px, same reduction Flex Carousel makes</span></div>
+          <div class="token-row"><span class="token-prop">Track bleed</span><span class="token-var">trailing-only → both edges</span><span class="token-note">leading .ufs-carousel-spacer reinstated to --space-4</span></div>
+          <div class="token-row"><span class="token-prop">Arrows</span><span class="token-var">visible → hidden</span><span class="token-note">dots become the only control, same as Flex Carousel</span></div>
+        </div>
+      </div>
+
+      <div class="pv-mobile" style="padding:8px;">
+        <section class="ufs-banner-carousel" id="demo-mobile">
+          <div class="ufs-banner-carousel__panel">
+            <img class="ufs-banner-carousel__logo" src="images/academy/ufs-academy-logo.svg" alt="UFS Academy" />
+            <div class="ufs-banner-carousel__intro">
+              <h2 class="ufs-banner-carousel__title">Title of the banner</h2>
+              <p class="ufs-banner-carousel__desc">Free videos created by professional chefs making dishes and revealing techniques only for you and your team.</p>
+            </div>
+            <button type="button" class="btn btn-primary ufs-banner-carousel__cta">Start learning now</button>
+          </div>
+          <div class="ufs-banner-carousel__carousel">
+            <div class="ufs-banner-carousel__track-wrap">
+              <div class="ufs-carousel-track">
+                <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Sour Cream and Bacon Deviled Eggs</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(12)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Fish &amp; Seafood</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Traditional Cuisine</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Plant-Powered Protein Bowl</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(48)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Gluten Free</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Korean-Style Flatbread</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(6)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Vegan</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Street Food</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="ufs-banner-carousel__foot">
+              <div class="ufs-carousel-dots"></div>
+              <div class="ufs-banner-carousel__arrows">
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ VARIANTS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="variants">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Colour Variants</h2>
+      <p class="section-desc">Same 4 options as Flex Carousel, same mechanism — a pure custom-property swap on the root, no rule duplication: default (white, Recipe Tile, shown above), <code>--squid</code> (squid-ink), <code>--mushroom</code> (mushroom-100), and <code>--image</code> (full-bleed photo + dark overlay). Only <code>__panel</code>'s title/description and the dots/arrows respond to the variant's colour tokens — the primary CTA stays a plain filled button on every background, unaffected. The examples below also each swap in a <strong>different real <code>.ufs-tile</code> type</strong> — Product on <code>--squid</code>, Training on <code>--mushroom</code>, Article on <code>--image</code> — to demonstrate the "different tile types, same engine" flexibility in context, not because any variant requires a specific type. The tile itself is still never recoloured by the variant; see the notice in Card Content.</p>
+
+      <div class="notice notice--tip" style="margin-bottom:24px;">
+        <span class="notice-icon">💡</span>
+        <div>Swap the logo asset to the reversed (light) version on <code>--squid</code>/<code>--image</code>, same convention already used on Campaign Hero and Takeover Banner for a logo sitting over a dark background.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label"><code>--squid</code> (squid-ink) — with Product Tile</div>
+        <section class="ufs-banner-carousel ufs-banner-carousel--squid" style="border-radius:var(--radius-md); margin-bottom:24px;">
+          <div class="ufs-banner-carousel__panel">
+            <img class="ufs-banner-carousel__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+            <div class="ufs-banner-carousel__intro">
+              <h2 class="ufs-banner-carousel__title">Title of the banner</h2>
+              <p class="ufs-banner-carousel__desc">Free videos created by professional chefs making dishes and revealing techniques only for you and your team.</p>
+            </div>
+            <button type="button" class="btn btn-primary ufs-banner-carousel__cta">Start learning now</button>
+          </div>
+          <div class="ufs-banner-carousel__carousel">
+            <div class="ufs-banner-carousel__track-wrap">
+              <div class="ufs-carousel-track">
+                <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">New</span>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Sauces</div>
+                      <h3 class="ufs-tile__title">Knorr Professional Garde D&oacute;r Hollandaise sauce &ndash; 600ml</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(332)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">No MSG</span>
+                      </div>
+                    </div>
+                    <div class="ufs-tile__cta"><button class="btn btn-primary">Buy it now</button></div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">Bestseller</span>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Condiments</div>
+                      <h3 class="ufs-tile__title">Hellmann&rsquo;s Professional Real Mayonnaise &ndash; 3.4L</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(215)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">No MSG</span>
+                      </div>
+                    </div>
+                    <div class="ufs-tile__cta"><button class="btn btn-primary">Buy it now</button></div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/product.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Bases</div>
+                      <h3 class="ufs-tile__title">Knorr Professional Chicken Bouillon Base &ndash; 3kg</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(89)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Halal</span>
+                      </div>
+                    </div>
+                    <div class="ufs-tile__cta"><button class="btn btn-primary">Buy it now</button></div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="ufs-banner-carousel__foot">
+              <div class="ufs-carousel-dots"></div>
+              <div class="ufs-banner-carousel__arrows">
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="pv-label"><code>--mushroom</code> — with Training Tile</div>
+        <section class="ufs-banner-carousel ufs-banner-carousel--mushroom" style="border-radius:var(--radius-md); margin-bottom:24px;">
+          <div class="ufs-banner-carousel__panel">
+            <img class="ufs-banner-carousel__logo" src="images/academy/ufs-academy-logo.svg" alt="UFS Academy" />
+            <div class="ufs-banner-carousel__intro">
+              <h2 class="ufs-banner-carousel__title">Title of the banner</h2>
+              <p class="ufs-banner-carousel__desc">Free videos created by professional chefs making dishes and revealing techniques only for you and your team.</p>
+            </div>
+            <button type="button" class="btn btn-primary ufs-banner-carousel__cta">Start learning now</button>
+          </div>
+          <div class="ufs-banner-carousel__carousel">
+            <div class="ufs-banner-carousel__track-wrap">
+              <div class="ufs-carousel-track">
+                <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/training.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">Certified</span>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Culinary Techniques</div>
+                      <h3 class="ufs-tile__title">Middle Eastern Cuisine with Chef Rabeh</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(332)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 5.3v5.4l4.5-2.7z" fill="currentColor"/></svg>3 videos</span>
+                        <span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="5" rx="0.5"/><rect x="6.5" y="6" width="3" height="8" rx="0.5"/><rect x="12" y="2" width="3" height="12" rx="0.5"/></svg>Intermediate</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/training.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Baking Fundamentals</div>
+                      <h3 class="ufs-tile__title">Artisan Bread Basics with Chef Elena</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(178)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 5.3v5.4l4.5-2.7z" fill="currentColor"/></svg>5 videos</span>
+                        <span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="5" rx="0.5"/><rect x="6.5" y="6" width="3" height="8" rx="0.5"/><rect x="12" y="2" width="3" height="12" rx="0.5"/></svg>Beginner</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/training.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">New</span>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Plant-Based</div>
+                      <h3 class="ufs-tile__title">Modern Vegan Techniques with Chef Omar</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(64)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 5.3v5.4l4.5-2.7z" fill="currentColor"/></svg>4 videos</span>
+                        <span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item"><svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="5" rx="0.5"/><rect x="6.5" y="6" width="3" height="8" rx="0.5"/><rect x="12" y="2" width="3" height="12" rx="0.5"/></svg>Advanced</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="ufs-banner-carousel__foot">
+              <div class="ufs-carousel-dots"></div>
+              <div class="ufs-banner-carousel__arrows">
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <div class="pv-label"><code>--image</code> — with Article Tile</div>
+        <section class="ufs-banner-carousel ufs-banner-carousel--image" style="border-radius:var(--radius-md);">
+          <div class="ufs-banner-carousel__panel">
+            <img class="ufs-banner-carousel__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+            <div class="ufs-banner-carousel__intro">
+              <h2 class="ufs-banner-carousel__title">Title of the banner</h2>
+              <p class="ufs-banner-carousel__desc">Free videos created by professional chefs making dishes and revealing techniques only for you and your team.</p>
+            </div>
+            <button type="button" class="btn btn-primary ufs-banner-carousel__cta">Start learning now</button>
+          </div>
+          <div class="ufs-banner-carousel__carousel">
+            <div class="ufs-banner-carousel__track-wrap">
+              <div class="ufs-carousel-track">
+                <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/article.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">Trending</span>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Trend Watch</div>
+                      <h3 class="ufs-tile__title">How to update your menus: new trends and designs</h3>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">5 minutes read</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/article.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Sustainability</div>
+                      <h3 class="ufs-tile__title">Reducing food waste in professional kitchens</h3>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">7 minutes read</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/article.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <span class="ufs-tile__badge">New</span>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <div class="ufs-tile__eyebrow">Business Tips</div>
+                      <h3 class="ufs-tile__title">Seasonal menu planning: a chef&rsquo;s guide</h3>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">4 minutes read</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="ufs-banner-carousel__foot">
+              <div class="ufs-carousel-dots"></div>
+              <div class="ufs-banner-carousel__arrows">
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Product Tile carries a <code>.ufs-tile__cta</code> ("Buy it now"), so it's the whole-tile-click <em>and</em> a nested button at once — same trade-off documented in tiles-spec.html's own Product Tile, with <code>event.stopPropagation()</code> on the favourite button so the two never conflict with each other. Training and Article Tiles have no CTA — the whole card is the click target instead, same as the default Recipe Tile.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CONTENT COMBINATIONS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="content">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Content Combinations</h2>
+      <p class="section-desc">In <code>__panel</code>, only <code>__logo</code> is optional — <code>__title</code>, <code>__desc</code> and the primary CTA are all required, every instance. This is stricter than Campaign Hero (where description is optional too): a Banner Carousel panel is always meant to introduce the carousel next to it, and a title alone doesn't do that. The carousel side has no optional pieces either: a track with at least one card, dots and both arrows are all part of the anatomy whenever <code>__carousel</code> is present, and every card should carry complete <code>.ufs-tile</code> information (image, title, rating, meta) — not a stripped-down placeholder.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Minimal panel — no logo</div>
+        <section class="ufs-banner-carousel" style="border-radius:var(--radius-md);">
+          <div class="ufs-banner-carousel__panel">
+            <div class="ufs-banner-carousel__intro">
+              <h2 class="ufs-banner-carousel__title">Title of the banner</h2>
+              <p class="ufs-banner-carousel__desc">Free videos created by professional chefs making dishes and revealing techniques only for you and your team.</p>
+            </div>
+            <button type="button" class="btn btn-primary ufs-banner-carousel__cta">Start learning now</button>
+          </div>
+          <div class="ufs-banner-carousel__carousel">
+            <div class="ufs-banner-carousel__track-wrap">
+              <div class="ufs-carousel-track">
+                <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Sour Cream and Bacon Deviled Eggs</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(12)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Fish &amp; Seafood</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Traditional Cuisine</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="Add to favourites" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">Plant-Powered Protein Bowl</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(48)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">Vegetarian</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">Gluten Free</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="ufs-banner-carousel__foot">
+              <div class="ufs-carousel-dots"></div>
+              <div class="ufs-banner-carousel__arrows">
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next items"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Dropping <code>__logo</code> doesn't leave a stray gap — <code>__panel</code>'s own <code>gap: var(--space-10)</code> only applies between whatever children are actually present.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Identical technique to Flex Carousel: <code>__panel</code> and <code>__carousel</code> re-order automatically under <code>dir="rtl"</code> via plain flexbox (no explicit <code>row-reverse</code> needed) — the panel visually moves to the right, the carousel to the left. Only the physical bleed/margin/padding properties need explicit flips, same set as Flex Carousel plus one more for the panel-side bleed direction.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">RTL — panel and carousel swap sides automatically</div>
+        <section class="ufs-banner-carousel" style="border-radius:var(--radius-md);" dir="rtl">
+          <div class="ufs-banner-carousel__panel">
+            <img class="ufs-banner-carousel__logo" src="images/academy/ufs-academy-logo.svg" alt="UFS Academy" />
+            <div class="ufs-banner-carousel__intro">
+              <h2 class="ufs-banner-carousel__title">عنوان البانر</h2>
+              <p class="ufs-banner-carousel__desc">فيديوهات مجانية أعدها طهاة محترفون تكشف تقنيات الطهي المخصصة لك ولفريقك</p>
+            </div>
+            <button type="button" class="btn btn-primary ufs-banner-carousel__cta">ابدأ التعلم الآن</button>
+          </div>
+          <div class="ufs-banner-carousel__carousel">
+            <div class="ufs-banner-carousel__track-wrap">
+              <div class="ufs-carousel-track">
+                <div class="ufs-carousel-spacer" aria-hidden="true"></div>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="أضف إلى المفضلة" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">بيض مسلوق بالقشدة الحامضة والبيكون</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(12)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">أسماك ومأكولات بحرية</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">مطبخ تقليدي</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+                <article class="ufs-tile ufs-carousel-card">
+                  <div class="ufs-tile__image">
+                    <div class="ufs-tile__image-media" style="background-image:url('images/tiles/recipe.jpg')"></div>
+                    <button class="ufs-tile__fav" aria-label="أضف إلى المفضلة" aria-pressed="false" onclick="toggleTileFav(this, event)">
+                      <svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    </button>
+                  </div>
+                  <div class="ufs-tile__content">
+                    <div class="ufs-tile__body">
+                      <h3 class="ufs-tile__title">وعاء بروتين نباتي</h3>
+                      <div class="ufs-tile__rating">
+                        <span class="ufs-tile__stars">
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                          <svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg>
+                        </span>
+                        <span>(48)</span>
+                      </div>
+                      <div class="ufs-tile__meta">
+                        <span class="ufs-tile__meta-item">نباتي</span><span class="ufs-tile__meta-sep">&middot;</span>
+                        <span class="ufs-tile__meta-item">خالٍ من الغلوتين</span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+            <div class="ufs-banner-carousel__foot">
+              <div class="ufs-carousel-dots"></div>
+              <div class="ufs-banner-carousel__arrows">
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="السابق"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+                <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="التالي"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <div class="code-block-wrap" style="margin-top:16px;">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">[dir="rtl"] .ufs-banner-carousel__track-wrap</span> { <span class="t-pr">margin-right</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-left</span>: <span class="t-vl">calc(-1 * var(--space-24))</span>; }
+<span class="t-cm">/* .ufs-carousel-track / -card / -arrow* flips — unchanged from Flex Carousel */</span></pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    /* ── Favourite toggle — mirrored from tiles-spec.html's toggleTileFav ── */
+    function toggleTileFav(btn, event) {
+      if (event) event.stopPropagation();
+      var isActive = btn.classList.toggle('is-active');
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      var svg = btn.querySelector('svg');
+      if (isActive && svg) {
+        svg.classList.remove('fav-pop');
+        void svg.offsetWidth;
+        svg.classList.add('fav-pop');
+      }
+    }
+
+    /* ── Carousel engine — identical to flex-carousel-spec.html's
+       initFlexCarousel(), called on both component roots. ── */
+    (function () {
+      function initFlexCarousel(root) {
+        var track = root.querySelector('.ufs-carousel-track');
+        var dotsWrap = root.querySelector('.ufs-carousel-dots');
+        var prevBtn = root.querySelector('.ufs-carousel-arrow--prev');
+        var nextBtn = root.querySelector('.ufs-carousel-arrow--next');
+        if (!track || !dotsWrap) return;
+        var cards = Array.prototype.slice.call(track.querySelectorAll('.ufs-carousel-card'));
+        var activeIndex = 0;
+        var scrollTicking = false;
+
+        var cachedStep = 0;
+        var cachedMaxIndex = 0;
+        function measure() {
+          cachedStep = cards.length < 2
+            ? (cards.length ? cards[0].getBoundingClientRect().width : 0)
+            : cards[1].getBoundingClientRect().left - cards[0].getBoundingClientRect().left;
+          cachedMaxIndex = cachedStep
+            ? Math.max(0, Math.ceil((track.scrollWidth - track.clientWidth) / Math.abs(cachedStep)))
+            : 0;
+        }
+        function render() {
+          var maxI = cachedMaxIndex;
+          root.classList.toggle('is-compact', maxI === 0);
+          var dots = dotsWrap.querySelectorAll('.ufs-carousel-dot');
+          dots.forEach(function(dot, i) {
+            dot.classList.remove('is-active', 'is-near', 'is-far', 'is-edge', 'is-hidden');
+            if (i > maxI) { dot.classList.add('is-hidden'); return; }
+            var dist = Math.abs(i - activeIndex);
+            if (dist === 0) dot.classList.add('is-active');
+            else if (dist <= 2) dot.classList.add('is-near');
+            else if (dist === 3) dot.classList.add('is-far');
+            else if (dist === 4) dot.classList.add('is-edge');
+            else dot.classList.add('is-hidden');
+            dot.setAttribute('aria-current', dist === 0 ? 'true' : 'false');
+          });
+          if (prevBtn) prevBtn.disabled = activeIndex <= 0;
+          if (nextBtn) nextBtn.disabled = activeIndex >= maxI;
+        }
+        function goTo(index) {
+          activeIndex = Math.max(0, Math.min(cachedMaxIndex, index));
+          track.scrollTo({ left: activeIndex * cachedStep, behavior: 'smooth' });
+          render();
+        }
+
+        cards.forEach(function(_, i) {
+          var dot = document.createElement('button');
+          dot.type = 'button';
+          dot.className = 'ufs-carousel-dot';
+          dot.setAttribute('aria-label', 'Go to item ' + (i + 1));
+          dot.addEventListener('click', function() { goTo(i); });
+          dotsWrap.appendChild(dot);
+        });
+        if (prevBtn) prevBtn.addEventListener('click', function() { goTo(activeIndex - 1); });
+        if (nextBtn) nextBtn.addEventListener('click', function() { goTo(activeIndex + 1); });
+
+        track.addEventListener('scroll', function() {
+          if (scrollTicking) return;
+          scrollTicking = true;
+          requestAnimationFrame(function() {
+            if (cachedStep) activeIndex = Math.max(0, Math.min(cachedMaxIndex, Math.round(track.scrollLeft / cachedStep)));
+            render();
+            scrollTicking = false;
+          });
+        }, { passive: true });
+
+        window.addEventListener('resize', function() { measure(); render(); });
+        measure();
+        render();
+      }
+
+      document.querySelectorAll('.ufs-flex-carousel, .ufs-banner-carousel').forEach(initFlexCarousel);
+    })();
+  </script>
+</body>
+</html>

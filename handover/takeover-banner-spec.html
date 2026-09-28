@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Takeover Banner — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+    /* Media queries can't be scoped to a container's width, only the real
+       viewport — so to preview the mobile layout at any window size, this
+       re-states the panel's own @media (max-width:768px) block scoped to
+       .pv-mobile with !important, same technique as every other spec page. */
+    .pv-mobile .ufs-takeover-banner__panel { border-radius: var(--radius-sm) !important; min-height: 540px !important; padding: var(--space-10) var(--space-5) !important; width: 100% !important; }
+    .pv-mobile .ufs-takeover-banner__logo { width: 112px !important; }
+    .pv-mobile .ufs-takeover-banner__title { font-size: 28px !important; letter-spacing: -0.28px !important; }
+    .pv-mobile .ufs-takeover-banner__desc { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mobile .ufs-takeover-banner__countdown { gap: var(--space-3) !important; }
+    .pv-mobile .ufs-takeover-banner__countdown-value { font-size: var(--text-price-xl-mob-size) !important; }
+    .pv-mobile .ufs-takeover-banner__ctas { flex-direction: column !important; width: 100% !important; gap: var(--space-3) !important; }
+    .pv-mobile .ufs-takeover-banner__ctas .btn { width: 100% !important; }
+    .pv-mobile .ufs-takeover-banner__close { width: var(--space-8) !important; height: var(--space-8) !important; top: var(--space-3) !important; inset-inline-end: var(--space-3) !important; }
+    .pv-mobile .ufs-takeover-banner__close svg { width: 12px !important; height: 12px !important; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       campaign-hero-spec.html. This component's CTAs depend on it;
+       not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       TAKEOVER BANNER COMPONENT CSS — new component, no template
+       source of truth yet. Anatomy/tokens for __content onward mirror
+       Campaign Hero's own content column 1:1 (same hero title/desc/
+       countdown/CTAs/disclaimer recipe) — see the Anatomy notice below
+       for why. Dialog chrome (__backdrop, open/close, Esc, outside-click)
+       mirrors the video lightbox in teaser-spec.html. Close button reuses
+       the "light X button on a dark surface" treatment already
+       established by #profile-panel .signin-close in nav-header-spec.html.
+    ═══════════════════════════════════════ */
+    .ufs-takeover-banner {
+      position: fixed; inset: 0; z-index: 10000;
+      display: flex; align-items: center; justify-content: center;
+      padding: var(--space-4);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .ufs-takeover-banner.is-open { opacity: 1; pointer-events: all; }
+    .ufs-takeover-banner__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(2px); }
+    .ufs-takeover-banner__panel {
+      position: relative; z-index: 1;
+      width: 820px; max-width: 100%;
+      border: 1px solid #3c3c3c; border-radius: var(--radius-xl);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+      overflow: hidden;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 480px; padding: var(--space-12) var(--space-6);
+      transform: scale(0.96); transition: transform 0.25s;
+      text-align: center;
+    }
+    .ufs-takeover-banner.is-open .ufs-takeover-banner__panel { transform: scale(1); }
+    .ufs-takeover-banner__media { position: absolute; inset: 0; z-index: 0; background: var(--color-brand-dark); }
+    .ufs-takeover-banner__media video,
+    .ufs-takeover-banner__media img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .ufs-takeover-banner__scrim { position: absolute; inset: 0; background: var(--color-brand-dark); opacity: 0.45; }
+    .ufs-takeover-banner__close {
+      position: absolute; top: var(--space-4); inset-inline-end: var(--space-4); z-index: 2;
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      border: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      background: color-mix(in srgb, var(--color-salt) 15%, transparent); color: var(--color-salt);
+      transition: background 0.15s;
+    }
+    .ufs-takeover-banner__close:hover { background: color-mix(in srgb, var(--color-salt) 22%, transparent); }
+    .ufs-takeover-banner__close svg { width: 14px; height: 14px; }
+    .ufs-takeover-banner__content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: var(--space-6); max-width: 720px; width: 100%; }
+    .ufs-takeover-banner__logo { width: 138px; height: auto; display: block; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.9)); }
+    .ufs-takeover-banner__heading { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); width: 100%; }
+    .ufs-takeover-banner__title { margin: 0; color: var(--color-salt); font-size: 40px; line-height: 1.15; font-weight: 900; letter-spacing: -0.4px; text-shadow: 0 3px 7px rgba(0,0,0,0.25); }
+    .ufs-takeover-banner__desc { margin: 0; color: var(--color-salt); font-size: var(--text-body-size); line-height: var(--text-body-lh); text-shadow: 0 3px 7px rgba(0,0,0,0.25); }
+    .ufs-takeover-banner__countdown { display: flex; align-items: center; justify-content: center; gap: var(--space-4); }
+    .ufs-takeover-banner__countdown-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ufs-takeover-banner__countdown-value { color: var(--color-salt); margin: 0; width: 60px; font-size: var(--text-price-xl-mob-size); }
+    .ufs-takeover-banner__countdown-label { color: var(--color-salt); margin: 0; }
+    .ufs-takeover-banner__ctas { display: flex; align-items: center; justify-content: center; gap: var(--space-6); }
+    .ufs-takeover-banner__disclaimer { margin: 0; color: var(--color-salt); font-size: 12px; line-height: 1.4; text-shadow: 0 3px 7px rgba(0,0,0,0.25); }
+    @media (min-width: 1024px) {
+      .ufs-takeover-banner__countdown-value { font-size: var(--text-price-xl-size); }
+    }
+    @media (max-width: 768px) {
+      .ufs-takeover-banner__panel { border-radius: var(--radius-sm); min-height: 540px; padding: var(--space-10) var(--space-5); }
+      .ufs-takeover-banner__logo { width: 112px; }
+      .ufs-takeover-banner__title { font-size: 28px; letter-spacing: -0.28px; }
+      .ufs-takeover-banner__desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .ufs-takeover-banner__countdown { gap: var(--space-3); }
+      .ufs-takeover-banner__ctas { flex-direction: column; width: 100%; gap: var(--space-3); }
+      .ufs-takeover-banner__ctas .btn { width: 100%; }
+      .ufs-takeover-banner__close { width: var(--space-8); height: var(--space-8); top: var(--space-3); inset-inline-end: var(--space-3); }
+      .ufs-takeover-banner__close svg { width: 12px; height: 12px; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#layout" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Desktop &amp; Mobile Layout</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#trigger" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Trigger &amp; Auto-Open</a>
+      <a href="#countdown" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Countdown</a>
+      <a href="#dismiss" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Dismiss</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#background" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Background</a>
+      <a href="#content" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Content Combinations</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New component — not yet embedded in any template.<br/>Figma: Rosana 2.0, nodes 3095:4042 (desktop) &amp; 3095:5527 (mobile).</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Takeover Banner</span>
+  </div>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Takeover <span>Banner</span></h1>
+        <p class="doc-header-desc">Full-page promotional dialog, centred over a dimmed/blurred backdrop — optional logo, mandatory title, optional description, optional live countdown, mandatory primary CTA, optional secondary CTA, optional disclaimer, mandatory close button. Structure, behavior and responsive rules, documented for implementation.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">New — Figma only</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A single <code>&lt;div class="ufs-takeover-banner"&gt;</code> — a fixed, full-viewport dialog: a dimmed/blurred <code>__backdrop</code> behind a centred, bordered <code>__panel</code> carrying a background image, a darkening scrim, a close button, and a content column (logo, title, description, live countdown, primary + secondary CTAs, disclaimer). It opens over whatever page is currently showing, automatically on load by default — see Trigger &amp; Auto-Open below.</p>
+
+      <div class="notice notice--tip" style="margin-bottom:24px;">
+        <span class="notice-icon">💡</span>
+        <div>This preview opens on click, not automatically, so you can read the docs on this page without the takeover firing over them. In production, the component's own init script opens it on page load after a short delay — see <a href="#trigger"><code>data-auto-open</code></a>.</div>
+      </div>
+
+      <div class="pv-dark">
+        <button type="button" class="btn btn-primary" onclick="openTakeover(document.getElementById('demo-takeover'))">Preview the takeover</button>
+      </div>
+
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div>Only the title, primary CTA and close button are required. Logo, description, countdown, secondary CTA and disclaimer are all optional — omit any of them per instance with no CSS changes needed. See Content Combinations below for a minimal instance with everything else stripped out.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Two top-level children of <code>.ufs-takeover-banner</code>: <code>__backdrop</code> (the dimmed/blurred full-viewport tint) and <code>__panel</code> (the visible card — bordered, rounded, shadowed, <code>overflow: hidden</code>). Inside the panel: <code>__media</code> + <code>__scrim</code> (an absolutely-positioned background image or video, darkened for text contrast — same two-layer technique as Campaign Hero's own <code>__media</code>/<code>__overlay</code>), a <code>__close</code> button, and <code>__content</code> — a centred 720px column holding <code>__logo</code>, a <code>__heading</code> wrapping <code>__title</code>/<code>__desc</code>, then <code>__countdown</code>, <code>__ctas</code> and <code>__disclaimer</code>.</p>
+
+      <div class="notice notice--warn" style="margin-bottom:24px;">
+        <span class="notice-icon">⚠️</span>
+        <div><code>__content</code> onward (logo/title/desc/countdown/CTAs/disclaimer) is the exact same recipe as <a href="campaign-hero-spec.html"><code>.ufs-campaign-hero__content</code></a> — same bespoke 40px/28px hero title scale, same body/countdown/disclaimer tokens, same <code>.btn</code>/<code>.btn-on-dark</code> CTA classes. This is deliberate: the two components share a content shape (a promotional message over darkened imagery) and should read identically wherever they appear. Only the outer chrome differs — Campaign Hero sits in the page's content flow; Takeover Banner is a fixed dialog on top of it.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="card-title">Full reference markup</div>
+        <div class="card-desc">Every optional piece included — the baseline every instance is a subset of.</div>
+        <div class="pv-label">Panel only, static (see Overview above for the live interactive dialog)</div>
+        <div class="pv-dark" style="margin-bottom:20px;">
+          <div class="ufs-takeover-banner__panel">
+            <div class="ufs-takeover-banner__media" aria-hidden="true">
+              <img src="images/banners/takeover.jpg" alt="" />
+              <div class="ufs-takeover-banner__scrim"></div>
+            </div>
+            <button type="button" class="ufs-takeover-banner__close" aria-label="Close">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+            </button>
+            <div class="ufs-takeover-banner__content">
+              <img class="ufs-takeover-banner__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+              <div class="ufs-takeover-banner__heading">
+                <h2 class="ufs-takeover-banner__title">Future Menus Vol. 4</h2>
+                <p class="ufs-takeover-banner__desc">Your guide to future trends in recipes, from across the globe</p>
+              </div>
+              <div class="ufs-takeover-banner__countdown" role="group" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
+                <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-takeover-banner__countdown-value text-price-xl">18</p>
+                  <p class="ufs-takeover-banner__countdown-label text-body-sm">Days</p>
+                </div>
+                <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-takeover-banner__countdown-value text-price-xl">23</p>
+                  <p class="ufs-takeover-banner__countdown-label text-body-sm">Hours</p>
+                </div>
+                <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-takeover-banner__countdown-value text-price-xl">58</p>
+                  <p class="ufs-takeover-banner__countdown-label text-body-sm">Minutes</p>
+                </div>
+                <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-takeover-banner__countdown-value text-price-xl">16</p>
+                  <p class="ufs-takeover-banner__countdown-label text-body-sm">Seconds</p>
+                </div>
+              </div>
+              <div class="ufs-takeover-banner__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">Sign up and be the first to know</button>
+                <button type="button" class="btn btn-secondary">Download Report</button>
+              </div>
+              <p class="ufs-takeover-banner__disclaimer">*Disclamer text area option for any legal notes</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anatomy-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anatomy-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anatomy-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner"</span> <span class="t-at">id</span>=<span class="t-str">"promo-takeover"</span>
+     <span class="t-at">role</span>=<span class="t-str">"dialog"</span> <span class="t-at">aria-modal</span>=<span class="t-str">"true"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"promo-takeover-title"</span>
+     <span class="t-at">data-auto-open</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__backdrop"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__panel"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__media"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"…"</span> <span class="t-at">alt</span>=<span class="t-str">""</span> <span class="t-tag">/&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__scrim"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__close"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Close"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 14 14"</span> <span class="t-tag">&gt;&lt;/svg&gt;</span> <span class="t-cm">&lt;!-- X glyph --&gt;</span>
+    <span class="t-tag">&lt;/button&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__content"</span><span class="t-tag">&gt;</span>
+      <span class="t-cm">&lt;!-- optional --&gt;</span>
+      <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__logo"</span> <span class="t-at">src</span>=<span class="t-str">"…"</span> <span class="t-at">alt</span>=<span class="t-str">"…"</span> <span class="t-tag">/&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__heading"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;h2</span> <span class="t-at">id</span>=<span class="t-str">"promo-takeover-title"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__title"</span><span class="t-tag">&gt;</span>Title<span class="t-tag">&lt;/h2&gt;</span>
+        <span class="t-cm">&lt;!-- optional --&gt;</span>
+        <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__desc"</span><span class="t-tag">&gt;</span>Description<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+      <span class="t-cm">&lt;!-- optional, see Countdown --&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__countdown"</span> <span class="t-at">data-countdown-end</span>=<span class="t-str">"2026-10-15T00:00:00"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__countdown-item"</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__countdown-value text-price-xl"</span> <span class="t-at">data-tkb-unit</span>=<span class="t-str">"days"</span><span class="t-tag">&gt;</span>18<span class="t-tag">&lt;/p&gt;</span>
+          <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__countdown-label text-body-sm"</span><span class="t-tag">&gt;</span>Days<span class="t-tag">&lt;/p&gt;</span>
+        <span class="t-tag">&lt;/div&gt;</span>
+        <span class="t-cm">&lt;!-- …Hours / Minutes / Seconds, same shape --&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__ctas btn-on-dark"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span><span class="t-tag">&gt;</span>Primary CTA<span class="t-tag">&lt;/button&gt;</span>
+        <span class="t-cm">&lt;!-- optional --&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary"</span><span class="t-tag">&gt;</span>Secondary CTA<span class="t-tag">&lt;/button&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+      <span class="t-cm">&lt;!-- optional --&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__disclaimer"</span><span class="t-tag">&gt;</span>*Disclaimer text<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anatomy-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">.ufs-takeover-banner</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">fixed</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">z-index</span>: <span class="t-vl">10000</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; <span class="t-pr">transition</span>: <span class="t-vl">opacity 0.25s</span>;
+}
+<span class="t-pr">.ufs-takeover-banner.is-open</span> { <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">all</span>; }
+<span class="t-pr">.ufs-takeover-banner__backdrop</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.75)</span>; <span class="t-pr">backdrop-filter</span>: <span class="t-vl">blur(2px)</span>; }
+<span class="t-pr">.ufs-takeover-banner__panel</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1</span>; <span class="t-pr">width</span>: <span class="t-vl">820px</span>; <span class="t-pr">max-width</span>: <span class="t-vl">100%</span>;
+  <span class="t-pr">border</span>: <span class="t-vl">1px solid #3c3c3c</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-xl)</span>; <span class="t-pr">box-shadow</span>: <span class="t-vl">0 4px 8px rgba(0,0,0,0.25)</span>;
+  <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>;
+  <span class="t-pr">min-height</span>: <span class="t-vl">480px</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-12) var(--space-6)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>;
+}
+<span class="t-pr">.ufs-takeover-banner__media</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">z-index</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-takeover-banner__media video,
+.ufs-takeover-banner__media img</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">100%</span>; <span class="t-pr">object-fit</span>: <span class="t-vl">cover</span>; }
+<span class="t-pr">.ufs-takeover-banner__scrim</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">opacity</span>: <span class="t-vl">0.45</span>; }
+<span class="t-pr">.ufs-takeover-banner__content</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; <span class="t-pr">max-width</span>: <span class="t-vl">720px</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-takeover-banner__title</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-vl">40px</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.15</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">900</span>; <span class="t-pr">letter-spacing</span>: <span class="t-vl">-0.4px</span>; <span class="t-pr">text-shadow</span>: <span class="t-vl">0 3px 7px rgba(0,0,0,0.25)</span>; }
+<span class="t-pr">.ufs-takeover-banner__desc</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; <span class="t-pr">text-shadow</span>: <span class="t-vl">0 3px 7px rgba(0,0,0,0.25)</span>; }
+<span class="t-pr">.ufs-takeover-banner__close</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">inset-inline-end</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">z-index</span>: <span class="t-vl">2</span>;
+  <span class="t-pr">width</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">color-mix(in srgb, var(--color-salt) 15%, transparent)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>;
+}
+<span class="t-pr">.ufs-takeover-banner__close:hover</span> { <span class="t-pr">background</span>: <span class="t-vl">color-mix(in srgb, var(--color-salt) 22%, transparent)</span>; }</pre>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Panel size</span><span class="token-var">820 × 480 / 100% × 540</span><span class="token-note">desktop fixed width / mobile fluid to viewport minus --space-4 gutters</span></div>
+          <div class="token-row"><span class="token-prop">Panel border</span><span class="token-var">1px solid #3c3c3c</span><span class="token-note">literal — no matching border token at this shade</span></div>
+          <div class="token-row"><span class="token-prop">Panel radius</span><span class="token-var">--radius-xl / --radius-sm</span><span class="token-note">24px desktop, 8px mobile</span></div>
+          <div class="token-row"><span class="token-prop">Backdrop</span><span class="token-var">rgba(0,0,0,0.75) + blur(2px)</span><span class="token-note">same blur value as the existing .sidebar-backdrop</span></div>
+          <div class="token-row"><span class="token-prop">Scrim (in-panel)</span><span class="token-var">--color-brand-dark @ 0.45 opacity</span><span class="token-note">same technique as Campaign Hero's __overlay, darker (0.45 vs 0.5 is close — kept per Figma)</span></div>
+          <div class="token-row"><span class="token-prop">Content column</span><span class="token-var">max-width: 720px</span><span class="token-note">same reading-width convention as Campaign Hero / Title</span></div>
+          <div class="token-row"><span class="token-prop">Logo width</span><span class="token-var">138px / 112px</span><span class="token-note">desktop / mobile — literal, matches this component's own Figma logo slot</span></div>
+          <div class="token-row"><span class="token-prop">Close button</span><span class="token-var">--space-10 / --space-8</span><span class="token-note">40px / 32px hit area — larger than Figma's 24px icon for a comfortable touch target, reusing the #profile-panel .signin-close treatment</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DESKTOP & MOBILE LAYOUT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="layout">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Desktop &amp; Mobile Layout</h2>
+      <p class="section-desc">Panel size is content-driven with a <code>min-height</code> floor (480px desktop / 540px mobile), not a fixed height — same principle as Campaign Hero and Title. Below <code>768px</code> the panel radius tightens, the CTA row stacks into a full-width column, and type scales down — everything else (centring, column structure, scrim) already reads correctly without further structural change.</p>
+
+      <div class="ds-card">
+        <div class="card-title">What changes at the 768px breakpoint</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Panel width</span><span class="token-var">820px fixed → fluid</span><span class="token-note">width: 100% inside the fixed wrapper's --space-4 padding</span></div>
+          <div class="token-row"><span class="token-prop">Panel radius</span><span class="token-var">--radius-xl → --radius-sm</span><span class="token-note">24px → 8px</span></div>
+          <div class="token-row"><span class="token-prop">Logo</span><span class="token-var">138px → 112px</span><span class="token-note">width, height auto</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">40px → 28px</span><span class="token-note">letter-spacing also eases from -0.4px to -0.28px</span></div>
+          <div class="token-row"><span class="token-prop">Description</span><span class="token-var">--text-body-size → --text-body-sm-size</span><span class="token-note">16px → 14px</span></div>
+          <div class="token-row"><span class="token-prop">Countdown value</span><span class="token-var">--text-price-xl-size → -mob-size</span><span class="token-note">36px → 28px, at min-width:1024px specifically — matches Campaign Hero &amp; Promo Banner's own cutoff</span></div>
+          <div class="token-row"><span class="token-prop">CTAs</span><span class="token-var">row → column, full width</span><span class="token-note">both buttons stack and stretch to 100% below 768px</span></div>
+          <div class="token-row"><span class="token-prop">Close button</span><span class="token-var">--space-10 → --space-8</span><span class="token-note">40px → 32px</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ TRIGGER & AUTO-OPEN ═══════════════════════════════════════ -->
+    <section class="doc-section" id="trigger">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Trigger &amp; Auto-Open</h2>
+      <p class="section-desc">Mark the root <code>data-auto-open</code> and it opens itself automatically, <strong>1.5 seconds after page load</strong> — long enough that it doesn't feel like it's blocking the page from rendering, short enough to still read as immediate. Only one takeover should be marked <code>data-auto-open</code> per page. A takeover without that attribute is inert until something else calls <code>openTakeover()</code> on it — e.g. a link or a scheduled campaign trigger.</p>
+
+      <div class="ds-card">
+        <div class="card-title">JS — self-initializing on load</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0">document.addEventListener(<span class="t-str">'DOMContentLoaded'</span>, <span class="t-kw">function</span> () {
+  document.querySelectorAll(<span class="t-str">'.ufs-takeover-banner[data-auto-open]'</span>).forEach(<span class="t-kw">function</span> (el) {
+    setTimeout(<span class="t-kw">function</span> () { openTakeover(el); }, 1500);
+  });
+});</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>This spec's own demo instance (see Overview) deliberately omits <code>data-auto-open</code> so it doesn't fire while you're reading — a "Preview the takeover" button calls <code>openTakeover()</code> directly instead. Production usage should use <code>data-auto-open</code>, not a manual trigger.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ COUNTDOWN ═══════════════════════════════════════ -->
+    <section class="doc-section" id="countdown">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Countdown</h2>
+      <p class="section-desc">Set <code>data-countdown-end</code> (an ISO-8601 datetime) on the <code>.ufs-takeover-banner__countdown</code> block and give each digit a <code>[data-tkb-unit]</code> attribute. On load, <code>initTakeoverCountdown()</code> ticks every second toward that timestamp and <strong>freezes at 00:00:00:00</strong> when it's reached — matching Announcement Banner's own countdown behavior, so a promotion ending doesn't cause a surprising layout shift or content loss right as a user is looking at it.</p>
+
+      <div class="ds-card">
+        <div class="card-title">JS — self-initializing on load</div>
+        <div class="card-desc">Runs once per <code>.ufs-takeover-banner__countdown</code> found on the page.</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-kw">function</span> initTakeoverCountdown(countdownEl) {
+  <span class="t-kw">var</span> end = <span class="t-kw">new</span> Date(countdownEl.getAttribute(<span class="t-str">'data-countdown-end'</span>)).getTime();
+  <span class="t-kw">var</span> dayEl = countdownEl.querySelector(<span class="t-str">'[data-tkb-unit="days"]'</span>);
+  <span class="t-kw">var</span> hourEl = countdownEl.querySelector(<span class="t-str">'[data-tkb-unit="hours"]'</span>);
+  <span class="t-kw">var</span> minEl = countdownEl.querySelector(<span class="t-str">'[data-tkb-unit="minutes"]'</span>);
+  <span class="t-kw">var</span> secEl = countdownEl.querySelector(<span class="t-str">'[data-tkb-unit="seconds"]'</span>);
+  <span class="t-kw">function</span> pad(n) { <span class="t-kw">return</span> n &lt; 10 ? <span class="t-str">'0'</span> + n : <span class="t-str">''</span> + n; }
+  <span class="t-kw">function</span> tick() {
+    <span class="t-kw">var</span> diff = end - Date.now();
+    <span class="t-kw">if</span> (diff &lt;= 0) {
+      dayEl.textContent = <span class="t-str">'00'</span>; hourEl.textContent = <span class="t-str">'00'</span>; minEl.textContent = <span class="t-str">'00'</span>; secEl.textContent = <span class="t-str">'00'</span>;
+      clearInterval(timer);
+      <span class="t-kw">return</span>;
+    }
+    <span class="t-kw">var</span> totalSeconds = Math.floor(diff / 1000);
+    dayEl.textContent  = pad(Math.floor(totalSeconds / 86400));
+    hourEl.textContent = pad(Math.floor(totalSeconds % 86400 / 3600));
+    minEl.textContent  = pad(Math.floor(totalSeconds % 3600 / 60));
+    secEl.textContent  = pad(totalSeconds % 60);
+  }
+  tick();
+  <span class="t-kw">var</span> timer = setInterval(tick, 1000);
+}
+document.querySelectorAll(<span class="t-str">'.ufs-takeover-banner__countdown[data-countdown-end]'</span>).forEach(initTakeoverCountdown);</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><strong>Accessibility — do not make the countdown an <code>aria-live</code> region.</strong> A per-second announcement would be read aloud continuously by screen readers. The digits update visually only; the surrounding <code>role="dialog"</code>/<code>aria-labelledby</code> and the CTAs remain the actionable, announced part — same rule already documented for Announcement Banner.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DISMISS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="dismiss">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Dismiss</h2>
+      <p class="section-desc">Three ways to close: the <code>__close</code> button, the <kbd>Esc</kbd> key, or clicking the dimmed backdrop outside the panel. All three call the same <code>closeTakeover()</code>. Dismissal is <strong>session-only</strong> — there's no <code>localStorage</code>/cookie persistence, so the takeover opens again from scratch on the next full page load. That's a deliberate simplicity trade-off, the same one already made for Announcement Banner; per-instance "don't show again for N days" is a reasonable future extension if a specific campaign needs it.</p>
+
+      <div class="ds-card">
+        <div class="card-title">JS — open / close, wired once per instance</div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-kw">function</span> openTakeover(el) {
+  el.classList.add(<span class="t-str">'is-open'</span>);
+  document.body.style.overflow = <span class="t-str">'hidden'</span>;
+  <span class="t-kw">var</span> closeBtn = el.querySelector(<span class="t-str">'.ufs-takeover-banner__close'</span>);
+  <span class="t-kw">if</span> (closeBtn) closeBtn.focus();
+}
+<span class="t-kw">function</span> closeTakeover(el) {
+  el.classList.remove(<span class="t-str">'is-open'</span>);
+  document.body.style.overflow = <span class="t-str">''</span>;
+  document.activeElement.blur();
+}
+
+document.querySelectorAll(<span class="t-str">'.ufs-takeover-banner'</span>).forEach(<span class="t-kw">function</span> (el) {
+  <span class="t-kw">var</span> backdrop = el.querySelector(<span class="t-str">'.ufs-takeover-banner__backdrop'</span>);
+  <span class="t-kw">var</span> closeBtn = el.querySelector(<span class="t-str">'.ufs-takeover-banner__close'</span>);
+  closeBtn.addEventListener(<span class="t-str">'click'</span>, <span class="t-kw">function</span> () { closeTakeover(el); });
+  backdrop.addEventListener(<span class="t-str">'click'</span>, <span class="t-kw">function</span> () { closeTakeover(el); });
+});
+document.addEventListener(<span class="t-str">'keydown'</span>, <span class="t-kw">function</span> (e) {
+  <span class="t-kw">if</span> (e.key !== <span class="t-str">'Escape'</span>) <span class="t-kw">return</span>;
+  document.querySelectorAll(<span class="t-str">'.ufs-takeover-banner.is-open'</span>).forEach(<span class="t-kw">function</span> (el) { closeTakeover(el); });
+});</pre>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div><strong>Focus on open/close:</strong> opening moves focus to the close button (the natural first stop in a dialog with no form field); closing blurs the active element first, matching the pattern already documented for Announcement Banner's close button, so focus never dangles on a control that's about to become inert.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ BACKGROUND ═══════════════════════════════════════ -->
+    <section class="doc-section" id="background">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Background</h2>
+      <p class="section-desc"><code>__media</code> accepts either a static <code>&lt;img&gt;</code> or a looping <code>&lt;video&gt;</code> as its first child — same <code>position:absolute; inset:0; object-fit:cover</code> rule as Campaign Hero's own <code>__media</code>, so no modifier class is needed to switch between them.</p>
+
+      <div class="notice notice--warn" style="margin-bottom:24px;">
+        <span class="notice-icon">⚠️</span>
+        <div>The Figma reference for this component (the "Future Menus" campaign) layers 5-6 separate photos into a hand-built collage behind the card. That's bespoke art direction for one campaign's creative, not part of the reusable component — <code>__media</code> takes a single flattened image (or video) export, the same contract as Campaign Hero's background.</div>
+      </div>
+
+      <div class="ds-card">
+        <div class="pv-label">Static image background</div>
+        <div class="pv-dark">
+          <div class="ufs-takeover-banner__panel" style="min-height:420px;">
+            <div class="ufs-takeover-banner__media" aria-hidden="true">
+              <img src="images/academy/promo-banner-courses.jpg" alt="" />
+              <div class="ufs-takeover-banner__scrim"></div>
+            </div>
+            <button type="button" class="ufs-takeover-banner__close" aria-label="Close">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+            </button>
+            <div class="ufs-takeover-banner__content">
+              <div class="ufs-takeover-banner__heading">
+                <h2 class="ufs-takeover-banner__title">Certified Professional Chef Training</h2>
+                <p class="ufs-takeover-banner__desc">Our team of industry professionals are waiting to teach you skills, tips &amp; tricks you can use right now.</p>
+              </div>
+              <div class="ufs-takeover-banner__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">Discover More Than 100 Courses</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">&lt;!-- Static image --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__media"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"background.jpg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span> <span class="t-tag">/&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__scrim"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span>
+
+<span class="t-cm">&lt;!-- Video — same __media wrapper, muted/looping/decorative --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__media"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;video</span> <span class="t-at">autoplay</span> <span class="t-at">muted</span> <span class="t-at">loop</span> <span class="t-at">playsinline</span> <span class="t-at">poster</span>=<span class="t-str">"fallback.jpg"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;source</span> <span class="t-at">src</span>=<span class="t-str">"background.mp4"</span> <span class="t-at">type</span>=<span class="t-str">"video/mp4"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/video&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-takeover-banner__scrim"</span><span class="t-tag">&gt;&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CONTENT COMBINATIONS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="content">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Content Combinations</h2>
+      <p class="section-desc">Only <code>__title</code>, the primary <code>.btn</code> in <code>__ctas</code>, and the <code>__close</code> button are required — every other piece is a plain content omission, not a modifier class. Unlike Campaign Hero, the close button is never optional here: a full-page takeover must always give the user an explicit way out.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Minimal — title, primary CTA and close button only</div>
+        <div class="pv-dark">
+          <div class="ufs-takeover-banner__panel">
+            <div class="ufs-takeover-banner__media" aria-hidden="true">
+              <img src="images/banners/takeover.jpg" alt="" />
+              <div class="ufs-takeover-banner__scrim"></div>
+            </div>
+            <button type="button" class="ufs-takeover-banner__close" aria-label="Close">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+            </button>
+            <div class="ufs-takeover-banner__content">
+              <div class="ufs-takeover-banner__heading">
+                <h2 class="ufs-takeover-banner__title">Future Menus Vol. 4</h2>
+              </div>
+              <div class="ufs-takeover-banner__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">Sign up and be the first to know</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>Dropping the countdown/description/logo doesn't leave stray gaps — <code>__content</code>'s own <code>gap: var(--space-6)</code> only applies between whatever children are actually present, same as Campaign Hero.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">Below <code>768px</code>, the panel radius tightens, type steps down, and the CTA row stacks full-width — see Desktop &amp; Mobile Layout above for the full token list. These previews force the mobile CSS at any window width by re-declaring the panel's own <code>@media (max-width:768px)</code> rules scoped to <code>.pv-mobile</code> — the same doc-only technique used on every other spec page.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Full content, forced ≤768px width</div>
+        <div class="pv-mobile pv-dark" style="margin-bottom:24px;">
+          <div class="ufs-takeover-banner__panel">
+            <div class="ufs-takeover-banner__media" aria-hidden="true">
+              <img src="images/banners/takeover.jpg" alt="" />
+              <div class="ufs-takeover-banner__scrim"></div>
+            </div>
+            <button type="button" class="ufs-takeover-banner__close" aria-label="Close">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+            </button>
+            <div class="ufs-takeover-banner__content">
+              <img class="ufs-takeover-banner__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+              <div class="ufs-takeover-banner__heading">
+                <h2 class="ufs-takeover-banner__title">Future Menus Vol. 4</h2>
+                <p class="ufs-takeover-banner__desc">Your guide to future trends in recipes, from across the globe</p>
+              </div>
+              <div class="ufs-takeover-banner__countdown" role="group" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
+                <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-takeover-banner__countdown-value text-price-xl">18</p>
+                  <p class="ufs-takeover-banner__countdown-label text-body-sm">Days</p>
+                </div>
+                <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-takeover-banner__countdown-value text-price-xl">23</p>
+                  <p class="ufs-takeover-banner__countdown-label text-body-sm">Hours</p>
+                </div>
+                <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-takeover-banner__countdown-value text-price-xl">58</p>
+                  <p class="ufs-takeover-banner__countdown-label text-body-sm">Minutes</p>
+                </div>
+                <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+                  <p class="ufs-takeover-banner__countdown-value text-price-xl">16</p>
+                  <p class="ufs-takeover-banner__countdown-label text-body-sm">Seconds</p>
+                </div>
+              </div>
+              <div class="ufs-takeover-banner__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">Sign up and be the first to know</button>
+                <button type="button" class="btn btn-secondary">Download Report</button>
+              </div>
+              <p class="ufs-takeover-banner__disclaimer">*Disclamer text area option for any legal notes</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N / RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Layout is direction-agnostic by construction: everything is centred flexbox, and the one offset that matters — the close button's corner position — uses <code>inset-inline-end</code> rather than a physical <code>right</code>, so it flips to the visual left automatically under <code>dir="rtl"</code> with no separate override rule needed. Route every visible string through the same <code>data-i18n</code> mechanism as the rest of the header/footer/Announcement Banner.</div>
+
+      <div class="ds-card">
+        <div class="pv-label">RTL — close button flips to the visual left automatically</div>
+        <div class="pv-dark">
+          <div class="ufs-takeover-banner__panel" style="min-height:420px;" dir="rtl">
+            <div class="ufs-takeover-banner__media" aria-hidden="true">
+              <img src="images/banners/takeover.jpg" alt="" />
+              <div class="ufs-takeover-banner__scrim"></div>
+            </div>
+            <button type="button" class="ufs-takeover-banner__close" aria-label="إغلاق">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+            </button>
+            <div class="ufs-takeover-banner__content">
+              <div class="ufs-takeover-banner__heading">
+                <h2 class="ufs-takeover-banner__title">أحدث الوصفات</h2>
+                <p class="ufs-takeover-banner__desc">دليلك لأحدث اتجاهات الوصفات من جميع أنحاء العالم</p>
+              </div>
+              <div class="ufs-takeover-banner__ctas btn-on-dark">
+                <button type="button" class="btn btn-primary">سجل الآن</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">/* inset-inline-end already resolves to "left" under dir="rtl" —
+   no [dir="rtl"] override rule needed, unlike the breadcrumb/nav
+   which use physical left/right and need explicit flips. */</span>
+<span class="t-pr">.ufs-takeover-banner__close</span> { <span class="t-pr">inset-inline-end</span>: <span class="t-va">var(--space-4)</span>; }</pre>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Live demo instance for the Overview section's "Preview the takeover" button.
+       No data-auto-open on purpose — see the Trigger & Auto-Open notice above. -->
+  <div class="ufs-takeover-banner" id="demo-takeover" role="dialog" aria-modal="true" aria-labelledby="demo-takeover-title">
+    <div class="ufs-takeover-banner__backdrop"></div>
+    <div class="ufs-takeover-banner__panel">
+      <div class="ufs-takeover-banner__media" aria-hidden="true">
+        <img src="images/banners/takeover.jpg" alt="" />
+        <div class="ufs-takeover-banner__scrim"></div>
+      </div>
+      <button type="button" class="ufs-takeover-banner__close" aria-label="Close">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg>
+      </button>
+      <div class="ufs-takeover-banner__content">
+        <img class="ufs-takeover-banner__logo" src="images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+        <div class="ufs-takeover-banner__heading">
+          <h2 id="demo-takeover-title" class="ufs-takeover-banner__title">Future Menus Vol. 4</h2>
+          <p class="ufs-takeover-banner__desc">Your guide to future trends in recipes, from across the globe</p>
+        </div>
+        <div class="ufs-takeover-banner__countdown" data-countdown-end="2026-10-15T00:00:00" role="group" aria-label="Countdown to offer end">
+          <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+            <p class="ufs-takeover-banner__countdown-value text-price-xl" data-tkb-unit="days">00</p>
+            <p class="ufs-takeover-banner__countdown-label text-body-sm">Days</p>
+          </div>
+          <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+            <p class="ufs-takeover-banner__countdown-value text-price-xl" data-tkb-unit="hours">00</p>
+            <p class="ufs-takeover-banner__countdown-label text-body-sm">Hours</p>
+          </div>
+          <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+            <p class="ufs-takeover-banner__countdown-value text-price-xl" data-tkb-unit="minutes">00</p>
+            <p class="ufs-takeover-banner__countdown-label text-body-sm">Minutes</p>
+          </div>
+          <div class="ufs-takeover-banner__countdown-item" aria-hidden="true">
+            <p class="ufs-takeover-banner__countdown-value text-price-xl" data-tkb-unit="seconds">00</p>
+            <p class="ufs-takeover-banner__countdown-label text-body-sm">Seconds</p>
+          </div>
+        </div>
+        <div class="ufs-takeover-banner__ctas btn-on-dark">
+          <button type="button" class="btn btn-primary">Sign up and be the first to know</button>
+          <button type="button" class="btn btn-secondary">Download Report</button>
+        </div>
+        <p class="ufs-takeover-banner__disclaimer">*Disclamer text area option for any legal notes</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    /* ── Takeover Banner: open/close, countdown, Esc, outside-click ────── */
+    function openTakeover(el) {
+      el.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      var closeBtn = el.querySelector('.ufs-takeover-banner__close');
+      if (closeBtn) closeBtn.focus();
+    }
+    function closeTakeover(el) {
+      el.classList.remove('is-open');
+      document.body.style.overflow = '';
+      document.activeElement.blur();
+    }
+    document.querySelectorAll('.ufs-takeover-banner').forEach(function (el) {
+      var backdrop = el.querySelector('.ufs-takeover-banner__backdrop');
+      var closeBtn = el.querySelector('.ufs-takeover-banner__close');
+      if (closeBtn) closeBtn.addEventListener('click', function () { closeTakeover(el); });
+      if (backdrop) backdrop.addEventListener('click', function () { closeTakeover(el); });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      document.querySelectorAll('.ufs-takeover-banner.is-open').forEach(function (el) { closeTakeover(el); });
+    });
+
+    function initTakeoverCountdown(countdownEl) {
+      var end = new Date(countdownEl.getAttribute('data-countdown-end')).getTime();
+      var dayEl = countdownEl.querySelector('[data-tkb-unit="days"]');
+      var hourEl = countdownEl.querySelector('[data-tkb-unit="hours"]');
+      var minEl = countdownEl.querySelector('[data-tkb-unit="minutes"]');
+      var secEl = countdownEl.querySelector('[data-tkb-unit="seconds"]');
+      function pad(n) { return n < 10 ? '0' + n : '' + n; }
+      function tick() {
+        var diff = end - Date.now();
+        if (diff <= 0) {
+          dayEl.textContent = '00'; hourEl.textContent = '00'; minEl.textContent = '00'; secEl.textContent = '00';
+          clearInterval(timer);
+          return;
+        }
+        var totalSeconds = Math.floor(diff / 1000);
+        dayEl.textContent  = pad(Math.floor(totalSeconds / 86400));
+        hourEl.textContent = pad(Math.floor(totalSeconds % 86400 / 3600));
+        minEl.textContent  = pad(Math.floor(totalSeconds % 3600 / 60));
+        secEl.textContent  = pad(totalSeconds % 60);
+      }
+      tick();
+      var timer = setInterval(tick, 1000);
+    }
+    document.querySelectorAll('.ufs-takeover-banner__countdown[data-countdown-end]').forEach(initTakeoverCountdown);
+  </script>
+</body>
+</html>
