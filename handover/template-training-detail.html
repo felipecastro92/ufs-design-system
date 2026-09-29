@@ -2505,6 +2505,31 @@
        would overflow; scaling to fit fits the brief's own "mobile" framing. */
     .reg-otp-subtitle { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin-bottom: var(--space-2); }
     .fi-field--textarea { height: 96px; padding-top: var(--space-3); resize: vertical; font-family: var(--font-family); }
+    /* ── Email link verification (reg-step-verify-link) ── */
+    .reg-verified-note {
+      display: flex; align-items: center; gap: var(--space-2);
+      padding: var(--space-2) var(--space-3); margin-bottom: var(--space-5);
+      border-radius: var(--radius-sm); background: color-mix(in srgb, var(--color-success) 14%, transparent);
+      font-size: var(--text-body-sm-size); font-weight: 600; color: var(--color-brand-dark);
+    }
+    .reg-verified-note[hidden] { display: none; }
+    /* Same resend/hint pattern as the OTP step, minus the digit boxes'
+       spacing — and the hint here is a neutral confirmation ("We've sent
+       you a new email"), not an error. */
+    #reg-step-verify-link .reg-otp-resend { margin-bottom: var(--space-2); }
+    #reg-step-verify-link .reg-otp-hint { color: var(--color-mushroom-900); margin-bottom: var(--space-6); }
+    .reg-verified-note img { width: 16px; height: 16px; }
+    /* Prototype-only control — dashed, labelled, visually separate from
+       the real screen so it can't be mistaken for production UI. */
+    .reg-demo-only {
+      margin-top: var(--space-6); padding: var(--space-4);
+      border: 1px dashed var(--color-mushroom-700); border-radius: var(--radius-sm);
+      display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3);
+    }
+    .reg-demo-only-tag {
+      font-family: var(--font-family-mono, monospace); font-size: 10px; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-mushroom-900);
+    }
     .reg-otp-change-line { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin-bottom: var(--space-7); }
     .reg-otp-boxes { display: flex; gap: var(--space-4); margin-bottom: var(--space-2); }
     .reg-otp-box {
@@ -5502,11 +5527,41 @@
         </div>
       </div>
 
+      <!-- EMAIL LINK VERIFICATION — replaces reg-step-otp on the Email tab
+           when the page sets SIGNIN_EMAIL_VERIFY = 'link' (see
+           regEmailVerifyMode()). Used for both new-account verification
+           and Forgot password; the Mobile number tab always keeps the SMS
+           code (reg-step-otp). In production the link in the email brings
+           the person back to the site with the panel open on Account
+           details (or New password); the prototype simulates that with the
+           demo-only button below. -->
+      <div id="reg-step-verify-link" style="display:none">
+        <h2 class="signin-panel-title">Please check your email</h2>
+        <p class="reg-otp-subtitle">We have sent a verification email to <strong id="reg-link-email-display">email@email.com</strong><span id="reg-link-subtitle-suffix"> - click the link to verify your email.</span></p>
+        <p class="reg-otp-change-line">Not your email? <button type="button" class="reg-email-edit" onclick="regEditEmail()">Change it</button></p>
+        <p class="reg-otp-resend">Can&rsquo;t find it in your inbox or Spam folder? <button type="button" class="reg-otp-resend-link" id="reg-link-resend-btn" disabled onclick="regResendLink()">Resend</button><span id="reg-link-timer"></span></p>
+        <div class="reg-otp-hint" id="reg-link-hint" aria-live="polite"></div>
+        <div class="reg-otp-info">
+          <img class="reg-otp-info-icon" src="icons/info.svg" alt=""/>
+          <div>
+            <div class="reg-otp-info-title">Why are we asking for this?</div>
+            <div class="reg-otp-info-desc" id="reg-link-info-desc">Verifying your email helps us keep your account secure and makes sure you never miss important order and account updates.</div>
+          </div>
+        </div>
+        <!-- PROTOTYPE ONLY — not part of the production screen. Stands in
+             for the person clicking the link in their inbox. -->
+        <div class="reg-demo-only">
+          <span class="reg-demo-only-tag">Prototype only</span>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="regSimulateLinkClick()">Simulate clicking the link in the email</button>
+        </div>
+      </div>
+
       <!-- JOURNEY 6 — Forgot password, continued: reached after OTP
            verification. Same password-strength-checklist pattern as
            reg-step-password, own ids since it's independent state (no
            confirm-password field, matching that step's own convention). -->
       <div id="reg-step-new-password" style="display:none">
+        <div class="reg-verified-note" id="reg-newpw-verified-note" hidden><img src="icons/check.svg" alt=""/>Email verified</div>
         <h2 class="signin-panel-title">Set a new password</h2>
         <div class="reg-password-block" id="reg-newpw-block" style="margin-bottom:var(--space-5)">
           <div class="fi-wrap">
@@ -5527,6 +5582,7 @@
 
       <!-- STEP 2 — business / account details -->
       <div id="reg-step-account" style="display:none">
+        <div class="reg-verified-note" id="reg-account-verified-note" hidden><img src="icons/check.svg" alt=""/>Email verified</div>
         <h2 class="signin-panel-title">Create an account</h2>
         <div class="reg-email-chip" id="reg-account-email-chip">
           <span id="reg-email-display">email@email.com</span>
@@ -6676,6 +6732,16 @@
                    desc: 'Join over 1 million chefs already getting inspired.',
                    success: 'Tap the heart to save favourites — they\'ll be waiting in your profile.' }
     };
+    /* Email verification method — 'otp' (6-digit code, default) or 'link'
+       (verification email with a link, reg-step-verify-link). A page opts
+       into the link variant by declaring SIGNIN_EMAIL_VERIFY = 'link' in
+       its own STATE block (currently template-landing.html only). Applies
+       to the Email tab only — the Mobile number tab always uses the SMS
+       code — and to Forgot password. */
+    function regEmailVerifyMode() {
+      return (typeof SIGNIN_EMAIL_VERIFY !== 'undefined' && SIGNIN_EMAIL_VERIFY === 'link') ? 'link' : 'otp';
+    }
+
     function regApplyFlowContextCopy() {
       var copy    = REG_CONTEXT_COPY[regFlowContext] || {};
       var titleEl = document.getElementById('reg-step-email-title');
@@ -7009,7 +7075,10 @@
         // 'sample' context skips verification entirely (falls through to
         // Account details below) — requesting a sample doesn't verify the
         // contact method first.
-        regGoToOtp();
+        // Email tab on a page using link verification → verification
+        // email instead of the 6-digit code.
+        if (regActiveContactTab === 'email' && regEmailVerifyMode() === 'link') regGoToVerifyLink(false);
+        else regGoToOtp();
       } else {
         document.getElementById('reg-step-account').style.display = '';
         regUpdateAccountContactField();
@@ -7022,7 +7091,9 @@
       document.getElementById('reg-step-login').style.display        = 'none';
       document.getElementById('reg-step-otp').style.display          = 'none';
       document.getElementById('reg-step-new-password').style.display = 'none';
+      document.getElementById('reg-step-verify-link').style.display  = 'none';
       if (regOtpTimer) { clearInterval(regOtpTimer); regOtpTimer = null; }
+      regLinkStop();
       document.getElementById('reg-step-email').style.display    = '';
       document.getElementById('signin-panel-body').scrollTop = 0;
     }
@@ -7042,7 +7113,8 @@
       document.getElementById('reg-otp-change-label').textContent = 'email';
       document.getElementById('reg-otp-info-desc').textContent = 'Verifying your email helps us confirm it’s really you before resetting your password.';
       document.getElementById('reg-step-login').style.display = 'none';
-      regGoToOtp();
+      if (regEmailVerifyMode() === 'link') regGoToVerifyLink(true);
+      else regGoToOtp();
     }
 
     function regCheckNewPassword() {
@@ -7724,6 +7796,12 @@
 
       // Journey 3 — Email verification / OTP
       if (regOtpTimer) { clearInterval(regOtpTimer); regOtpTimer = null; }
+      // Email link verification
+      regLinkStop();
+      document.getElementById('reg-step-verify-link').style.display = 'none';
+      document.getElementById('reg-link-hint').textContent = '';
+      document.getElementById('reg-account-verified-note').hidden = true;
+      document.getElementById('reg-newpw-verified-note').hidden = true;
       document.querySelectorAll('.reg-otp-box').forEach(function(b) {
         b.value = ''; b.disabled = false;
         b.classList.remove('is-filled', 'is-error');
@@ -7847,6 +7925,90 @@
       document.getElementById('reg-account-summary-business').textContent = [bizTypeLabel, jobTitleLabel].filter(Boolean).join(' · ');
     }
 
+    /* ── Email link verification ── */
+    var regLinkTimer = null;
+    var regLinkSecondsLeft = 0;
+
+    // isReset: Forgot password (reset-flavoured copy, lands on New
+    // password) vs. new-account verification (lands on Account details).
+    function regGoToVerifyLink(isReset) {
+      document.getElementById('reg-link-email-display').textContent =
+        document.getElementById(isReset ? 'reg-login-email-display' : 'reg-email-display').textContent;
+      document.getElementById('reg-link-subtitle-suffix').textContent = isReset
+        ? ' - click the link to reset your password.'
+        : ' - click the link to verify your email.';
+      document.getElementById('reg-link-info-desc').textContent = isReset
+        ? 'Verifying your email helps us confirm it’s really you before resetting your password.'
+        : 'Verifying your email helps us keep your account secure and makes sure you never miss important order and account updates.';
+      document.getElementById('reg-link-hint').textContent = '';
+      document.getElementById('reg-step-verify-link').style.display = '';
+      document.getElementById('signin-panel-body').scrollTop = 0;
+      regLinkStart();
+    }
+
+    function regLinkStart() {
+      regLinkSecondsLeft = 59;
+      regLinkUpdateTimer();
+      if (regLinkTimer) clearInterval(regLinkTimer);
+      regLinkTimer = setInterval(function() {
+        regLinkSecondsLeft--;
+        regLinkUpdateTimer();
+        if (regLinkSecondsLeft <= 0) { clearInterval(regLinkTimer); regLinkTimer = null; }
+      }, 1000);
+    }
+
+    function regLinkStop() {
+      if (regLinkTimer) { clearInterval(regLinkTimer); regLinkTimer = null; }
+    }
+
+    // Same "Resend in 00:59" → "Resend" pattern as the OTP step.
+    function regLinkUpdateTimer() {
+      var resendBtn = document.getElementById('reg-link-resend-btn');
+      var timerEl   = document.getElementById('reg-link-timer');
+      if (regLinkSecondsLeft > 0) {
+        resendBtn.disabled = true;
+        var m = Math.floor(regLinkSecondsLeft / 60), s = regLinkSecondsLeft % 60;
+        timerEl.textContent = ' in ' + (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
+      } else {
+        resendBtn.disabled = false;
+        timerEl.textContent = '';
+      }
+    }
+
+    function regResendLink() {
+      if (document.getElementById('reg-link-resend-btn').disabled) return;
+      regLinkStart();
+      document.getElementById('reg-link-hint').textContent = 'We’ve sent you a new email.';
+    }
+
+    /* PROTOTYPE ONLY — stands in for clicking the link in the email. In
+       production the link opens the site (new tab/page load) with the
+       panel already open on the next step and the email marked verified.
+       Simulated here as: panel closes (person leaves for their inbox),
+       then reopens on Account details — or New password for a reset —
+       with an "Email verified" confirmation at the top. */
+    function regSimulateLinkClick() {
+      regLinkStop();
+      var isReset = regJourney === 'forgot-password';
+      closeSignIn();
+      setTimeout(function() {
+        window.scrollTo(0, 0);
+        document.getElementById('reg-step-verify-link').style.display = 'none';
+        if (isReset) {
+          document.getElementById('reg-step-new-password').style.display = '';
+          document.getElementById('reg-newpw-verified-note').hidden = false;
+        } else {
+          document.getElementById('reg-step-account').style.display = '';
+          document.getElementById('reg-account-verified-note').hidden = false;
+          regUpdateAccountContactField();
+        }
+        document.getElementById('signin-backdrop').classList.add('is-open');
+        document.getElementById('signin-panel').classList.add('is-open');
+        document.body.style.overflow = 'hidden';
+        document.getElementById('signin-panel-body').scrollTop = 0;
+      }, 700);
+    }
+
     /* ── 'sample' context — consulting questions → sample confirmation ── */
     function regShowSampleQuestions() {
       document.getElementById('reg-step-sample-questions').style.display = '';
@@ -7887,7 +8049,7 @@
       document.getElementById('signin-backdrop').classList.add('is-open');
       document.getElementById('signin-panel').classList.add('is-open');
       document.body.style.overflow = 'hidden';
-      ['reg-step-email', 'reg-step-login', 'reg-step-otp', 'reg-step-new-password', 'reg-step-account', 'reg-step-password', 'reg-step-extra', 'reg-step-success', 'reg-step-sample-success'].forEach(function(id) {
+      ['reg-step-email', 'reg-step-login', 'reg-step-otp', 'reg-step-verify-link', 'reg-step-new-password', 'reg-step-account', 'reg-step-password', 'reg-step-extra', 'reg-step-success', 'reg-step-sample-success'].forEach(function(id) {
         document.getElementById(id).style.display = 'none';
       });
       regShowSampleQuestions();
