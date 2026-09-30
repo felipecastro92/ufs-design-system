@@ -3517,7 +3517,12 @@
       .ufs-tabs__btn.is-active::after { left: var(--space-4); right: var(--space-4); }
     }
 
-    /* Card shell — every left/right-column block on the profile pages */
+    /* ================================================================
+       PROFILE CARD — see handover/profile-card-spec.html. Two variants:
+       .p-card--link (header links to its section, Overview) and
+       .p-card--accordion (static on desktop, one-open accordion at
+       ≤1023px, My profile / My Orders — driven by initProfileCards()).
+    ================================================================ */
     .p-card {
       background: var(--color-salt);
       border: 1px solid var(--color-mushroom-500);
@@ -3526,28 +3531,47 @@
       margin-bottom: var(--space-6);
     }
     .p-card:last-child { margin-bottom: 0; }
+    .p-card-heading { margin: 0; font: inherit; }
     .p-card-hdr {
+      width: 100%; box-sizing: border-box;
       background: var(--color-mushroom-100);
       display: flex; align-items: center; justify-content: space-between;
-      width: 100%;
       padding: var(--space-4) var(--space-3);
-      border: none; text-align: left; font: inherit;
+      border: none; font: inherit; text-align: start;
       text-decoration: none; color: inherit;
-      cursor: pointer;
       transition: background 0.18s;
     }
-    .p-card-hdr:hover { background: color-mix(in srgb, var(--color-mushroom-100) 90%, #000); }
-    .p-card-arrow { display: flex; align-items: center; transition: transform 0.18s; }
-    .p-card-hdr:hover .p-card-arrow { transform: translateX(5px); }
-    .p-card-arrow img { width: 24px; height: 24px; display: block; }
+    .p-card-hdr:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: -2px; }
     .p-card-title {
-      display: flex; align-items: center; gap: var(--space-1);
+      display: flex; align-items: center; gap: var(--space-1); margin: 0;
       font-size: var(--text-overline-size); font-weight: var(--text-overline-w);
       line-height: var(--text-overline-lh); letter-spacing: var(--text-overline-ls);
       text-transform: uppercase; color: var(--color-brand-dark);
     }
     .p-card-title img { width: 24px; height: 24px; display: block; }
     .p-card-body { padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+
+    /* Link variant */
+    .p-card--link .p-card-hdr { cursor: pointer; }
+    .p-card--link .p-card-hdr:hover { background: color-mix(in srgb, var(--color-mushroom-100) 90%, #000); }
+    .p-card-arrow { display: flex; align-items: center; transition: transform 0.18s; }
+    .p-card--link .p-card-hdr:hover .p-card-arrow { transform: translateX(5px); }
+    .p-card-arrow img { width: 24px; height: 24px; display: block; }
+    [dir="rtl"] .p-card-arrow img { transform: scaleX(-1); }
+    [dir="rtl"] .p-card--link .p-card-hdr:hover .p-card-arrow { transform: translateX(-5px); }
+
+    /* Accordion variant — static on desktop, collapses at ≤1023px */
+    .p-card--accordion .p-card-hdr:disabled { cursor: default; color: inherit; opacity: 1; }
+    .p-card-chevron { display: none; align-items: center; flex-shrink: 0; transition: transform 0.25s; color: var(--color-brand-dark); }
+    @media (max-width: 1023px) {
+      .p-card--accordion .p-card-hdr { cursor: pointer; }
+      .p-card--accordion .p-card-hdr:hover { background: color-mix(in srgb, var(--color-mushroom-100) 90%, #000); }
+      .p-card--accordion .p-card-chevron { display: flex; }
+      .p-card--accordion.p-card--open .p-card-chevron { transform: rotate(180deg); }
+      .p-card--accordion.p-card--open .p-card-title { color: var(--color-accessible-orange); }
+      .p-card--accordion .p-card-body { padding: 0 var(--space-5); max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s 0.35s; }
+      .p-card--accordion.p-card--open .p-card-body { max-height: 3000px; padding: var(--space-4) var(--space-5) var(--space-5); transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s; }
+    }
 
     /* My Profile card body */
     .pg-profile-user { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-1) 0 0; }
@@ -3809,18 +3833,6 @@
     .pg-mobile-save-bar .btn { flex: 1; justify-content: center; }
     @media (max-width: 768px) { .pg-mobile-save-bar { display: flex; } .pg-save-bar { display: none; } }
 
-    /* Accordion — mobile only, one .p-card open at a time. .p-card-hdr/
-       -title/-body reuse the shared shell's own definitions unchanged;
-       only the toggle-specific pieces below are new to this page. */
-    .p-card-chevron { display: none; align-items: center; flex-shrink: 0; transition: transform 0.25s; color: var(--color-brand-dark); }
-    @media (max-width: 768px) {
-      .p-card-hdr { cursor: pointer; }
-      .p-card-chevron { display: flex; }
-      .p-card--open .p-card-chevron { transform: rotate(180deg); }
-      .p-card--open .p-card-title { color: var(--color-accessible-orange); }
-      .p-card-body { padding: 0; max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s 0.35s; }
-      .p-card--open .p-card-body { max-height: 3000px; padding: var(--space-4) var(--space-5) var(--space-5); transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s; }
-    }
 
   </style>
 </head>
@@ -4524,17 +4536,19 @@
           <div class="pg-profile-left">
 
             <!-- Basic information -->
-            <div class="p-card p-card--open">
-              <button class="p-card-hdr" type="button" aria-expanded="true">
-                <div class="p-card-title">
-                  <img src="icons/profile.svg" alt="" />
-                  Basic information
-                </div>
-                <span class="p-card-chevron" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-              </button>
-              <div class="p-card-body">
+            <section class="p-card p-card--accordion p-card--open">
+              <h2 class="p-card-heading">
+                <button class="p-card-hdr" type="button" aria-controls="card-basic-information-body">
+                  <span class="p-card-title">
+                    <img src="icons/profile.svg" alt="" />
+                    Basic information
+                  </span>
+                  <span class="p-card-chevron" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </button>
+              </h2>
+              <div class="p-card-body" id="card-basic-information-body">
 
                 <div class="fi-wrap">
                   <label class="fi-label" for="pd-email">Email address</label>
@@ -4573,20 +4587,22 @@
                 </div>
 
               </div>
-            </div>
+            </section>
 
             <!-- My Kitchen -->
-            <div class="p-card">
-              <button class="p-card-hdr" type="button" aria-expanded="false">
-                <div class="p-card-title">
-                  <img src="icons/flame.svg" alt="" />
-                  My Kitchen
-                </div>
-                <span class="p-card-chevron" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-              </button>
-              <div class="p-card-body">
+            <section class="p-card p-card--accordion">
+              <h2 class="p-card-heading">
+                <button class="p-card-hdr" type="button" aria-controls="card-my-kitchen-body">
+                  <span class="p-card-title">
+                    <img src="icons/flame.svg" alt="" />
+                    My Kitchen
+                  </span>
+                  <span class="p-card-chevron" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </button>
+              </h2>
+              <div class="p-card-body" id="card-my-kitchen-body">
 
                 <div class="fi-wrap">
                   <label class="fi-label" for="pd-kitchen-search">Search business address</label>
@@ -4649,7 +4665,7 @@
                 </div>
 
               </div>
-            </div>
+            </section>
 
             <!-- Desktop sticky save bar (hidden on mobile) -->
             <div class="pg-save-bar">
@@ -4665,17 +4681,19 @@
           <div class="pg-profile-right">
 
             <!-- Preferences -->
-            <div class="p-card">
-              <button class="p-card-hdr" type="button" aria-expanded="false">
-                <div class="p-card-title">
-                  <img src="icons/settings.svg" alt="" />
-                  Preferences
-                </div>
-                <span class="p-card-chevron" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-              </button>
-              <div class="p-card-body">
+            <section class="p-card p-card--accordion">
+              <h2 class="p-card-heading">
+                <button class="p-card-hdr" type="button" aria-controls="card-preferences-body">
+                  <span class="p-card-title">
+                    <img src="icons/settings.svg" alt="" />
+                    Preferences
+                  </span>
+                  <span class="p-card-chevron" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </button>
+              </h2>
+              <div class="p-card-body" id="card-preferences-body">
 
                 <div class="pg-pref-section">
                   <span class="pg-pref-section-label">Account Security</span>
@@ -4728,17 +4746,19 @@
                 </div>
 
               </div>
-            </div>
+            </section>
 
             <!-- Delete account -->
-            <div class="p-card">
-              <button class="p-card-hdr" type="button" aria-expanded="false">
-                <div class="p-card-title">Delete account</div>
-                <span class="p-card-chevron" aria-hidden="true">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                </span>
-              </button>
-              <div class="p-card-body">
+            <section class="p-card p-card--accordion">
+              <h2 class="p-card-heading">
+                <button class="p-card-hdr" type="button" aria-controls="card-delete-account-body">
+                  <span class="p-card-title">Delete account</span>
+                  <span class="p-card-chevron" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </span>
+                </button>
+              </h2>
+              <div class="p-card-body" id="card-delete-account-body">
                 <div class="pg-delete-content">
                   <div class="pg-delete-intro-group">
                     <p class="pg-delete-intro">With your account, you get:</p>
@@ -4768,7 +4788,7 @@
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
           </div><!-- /pg-profile-right -->
 
@@ -4795,22 +4815,35 @@
       });
     });
 
-    // Accordion — one section open at a time (mobile only; desktop headers
-    // are non-interactive via CSS, .p-card-hdr cursor stays default there)
-    document.querySelectorAll('.p-card-hdr').forEach(function(hdr) {
-      hdr.addEventListener('click', function() {
-        var card = this.closest('.p-card');
-        var isOpen = card.classList.contains('p-card--open');
-        document.querySelectorAll('.p-card').forEach(function(c) {
-          c.classList.remove('p-card--open');
-          c.querySelector('.p-card-hdr').setAttribute('aria-expanded', 'false');
+    /* Profile cards — accordion behaviour, see handover/profile-card-spec.html.
+       Accordion cards are only interactive at ≤1023px; on desktop each
+       header button is disabled (static card, no aria-expanded). One card
+       open at a time across the page. */
+    function initProfileCards(root) {
+      var mq = window.matchMedia('(max-width: 1023px)');
+      var cards = [].slice.call(root.querySelectorAll('.p-card--accordion'));
+      if (!cards.length) return;
+      function sync() {
+        cards.forEach(function (card) {
+          var hdr = card.querySelector('.p-card-hdr');
+          hdr.disabled = !mq.matches;
+          if (mq.matches) hdr.setAttribute('aria-expanded', card.classList.contains('p-card--open'));
+          else hdr.removeAttribute('aria-expanded');
         });
-        if (!isOpen) {
-          card.classList.add('p-card--open');
-          this.setAttribute('aria-expanded', 'true');
-        }
+      }
+      cards.forEach(function (card) {
+        card.querySelector('.p-card-hdr').addEventListener('click', function () {
+          var wasOpen = card.classList.contains('p-card--open');
+          cards.forEach(function (c) { c.classList.remove('p-card--open'); });
+          if (!wasOpen) card.classList.add('p-card--open');
+          sync();
+        });
       });
-    });
+      if (!root.querySelector('.p-card--accordion.p-card--open')) cards[0].classList.add('p-card--open');
+      mq.addEventListener('change', sync);
+      sync();
+    }
+    initProfileCards(document.querySelector('.pg-profile-wrap'));
 
     // Enable Save buttons on any form input change
     document.getElementById('pd-form').addEventListener('input', function() {

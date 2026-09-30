@@ -3452,7 +3452,12 @@
       .ufs-tabs__btn.is-active::after { left: var(--space-4); right: var(--space-4); }
     }
 
-    /* Card shell — every left/right-column block on the profile pages */
+    /* ================================================================
+       PROFILE CARD — see handover/profile-card-spec.html. Two variants:
+       .p-card--link (header links to its section, Overview) and
+       .p-card--accordion (static on desktop, one-open accordion at
+       ≤1023px, My profile / My Orders — driven by initProfileCards()).
+    ================================================================ */
     .p-card {
       background: var(--color-salt);
       border: 1px solid var(--color-mushroom-500);
@@ -3461,26 +3466,47 @@
       margin-bottom: var(--space-6);
     }
     .p-card:last-child { margin-bottom: 0; }
+    .p-card-heading { margin: 0; font: inherit; }
     .p-card-hdr {
+      width: 100%; box-sizing: border-box;
       background: var(--color-mushroom-100);
       display: flex; align-items: center; justify-content: space-between;
       padding: var(--space-4) var(--space-3);
+      border: none; font: inherit; text-align: start;
       text-decoration: none; color: inherit;
-      cursor: pointer;
       transition: background 0.18s;
     }
-    .p-card-hdr:hover { background: color-mix(in srgb, var(--color-mushroom-100) 90%, #000); }
-    .p-card-arrow { display: flex; align-items: center; transition: transform 0.18s; }
-    .p-card-hdr:hover .p-card-arrow { transform: translateX(5px); }
-    .p-card-arrow img { width: 24px; height: 24px; display: block; }
+    .p-card-hdr:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: -2px; }
     .p-card-title {
-      display: flex; align-items: center; gap: var(--space-1);
+      display: flex; align-items: center; gap: var(--space-1); margin: 0;
       font-size: var(--text-overline-size); font-weight: var(--text-overline-w);
       line-height: var(--text-overline-lh); letter-spacing: var(--text-overline-ls);
       text-transform: uppercase; color: var(--color-brand-dark);
     }
     .p-card-title img { width: 24px; height: 24px; display: block; }
     .p-card-body { padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+
+    /* Link variant */
+    .p-card--link .p-card-hdr { cursor: pointer; }
+    .p-card--link .p-card-hdr:hover { background: color-mix(in srgb, var(--color-mushroom-100) 90%, #000); }
+    .p-card-arrow { display: flex; align-items: center; transition: transform 0.18s; }
+    .p-card--link .p-card-hdr:hover .p-card-arrow { transform: translateX(5px); }
+    .p-card-arrow img { width: 24px; height: 24px; display: block; }
+    [dir="rtl"] .p-card-arrow img { transform: scaleX(-1); }
+    [dir="rtl"] .p-card--link .p-card-hdr:hover .p-card-arrow { transform: translateX(-5px); }
+
+    /* Accordion variant — static on desktop, collapses at ≤1023px */
+    .p-card--accordion .p-card-hdr:disabled { cursor: default; color: inherit; opacity: 1; }
+    .p-card-chevron { display: none; align-items: center; flex-shrink: 0; transition: transform 0.25s; color: var(--color-brand-dark); }
+    @media (max-width: 1023px) {
+      .p-card--accordion .p-card-hdr { cursor: pointer; }
+      .p-card--accordion .p-card-hdr:hover { background: color-mix(in srgb, var(--color-mushroom-100) 90%, #000); }
+      .p-card--accordion .p-card-chevron { display: flex; }
+      .p-card--accordion.p-card--open .p-card-chevron { transform: rotate(180deg); }
+      .p-card--accordion.p-card--open .p-card-title { color: var(--color-accessible-orange); }
+      .p-card--accordion .p-card-body { padding: 0 var(--space-5); max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s 0.35s; }
+      .p-card--accordion.p-card--open .p-card-body { max-height: 3000px; padding: var(--space-4) var(--space-5) var(--space-5); transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s; }
+    }
 
     /* My Profile card body */
     .pg-profile-user { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-1) 0 0; }
@@ -4370,15 +4396,15 @@
         <div class="pg-profile-left">
 
           <!-- MY PROFILE CARD -------------------------------------------->
-          <div class="p-card">
+          <section class="p-card p-card--link" aria-labelledby="card-my-profile-title">
             <a href="template-profile-details.html" class="p-card-hdr">
-              <div class="p-card-title">
+              <h2 class="p-card-title" id="card-my-profile-title">
                 <img src="icons/profile.svg" alt="" />
                 My Profile
-              </div>
-              <div class="p-card-arrow">
+              </h2>
+              <span class="p-card-arrow" aria-hidden="true">
                 <img src="icons/arrow.svg" alt="" />
-              </div>
+              </span>
             </a>
             <div class="p-card-body">
               <!-- User row -->
@@ -4408,18 +4434,18 @@
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- MY ORDERS CARD ---------------------------------------------->
-          <div class="p-card">
+          <section class="p-card p-card--link" aria-labelledby="card-my-orders-title">
             <a href="template-profile-orders.html" class="p-card-hdr">
-              <div class="p-card-title">
+              <h2 class="p-card-title" id="card-my-orders-title">
                 <img src="icons/cart.svg" alt="" />
                 My Orders
-              </div>
-              <div class="p-card-arrow">
+              </h2>
+              <span class="p-card-arrow" aria-hidden="true">
                 <img src="icons/arrow.svg" alt="" />
-              </div>
+              </span>
             </a>
             <div class="p-card-body">
 
@@ -4481,18 +4507,18 @@
               </div>
 
             </div>
-          </div>
+          </section>
 
           <!-- MY FAVOURITES CARD -------------------------------------------->
-          <div class="p-card">
+          <section class="p-card p-card--link" aria-labelledby="card-my-favourites-title">
             <a href="template-profile-favourites.html" class="p-card-hdr">
-              <div class="p-card-title">
+              <h2 class="p-card-title" id="card-my-favourites-title">
                 <img src="icons/fav.svg" alt="" />
                 My Favourites
-              </div>
-              <div class="p-card-arrow">
+              </h2>
+              <span class="p-card-arrow" aria-hidden="true">
                 <img src="icons/arrow.svg" alt="" />
-              </div>
+              </span>
             </a>
             <div class="p-card-body">
 
@@ -4626,7 +4652,7 @@
 
               </div>
             </div>
-          </div>
+          </section>
 
           <!-- IMAGE BANNER — real .ufs-promo-banner component, dark/
                squid-ink variant (see promo-banner-spec.html). -->
@@ -4653,15 +4679,15 @@
         <div class="pg-profile-right">
 
           <!-- PREFERENCES CARD ---------------------------------------------->
-          <div class="p-card" style="margin-bottom:0;">
+          <section class="p-card p-card--link" aria-labelledby="card-preferences-title" style="margin-bottom:0;">
             <a href="#" class="p-card-hdr">
-              <div class="p-card-title">
+              <h2 class="p-card-title" id="card-preferences-title">
                 <img src="icons/settings.svg" alt="" />
                 Preferences
-              </div>
-              <div class="p-card-arrow">
+              </h2>
+              <span class="p-card-arrow" aria-hidden="true">
                 <img src="icons/arrow.svg" alt="" />
-              </div>
+              </span>
             </a>
             <div class="p-card-body">
               <div class="pg-pref-items">
@@ -4679,7 +4705,7 @@
                 </a>
               </div>
             </div>
-          </div>
+          </section>
 
         </div><!-- /pg-profile-right -->
 

@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile Card — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    .notice-tag { font-family: var(--font-family-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-mushroom-900); display: block; margin-bottom: 3px; }
+
+    /* ═══════════════════════════════════════
+       PROFILE CARD — canonical (recommended) CSS.
+       Visual values are the prototype's own (template-profile-*.html
+       "Card shell"); behaviour is unified per the decisions in
+       "Prototype divergences" below: explicit --link / --accordion
+       modifiers, one 1023px breakpoint, and no clickable-looking header
+       where nothing happens.
+    ═══════════════════════════════════════ */
+    .p-card {
+      background: var(--color-salt);
+      border: 1px solid var(--color-mushroom-500);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin-bottom: var(--space-6);
+    }
+    .p-card:last-child { margin-bottom: 0; }
+    .p-card-hdr {
+      width: 100%; box-sizing: border-box;
+      background: var(--color-mushroom-100);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--space-4) var(--space-3);
+      border: none; font: inherit; text-align: start;
+      text-decoration: none; color: inherit;
+      transition: background 0.18s;
+    }
+    .p-card-title {
+      display: flex; align-items: center; gap: var(--space-1);
+      font-size: var(--text-overline-size); font-weight: var(--text-overline-w);
+      line-height: var(--text-overline-lh); letter-spacing: var(--text-overline-ls);
+      text-transform: uppercase; color: var(--color-brand-dark);
+    }
+    .p-card-title img { width: 24px; height: 24px; display: block; }
+    .p-card-body { padding: var(--space-4) var(--space-5) var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+
+    /* Link variant — whole header navigates */
+    .p-card--link .p-card-hdr { cursor: pointer; }
+    .p-card--link .p-card-hdr:hover { background: color-mix(in srgb, var(--color-mushroom-100) 90%, #000); }
+    .p-card-arrow { display: flex; align-items: center; transition: transform 0.18s; }
+    .p-card--link .p-card-hdr:hover .p-card-arrow { transform: translateX(5px); }
+    .p-card-arrow img { width: 24px; height: 24px; display: block; }
+    [dir="rtl"] .p-card-arrow img { transform: scaleX(-1); }
+    [dir="rtl"] .p-card--link .p-card-hdr:hover .p-card-arrow { transform: translateX(-5px); }
+
+    /* Accordion variant — static on desktop, collapses at ≤1023px */
+    .p-card--accordion .p-card-hdr:disabled { cursor: default; color: inherit; opacity: 1; }
+    .p-card-chevron { display: none; align-items: center; flex-shrink: 0; transition: transform 0.25s; color: var(--color-brand-dark); }
+    @media (max-width: 1023px) {
+      .p-card--accordion .p-card-hdr { cursor: pointer; }
+      .p-card--accordion .p-card-hdr:hover { background: color-mix(in srgb, var(--color-mushroom-100) 90%, #000); }
+      .p-card--accordion .p-card-chevron { display: flex; }
+      .p-card--accordion.p-card--open .p-card-chevron { transform: rotate(180deg); }
+      .p-card--accordion.p-card--open .p-card-title { color: var(--color-accessible-orange); }
+      .p-card--accordion .p-card-body { padding: 0 var(--space-5); max-height: 0; overflow: hidden; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s 0.35s; }
+      .p-card--accordion.p-card--open .p-card-body { max-height: 3000px; padding: var(--space-4) var(--space-5) var(--space-5); transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s; }
+    }
+    .p-card-hdr:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: -2px; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW HELPERS (spec-doc only)
+    ═══════════════════════════════════════ */
+    .pv-bg { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); padding: 28px; }
+    .pv-two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+    @media (max-width: 1100px) { .pv-two { grid-template-columns: 1fr; } }
+    .pv-body-line { height: 12px; border-radius: 6px; background: var(--color-mushroom-300); }
+    .pv-body-line.short { width: 55%; }
+    .pv-dl { display: flex; gap: 32px; }
+    .pv-dl div { display: flex; flex-direction: column; }
+    .pv-dl span { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); }
+    .pv-dl b { font-size: var(--text-h6-size); color: var(--color-brand-dark); }
+    /* Force the ≤1023px accordion rules at any window width */
+    .pv-mobile-cards { max-width: 390px; margin: 0 auto; }
+    .pv-mobile-cards .p-card--accordion .p-card-hdr { cursor: pointer !important; }
+    .pv-mobile-cards .p-card--accordion .p-card-chevron { display: flex !important; }
+    .pv-mobile-cards .p-card--accordion.p-card--open .p-card-chevron { transform: rotate(180deg) !important; }
+    .pv-mobile-cards .p-card--accordion.p-card--open .p-card-title { color: var(--color-accessible-orange) !important; }
+    .pv-mobile-cards .p-card--accordion .p-card-body { padding: 0 var(--space-5) !important; max-height: 0 !important; overflow: hidden !important; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s 0.35s; }
+    .pv-mobile-cards .p-card--accordion.p-card--open .p-card-body { max-height: 3000px !important; padding: var(--space-4) var(--space-5) var(--space-5) !important; transition: max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s; }
+    .pv-desktop-cards .p-card--accordion .p-card-chevron { display: none !important; }
+    .pv-desktop-cards .p-card--accordion .p-card-body { max-height: none !important; padding: var(--space-4) var(--space-5) var(--space-5) !important; }
+    .pv-desktop-cards .p-card--accordion .p-card-title { color: var(--color-brand-dark) !important; }
+    .pv-desktop-cards .p-card--accordion .p-card-hdr { cursor: default !important; background: var(--color-mushroom-100) !important; }
+    .pv-state .p-card-hdr { pointer-events: none; }
+    .pv-hover .p-card-hdr { background: color-mix(in srgb, var(--color-mushroom-100) 90%, #000) !important; }
+    .pv-hover .p-card-arrow { transform: translateX(5px); }
+    .pv-focus .p-card-hdr { outline: 2px solid var(--color-brand-dark); outline-offset: -2px; }
+
+  </style>
+</head>
+<body>
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#link" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Link Card</a>
+      <a href="#accordion" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Accordion Card</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#states" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> States</a>
+      <a href="#js" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Accordion Behaviour (JS)</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Adoption</div>
+      <a href="#usage" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Where It's Used</a>
+      <a href="#lookalikes" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Lookalikes to Migrate</a>
+      <a href="#divergences" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Prototype Divergences</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source: template-profile-overview / details / orders.html. Frame: account-layout-spec.html.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Profile Card</span>
+  </div>
+
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Profile <span>Card</span></h1>
+        <p class="doc-header-desc">The titled card every My Account section sits in: a tinted header (icon + uppercase title) over a content body. Two variants: a link card whose header opens its section, and an accordion card that collapses on mobile.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">template-profile-*.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc"><code>.p-card</code> is a white card with a 1px mushroom-500 border and 16px corners. Its tinted header carries an icon and an uppercase overline title. The body holds whatever the section needs: profile details, order cards, forms, lists. The variant decides what the header does. Cards sit in the columns of the <a href="account-layout-spec.html">Account Tabs &amp; Layout</a> frame, stacked 24px apart.</p>
+      <div class="ds-card">
+        <div class="pv-two">
+          <div>
+            <div class="pv-label">Link card: header opens its section (Overview page)</div>
+            <div class="pv-bg">
+              <div class="p-card p-card--link">
+                <a href="#" onclick="return false" class="p-card-hdr">
+                  <div class="p-card-title"><img src="icons/profile.svg" alt="" />My Profile</div>
+                  <div class="p-card-arrow"><img src="icons/arrow.svg" alt="" /></div>
+                </a>
+                <div class="p-card-body">
+                  <div class="pv-dl"><div><span>Current role</span><b>Sous chef · Le Cordon Bleu</b></div><div><span>Email address</span><b>giuseppe@email.com</b></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="pv-label">Accordion card, desktop: static, no chevron (My profile / My Orders)</div>
+            <div class="pv-bg pv-desktop-cards">
+              <div class="p-card p-card--accordion p-card--open">
+                <button class="p-card-hdr" type="button" disabled>
+                  <div class="p-card-title"><img src="icons/cart.svg" alt="" />My Past Orders</div>
+                  <span class="p-card-chevron" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+                </button>
+                <div class="p-card-body"><div class="pv-body-line"></div><div class="pv-body-line short"></div><div class="pv-body-line"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Three parts: <code>.p-card</code> (shell) › <code>.p-card-hdr</code> (tinted header: <code>.p-card-title</code> with a 24px icon and label, plus an end affordance, <code>.p-card-arrow</code> or <code>.p-card-chevron</code>) › <code>.p-card-body</code> (16px top / 20px sides and bottom padding, 16px gap between children). A modifier on the shell picks the variant: <code>.p-card--link</code> or <code>.p-card--accordion</code>. The header element follows from it: an <code>&lt;a&gt;</code> for link cards, a <code>&lt;button&gt;</code> for accordion cards.</p>
+      <div class="ds-card">
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'an-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'an-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="an-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-cm">&lt;!-- Link card --&gt;</span>
+<span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"p-card p-card--link"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"card-orders-title"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"/account/orders"</span> <span class="t-at">class</span>=<span class="t-str">"p-card-hdr"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"p-card-title"</span> <span class="t-at">id</span>=<span class="t-str">"card-orders-title"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/cart.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span>My Orders<span class="t-tag">&lt;/h2&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"p-card-arrow"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/arrow.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;&lt;/span&gt;</span>
+  <span class="t-tag">&lt;/a&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"p-card-body"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- content --&gt;</span> <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/section&gt;</span>
+
+<span class="t-cm">&lt;!-- Accordion card (add p-card--open to the one that starts open) --&gt;</span>
+<span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"p-card p-card--accordion p-card--open"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"p-card-heading"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"p-card-hdr"</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">aria-controls</span>=<span class="t-str">"card-basic-body"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- aria-expanded / disabled set by JS --&gt;</span>
+      <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"p-card-title"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/profile.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span>Basic information<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"p-card-chevron"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- 20px down-chevron svg --&gt;</span> <span class="t-tag">&lt;/span&gt;</span>
+    <span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;/h2&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"p-card-body"</span> <span class="t-at">id</span>=<span class="t-str">"card-basic-body"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- content --&gt;</span> <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/section&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="an-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">.p-card</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-500)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">margin-bottom</span>: <span class="t-va">var(--space-6)</span>; }
+<span class="t-pr">.p-card:last-child</span> { <span class="t-pr">margin-bottom</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.p-card-heading</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font</span>: <span class="t-vl">inherit</span>; }
+<span class="t-pr">.p-card-hdr</span> {
+  <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-4) var(--space-3)</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">font</span>: <span class="t-vl">inherit</span>; <span class="t-pr">text-align</span>: <span class="t-vl">start</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">none</span>; <span class="t-pr">color</span>: <span class="t-vl">inherit</span>; <span class="t-pr">transition</span>: <span class="t-vl">background 0.18s</span>;
+}
+<span class="t-pr">.p-card-title</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>;
+  <span class="t-pr">font-size</span>: <span class="t-va">var(--text-overline-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-overline-w)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-overline-lh)</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-overline-ls)</span>;
+  <span class="t-pr">text-transform</span>: <span class="t-vl">uppercase</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.p-card-title img</span> { <span class="t-pr">width</span>: <span class="t-vl">24px</span>; <span class="t-pr">height</span>: <span class="t-vl">24px</span>; }
+<span class="t-pr">.p-card-body</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-4) var(--space-5) var(--space-5)</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.p-card-hdr:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px solid</span> <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">outline-offset</span>: <span class="t-vl">-2px</span>; }
+
+<span class="t-cm">/* Link variant */</span>
+<span class="t-pr">.p-card--link .p-card-hdr</span> { <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; }
+<span class="t-pr">.p-card--link .p-card-hdr:hover</span> { <span class="t-pr">background</span>: <span class="t-vl">color-mix(in srgb,</span> <span class="t-va">var(--color-mushroom-100)</span> <span class="t-vl">90%, #000)</span>; }
+<span class="t-pr">.p-card-arrow</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform 0.18s</span>; }
+<span class="t-pr">.p-card--link .p-card-hdr:hover .p-card-arrow</span> { <span class="t-pr">transform</span>: <span class="t-vl">translateX(5px)</span>; }
+<span class="t-pr">.p-card-arrow img</span> { <span class="t-pr">width</span>: <span class="t-vl">24px</span>; <span class="t-pr">height</span>: <span class="t-vl">24px</span>; }
+[dir="rtl"] <span class="t-pr">.p-card-arrow img</span> { <span class="t-pr">transform</span>: <span class="t-vl">scaleX(-1)</span>; }
+
+<span class="t-cm">/* Accordion variant — static on desktop, collapses at ≤1023px */</span>
+<span class="t-pr">.p-card--accordion .p-card-hdr:disabled</span> { <span class="t-pr">cursor</span>: <span class="t-vl">default</span>; <span class="t-pr">color</span>: <span class="t-vl">inherit</span>; <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; }
+<span class="t-pr">.p-card-chevron</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform 0.25s</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">1023px</span>) {
+  <span class="t-pr">.p-card--accordion .p-card-hdr</span> { <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; }
+  <span class="t-pr">.p-card--accordion .p-card-hdr:hover</span> { <span class="t-pr">background</span>: <span class="t-vl">color-mix(in srgb,</span> <span class="t-va">var(--color-mushroom-100)</span> <span class="t-vl">90%, #000)</span>; }
+  <span class="t-pr">.p-card--accordion .p-card-chevron</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; }
+  <span class="t-pr">.p-card--accordion.p-card--open .p-card-chevron</span> { <span class="t-pr">transform</span>: <span class="t-vl">rotate(180deg)</span>; }
+  <span class="t-pr">.p-card--accordion.p-card--open .p-card-title</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-accessible-orange)</span>; }
+  <span class="t-pr">.p-card--accordion .p-card-body</span> { <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-5)</span>; <span class="t-pr">max-height</span>: <span class="t-vl">0</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>;
+    <span class="t-pr">transition</span>: <span class="t-vl">max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s 0.35s</span>; }
+  <span class="t-pr">.p-card--accordion.p-card--open .p-card-body</span> { <span class="t-pr">max-height</span>: <span class="t-vl">3000px</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-4) var(--space-5) var(--space-5)</span>;
+    <span class="t-pr">transition</span>: <span class="t-vl">max-height 0.35s cubic-bezier(0.4,0,0.2,1), padding 0s</span>; }
+}</pre>
+          </div>
+        </div>
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Shell</span><span class="token-var">--color-salt · 1px --color-mushroom-500 · --radius-lg</span><span class="token-note">16px corners, overflow hidden</span></div>
+          <div class="token-row"><span class="token-prop">Stacking</span><span class="token-var">margin-bottom --space-6</span><span class="token-note">24px between cards, 0 on the last card in a column</span></div>
+          <div class="token-row"><span class="token-prop">Header</span><span class="token-var">--color-mushroom-100 · --space-4 --space-3</span><span class="token-note">16px × 12px padding</span></div>
+          <div class="token-row"><span class="token-prop">Header hover</span><span class="token-var">mushroom-100 mixed 10% black</span><span class="token-note">only where the header does something</span></div>
+          <div class="token-row"><span class="token-prop">Title</span><span class="token-var">--text-overline-* · uppercase · --color-brand-dark</span><span class="token-note">24px icon, 4px gap. Open accordion title: --color-accessible-orange</span></div>
+          <div class="token-row"><span class="token-prop">Arrow / chevron</span><span class="token-var">24px arrow.svg / 20px chevron, 2.5 stroke</span><span class="token-note">arrow slides 5px on hover, chevron rotates 180° when open</span></div>
+          <div class="token-row"><span class="token-prop">Body</span><span class="token-var">--space-4 --space-5 --space-5 · gap --space-4</span><span class="token-note">16 / 20 / 20px padding, 16px between children</span></div>
+          <div class="token-row"><span class="token-prop">Collapse motion</span><span class="token-var">max-height 0.35s cubic-bezier(0.4,0,0.2,1)</span><span class="token-note">padding snaps after closing so the header doesn't jump</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ LINK ═══════════════════════════════════════ -->
+    <section class="doc-section" id="link">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Link Card</h2>
+      <p class="section-desc">A summary of a section on another page. The whole header is a single link to that section's tab (My Profile → My profile, My Orders → My Orders, and so on). The arrow slides 5px to the right on hover. The body is a read-only summary. Links inside it, such as order cards, the Reorder button or tiles, are independent and don't trigger the header link. The link card looks the same on every screen size and never collapses.</p>
+      <div class="ds-card">
+        <div class="pv-bg" style="max-width:640px">
+          <div class="p-card p-card--link">
+            <a href="#" onclick="return false" class="p-card-hdr">
+              <div class="p-card-title"><img src="icons/fav.svg" alt="" />My Favourites</div>
+              <div class="p-card-arrow"><img src="icons/arrow.svg" alt="" /></div>
+            </a>
+            <div class="p-card-body"><div class="pv-body-line"></div><div class="pv-body-line short"></div></div>
+          </div>
+        </div>
+        <div class="notice notice--info" style="margin-bottom:0">
+          <span class="notice-icon">ℹ️</span>
+          <div>Used only on <b>Overview</b> today: My Profile, My Orders, My Favourites and Preferences. Every card there is a link card.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ACCORDION ═══════════════════════════════════════ -->
+    <section class="doc-section" id="accordion">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Accordion Card</h2>
+      <p class="section-desc">A section with editable or longer content. On desktop (≥1024px) it's a <b>static</b> card: every body is visible, there's no chevron, and the header isn't interactive. At <b>≤1023px</b>, where the layout drops to a single column, the cards become an accordion: tapping a header opens that card and closes the others, the chevron flips, and the open card's title turns orange. The first card on the page starts open.</p>
+      <div class="ds-card">
+        <div class="pv-label">≤1023px, interactive (tap a header)</div>
+        <div class="pv-bg pv-mobile-cards" id="demo-accordion">
+          <div class="p-card p-card--accordion p-card--open">
+            <button class="p-card-hdr" type="button" aria-expanded="true">
+              <div class="p-card-title"><img src="icons/profile.svg" alt="" />Basic information</div>
+              <span class="p-card-chevron" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="p-card-body"><div class="pv-body-line"></div><div class="pv-body-line short"></div><div class="pv-body-line"></div></div>
+          </div>
+          <div class="p-card p-card--accordion">
+            <button class="p-card-hdr" type="button" aria-expanded="false">
+              <div class="p-card-title"><img src="icons/flame.svg" alt="" />My Kitchen</div>
+              <span class="p-card-chevron" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="p-card-body"><div class="pv-body-line"></div><div class="pv-body-line short"></div></div>
+          </div>
+          <div class="p-card p-card--accordion">
+            <button class="p-card-hdr" type="button" aria-expanded="false">
+              <div class="p-card-title"><img src="icons/settings.svg" alt="" />Preferences</div>
+              <span class="p-card-chevron" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
+            </button>
+            <div class="p-card-body"><div class="pv-body-line"></div><div class="pv-body-line"></div></div>
+          </div>
+        </div>
+        <div class="notice notice--info" style="margin-bottom:0">
+          <span class="notice-icon">ℹ️</span>
+          <div>Used on <b>My profile</b> (Basic information, My Kitchen, Preferences, Delete account) and <b>My Orders</b> (My Past Orders, My Wishlist, Orders &amp; Promos, Chef Rewards). One open card at a time across the whole page, sidebar included, because on mobile the sidebar stacks under the main column into one list.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ STATES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="states">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">States</h2>
+      <p class="section-desc">Header states per variant. Hover is shown only where the header actually does something: always for link cards, and only at ≤1023px for accordion cards.</p>
+      <div class="ds-card">
+        <div class="pv-two">
+          <div class="pv-state"><div class="pv-label">Link: default</div><div class="p-card p-card--link"><a href="#" class="p-card-hdr" tabindex="-1"><div class="p-card-title"><img src="icons/cart.svg" alt="" />My Orders</div><div class="p-card-arrow"><img src="icons/arrow.svg" alt="" /></div></a></div></div>
+          <div class="pv-state pv-hover"><div class="pv-label">Link: hover (darker header, arrow +5px)</div><div class="p-card p-card--link"><a href="#" class="p-card-hdr" tabindex="-1"><div class="p-card-title"><img src="icons/cart.svg" alt="" />My Orders</div><div class="p-card-arrow"><img src="icons/arrow.svg" alt="" /></div></a></div></div>
+          <div class="pv-state pv-focus"><div class="pv-label">Keyboard focus (both variants)</div><div class="p-card p-card--link"><a href="#" class="p-card-hdr" tabindex="-1"><div class="p-card-title"><img src="icons/cart.svg" alt="" />My Orders</div><div class="p-card-arrow"><img src="icons/arrow.svg" alt="" /></div></a></div></div>
+          <div class="pv-state pv-mobile-cards" style="max-width:none; margin:0"><div class="pv-label">Accordion ≤1023px: closed / open</div>
+            <div class="p-card p-card--accordion"><button class="p-card-hdr" type="button" tabindex="-1"><div class="p-card-title"><img src="icons/coin.svg" alt="" />Chef Rewards</div><span class="p-card-chevron" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="p-card-body"></div></div>
+            <div class="p-card p-card--accordion p-card--open"><button class="p-card-hdr" type="button" tabindex="-1"><div class="p-card-title"><img src="icons/coin.svg" alt="" />Chef Rewards</div><span class="p-card-chevron" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span></button><div class="p-card-body"><div class="pv-body-line"></div><div class="pv-body-line short"></div></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ JS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="js">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Accordion Behaviour (JS)</h2>
+      <p class="section-desc">One shared script, called once per page. It only makes accordion cards interactive while the screen is ≤1023px. On desktop, each header button is <code>disabled</code>: it drops out of the tab order, ignores clicks, and loses <code>aria-expanded</code>. So assistive tech never hears about a toggle that does nothing. Crossing the breakpoint (rotating a tablet, resizing) switches modes live. Link cards need no JS.</p>
+      <div class="ds-card">
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-kw">function</span> initProfileCards(root) {
+  <span class="t-kw">var</span> mq = window.matchMedia(<span class="t-str">'(max-width: 1023px)'</span>);
+  <span class="t-kw">var</span> cards = [].slice.call(root.querySelectorAll(<span class="t-str">'.p-card--accordion'</span>));
+  <span class="t-kw">if</span> (!cards.length) <span class="t-kw">return</span>;
+
+  <span class="t-kw">function</span> sync() {
+    cards.forEach(<span class="t-kw">function</span> (card) {
+      <span class="t-kw">var</span> hdr = card.querySelector(<span class="t-str">'.p-card-hdr'</span>);
+      hdr.disabled = !mq.matches;                         <span class="t-cm">// desktop: static header</span>
+      <span class="t-kw">if</span> (mq.matches) hdr.setAttribute(<span class="t-str">'aria-expanded'</span>, card.classList.contains(<span class="t-str">'p-card--open'</span>));
+      <span class="t-kw">else</span> hdr.removeAttribute(<span class="t-str">'aria-expanded'</span>);
+    });
+  }
+
+  cards.forEach(<span class="t-kw">function</span> (card) {
+    card.querySelector(<span class="t-str">'.p-card-hdr'</span>).addEventListener(<span class="t-str">'click'</span>, <span class="t-kw">function</span> () {
+      <span class="t-kw">var</span> wasOpen = card.classList.contains(<span class="t-str">'p-card--open'</span>);
+      cards.forEach(<span class="t-kw">function</span> (c) { c.classList.remove(<span class="t-str">'p-card--open'</span>); });  <span class="t-cm">// one open at a time</span>
+      <span class="t-kw">if</span> (!wasOpen) card.classList.add(<span class="t-str">'p-card--open'</span>);
+      sync();
+    });
+  });
+
+  <span class="t-cm">// First card starts open if the markup didn't pick one</span>
+  <span class="t-kw">if</span> (!root.querySelector(<span class="t-str">'.p-card--accordion.p-card--open'</span>)) cards[0].classList.add(<span class="t-str">'p-card--open'</span>);
+  mq.addEventListener(<span class="t-str">'change'</span>, sync);
+  sync();
+}
+initProfileCards(document.querySelector(<span class="t-str">'.pg-profile-wrap'</span>));</pre>
+        </div>
+      </div>
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div>On desktop the <code>.p-card--open</code> class has no visual effect, since the collapse CSS only applies at ≤1023px. So a card's open/closed choice is kept when the screen grows and restored when it shrinks.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ USAGE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="usage">
+      <div class="section-breadcrumb">Adoption</div>
+      <h2 class="section-title">Where It's Used</h2>
+      <div class="ds-card">
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Overview</span><span class="token-var">4 × link</span><span class="token-note">My Profile · My Orders · My Favourites · Preferences</span></div>
+          <div class="token-row"><span class="token-prop">My profile</span><span class="token-var">4 × accordion</span><span class="token-note">Basic information (open) · My Kitchen · Preferences · Delete account</span></div>
+          <div class="token-row"><span class="token-prop">My Orders</span><span class="token-var">4 × accordion</span><span class="token-note">My Past Orders (open) · My Wishlist · Orders &amp; Promos · Chef Rewards</span></div>
+          <div class="token-row"><span class="token-prop">My Favourites</span><span class="token-var">not used</span><span class="token-note">see Lookalikes: My interests should become a profile card</span></div>
+          <div class="token-row"><span class="token-prop">Order detail</span><span class="token-var">not used</span><span class="token-note">see Lookalikes: Order summary / Order items</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ LOOKALIKES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="lookalikes">
+      <div class="section-breadcrumb">Adoption</div>
+      <h2 class="section-title">Lookalikes to Migrate</h2>
+      <p class="section-desc">Two account-page containers copy the card's shell with their own classes and slightly different values. Build them as profile cards so the account pages share one card.</p>
+      <div class="ds-card">
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">My interests (Favourites)</span><span class="token-var">.pg-fav-pref-card</span><span class="token-note">identical shell and a tinted header with an uppercase title (no icon) → accordion card</span></div>
+          <div class="token-row"><span class="token-prop">Order items / Order summary</span><span class="token-var">.pg-order-items-card / .pg-order-summary-card</span><span class="token-note">decided: <b>not</b> profile cards, specced separately in <a href="order-detail-cards-spec.html">Order Summary &amp; Items</a></span></div>
+          <div class="token-row"><span class="token-prop">Favourites container</span><span class="token-var">.pg-fav-left</span><span class="token-note">--color-mushroom-300 border (mushroom-500 on mobile); holds the sub-tabs instead of a header</span></div>
+        </div>
+      </div>
+          </section>
+
+    <!-- ═══════════════════════════════════════ DIVERGENCES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="divergences">
+      <div class="section-breadcrumb">Adoption</div>
+      <h2 class="section-title">Prototype Divergences</h2>
+      <p class="section-desc">The templates were brought in line with this spec on 30 Sep 2026: explicit <code>--link</code> / <code>--accordion</code> modifiers, one 1023px breakpoint, a disabled header on desktop, focus styles, <code>&lt;h2&gt;</code> titles, one shared <code>initProfileCards()</code>, and no extra mobile dividers. The last open item, the card title, is resolved as <b>Orders &amp; Promos</b>.</p>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">RTL</h2>
+      <p class="section-desc">The header is flexbox, so the title and affordance swap sides by themselves. Two small rules are needed: the link arrow image is mirrored, and its hover slide goes the other way. The chevron points down, so it needs nothing.</p>
+      <div class="ds-card">
+        <div class="pv-bg" dir="rtl" style="max-width:640px">
+          <div class="p-card p-card--link">
+            <a href="#" onclick="return false" class="p-card-hdr">
+              <div class="p-card-title"><img src="icons/cart.svg" alt="" />طلباتي</div>
+              <div class="p-card-arrow"><img src="icons/arrow.svg" alt="" /></div>
+            </a>
+            <div class="p-card-body"><div class="pv-body-line"></div><div class="pv-body-line short"></div></div>
+          </div>
+        </div>
+        <div class="code-block-wrap">
+          <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0">[dir="rtl"] <span class="t-pr">.p-card-arrow img</span> { <span class="t-pr">transform</span>: <span class="t-vl">scaleX(-1)</span>; }
+[dir="rtl"] <span class="t-pr">.p-card--link .p-card-hdr:hover .p-card-arrow</span> { <span class="t-pr">transform</span>: <span class="t-vl">translateX(-5px)</span>; }</pre>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) { l.classList.toggle('active', l.getAttribute('href') === '#' + id); });
+        }
+      });
+    }, { passive: true });
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+    /* Doc demo — the interactive ≤1023px accordion preview. Always in
+       "mobile" mode here (forced by .pv-mobile-cards), so it skips the
+       matchMedia gating the production initProfileCards() does. */
+    (function () {
+      var root = document.getElementById('demo-accordion');
+      var cards = [].slice.call(root.querySelectorAll('.p-card--accordion'));
+      cards.forEach(function (card) {
+        card.querySelector('.p-card-hdr').addEventListener('click', function () {
+          var wasOpen = card.classList.contains('p-card--open');
+          cards.forEach(function (c) { c.classList.remove('p-card--open'); c.querySelector('.p-card-hdr').setAttribute('aria-expanded', 'false'); });
+          if (!wasOpen) { card.classList.add('p-card--open'); this.setAttribute('aria-expanded', 'true'); }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

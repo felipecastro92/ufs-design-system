@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Summary &amp; Items — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       campaign-hero-spec.html. The Reorder button preview depends on
+       it; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    .notice-tag { font-family: var(--font-family-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-mushroom-900); display: block; margin-bottom: 3px; }
+
+    /* ═══════════════════════════════════════
+       COMPONENT CSS — mirrored 1:1 from template-profile-order-detail.html
+    ═══════════════════════════════════════ */
+    /* Shared with the Overview "Last order" card */
+    .pg-order-id { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); margin: 0; }
+    .pg-status-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--color-aubergine); color: var(--color-salt);
+      font-size: var(--text-body-xs-size); font-weight: 400; line-height: var(--text-body-xs-lh);
+      padding: 1px 8px 3px; border-radius: var(--radius-full); white-space: nowrap;
+    }
+    .pg-order-reorder-desktop { display: flex; }
+    .pg-order-reorder-mobile  { display: none; }
+    @media (max-width: 1023px) {
+      .pg-order-id { font-size: var(--text-h5-mob-size); }
+      .pg-order-reorder-desktop { display: none; }
+      .pg-order-reorder-mobile  { display: flex; width: 100%; }
+      .pg-order-reorder-mobile .btn { width: 100%; }
+    }
+
+    /* Order summary card */
+    .pg-order-summary-card {
+      border: 1px solid var(--color-mushroom-500); border-radius: var(--radius-lg);
+      padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2);
+    }
+    .pg-order-summary-hdr { display: flex; align-items: flex-end; gap: var(--space-2); flex-wrap: wrap; }
+    .pg-status-badge--completed { background: var(--color-success); margin-bottom: 4px; }
+    .pg-order-summary-meta { display: flex; flex-direction: column; gap: var(--space-2); }
+    .pg-order-summary-meta-row { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); margin: 0; }
+    .pg-order-summary-meta-row strong { font-weight: 600; }
+
+    /* Order items card */
+    .pg-order-items-card { background: var(--color-salt); border: 1px solid var(--color-mushroom-500); border-radius: var(--radius-lg); overflow: hidden; }
+    .pg-order-items-hdr {
+      padding: var(--space-4) var(--space-6);
+      font-size: var(--text-body-sm-size); font-weight: 600; text-transform: uppercase; letter-spacing: var(--text-body-xs-ls);
+      color: var(--color-brand-dark);
+    }
+    .pg-order-line { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--color-mushroom-300); }
+    .pg-order-line-img { width: 80px; height: 80px; flex-shrink: 0; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm); overflow: hidden; background: var(--color-mushroom-100); }
+    .pg-order-line-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pg-order-line-info { flex: 1; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+    .pg-order-line-name { font-size: var(--text-body-size); font-weight: 600; line-height: var(--text-body-lh); color: var(--color-brand-dark); margin: 0; }
+    .pg-order-line-meta { display: flex; align-items: center; justify-content: space-between; }
+    .pg-order-line-units { font-size: var(--text-body-sm-size); font-weight: 400; line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); }
+    .pg-order-line-price { font-size: var(--text-body-size); font-weight: 600; line-height: var(--text-body-lh); color: var(--color-brand-dark); white-space: nowrap; }
+    .pg-order-total-row { display: flex; justify-content: flex-end; padding: var(--space-4) var(--space-5); border-top: 1px solid var(--color-mushroom-300); font-size: var(--text-body-size); font-weight: 600; line-height: var(--text-body-lh); color: var(--color-brand-dark); }
+    @media (max-width: 768px) {
+      .pg-order-items-hdr { padding: var(--space-3) var(--space-4); font-size: var(--text-body-xs-size); }
+      .pg-order-line { gap: var(--space-2); padding: var(--space-3) var(--space-4); }
+      .pg-order-line-name { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .pg-order-line-price { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+      .pg-order-total-row { padding: var(--space-4); font-size: var(--text-body-sm-size); }
+    }
+
+    /* Layout frame (from account-layout-spec.html) — only to place the previews */
+    .pg-order-detail-grid { display: grid; grid-template-columns: 393px 1fr; column-gap: var(--space-8); row-gap: var(--space-4); align-items: start; }
+    .pg-order-left-col { display: flex; flex-direction: column; gap: var(--space-4); }
+
+    /* ═══════════════════════════════════════
+       PREVIEW HELPERS (spec-doc only)
+    ═══════════════════════════════════════ */
+    .pv-bg { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); padding: 28px; }
+    .pv-bg .pg-order-detail-grid { grid-template-columns: 393px minmax(0, 1fr); }
+    @media (max-width: 1100px) { .pv-bg .pg-order-detail-grid { grid-template-columns: minmax(0, 1fr); } }
+    .pv-two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+    /* Force the ≤1023px / ≤768px rules inside .pv-mobile at any window width */
+    .pv-mob { max-width: 390px; margin: 0 auto; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); padding: 12px 16px 20px; }
+    .pv-mob .pg-order-detail-grid { grid-template-columns: minmax(0, 1fr) !important; }
+    .pv-mob .pg-order-id { font-size: var(--text-h5-mob-size) !important; }
+    .pv-mob .pg-order-reorder-desktop { display: none !important; }
+    .pv-mob .pg-order-reorder-mobile { display: flex !important; width: 100%; }
+    .pv-mob .pg-order-reorder-mobile .btn { width: 100%; }
+    .pv-mob .pg-order-items-hdr { padding: var(--space-3) var(--space-4) !important; font-size: var(--text-body-xs-size) !important; }
+    .pv-mob .pg-order-line { gap: var(--space-2) !important; padding: var(--space-3) var(--space-4) !important; }
+    .pv-mob .pg-order-line-name { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mob .pg-order-line-price { font-size: var(--text-body-sm-size) !important; line-height: var(--text-body-sm-lh) !important; }
+    .pv-mob .pg-order-total-row { padding: var(--space-4) !important; font-size: var(--text-body-sm-size) !important; }
+    .pv-badges { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  </style>
+</head>
+<body>
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Order Summary</div>
+      <a href="#summary" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy &amp; Tokens</a>
+      <a href="#reorder" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Reorder Button</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Order Items</div>
+      <a href="#items" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy &amp; Tokens</a>
+      <a href="#line" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Line Item</a>
+      <a href="#content" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Content Rules</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Implementation</div>
+      <a href="#open" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Accessibility</a>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source: template-profile-order-detail.html. Frame: account-layout-spec.html#subpage.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Order Summary &amp; Items</span>
+  </div>
+
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Order Summary <span>&amp; Items</span></h1>
+        <p class="doc-header-desc">The two cards on the Order detail page: the Order summary (order number, status, dates, dispatcher, with the Reorder button) and the Order items list (one row per product, plus the order total).</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">template-profile-order-detail.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">Both cards sit in the Order detail sub-page grid (see <a href="account-layout-spec.html#subpage">Account Tabs &amp; Layout · Sub-page</a>): Order summary and the Reorder button in the fixed 393px left column, Order items in the flexible right column. Neither card has a header action or collapses, so they aren't <a href="profile-card-spec.html">Profile Cards</a>. They're plain bordered cards with their own content.</p>
+      <div class="ds-card">
+        <div class="pv-label">Desktop</div>
+        <div class="pv-bg">
+          <div class="pg-order-detail-grid">
+            <div class="pg-order-left-col">
+              <div class="pg-order-summary-card">
+                <div class="pg-order-summary-hdr">
+                  <h3 class="pg-order-id">Order: UFS-84903-4</h3>
+                  <span class="pg-status-badge pg-status-badge--completed">Completed</span>
+                </div>
+                <div class="pg-order-summary-meta">
+                  <p class="pg-order-summary-meta-row"><strong>Order Date:</strong> 09 September 2025</p>
+                  <p class="pg-order-summary-meta-row"><strong>Delivery date:</strong> 13 September 2025</p>
+                  <p class="pg-order-summary-meta-row"><strong>Dispatched by:</strong> Integras, Cordoba</p>
+                </div>
+              </div>
+              <div class="pg-order-reorder-desktop">
+                <button class="btn btn-primary" style="width:100%" type="button"><img src="icons/cart.svg" alt="" style="width:24px;height:24px;filter:invert(1);" /> Reorder now</button>
+              </div>
+            </div>
+            <div class="pg-order-right-col">
+              <div class="pg-order-items-card">
+                <div class="pg-order-items-hdr">6 items in order</div>
+                <div class="pg-order-line"><div class="pg-order-line-img"><img src="images/tiles/product.jpg" alt="" /></div><div class="pg-order-line-info"><p class="pg-order-line-name">Knorr Primerba Bouquet all Italiana 340 g</p><div class="pg-order-line-meta"><span class="pg-order-line-units">3 units</span><span class="pg-order-line-price">$504.000 COP</span></div></div></div>
+                <div class="pg-order-line"><div class="pg-order-line-img"><img src="images/tiles/product.jpg" alt="" /></div><div class="pg-order-line-info"><p class="pg-order-line-name">Knorr Professional Gebonden Kalfsjus Vloeibaar 1 L</p><div class="pg-order-line-meta"><span class="pg-order-line-units">1 unit</span><span class="pg-order-line-price">$49.550 COP</span></div></div></div>
+                <div class="pg-order-line"><div class="pg-order-line-img"><img src="images/tiles/product.jpg" alt="" /></div><div class="pg-order-line-info"><p class="pg-order-line-name">Knorr Primerba Knoflook 340 g</p><div class="pg-order-line-meta"><span class="pg-order-line-units">2 units</span><span class="pg-order-line-price">$140.900 COP</span></div></div></div>
+                <div class="pg-order-total-row">Order Total: $694.450 COP</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ SUMMARY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="summary">
+      <div class="section-breadcrumb">Order Summary</div>
+      <h2 class="section-title">Anatomy &amp; Tokens</h2>
+      <p class="section-desc">A bordered card with 16px padding. At the top, the order number (the page's <code>&lt;h1&gt;</code>) with the order status badge beside it, which wraps below on narrow widths. Under that, a list of labelled facts: <b>Order Date</b>, <b>Delivery date</b>, <b>Dispatched by</b>. The label is bold and the value regular, on one line. The order number and status badge are the same classes as the Overview page's "Last order" card.</p>
+      <div class="ds-card">
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'sum-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'sum-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="sum-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-left-col"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-summary-card"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-summary-hdr"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h1</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-id"</span><span class="t-tag">&gt;</span>Order: UFS-84903-4<span class="t-tag">&lt;/h1&gt;</span>
+      <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"pg-status-badge pg-status-badge--completed"</span><span class="t-tag">&gt;</span>Completed<span class="t-tag">&lt;/span&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-summary-meta"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-summary-meta-row"</span><span class="t-tag">&gt;&lt;strong&gt;</span>Order Date:<span class="t-tag">&lt;/strong&gt;</span> 09 September 2025<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-summary-meta-row"</span><span class="t-tag">&gt;&lt;strong&gt;</span>Delivery date:<span class="t-tag">&lt;/strong&gt;</span> 13 September 2025<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-summary-meta-row"</span><span class="t-tag">&gt;&lt;strong&gt;</span>Dispatched by:<span class="t-tag">&lt;/strong&gt;</span> Integras, Cordoba<span class="t-tag">&lt;/p&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-reorder-desktop"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span> <span class="t-at">type</span>=<span class="t-str">"button"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/cart.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span> Reorder now<span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="sum-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">.pg-order-summary-card</span> { <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-500)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; }
+<span class="t-pr">.pg-order-summary-hdr</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">flex-end</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">flex-wrap</span>: <span class="t-vl">wrap</span>; }
+<span class="t-pr">.pg-order-id</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h5-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-h5-w)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-h5-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.pg-status-badge</span> { <span class="t-pr">display</span>: <span class="t-vl">inline-flex</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-aubergine)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; <span class="t-pr">padding</span>: <span class="t-vl">1px 8px 3px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">white-space</span>: <span class="t-vl">nowrap</span>; }
+<span class="t-pr">.pg-status-badge--completed</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-success)</span>; <span class="t-pr">margin-bottom</span>: <span class="t-vl">4px</span>; }
+<span class="t-pr">.pg-order-summary-meta</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; }
+<span class="t-pr">.pg-order-summary-meta-row</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.pg-order-summary-meta-row strong</span> { <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">1023px</span>) { <span class="t-pr">.pg-order-id</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h5-mob-size)</span>; } }</pre>
+          </div>
+        </div>
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Card</span><span class="token-var">1px --color-mushroom-500 · --radius-lg · --space-4</span><span class="token-note">16px corners (same as Profile Card), 16px padding, 8px between blocks. No fill (page background)</span></div>
+          <div class="token-row"><span class="token-prop">Order number</span><span class="token-var">--text-h5-* · --color-brand-dark</span><span class="token-note">20px → 18px at ≤1023px; the page's &lt;h1&gt;</span></div>
+          <div class="token-row"><span class="token-prop">Status badge</span><span class="token-var">--text-body-xs-size · pill</span><span class="token-note">default --color-aubergine; Completed --color-success</span></div>
+          <div class="token-row"><span class="token-prop">Fact rows</span><span class="token-var">--text-body-sm-size · label 600</span><span class="token-note">14px, 8px apart</span></div>
+        </div>
+        <div class="card-subtitle">Status badge values</div>
+        <div class="pv-badges">
+          <span class="pg-status-badge">Preparing</span>
+          <span class="pg-status-badge pg-status-badge--completed" style="margin-bottom:0">Completed</span>
+        </div>
+        <div class="notice notice--warn" style="margin-top:16px; margin-bottom:0">
+          <span class="notice-icon">⚠️</span>
+          <div>Only two badge states exist on this page (default and <code>--completed</code>). My Orders uses a different badge component with other statuses. The full status list will be defined in the planned <b>Order Status Badge</b> spec; use that list here once it exists.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ REORDER ═══════════════════════════════════════ -->
+    <section class="doc-section" id="reorder">
+      <div class="section-breadcrumb">Order Summary</div>
+      <h2 class="section-title">Reorder Button</h2>
+      <p class="section-desc">A full-width primary button with a cart icon: "Reorder now". It adds every item in the order back to the cart. It's placed in two spots and CSS shows one: on desktop, directly under the summary card in the left column (<code>.pg-order-reorder-desktop</code>); at ≤1023px, after the Order items card at the bottom of the page content (<code>.pg-order-reorder-mobile</code>), so the person reviews the items before reordering.</p>
+      <div class="ds-card">
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">≥1024px</span><span class="token-var">.pg-order-reorder-desktop</span><span class="token-note">inside .pg-order-left-col, 16px under the summary card</span></div>
+          <div class="token-row"><span class="token-prop">≤1023px</span><span class="token-var">.pg-order-reorder-mobile</span><span class="token-note">after the grid, 16px under the items card, full width</span></div>
+          <div class="token-row"><span class="token-prop">Button</span><span class="token-var">.btn.btn-primary · 24px cart icon (white)</span><span class="token-note">standard DS button, width 100%</span></div>
+        </div>
+      </div>
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>Both buttons are in the DOM, and CSS hides one. Keep that in mind for tests and analytics, which should target whichever one is visible.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ITEMS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="items">
+      <div class="section-breadcrumb">Order Items</div>
+      <h2 class="section-title">Anatomy &amp; Tokens</h2>
+      <p class="section-desc">A white bordered card: a header line with the item count ("12 items in order", uppercase), then one line per product separated by 1px dividers, then a right-aligned <b>Order Total</b> row. The card has no inner padding of its own; each row carries its own.</p>
+      <div class="ds-card">
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'it-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'it-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="it-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-items-card"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-items-hdr"</span><span class="t-tag">&gt;</span>12 items in order<span class="t-tag">&lt;/div&gt;</span>
+
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-line"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-line-img"</span><span class="t-tag">&gt;&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"…"</span> <span class="t-at">alt</span>=<span class="t-str">"[product name]"</span><span class="t-tag">/&gt;&lt;/div&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-line-info"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-line-name"</span><span class="t-tag">&gt;</span>Knorr Primerba Bouquet all Italiana 340 g<span class="t-tag">&lt;/p&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-line-meta"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-line-units"</span><span class="t-tag">&gt;</span>3 units<span class="t-tag">&lt;/span&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-line-price"</span><span class="t-tag">&gt;</span>$504.000 COP<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-cm">&lt;!-- …one .pg-order-line per product --&gt;</span>
+
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-total-row"</span><span class="t-tag">&gt;</span>Order Total: $1.844.750 COP<span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="it-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">.pg-order-items-card</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-500)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-pr">.pg-order-items-hdr</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-4) var(--space-6)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">text-transform</span>: <span class="t-vl">uppercase</span>; <span class="t-pr">letter-spacing</span>: <span class="t-va">var(--text-body-xs-ls)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.pg-order-line</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-3) var(--space-5)</span>; <span class="t-pr">border-top</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-300)</span>; }
+<span class="t-pr">.pg-order-line-img</span> { <span class="t-pr">width</span>: <span class="t-vl">80px</span>; <span class="t-pr">height</span>: <span class="t-vl">80px</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">border</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }
+<span class="t-pr">.pg-order-line-img img</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">100%</span>; <span class="t-pr">object-fit</span>: <span class="t-vl">cover</span>; }
+<span class="t-pr">.pg-order-line-info</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.pg-order-line-name</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.pg-order-line-meta</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; }
+<span class="t-pr">.pg-order-line-units</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.pg-order-line-price</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">white-space</span>: <span class="t-vl">nowrap</span>; }
+<span class="t-pr">.pg-order-total-row</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">flex-end</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-4) var(--space-5)</span>; <span class="t-pr">border-top</span>: <span class="t-vl">1px solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-pr">.pg-order-items-hdr</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-3) var(--space-4)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; }
+  <span class="t-pr">.pg-order-line</span> { <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-3) var(--space-4)</span>; }
+  <span class="t-pr">.pg-order-line-name, .pg-order-line-price</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; }
+  <span class="t-pr">.pg-order-total-row</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; }
+}</pre>
+          </div>
+        </div>
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Card</span><span class="token-var">--color-salt · 1px --color-mushroom-500 · --radius-lg</span><span class="token-note">16px corners (same as Profile Card), overflow hidden</span></div>
+          <div class="token-row"><span class="token-prop">Header</span><span class="token-var">--text-body-sm-size · 600 · uppercase</span><span class="token-note">16×24px padding → 12×16px and 12px text at ≤768px. No tint (unlike Profile Card)</span></div>
+          <div class="token-row"><span class="token-prop">Dividers</span><span class="token-var">1px --color-mushroom-300</span><span class="token-note">above every line and above the total</span></div>
+          <div class="token-row"><span class="token-prop">Total row</span><span class="token-var">--text-body-size · 600 · right-aligned</span><span class="token-note">16×20px padding → 16px and 14px text at ≤768px</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ LINE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="line">
+      <div class="section-breadcrumb">Order Items</div>
+      <h2 class="section-title">Line Item</h2>
+      <p class="section-desc">One row per product: an 80×80px product image in a bordered tile on the left; on the right, the product name on top and a row with the quantity (left, grey) and the line price (right, bold). The price never wraps, and the name wraps as needed.</p>
+      <div class="ds-card">
+        <div class="pv-two">
+          <div>
+            <div class="pv-label">Short name</div>
+            <div class="pg-order-items-card"><div class="pg-order-line" style="border-top:0"><div class="pg-order-line-img"><img src="images/tiles/product.jpg" alt="" /></div><div class="pg-order-line-info"><p class="pg-order-line-name">Knorr Primerba Knoflook 340 g</p><div class="pg-order-line-meta"><span class="pg-order-line-units">2 units</span><span class="pg-order-line-price">$140.900 COP</span></div></div></div></div>
+          </div>
+          <div>
+            <div class="pv-label">Long name wraps, price stays on one line</div>
+            <div class="pg-order-items-card" style="max-width:360px"><div class="pg-order-line" style="border-top:0"><div class="pg-order-line-img"><img src="images/tiles/product.jpg" alt="" /></div><div class="pg-order-line-info"><p class="pg-order-line-name">Knorr Professional Gebonden Kalfsjus Vloeibaar 1 L</p><div class="pg-order-line-meta"><span class="pg-order-line-units">1 unit</span><span class="pg-order-line-price">$1.240.900 COP</span></div></div></div></div>
+          </div>
+        </div>
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Row</span><span class="token-var">--space-3 --space-5 · gap --space-4</span><span class="token-note">12×20px padding, 16px image-to-text → 12×16px, 8px at ≤768px</span></div>
+          <div class="token-row"><span class="token-prop">Image tile</span><span class="token-var">80px · --radius-sm · 1px --color-mushroom-300</span><span class="token-note">mushroom-100 background while loading; image cover-fit</span></div>
+          <div class="token-row"><span class="token-prop">Name</span><span class="token-var">--text-body-size · 600</span><span class="token-note">16px → 14px at ≤768px</span></div>
+          <div class="token-row"><span class="token-prop">Quantity</span><span class="token-var">--text-body-sm-size · --color-mushroom-900</span><span class="token-note">"1 unit" / "N units"</span></div>
+          <div class="token-row"><span class="token-prop">Price</span><span class="token-var">--text-body-size · 600 · nowrap</span><span class="token-note">16px → 14px at ≤768px</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CONTENT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="content">
+      <div class="section-breadcrumb">Order Items</div>
+      <h2 class="section-title">Content Rules</h2>
+      <div class="ds-card">
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Item count</span><span class="token-var">"N items in order"</span><span class="token-note">total units across all lines; "1 item in order" for one</span></div>
+          <div class="token-row"><span class="token-prop">All lines listed</span><span class="token-var">no pagination, no inner scroll</span><span class="token-note">the card grows with the order</span></div>
+          <div class="token-row"><span class="token-prop">Currency</span><span class="token-var">market format</span><span class="token-note">prototype shows Colombian pesos: $504.000 COP (dot thousands separator)</span></div>
+          <div class="token-row"><span class="token-prop">Dates</span><span class="token-var">DD Month YYYY</span><span class="token-note">localised per market</span></div>
+          <div class="token-row"><span class="token-prop">Dispatched by</span><span class="token-var">distributor name, city</span><span class="token-note">"Integras, Cordoba"</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile</h2>
+      <p class="section-desc">At ≤1023px the two columns stack (summary, then items) and the Reorder button moves to the end. At ≤768px the items card tightens its padding and type steps down to 14px (12px for the header). The summary keeps its sizes except the order number (18px). This preview forces those rules at any window width.</p>
+      <div class="ds-card">
+        <div class="pv-mob">
+          <div class="pg-order-detail-grid">
+            <div class="pg-order-left-col">
+              <div class="pg-order-summary-card">
+                <div class="pg-order-summary-hdr"><h3 class="pg-order-id">Order: UFS-84903-4</h3><span class="pg-status-badge pg-status-badge--completed">Completed</span></div>
+                <div class="pg-order-summary-meta">
+                  <p class="pg-order-summary-meta-row"><strong>Order Date:</strong> 09 September 2025</p>
+                  <p class="pg-order-summary-meta-row"><strong>Delivery date:</strong> 13 September 2025</p>
+                  <p class="pg-order-summary-meta-row"><strong>Dispatched by:</strong> Integras, Cordoba</p>
+                </div>
+              </div>
+            </div>
+            <div class="pg-order-right-col">
+              <div class="pg-order-items-card">
+                <div class="pg-order-items-hdr">2 items in order</div>
+                <div class="pg-order-line"><div class="pg-order-line-img"><img src="images/tiles/product.jpg" alt="" /></div><div class="pg-order-line-info"><p class="pg-order-line-name">Knorr Primerba Bouquet all Italiana 340 g</p><div class="pg-order-line-meta"><span class="pg-order-line-units">1 unit</span><span class="pg-order-line-price">$168.000 COP</span></div></div></div>
+                <div class="pg-order-line"><div class="pg-order-line-img"><img src="images/tiles/product.jpg" alt="" /></div><div class="pg-order-line-info"><p class="pg-order-line-name">Knorr Professional Blanke Roux 1 kg</p><div class="pg-order-line-meta"><span class="pg-order-line-units">1 unit</span><span class="pg-order-line-price">$206.800 COP</span></div></div></div>
+                <div class="pg-order-total-row">Order Total: $374.800 COP</div>
+              </div>
+            </div>
+          </div>
+          <div class="pg-order-reorder-mobile" style="margin-top:var(--space-4);">
+            <button class="btn btn-primary" style="width:100%" type="button"><img src="icons/cart.svg" alt="" style="width:24px;height:24px;filter:invert(1);" /> Reorder now</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ OPEN ITEMS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="open">
+      <div class="section-breadcrumb">Implementation</div>
+      <h2 class="section-title">Accessibility</h2>
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div><span class="notice-tag">Recommended markup</span>
+          • Build the lines as a list (<code>&lt;ul&gt;</code> / <code>&lt;li&gt;</code>) so screen readers announce "list, N items".<br/>
+          • Give the product image an <code>alt</code> equal to the product name (as the prototype does), or <code>alt=""</code> if the name is already read next to it.<br/>
+          • Consider linking each product name to its product page, which isn't in the prototype.<br/>
+          • The <code>--completed</code> badge uses <code>margin-bottom: 4px</code> to line up with the heading baseline. A shared badge should align through the header's <code>align-items</code> instead.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Implementation</div>
+      <h2 class="section-title">RTL</h2>
+      <p class="section-desc">No RTL rules needed. Every row is flexbox, so under <code>dir="rtl"</code> the image moves to the right, quantity and price swap sides, and the total aligns to the left (<code>flex-end</code> follows the direction).</p>
+      <div class="ds-card">
+        <div class="pg-order-items-card" dir="rtl" style="max-width:560px">
+          <div class="pg-order-items-hdr">2 منتجات في الطلب</div>
+          <div class="pg-order-line"><div class="pg-order-line-img"><img src="images/tiles/product.jpg" alt="" /></div><div class="pg-order-line-info"><p class="pg-order-line-name">كنور بريمربا ثوم 340 غ</p><div class="pg-order-line-meta"><span class="pg-order-line-units">وحدتان</span><span class="pg-order-line-price">$140.900 COP</span></div></div></div>
+          <div class="pg-order-total-row">إجمالي الطلب: $140.900 COP</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) { l.classList.toggle('active', l.getAttribute('href') === '#' + id); });
+        }
+      });
+    }, { passive: true });
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

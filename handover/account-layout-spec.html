@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Account Tabs &amp; Layout — UFS Spec</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+    .notice-tag { font-family: var(--font-family-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-mushroom-900); display: block; margin-bottom: 3px; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    /* ═══════════════════════════════════════
+       COMPONENT CSS — mirrored 1:1 from template-profile-overview.html
+       (identical on details / orders / favourites) and, for the sub-page
+       variant, template-profile-order-detail.html.
+    ═══════════════════════════════════════ */
+    .pg-profile-main { padding: 0 0 var(--space-20); }
+    .pg-profile-wrap { max-width: 1280px; margin: 0 auto; padding: 0 var(--space-8); }
+    .pg-profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 395px;
+      gap: var(--space-8);
+      align-items: start;
+    }
+    @media (max-width: 1200px) {
+      .pg-profile-grid { grid-template-columns: 1fr 340px; }
+    }
+    @media (max-width: 1023px) {
+      .pg-profile-wrap { padding: 0 var(--space-4); }
+      .pg-profile-grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+    }
+
+    .pg-tabs-bar { max-width: 1280px; margin: var(--space-9) auto var(--space-8); padding: 0 var(--space-8); }
+    @media (max-width: 768px) {
+      .pg-tabs-bar { padding: 0 var(--space-4); margin-top: var(--space-5); margin-bottom: var(--space-6); }
+      .pg-tabs-bar .ufs-tabs {
+        margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4));
+        padding-left: var(--space-4); padding-right: var(--space-4);
+      }
+    }
+
+    .ufs-tabs { display: flex; align-items: center; border-bottom: 1px solid var(--color-mushroom-300); overflow-x: auto; scrollbar-width: none; }
+    .ufs-tabs::-webkit-scrollbar { display: none; }
+    .ufs-tabs__btn {
+      flex-shrink: 0; position: relative;
+      display: flex; align-items: center; justify-content: center;
+      padding: var(--space-4) var(--space-6);
+      background: none; border: none; cursor: pointer; white-space: nowrap;
+      font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); font-weight: 600;
+      color: var(--color-squid-300);
+      transition: color 0.15s;
+      text-decoration: none;
+    }
+    .ufs-tabs__btn.is-active { color: var(--color-brand-dark); }
+    .ufs-tabs__btn.is-active::after { content: ''; position: absolute; left: 19px; right: 19px; bottom: 0; height: 3px; background: var(--color-brand-primary); }
+    @media (max-width: 768px) {
+      .ufs-tabs__btn { padding: var(--space-3) var(--space-4); font-size: var(--text-body-sm-size); }
+      .ufs-tabs__btn.is-active::after { left: var(--space-4); right: var(--space-4); }
+    }
+
+    /* Sub-page variant (Order detail) */
+    .pg-order-back {
+      display: flex; align-items: center; gap: var(--space-1);
+      max-width: 1280px; margin: 0 auto; padding: var(--space-4) var(--space-8) 0;
+    }
+    .pg-order-back-btn {
+      width: 24px; height: 24px; background: none; border: none; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; color: var(--color-brand-dark);
+    }
+    .pg-order-back-pill {
+      display: inline-flex; align-items: center; border-radius: var(--radius-sm);
+      padding: var(--space-2) var(--space-4);
+      font-size: var(--text-body-size); font-weight: var(--text-body-w); line-height: var(--text-body-lh);
+      color: var(--color-brand-dark); text-decoration: none;
+    }
+    .pg-order-back-pill:hover { background: var(--color-mushroom-100); }
+    @media (max-width: 768px) {
+      .pg-order-back { padding: var(--space-3) var(--space-4) 0; }
+    }
+    .pg-order-detail-wrap { max-width: 1280px; margin: 0 auto; padding: var(--space-3) var(--space-8) var(--space-20); }
+    .pg-order-detail-grid {
+      display: grid; grid-template-columns: 393px 1fr;
+      column-gap: var(--space-8); row-gap: var(--space-4);
+      align-items: start; margin-top: var(--space-4);
+    }
+    .pg-order-left-col { display: flex; flex-direction: column; gap: var(--space-4); }
+    @media (max-width: 1023px) {
+      .pg-order-detail-wrap { padding: var(--space-3) var(--space-4) var(--space-10); }
+      .pg-order-detail-grid { grid-template-columns: minmax(0, 1fr); row-gap: var(--space-4); }
+    }
+
+    /* ═══════════════════════════════════════
+       PREVIEW HELPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-frame { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow: hidden; padding: 0 0 var(--space-8); }
+    .pv-frame .pg-tabs-bar { margin-top: var(--space-8); }
+    .pv-frame .pg-profile-main { padding-bottom: 0; }
+    .pv-slot {
+      border: 1.5px dashed var(--color-mushroom-500); border-radius: var(--radius-md);
+      background: var(--color-mushroom-100); color: var(--color-mushroom-900);
+      font-family: var(--font-family-mono); font-size: 11px; letter-spacing: 0.04em;
+      display: flex; align-items: center; justify-content: center; text-align: center; padding: var(--space-4);
+    }
+    .pv-slot b { color: var(--color-brand-dark); font-family: var(--font-family); font-size: 13px; letter-spacing: 0; display: block; margin-bottom: 2px; }
+    .pv-col { display: flex; flex-direction: column; gap: var(--space-6); }
+    .pv-crumb { max-width: 1280px; margin: 0 auto; padding: var(--space-4) var(--space-8) 0; font-size: var(--text-body-xs-size); color: var(--color-mushroom-900); }
+    .pv-crumb b { color: var(--color-brand-dark); }
+    .pv-dim { outline: 1px dashed var(--color-accessible-orange); outline-offset: -1px; position: relative; }
+    .pv-dim-tag { position: absolute; top: -9px; left: 8px; background: var(--color-accessible-orange); --color-accessible-orange: #B03D00; color: #fff; font-family: var(--font-family-mono); font-size: 9.5px; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.04em; }
+    /* Force the ≤1023px / ≤768px rules inside .pv-mobile at any window width */
+    .pv-mobile { max-width: 390px; margin: 0 auto; }
+    .pv-mobile .pg-profile-wrap { padding: 0 var(--space-4) !important; }
+    .pv-mobile .pg-profile-grid { grid-template-columns: minmax(0, 1fr) !important; gap: var(--space-4) !important; }
+    .pv-mobile .pg-tabs-bar { padding: 0 var(--space-4) !important; margin-top: var(--space-5) !important; margin-bottom: var(--space-6) !important; }
+    .pv-mobile .pg-tabs-bar .ufs-tabs { margin-left: calc(-1 * var(--space-4)) !important; margin-right: calc(-1 * var(--space-4)) !important; padding-left: var(--space-4) !important; padding-right: var(--space-4) !important; }
+    .pv-mobile .ufs-tabs__btn { padding: var(--space-3) var(--space-4) !important; font-size: var(--text-body-sm-size) !important; }
+    .pv-mobile .ufs-tabs__btn.is-active::after { left: var(--space-4) !important; right: var(--space-4) !important; }
+    .pv-mobile .pv-crumb { padding: var(--space-3) var(--space-4) 0; }
+    .pv-mobile .pg-order-back { padding: var(--space-3) var(--space-4) 0 !important; }
+    .pv-mobile .pg-order-detail-wrap { padding: var(--space-3) var(--space-4) var(--space-6) !important; }
+    .pv-mobile .pg-order-detail-grid { grid-template-columns: minmax(0, 1fr) !important; }
+    .pv-tablet .pg-profile-grid { grid-template-columns: 1fr 340px !important; }
+
+  </style>
+</head>
+<body>
+
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Layout Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#tabs" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Account Tabs</a>
+      <a href="#grid" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Two-Column Grid</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#subpage" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Sub-page (Order detail)</a>
+      <a href="#page-slots" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> What Goes in Each Column</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#responsive" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Breakpoints &amp; Mobile</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Implementation</div>
+      <a href="#a11y" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Accessibility &amp; Open Items</a>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Source: template-profile-overview / details / orders / favourites / order-detail.html</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <div class="doc-topbar">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Account Tabs &amp; Layout</span>
+  </div>
+
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec</div>
+        <h1 class="doc-header-title">Account Tabs <span>&amp; Layout</span></h1>
+        <p class="doc-header-desc">The shared frame of every My Account page: breadcrumb, the four-tab section bar, and the two-column grid (main column + sidebar) the profile cards sit in. Plus the sub-page variant used by Order detail.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val">template-profile-*.html</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ═══════════════════════════════════════ OVERVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Layout Preview</h2>
+      <p class="section-desc">Every tabbed My Account page (Overview, My profile, My Orders, My Favourites) uses exactly the same frame. Only the content of the two columns changes. The dashed boxes below stand in for the page's own components, which have their own specs. The cards in each column are <a href="profile-card-spec.html">Profile Cards</a>, stacked 24px apart by the card's own bottom margin.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Desktop, ≥1201px (Overview tab active)</div>
+        <div class="pv-frame">
+          <div class="pv-crumb">Home › <b>My Account</b></div>
+          <div class="pg-profile-main">
+            <div class="pg-tabs-bar">
+              <div class="ufs-tabs" role="tablist" aria-label="Profile sections">
+                <span class="ufs-tabs__btn is-active" role="tab" aria-selected="true">Overview</span>
+                <a href="#" onclick="return false" class="ufs-tabs__btn" role="tab" aria-selected="false">My profile</a>
+                <a href="#" onclick="return false" class="ufs-tabs__btn" role="tab" aria-selected="false">My Orders</a>
+                <a href="#" onclick="return false" class="ufs-tabs__btn" role="tab" aria-selected="false">My Favourites</a>
+              </div>
+            </div>
+            <div class="pg-profile-wrap">
+              <div class="pg-profile-grid">
+                <div class="pg-profile-left pv-col">
+                  <div class="pv-slot" style="height:120px"><div><b>Main column</b>.pg-profile-left · profile cards</div></div>
+                  <div class="pv-slot" style="height:200px"><div><b>Profile card</b>stacked, 24px apart</div></div>
+                  <div class="pv-slot" style="height:120px"><div><b>Profile card</b></div></div>
+                </div>
+                <div class="pg-profile-right pv-col">
+                  <div class="pv-slot" style="height:190px"><div><b>Sidebar</b>.pg-profile-right · 395px</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Inside <code>&lt;main class="pg-profile-main"&gt;</code>, top to bottom: the <a href="breadcrumb-spec.html">Breadcrumb</a>, the tabs bar <code>.pg-tabs-bar</code> wrapping the design system's <code>.ufs-tabs</code> component, then <code>.pg-profile-wrap</code> (1280px max-width container) holding <code>.pg-profile-grid</code> with exactly two children: <code>.pg-profile-left</code> (main column) and <code>.pg-profile-right</code> (sidebar).</p>
+
+      <div class="ds-card">
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'anat-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'anat-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="anat-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-tag">&lt;main</span> <span class="t-at">id</span>=<span class="t-str">"main-content"</span> <span class="t-at">class</span>=<span class="t-str">"pg-profile-main"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;nav</span> <span class="t-at">class</span>=<span class="t-str">"ufs-breadcrumb"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Breadcrumb"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- Home › My Account (see breadcrumb-spec) --&gt;</span> <span class="t-tag">&lt;/nav&gt;</span>
+
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-tabs-bar"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tabs"</span> <span class="t-at">role</span>=<span class="t-str">"tablist"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Profile sections"</span><span class="t-tag">&gt;</span>
+      <span class="t-cm">&lt;!-- current page: not a link --&gt;</span>
+      <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tabs__btn is-active"</span> <span class="t-at">role</span>=<span class="t-str">"tab"</span> <span class="t-at">aria-selected</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span>Overview<span class="t-tag">&lt;/span&gt;</span>
+      <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"/account/profile"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tabs__btn"</span> <span class="t-at">role</span>=<span class="t-str">"tab"</span> <span class="t-at">aria-selected</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span>My profile<span class="t-tag">&lt;/a&gt;</span>
+      <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"/account/orders"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tabs__btn"</span> <span class="t-at">role</span>=<span class="t-str">"tab"</span> <span class="t-at">aria-selected</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span>My Orders<span class="t-tag">&lt;/a&gt;</span>
+      <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"/account/favourites"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tabs__btn"</span> <span class="t-at">role</span>=<span class="t-str">"tab"</span> <span class="t-at">aria-selected</span>=<span class="t-str">"false"</span><span class="t-tag">&gt;</span>My Favourites<span class="t-tag">&lt;/a&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-profile-wrap"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-profile-grid"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-profile-left"</span><span class="t-tag">&gt;</span>  <span class="t-cm">&lt;!-- main column: profile cards --&gt;</span>  <span class="t-tag">&lt;/div&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-profile-right"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- sidebar: preferences / rewards / interests --&gt;</span> <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/main&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="anat-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">.pg-profile-main</span> { <span class="t-pr">padding</span>: <span class="t-vl">0 0</span> <span class="t-va">var(--space-20)</span>; }
+<span class="t-pr">.pg-profile-wrap</span> { <span class="t-pr">max-width</span>: <span class="t-vl">1280px</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 auto</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-8)</span>; }
+<span class="t-pr">.pg-profile-grid</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">grid</span>; <span class="t-pr">grid-template-columns</span>: <span class="t-vl">1fr 395px</span>;
+  <span class="t-pr">gap</span>: <span class="t-va">var(--space-8)</span>; <span class="t-pr">align-items</span>: <span class="t-vl">start</span>;
+}
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">1200px</span>) { <span class="t-pr">.pg-profile-grid</span> { <span class="t-pr">grid-template-columns</span>: <span class="t-vl">1fr 340px</span>; } }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">1023px</span>) {
+  <span class="t-pr">.pg-profile-wrap</span> { <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-4)</span>; }
+  <span class="t-cm">/* minmax(0,1fr), not 1fr — stops wide content (tile rows) blowing the column out */</span>
+  <span class="t-pr">.pg-profile-grid</span> { <span class="t-pr">grid-template-columns</span>: <span class="t-vl">minmax(0, 1fr)</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+}
+
+<span class="t-pr">.pg-tabs-bar</span> { <span class="t-pr">max-width</span>: <span class="t-vl">1280px</span>; <span class="t-pr">margin</span>: <span class="t-va">var(--space-9)</span> <span class="t-vl">auto</span> <span class="t-va">var(--space-8)</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-8)</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-pr">.pg-tabs-bar</span> { <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-4)</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-5)</span>; <span class="t-pr">margin-bottom</span>: <span class="t-va">var(--space-6)</span>; }
+  <span class="t-cm">/* bleed the scroll track to the screen edge, keep the 16px visual inset */</span>
+  <span class="t-pr">.pg-tabs-bar .ufs-tabs</span> {
+    <span class="t-pr">margin-left</span>: <span class="t-vl">calc(-1 *</span> <span class="t-va">var(--space-4)</span><span class="t-vl">)</span>; <span class="t-pr">margin-right</span>: <span class="t-vl">calc(-1 *</span> <span class="t-va">var(--space-4)</span><span class="t-vl">)</span>;
+    <span class="t-pr">padding-left</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">padding-right</span>: <span class="t-va">var(--space-4)</span>;
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ACCOUNT TABS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="tabs">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Account Tabs</h2>
+      <p class="section-desc">A fixed set of four sections, always in this order: <b>Overview · My profile · My Orders · My Favourites</b>. Each tab is a link to its own page, so a full page load and not a panel switch. The current page's tab is marked active and isn't a link. Tab styling is the design system's <code>.ufs-tabs</code> component (see the Tabs section of the design-system doc). The only addition here is <code>text-decoration: none</code>, because three of the four tabs are real <code>&lt;a&gt;</code> links.</p>
+
+      <div class="ds-card">
+        <div class="card-title">States, one per page</div>
+        <div class="card-desc">Which tab is active on each account page. Order detail has no tab bar (see Sub-page).</div>
+        <div class="pv-label">template-profile-overview.html</div>
+        <div class="ufs-tabs" style="margin-bottom:18px"><span class="ufs-tabs__btn is-active">Overview</span><span class="ufs-tabs__btn">My profile</span><span class="ufs-tabs__btn">My Orders</span><span class="ufs-tabs__btn">My Favourites</span></div>
+        <div class="pv-label">template-profile-details.html</div>
+        <div class="ufs-tabs" style="margin-bottom:18px"><span class="ufs-tabs__btn">Overview</span><span class="ufs-tabs__btn is-active">My profile</span><span class="ufs-tabs__btn">My Orders</span><span class="ufs-tabs__btn">My Favourites</span></div>
+        <div class="pv-label">template-profile-orders.html</div>
+        <div class="ufs-tabs" style="margin-bottom:18px"><span class="ufs-tabs__btn">Overview</span><span class="ufs-tabs__btn">My profile</span><span class="ufs-tabs__btn is-active">My Orders</span><span class="ufs-tabs__btn">My Favourites</span></div>
+        <div class="pv-label">template-profile-favourites.html</div>
+        <div class="ufs-tabs"><span class="ufs-tabs__btn">Overview</span><span class="ufs-tabs__btn">My profile</span><span class="ufs-tabs__btn">My Orders</span><span class="ufs-tabs__btn is-active">My Favourites</span></div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Label</span><span class="token-var">--text-body-size · 600</span><span class="token-note">16px desktop → --text-body-sm-size 14px at ≤768px</span></div>
+          <div class="token-row"><span class="token-prop">Inactive colour</span><span class="token-var">--color-squid-300</span><span class="token-note">active: --color-brand-dark</span></div>
+          <div class="token-row"><span class="token-prop">Active indicator</span><span class="token-var">3px --color-brand-primary</span><span class="token-note">bottom bar, inset 19px each side (16px at ≤768px)</span></div>
+          <div class="token-row"><span class="token-prop">Tab padding</span><span class="token-var">--space-4 --space-6</span><span class="token-note">16×24px → 12×16px at ≤768px</span></div>
+          <div class="token-row"><span class="token-prop">Track divider</span><span class="token-var">1px --color-mushroom-300</span><span class="token-note">full width under the tabs</span></div>
+          <div class="token-row"><span class="token-prop">Bar spacing</span><span class="token-var">--space-9 above · --space-8 below</span><span class="token-note">36 / 32px → 20 / 24px at ≤768px</span></div>
+          <div class="token-row"><span class="token-prop">Overflow</span><span class="token-var">horizontal scroll, scrollbar hidden</span><span class="token-note">no wrapping, no arrows; the track bleeds to the screen edge on mobile</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--tip">
+        <span class="notice-icon">💡</span>
+        <div><b>Secondary tabs</b>: My Favourites reuses <code>.ufs-tabs</code> a second time, inside its main column, for its own sub-sections (My Cooking Book, Order Lists…). It uses a mushroom-100 background and an orange active label, and becomes an accordion on mobile. That belongs to the Favourites sections component, not this frame, and gets its own spec.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ GRID ═══════════════════════════════════════ -->
+    <section class="doc-section" id="grid">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Two-Column Grid</h2>
+      <p class="section-desc">A flexible main column plus a fixed-width sidebar on the right, top-aligned (<code>align-items: start</code>), so the two columns keep their own heights. Each column stacks its cards vertically. The sidebar narrows once before the layout collapses to a single column. On a single column, the sidebar content follows the main column, in DOM order.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">1024–1200px: sidebar narrows to 340px</div>
+        <div class="pv-frame pv-tablet" style="padding-top:var(--space-6)">
+          <div class="pg-profile-wrap">
+            <div class="pg-profile-grid">
+              <div class="pv-slot pv-dim" style="height:150px"><span class="pv-dim-tag">1fr</span><div><b>.pg-profile-left</b>main column</div></div>
+              <div class="pv-slot pv-dim" style="height:110px"><span class="pv-dim-tag">340px</span><div><b>.pg-profile-right</b>sidebar</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-subtitle">Key Tokens</div>
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Container</span><span class="token-var">max-width 1280px, centred</span><span class="token-note">side padding --space-8 (32px) → --space-4 (16px) at ≤1023px</span></div>
+          <div class="token-row"><span class="token-prop">Columns ≥1201px</span><span class="token-var">1fr + 395px</span><span class="token-note">gap --space-8 (32px)</span></div>
+          <div class="token-row"><span class="token-prop">Columns 1024–1200px</span><span class="token-var">1fr + 340px</span><span class="token-note">gap unchanged</span></div>
+          <div class="token-row"><span class="token-prop">Columns ≤1023px</span><span class="token-var">minmax(0, 1fr)</span><span class="token-note">single column, gap --space-4 (16px), sidebar below main</span></div>
+          <div class="token-row"><span class="token-prop">Bottom padding</span><span class="token-var">--space-20</span><span class="token-note">80px between the grid and the footer</span></div>
+        </div>
+      </div>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div>Use <code>minmax(0, 1fr)</code> for the single-column track, not a bare <code>1fr</code>. A bare <code>1fr</code> lets wide content, such as a row of tiles, force the column wider than the screen at narrow widths.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ SUB-PAGE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="subpage">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Sub-page (Order detail)</h2>
+      <p class="section-desc">A page opened <i>from</i> a tab, not a tab itself. It has <b>no tab bar</b>: a back link returns to the parent tab instead. The breadcrumb gains a third level (Home › My Account › Order: UFS-84903-4). Its grid is <b>mirrored</b> compared with the tabbed pages: a fixed 393px column on the left (order summary) and a flexible column on the right (order items). It collapses to one column at the same 1023px breakpoint.</p>
+
+      <div class="ds-card">
+        <div class="pv-label">Desktop</div>
+        <div class="pv-frame">
+          <div class="pv-crumb">Home › My Account › <b>Order: UFS-84903-4</b></div>
+          <div class="pg-order-back">
+            <button class="pg-order-back-btn" aria-label="Go back" tabindex="-1">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+            </button>
+            <a href="#" onclick="return false" class="pg-order-back-pill" tabindex="-1">My Past Orders</a>
+          </div>
+          <div class="pg-order-detail-wrap" style="padding-bottom:0">
+            <div class="pg-order-detail-grid">
+              <div class="pg-order-left-col"><div class="pv-slot pv-dim" style="height:130px"><span class="pv-dim-tag">393px</span><div><b>Order summary</b>+ Reorder</div></div></div>
+              <div class="pv-slot pv-dim" style="height:210px"><span class="pv-dim-tag">1fr</span><div><b>Order items</b>line items + total</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block-wrap">
+          <div class="code-tabs">
+            <div class="code-tab active" onclick="switchTab(this,'sub-html')">HTML</div>
+            <div class="code-tab" onclick="switchTab(this,'sub-css')">CSS</div>
+          </div>
+          <div class="code-panel active" data-tab="sub-html">
+            <div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-back"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-back-btn"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Go back"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- ← arrow, 24px --&gt;</span> <span class="t-tag">&lt;/button&gt;</span>
+  <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"/account/orders"</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-back-pill"</span><span class="t-tag">&gt;</span>My Past Orders<span class="t-tag">&lt;/a&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-detail-wrap"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-detail-grid"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-left-col"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- summary card, Reorder --&gt;</span> <span class="t-tag">&lt;/div&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"pg-order-right-col"</span><span class="t-tag">&gt;</span> <span class="t-cm">&lt;!-- items card --&gt;</span> <span class="t-tag">&lt;/div&gt;</span>
+  <span class="t-tag">&lt;/div&gt;</span>
+<span class="t-tag">&lt;/div&gt;</span></pre>
+          </div>
+          <div class="code-panel" data-tab="sub-css">
+            <div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+<pre class="code-body" tabindex="0"><span class="t-pr">.pg-order-back</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">max-width</span>: <span class="t-vl">1280px</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 auto</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-4) var(--space-8)</span> <span class="t-vl">0</span>; }
+<span class="t-pr">.pg-order-back-pill</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-2) var(--space-4)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.pg-order-back-pill:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }
+<span class="t-pr">.pg-order-detail-wrap</span> { <span class="t-pr">max-width</span>: <span class="t-vl">1280px</span>; <span class="t-pr">margin</span>: <span class="t-vl">0 auto</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-3) var(--space-8) var(--space-20)</span>; }
+<span class="t-pr">.pg-order-detail-grid</span> { <span class="t-pr">display</span>: <span class="t-vl">grid</span>; <span class="t-pr">grid-template-columns</span>: <span class="t-vl">393px 1fr</span>; <span class="t-pr">column-gap</span>: <span class="t-va">var(--space-8)</span>; <span class="t-pr">row-gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">align-items</span>: <span class="t-vl">start</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.pg-order-left-col</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">1023px</span>) {
+  <span class="t-pr">.pg-order-detail-wrap</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-3) var(--space-4) var(--space-10)</span>; }
+  <span class="t-pr">.pg-order-detail-grid</span> { <span class="t-pr">grid-template-columns</span>: <span class="t-vl">minmax(0, 1fr)</span>; }
+}
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) { <span class="t-pr">.pg-order-back</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-3) var(--space-4)</span> <span class="t-vl">0</span>; } }</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ PAGE SLOTS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="page-slots">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">What Goes in Each Column</h2>
+      <p class="section-desc">The frame never changes; this is only a map of what each page puts into it, so developers can see how the pieces fit. Each item is a separate component with its own spec (existing or planned).</p>
+      <div class="ds-card">
+        <div class="token-list">
+          <div class="token-row"><span class="token-prop">Overview · main</span><span class="token-var">My profile · My orders · My favourites cards, image banner</span><span class="token-note">profile card, loyalty card, order card, stat tiles, tiles, promo banner</span></div>
+          <div class="token-row"><span class="token-prop">Overview · sidebar</span><span class="token-var">Preferences card</span><span class="token-note">links to Account settings / Contact preferences / Help</span></div>
+          <div class="token-row"><span class="token-prop">My profile · main</span><span class="token-var">Basic information · My kitchen · save bar</span><span class="token-note">save bar sits inside the main column on desktop, fixed to the bottom on mobile</span></div>
+          <div class="token-row"><span class="token-prop">My profile · sidebar</span><span class="token-var">Preferences · Delete account</span><span class="token-note">Change password lives here (see form-journeys)</span></div>
+          <div class="token-row"><span class="token-prop">My Orders · main</span><span class="token-var">My past orders · My wishlist · Orders &amp; promos</span><span class="token-note">order cards, empty state, promo tiles</span></div>
+          <div class="token-row"><span class="token-prop">My Orders · sidebar</span><span class="token-var">Chef rewards</span><span class="token-note">loyalty card + rewards list</span></div>
+          <div class="token-row"><span class="token-prop">My Favourites · main</span><span class="token-var">Favourites sections (secondary tabs)</span><span class="token-note">bordered, sub-tabs on desktop, accordion on mobile</span></div>
+          <div class="token-row"><span class="token-prop">My Favourites · sidebar</span><span class="token-var">My interests</span><span class="token-note">the only <b>sticky</b> sidebar (top: --space-6); static on ≤1023px</span></div>
+          <div class="token-row"><span class="token-prop">Order detail</span><span class="token-var">left: summary + Reorder · right: items</span><span class="token-note">see <a href="order-detail-cards-spec.html">Order Summary &amp; Items</a>; followed by a full-width Recommended products carousel below the grid</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RESPONSIVE ═══════════════════════════════════════ -->
+    <section class="doc-section" id="responsive">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Breakpoints &amp; Mobile</h2>
+      <p class="section-desc">Three layout states. The tab bar changes size at 768px and the grid collapses at 1023px, so between 769 and 1023px the tabs keep their desktop size above a single-column layout. These previews force the mobile rules at any window width.</p>
+      <div class="ds-card">
+        <div class="token-list" style="margin-bottom:24px">
+          <div class="token-row"><span class="token-prop">≥1201px</span><span class="token-var">1fr + 395px sidebar</span><span class="token-note">desktop tabs</span></div>
+          <div class="token-row"><span class="token-prop">1024–1200px</span><span class="token-var">1fr + 340px sidebar</span><span class="token-note">desktop tabs</span></div>
+          <div class="token-row"><span class="token-prop">769–1023px</span><span class="token-var">single column, sidebar below</span><span class="token-note">desktop-size tabs, 16px side padding</span></div>
+          <div class="token-row"><span class="token-prop">≤768px</span><span class="token-var">single column</span><span class="token-note">compact tabs (14px, 12×16px), track scrolls horizontally to the screen edge</span></div>
+        </div>
+        <div style="display:flex; gap:32px; flex-wrap:wrap; justify-content:center;">
+          <div>
+            <div class="pv-label">≤768px, tabbed page</div>
+            <div class="pv-frame pv-mobile" style="width:390px">
+              <div class="pv-crumb">Home › <b>My Account</b></div>
+              <div class="pg-tabs-bar">
+                <div class="ufs-tabs">
+                  <span class="ufs-tabs__btn">Overview</span><span class="ufs-tabs__btn">My profile</span><span class="ufs-tabs__btn is-active">My Orders</span><span class="ufs-tabs__btn">My Favourites</span>
+                </div>
+              </div>
+              <div class="pg-profile-wrap">
+                <div class="pg-profile-grid">
+                  <div class="pg-profile-left pv-col">
+                    <div class="pv-slot" style="height:120px"><div><b>Main column</b>cards stack</div></div>
+                    <div class="pv-slot" style="height:90px"><div><b>Profile card</b></div></div>
+                  </div>
+                  <div class="pg-profile-right pv-col"><div class="pv-slot" style="height:90px"><div><b>Sidebar</b>moves below main</div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="pv-label">≤768px, sub-page</div>
+            <div class="pv-frame pv-mobile" style="width:390px">
+              <div class="pv-crumb">Home › My Account › <b>Order…</b></div>
+              <div class="pg-order-back">
+                <button class="pg-order-back-btn" aria-label="Go back" tabindex="-1"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg></button>
+                <a href="#" onclick="return false" class="pg-order-back-pill" tabindex="-1">My Past Orders</a>
+              </div>
+              <div class="pg-order-detail-wrap">
+                <div class="pg-order-detail-grid">
+                  <div class="pv-slot" style="height:100px"><div><b>Order summary</b></div></div>
+                  <div class="pv-slot" style="height:140px"><div><b>Order items</b></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ A11Y / OPEN ITEMS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="a11y">
+      <div class="section-breadcrumb">Implementation</div>
+      <h2 class="section-title">Accessibility &amp; Open Items</h2>
+      <p class="section-desc">Things the prototype does not settle yet. Worth deciding before this is built.</p>
+
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><span class="notice-tag">Tab semantics</span>The prototype marks the bar up as ARIA tabs (<code>role="tablist"</code> / <code>role="tab"</code> / <code>aria-selected</code>), but the tabs are links to other pages. ARIA tabs promise arrow-key switching between panels on the same page, which doesn't happen here. <b>Recommended:</b> use <code>&lt;nav aria-label="My Account"&gt;</code> with plain links, mark the current one with <code>aria-current="page"</code>, and drop the tab roles. The visual design stays the same.</div>
+      </div>
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><span class="notice-tag">Missing states</span>The tabs have no hover style and no visible keyboard-focus style, and the back link's arrow button has no focus style either. Both need a design decision. Suggestion: hover to <code>--color-brand-dark</code>, and focus to the 2px outline used on other links.</div>
+      </div>
+      <div class="notice notice--warn">
+        <span class="notice-icon">⚠️</span>
+        <div><span class="notice-tag">Back link</span>The sub-page back link is two separate controls (arrow button + text link) going to the same place, so keyboard users hit two focus stops. <b>Recommended:</b> one <code>&lt;a&gt;</code> containing both the arrow icon and the label.</div>
+      </div>
+      <div class="notice notice--info">
+        <span class="notice-icon">ℹ️</span>
+        <div><span class="notice-tag">Skip link</span>The <code>&lt;main&gt;</code> here is the "Jump to content" target (see <a href="nav-header-spec.html#skip-link">nav-header-spec</a>). It needs <code>id="main-content"</code> and <code>tabindex="-1"</code>, as in the Anatomy markup above.</div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Implementation</div>
+      <h2 class="section-title">RTL</h2>
+      <p class="section-desc">No RTL-specific rules needed. The tab row is flexbox and the grid is CSS grid, so under <code>dir="rtl"</code> the tabs run right to left and the sidebar moves to the left automatically. The back arrow should be mirrored (point right) in RTL. The prototype doesn't do that yet.</p>
+      <div class="ds-card">
+        <div class="pv-label">dir="rtl"</div>
+        <div class="pv-frame" dir="rtl" style="padding-top:var(--space-2)">
+          <div class="pg-tabs-bar" style="margin-top:var(--space-6)">
+            <div class="ufs-tabs"><span class="ufs-tabs__btn is-active">نظرة عامة</span><span class="ufs-tabs__btn">ملفي الشخصي</span><span class="ufs-tabs__btn">طلباتي</span><span class="ufs-tabs__btn">مفضلاتي</span></div>
+          </div>
+          <div class="pg-profile-wrap">
+            <div class="pg-profile-grid">
+              <div class="pv-slot" style="height:110px"><div><b>العمود الرئيسي</b>main column</div></div>
+              <div class="pv-slot" style="height:80px"><div><b>الشريط الجانبي</b>sidebar</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) { l.classList.toggle('active', l.getAttribute('href') === '#' + id); });
+        }
+      });
+    }, { passive: true });
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
