@@ -4211,6 +4211,9 @@
       .ufs-product-tip { border-radius: var(--radius-md); padding: var(--space-4); }
       .ufs-product-tip__title { font-size: var(--text-h5-mob-size); }
     }
+      /* How to order — Message character counter */
+    .fi-counter { align-self: flex-end; font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-900); }
+
   </style>
 </head>
 <body class="color-light">
@@ -6610,6 +6613,15 @@
               </div>
             </div>
           </div>
+          <!-- Message — required, free text after the business details,
+               max 500 characters with a live counter (contactMessageCount()).
+               Submit stays disabled until it has non-blank text
+               (contactValidateStep2()). -->
+          <div class="fi-wrap">
+            <label class="fi-label" for="contact-message">Message</label>
+            <textarea class="fi-field fi-field--textarea" id="contact-message" rows="4" maxlength="500" placeholder="Tell us what you'd like to order or ask" aria-describedby="contact-message-count" aria-required="true" required oninput="contactMessageCount(); contactValidateStep2()"></textarea>
+            <div class="fi-counter" id="contact-message-count">0 / 500</div>
+          </div>
         </div>
         <button class="btn btn-primary reg-submit-btn" style="width:100%" id="contact-submit-btn" disabled onclick="contactSubmit()">
           <span class="reg-submit-btn-label">Submit</span>
@@ -8833,6 +8845,8 @@
       if (document.getElementById('contact-address-wrap').classList.contains('is-visible')) {
         ok = ok && document.getElementById('contact-address').value.trim() !== '';
       }
+      // Message is required (whitespace-only doesn't count)
+      ok = ok && document.getElementById('contact-message').value.trim() !== '';
       document.getElementById('contact-submit-btn').disabled = !ok;
     }
 
@@ -8994,8 +9008,13 @@
       bar.style.transition = '';
     }
 
+    function contactMessageCount() {
+      var len = document.getElementById('contact-message').value.length;
+      document.getElementById('contact-message-count').textContent = len + ' / 500';
+    }
+
     function contactSetStep2FieldsDisabled(v) {
-      ['contact-business', 'contact-address', 'contact-city', 'contact-postal', 'contact-phone', 'contact-phone-code-trigger'].forEach(function(id) {
+      ['contact-business', 'contact-address', 'contact-city', 'contact-postal', 'contact-phone', 'contact-phone-code-trigger', 'contact-message'].forEach(function(id) {
         document.getElementById(id).disabled = v;
       });
     }
@@ -9052,6 +9071,8 @@
       document.getElementById('contact-postal').value  = '';
       regPhoneCodeSetValue('contact-phone-code', '+39');
       document.getElementById('contact-phone').value   = '';
+      document.getElementById('contact-message').value = '';
+      contactMessageCount();
       contactSetStep2FieldsDisabled(false);
       contactResetSubmitButton();
       document.getElementById('contact-submit-btn').disabled = true;
