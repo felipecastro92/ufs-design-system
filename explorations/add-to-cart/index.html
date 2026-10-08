@@ -20,8 +20,8 @@
       two always-visible option cards. "Add to cart" adds 1 of the selected
       card; the button becomes a stepper for that card and a count bubble
       marks it. Picking the other card brings "Add to cart" back until that
-      type is added. A points pill on the image shows points per unit ×
-      quantity and animates (count-up + pulse) when it changes.
+      type is added. A points pill on the tile shows the selected pack's points
+      (single 350 → box of 6 2,100) and animates (count-up + pulse) on switch.
   -->
   <link rel="stylesheet" href="../../handover/tokens.css" />
   <style>
@@ -2098,7 +2098,7 @@
     /* Desktop/tablet grid = catalog's .pg-catalog-grid; .x-grid only adds the prototype's mobile layout below */
     @media (max-width: 768px) {
       .x-grid { grid-template-columns: minmax(0, 1fr); gap: 0; border-top: 1px solid var(--color-mushroom-300); }
-      .x-grid .ufs-tile { display: grid; grid-template-columns: 112px 1fr; grid-template-areas: "image content"; align-items: start; column-gap: var(--space-3); border: none; border-bottom: 1px solid var(--color-mushroom-300); border-radius: 0; padding: var(--space-4); }
+      .x-grid .ufs-tile { display: grid; grid-template-columns: 112px 1fr; grid-template-areas: "image content"; align-items: center; column-gap: var(--space-3); border: none; border-bottom: 1px solid var(--color-mushroom-300); border-radius: 0; padding: var(--space-4); }
       .x-grid .ufs-tile:hover { box-shadow: none; transform: none; }
       /* Fav sits on the tile's own top-right corner (not the photo's) */
       .x-grid .ufs-tile__fav { width: var(--space-8); height: var(--space-8); top: var(--space-4); right: var(--space-4); }
@@ -2167,6 +2167,7 @@
     .x-backdrop.is-open { pointer-events: auto; }
     .x-picker { position: fixed; z-index: 100; width: 380px; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: var(--space-5); display: none; flex-direction: column; gap: var(--space-4); }
     .x-picker.is-open { display: flex; }
+    .x-picker:focus { outline: none; }
     .x-picker-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
     .x-picker-hd h2 { font-size: var(--text-h6-size); line-height: var(--text-h6-lh); }
     .x-picker-hd p { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); }
@@ -2209,6 +2210,7 @@
       transform-origin: left center;
     }
     /* Picker: points pill + optional badge stacked in the top-left corner */
+    /* Points + badge sit on the tile itself (not the photo), mirroring the fav button */
     .x-tile-flags { position: absolute; top: var(--space-3); left: var(--space-2); z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
     .x-tile-flags .x-points, .x-tile-flags .ufs-tile__badge { position: static; }
     .x-points svg { width: 12px; height: 12px; fill: var(--color-gold); flex-shrink: 0; }
@@ -2284,7 +2286,7 @@
       .x-grid .ufs-tile--c3 .ufs-tile__image { aspect-ratio: auto; height: 112px; }
       .x-points { top: var(--space-1); left: var(--space-1); padding: 5px 6px; font-size: var(--text-body-xs-size); }
       .x-points svg { width: 10px; height: 10px; }
-      .x-tile-flags { top: var(--space-1); left: var(--space-1); gap: var(--space-1); }
+      .x-tile-flags { top: var(--space-4); left: var(--space-4); gap: var(--space-1); }
       .x-grid .ufs-tile--c3 .ufs-tile__cta { gap: var(--space-3); }
       .fi-qty--tile { height: var(--space-10); padding: 4px; }
     }
@@ -2302,6 +2304,10 @@
     }
     /* Concept 4 · outgoing control while the CTA ⇄ quantity selector fade runs */
     .x-ghost { position: absolute; margin: 0; pointer-events: none; z-index: 1; }
+    /* Morph: the Add to cart button shrinking into the + circle */
+    .x-morph { padding: 0; overflow: hidden; min-width: 0; z-index: 2; }
+    .x-morph-plus { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--color-salt); opacity: 0; }
+    .x-morph-plus svg { width: var(--space-5); height: var(--space-5); fill: currentColor; }
   </style>
 </head>
 <body>
@@ -3261,7 +3267,7 @@
 
   <!-- Concept 1 picker (one instance, filled per product) -->
   <div class="x-backdrop" id="backdrop" onclick="closePicker()"></div>
-  <div class="x-picker" id="picker" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+  <div class="x-picker" id="picker" role="dialog" aria-modal="true" aria-labelledby="picker-title" tabindex="-1">
     <span class="x-picker-arrow" id="picker-arrow"></span>
     <div class="x-picker-hd">
       <div><h2 id="picker-title"></h2><p>Choose pack size and quantity</p></div>
@@ -4840,11 +4846,10 @@
       document.getElementById('grid').innerHTML = PRODUCTS.map(function (p) {
         if (state.concept === 'cards') return c4TileHTML(p);
         var badge = p.badge ? '<span class="ufs-tile__badge">' + p.badge + '</span>' : '';
-        // Picker: points pill in the corner, badge stacked under it
-        if (state.concept === 'picker') badge = '<div class="x-tile-flags">' + pointsPill(p, true) + badge + '</div>';
+        // Picker: points pill in the tile's corner, badge stacked under it
         return '<article class="ufs-tile" id="tile-' + p.id + '">' + favBtn(p) +
-          '<div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url(\'' + IMG + p.img + '\')"></div>' +
-          badge + '</div>' +
+          '<div class="x-tile-flags">' + pointsPill(p, true) + badge + '</div>' +
+          '<div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url(\'' + IMG + p.img + '\')"></div></div>' +
           '<div class="ufs-tile__content">' +
             '<div class="ufs-tile__body">' +
               '<div class="ufs-tile__eyebrow">' + p.cat + '</div>' +
@@ -4859,17 +4864,17 @@
     }
 
     function fmt(n) { return n.toLocaleString('de-DE'); }   // 4.320, as in the cart panel design
-    function unitsInCart(id) { var l = lineOf(id), p = byId(id); return (l.single || 0) + (l.multi || 0) * (p.multi || 0); }
-    function livePoints(p) { return p.pts * Math.max(unitsInCart(p.id), 1); }   // per-unit points until something is added
+    // Concept 4: points for one of the selected pack (single 350 → box of 6 2,100); quantities don't change it
+    function packPoints(p) { return p.pts * (c4SelOf(p) === 'multi' ? p.multi : 1); }
     var favs = {};   // product id → true; kept across concept switches
     function favBtn(p) {
       var on = !!favs[p.id];
       return '<button type="button" class="ufs-tile__fav' + (on ? ' is-active' : '') + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Remove from favourites' : 'Add to favourites') + '" onclick="toggleTileFav(this, event); favs[\'' + p.id + '\'] = this.classList.contains(\'is-active\')">' +
         '<svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>';
     }
-    // fixed: per-unit points that never change (Concept 1 — live total lives in the picker)
+    // fixed: per-unit points (Concept 1 — live total lives in the picker); otherwise the selected pack's points (Concept 4)
     function pointsPill(p, fixed) {
-      return '<span class="x-points" id="pts-' + p.id + '">' + ICON_COIN + '<span class="x-points-val" id="pts-val-' + p.id + '">' + fmt(fixed ? p.pts : livePoints(p)) + '</span><span class="sr-only"> points</span></span>';
+      return '<span class="x-points" id="pts-' + p.id + '">' + ICON_COIN + '<span class="x-points-val" id="pts-val-' + p.id + '">' + fmt(fixed ? p.pts : packPoints(p)) + '</span><span class="sr-only"> points</span></span>';
     }
     // Points motion: count the number from old to new value, and/or a soft pulse ring
     var motion = 'both', countRaf = {};   // count-up + pulse
@@ -4897,8 +4902,8 @@
     function c4TileHTML(p) {
       var badge = p.badge ? '<span class="ufs-tile__badge">' + p.badge + '</span>' : '';
       return '<article class="ufs-tile ufs-tile--c3 ufs-tile--c4" id="tile-' + p.id + '">' + favBtn(p) +
-        '<div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url(\'' + IMG + p.img + '\')"></div>' +
-          '<div class="x-tile-flags x-tile-flags--row">' + badge + pointsPill(p) + '</div></div>' +
+        '<div class="x-tile-flags x-tile-flags--row">' + badge + pointsPill(p) + '</div>' +
+        '<div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url(\'' + IMG + p.img + '\')"></div></div>' +
         '<div class="ufs-tile__content">' +
           '<div class="ufs-tile__body">' +
             '<div class="ufs-tile__eyebrow">' + p.cat + '</div>' +
@@ -4949,7 +4954,7 @@
       if (oldQ && !isAdd && (focusRole === 'inc' || focusRole === 'dec')) rollQty(cta, oldQ, focusRole === 'inc');
       if (focusRole === 'pack') { var c = document.querySelector('#packs-' + id + ' [aria-checked="true"]'); if (c) c.focus({ preventScroll: true }); }
     }
-    function c4Select(id, k) { if (c4Sel[id] === k) return; var was = !(lineOf(id)[c4SelOf(byId(id))] || 0); c4Sel[id] = k; c4Refresh(id, was, 'pack'); }
+    function c4Select(id, k) { if (c4Sel[id] === k) return; var was = !(lineOf(id)[c4SelOf(byId(id))] || 0); c4Sel[id] = k; c4Refresh(id, was, 'pack'); animatePoints(id, packPoints(byId(id))); }
     function c4Set(id, v, focusRole, fly) {
       var p = byId(id), k = c4SelOf(p), before = lineOf(id)[k] || 0, q = clampQty(v);
       setLine(id, k, q);
@@ -4962,6 +4967,37 @@
     // Button ⇄ stepper: sequential fade. The old control fades out fully,
     // then the new one fades in; never both visible.
     var FADE_OUT = 150, FADE_IN = 200;
+    // On "Add to cart" the button morphs into the
+    // stepper's + button — it shrinks right into the orange circle while the
+    // label fades, then the track, bin/minus and number fade in around it.
+    var morphFor = null, MORPH_MS = 340;
+    function c4MorphCta(cta, btn, onShown, token) {
+      var cr = cta.getBoundingClientRect(), br = btn.getBoundingClientRect();
+      cta.style.position = 'relative';
+      btn.remove();
+      cta.innerHTML = c4CtaHTML(byId(cta.id.slice(4)));
+      var incoming = cta.firstElementChild, inc = incoming.querySelector('[data-role="inc"]'), ir = inc.getBoundingClientRect();
+      btn.removeAttribute('id'); btn.setAttribute('aria-hidden', 'true'); btn.inert = true;
+      btn.classList.add('x-ghost', 'x-morph');
+      btn.style.cssText = 'left:' + (br.left - cr.left) + 'px;top:' + (br.top - cr.top) + 'px;width:' + br.width + 'px;height:' + br.height + 'px;';
+      var plus = document.createElement('span'); plus.className = 'x-morph-plus'; plus.innerHTML = ICON_PLUS; btn.appendChild(plus);
+      cta.appendChild(btn);
+      inc.style.visibility = 'hidden';
+      var to = { left: (ir.left - cr.left) + 'px', top: (ir.top - cr.top) + 'px', width: ir.width + 'px', height: ir.height + 'px', borderRadius: (ir.height / 2) + 'px' };
+      var from = { left: btn.style.left, top: btn.style.top, width: btn.style.width, height: btn.style.height, borderRadius: getComputedStyle(btn).borderRadius };
+      btn.animate([from, to], { duration: MORPH_MS, easing: 'cubic-bezier(0.65, 0, 0.35, 1)', fill: 'forwards' }).onfinish = function () {
+        if (token !== cta._swap) return;
+        inc.style.visibility = ''; btn.remove();
+        if (onShown) onShown();
+      };
+      [].forEach.call(btn.querySelectorAll(':scope > :not(.x-morph-plus)'), function (el) {
+        el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.35, fill: 'forwards' });
+      });
+      // label nodes are text too: fade the whole label colour out
+      btn.animate([{ color: getComputedStyle(btn).color }, { color: 'transparent' }], { duration: MORPH_MS * 0.35, fill: 'forwards' });
+      plus.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MORPH_MS * 0.3, delay: MORPH_MS * 0.7, fill: 'both' });
+      incoming.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay: MORPH_MS * 0.55, easing: 'ease-out', fill: 'backwards' });
+    }
     function c4FadeCta(p, changed, onShown) {
       var cta = document.getElementById('cta-' + p.id);
       var token = cta._swap = (cta._swap || 0) + 1;   // a newer swap invalidates any pending callbacks
@@ -4971,6 +5007,7 @@
       var op = shown ? parseFloat(getComputedStyle(shown).opacity) : 0;
       cta.getAnimations({ subtree: true }).forEach(function (a) { a.cancel(); });
       if (!changed || !shown || reduceMotion.matches) { cta.innerHTML = c4CtaHTML(p); if (onShown) onShown(); return; }
+      if (morphFor === p.id && shown.id === 'add-' + p.id) { c4MorphCta(cta, shown, onShown, token); return; }
       cta.style.position = 'relative';   // set before measuring: offsets are relative to the CTA
       var box = { top: shown.offsetTop, left: shown.offsetLeft, width: shown.offsetWidth };
       shown.remove();
@@ -5097,10 +5134,6 @@
         if (bump) { badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump'); }
       });
       renderCartPanel(count, total);
-      // Concept 4 tiles: points pill follows the units in cart (tile or cart panel)
-      if (state.concept === 'cards') PRODUCTS.forEach(function (p) {
-        if (document.getElementById('pts-val-' + p.id)) animatePoints(p.id, livePoints(p));
-      });
     }
 
     /* ── Side cart panel ── */
@@ -5233,7 +5266,7 @@
     /* ───────────────────────── Add to cart ───────────────────────── */
     function onAdd(id, btn) {
       var p = byId(id);
-      if (state.concept === 'cards') { c4Set(id, 1, 'inc', true); return; }
+      if (state.concept === 'cards') { morphFor = id; c4Set(id, 1, 'inc', true); morphFor = null; return; }
       if (!p.multi) {                                   // single-pack: always direct
         setLine(id, 'single', 1); refreshTile(id);
         flyToCart(id);
@@ -5270,7 +5303,8 @@
       pk.classList.add('is-open'); document.getElementById('backdrop').classList.add('is-open');
       positionPicker(trigger);
       positionToast();
-      setTimeout(function () { var f = pk.querySelector('.fi-qty-input'); if (f) f.focus({ preventScroll: true }); }, isMobile() ? 260 : 0);
+      // Focus the dialog itself (no ring, no selected "1"); Tab goes to its first control
+      setTimeout(function () { pk.focus({ preventScroll: true }); }, isMobile() ? 260 : 0);
     }
     function renderPicker(animate) {
       var p = byId(pickerFor), d = lineOf(pickerFor);
