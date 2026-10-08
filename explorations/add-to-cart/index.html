@@ -11,16 +11,17 @@
     copied from handover/tiles-spec.html and the Quantity Selector from
     handover/index.html, so the tiles look like the real thing.
 
-    Concept 1 — Picker: "Add to cart" opens a popover (desktop) / bottom
-      sheet (≤768px) with one quantity stepper per pack + live total.
-    Concept 2 — Direct add: "Add to cart" adds 1 of the default pack
-      straight away; the button turns into steppers in the tile, with a
-      link to add the other pack.
-    Concept 3 — Box shortcut (Figma Rosana 2.0, nodes 3443:4634,
-      3455:4669, 3455:4718, 3455:4760): one quantity in units; "Add to
-      cart" adds 1, "+ Add box of N units" adds N; the button becomes a
-      compact stepper (delete icon at 1). A points pill on the image shows
-      points per unit × quantity and animates (count-up / pulse) when it changes.
+    Concept 1 — Picker: "Add to cart" adds 1 single item (the photo flies
+      to the cart) and opens a popover (desktop) / bottom sheet (≤768px)
+      with one quantity stepper per pack, a live total and live points;
+      steppers edit the cart directly (no submit button).
+    Concept 4 — Pack cards (Figma Rosana 2.0, nodes 3539:5179, 3539:5303,
+      3539:5371, 3539:5438, 3539:5498, pointer 3636:5546): single and box are
+      two always-visible option cards. "Add to cart" adds 1 of the selected
+      card; the button becomes a stepper for that card and a count bubble
+      marks it. Picking the other card brings "Add to cart" back until that
+      type is added. A points pill on the image shows points per unit ×
+      quantity and animates (count-up + pulse) when it changes.
   -->
   <link rel="stylesheet" href="../../handover/tokens.css" />
   <style>
@@ -1265,10 +1266,8 @@
        bottom nav z 200, drawers z 900/901 */
     .x-backdrop { z-index: 905 !important; }
     .x-picker { z-index: 906 !important; }
-    .x-toast { z-index: 960 !important; }
     @media (max-width: 1024px) {
-      .x-toast { bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + var(--space-3)) !important; }
-      .x-page { padding-bottom: calc(var(--bottom-nav-h) + var(--space-10)) !important; }
+      .x-toast-stack { bottom: calc(var(--bottom-nav-h) + env(safe-area-inset-bottom, 0px) + var(--space-3)) !important; }
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1310,11 +1309,16 @@
     .x-cart-img { width: 100px; height: 100px; flex-shrink: 0; background: #fff center / contain no-repeat; }
     .x-cart-info { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); }
     .x-cart-name { font-size: var(--text-body-size); font-weight: 600; line-height: 1.5; color: #000; }
+    /* Name links to the product page (no PDP in this prototype, so href="#") */
+    .x-cart-name a { color: inherit; text-decoration: none; }
+    .x-cart-name a:hover { text-decoration: underline; text-underline-offset: 2px; }
+    .x-cart-name a:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; border-radius: 2px; }
     .x-cart-pack { display: block; font-size: var(--text-body-sm-size); font-weight: 400; color: var(--color-mushroom-900); }
     .x-cart .fi-qty--cart { width: 132px; height: 42px; padding: 5px; }
     .x-cart .fi-qty--cart .fi-qty-btn { width: var(--space-8); height: var(--space-8); }
     .x-cart .fi-qty--cart .fi-qty-btn svg { width: var(--space-5); height: var(--space-5); }
-    .x-cart .fi-qty--cart .fi-qty-btn[data-role="inc"] { color: var(--color-accessible-orange); }
+    .x-cart .fi-qty--cart .fi-qty-btn[data-role="inc"] { background: var(--color-accessible-orange); color: var(--color-salt); }
+    .x-cart .fi-qty--cart .fi-qty-btn[data-role="inc"]:hover:not(:disabled) { background: var(--color-orange-900); color: var(--color-salt); }
     .x-cart .fi-qty--cart .fi-qty-input { width: 40px; font-size: var(--text-body-sm-size); }
     .x-cart-price { display: flex; flex-direction: column; gap: 3px; }
     .x-cart-price b { font-size: var(--text-body-size); font-weight: 600; line-height: 1.5; color: #000; }
@@ -1326,6 +1330,20 @@
     .x-cart-total > span, .x-cart-total b { font-size: var(--text-price-size, 20px); font-weight: 600; line-height: 1.2; letter-spacing: -0.2px; color: #000; }
     .x-cart-total div { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2); text-align: right; }
     .x-cart-pts { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-2); font-size: var(--text-body-sm-size); line-height: 1.5; color: #000; }
+    /* Row bin: removes the whole line, bottom-right of the row */
+    .x-cart-row { position: relative; }
+    .x-cart-remove {
+      position: absolute; right: 0; bottom: var(--space-6); width: var(--space-8); height: var(--space-8);
+      display: inline-flex; align-items: center; justify-content: center; padding: 0;
+      border: none; border-radius: var(--radius-full); background: none; color: var(--color-mushroom-900); cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+    }
+    .x-cart-remove svg { width: var(--space-5); height: var(--space-5); fill: currentColor; }
+    .x-cart-remove:hover { color: var(--color-error, #d1242f); background: var(--color-mushroom-100); }
+    .x-cart-remove:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+    /* Pack line + this line's points, side by side */
+    .x-cart-pack { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-2); }
+    .x-cart-pack .x-points { position: static; font-size: 12px; }
     .x-cart-pts .x-points { position: static; padding: var(--space-1) var(--space-2); font-size: 12px; }
     .x-cart-ft .btn { width: 100%; }
     .x-cart-ft > .x-fine { text-align: center; }
@@ -1336,10 +1354,6 @@
     }
 
     /* ── Page ─────────────────────────────────────────────────────── */
-    .x-page { max-width: 1440px; margin: 0 auto; padding: 32px 32px 96px; }
-    .x-page h1 { font-size: var(--text-h3-size); line-height: var(--text-h3-lh); margin-bottom: 4px; }
-    .x-page .x-sub { color: var(--color-mushroom-900); font-size: var(--text-body-sm-size); margin-bottom: 24px; }
-    @media (max-width: 768px) { .x-page { padding: 20px 0 80px; } .x-page h1, .x-page .x-sub { padding: 0 16px; } .x-page h1 { font-size: var(--text-h4-mob-size, 24px); } }
 
     /* ── Button (handover DS) ─────────────────────────────────────── */
     .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6); border-radius: var(--radius-sm); font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w); white-space: nowrap; line-height: 1; cursor: pointer; border: 1px solid var(--color-brand-primary); transition: background 0.15s, color 0.15s, border-color 0.15s; user-select: none; }
@@ -1351,9 +1365,722 @@
     .btn-secondary:hover { background: var(--color-mushroom-100); }
     .btn img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
 
+    /* ================================================================
+       CATALOG PAGE — copied verbatim from handover/template-products-catalog.html
+       (footer, breadcrumb, accordion, checkboxes, title section, filters
+       bar + drawer, brand stripe, toolbar/sort, grid, load more, SEO).
+    ================================================================ */
+    .fi-checkbox-row { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-5) 0; }
+    .fi-checkbox { display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer; }
+    .fi-checkbox input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .fi-checkbox-box {
+      flex-shrink: 0; width: var(--space-5); height: var(--space-5); margin-top: 1px;
+      border: 1.5px solid var(--color-mushroom-700); border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--color-salt); transition: background 0.15s, border-color 0.15s;
+    }
+    .fi-checkbox-box img { width: 11px; height: 11px; opacity: 0; filter: brightness(0) invert(1); transition: opacity 0.1s; }
+    .fi-checkbox input:checked + .fi-checkbox-box { background: var(--color-brand-dark); border-color: var(--color-brand-dark); }
+    .fi-checkbox input:checked + .fi-checkbox-box img { opacity: 1; }
+    .fi-checkbox-label { font-size: var(--text-body-sm-size); color: var(--color-brand-dark); line-height: 1.4; padding-top: 1px; }
+    .fi-checkbox-label a { color: var(--color-accessible-orange); text-decoration: underline; text-underline-offset: 2px; }
+    /* ================================================================
+       FOOTER
+    ================================================================ */
+    .ufs-footer {
+      font-family: var(--font-family);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Newsletter band — orange, centered column layout */
+    .ufs-footer__band {
+      background: var(--color-accessible-orange);
+      padding: var(--space-15) var(--space-25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-5);
+      text-align: center;
+    }
+
+    .ufs-footer__nl-heading {
+      font-family: var(--font-family-script);
+      font-size: var(--ch-h3-size);
+      font-weight: 400;
+      line-height: var(--ch-h3-lh);
+      letter-spacing: var(--ch-h3-ls);
+      color: var(--color-salt);
+      margin: 0 0 var(--space-2);
+    }
+
+    .ufs-footer__nl-sub {
+      font-size: var(--text-body-sm-size);
+      line-height: var(--text-body-sm-lh);
+      color: var(--color-salt);
+      margin: 0;
+    }
+
+    .ufs-footer__nl-form {
+      display: flex;
+      gap: var(--space-3);
+    }
+
+    /* DS input style — matches existing form field tokens */
+    .ufs-footer__nl-input {
+      width: 476px;
+      height: 54px;
+      padding: 0 var(--space-4);
+      border: none;
+      border-radius: var(--radius-sm);
+      background: var(--color-mushroom-100);
+      font-family: var(--font-family);
+      font-size: var(--text-body-sm-size);
+      color: var(--color-brand-dark);
+      outline: none;
+    }
+
+    .ufs-footer__nl-input::placeholder { color: var(--color-smoke); }
+
+    /* DS ghost button on orange — outlined white */
+    .ufs-footer__nl-btn {
+      height: 54px;
+      padding: 0 var(--space-6);
+      border: 1px solid var(--color-salt);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--color-salt);
+      font-family: var(--font-family);
+      font-size: var(--text-btn-size);
+      font-weight: var(--text-btn-w);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .ufs-footer__nl-btn:hover { background: rgba(255,255,255,0.12); }
+
+    /* Main dark area */
+    .ufs-footer__main {
+      background: var(--color-brand-dark);
+      padding: var(--space-15) var(--space-25) var(--space-25);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-12);
+    }
+
+    /* Brand col (303px) + 3 equal link cols */
+    .ufs-footer__cols {
+      display: grid;
+      grid-template-columns: 303px 1fr 1fr 1fr;
+      gap: var(--space-20);
+    }
+
+    .ufs-footer__brand-logo {
+      width: 98px;
+      display: block;
+      margin-bottom: var(--space-4);
+    }
+
+    .ufs-footer__brand-tagline {
+      font-size: var(--text-h6-size);
+      font-weight: var(--text-h6-w);
+      line-height: var(--text-h6-lh);
+      color: var(--color-salt);
+      margin: 0;
+    }
+
+    .ufs-footer__col-heading {
+      font-size: var(--text-h6-size);
+      font-weight: var(--text-h6-w);
+      line-height: var(--text-h6-lh);
+      color: var(--color-salt);
+      margin: 0 0 var(--space-4);
+    }
+
+    .ufs-footer__col-links {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .ufs-footer__link {
+      font-size: var(--text-body-sm-size);
+      line-height: var(--text-body-sm-lh);
+      color: var(--color-squid-100);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .ufs-footer__link:hover { color: var(--color-salt); }
+
+    /* Bottom bar */
+    .ufs-footer__divider {
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .ufs-footer__bottom {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-4);
+      padding-bottom: var(--space-12);
+    }
+
+    .ufs-footer__copyright {
+      font-size: var(--text-body-sm-size);
+      color: var(--color-mushroom-700);
+      margin: 0;
+    }
+
+    .ufs-footer__socials {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+
+    .ufs-footer__social-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: var(--space-12);
+      height: var(--space-12);
+      border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: background 0.15s, border-color 0.15s;
+      text-decoration: none;
+    }
+
+    .ufs-footer__social-link:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    .ufs-footer__social-icon {
+      width: var(--space-6);
+      height: var(--space-6);
+      filter: brightness(0) invert(1);
+    }
+
+    @media (max-width: 1024px) {
+      .ufs-footer__band {
+        padding: var(--space-10) var(--space-4);
+      }
+      .ufs-footer__nl-heading {
+        font-size: var(--ch-h3-mob-size);
+      }
+      .ufs-footer__nl-form {
+        flex-direction: column;
+        width: 100%;
+      }
+      .ufs-footer__nl-input {
+        width: 100%;
+      }
+      .ufs-footer__nl-btn {
+        width: 100%;
+      }
+      .ufs-footer__main {
+        padding: var(--space-10) var(--space-4);
+      }
+      body.ai-on .ufs-footer__main {
+        padding-bottom: var(--space-25);
+      }
+      .ufs-footer__cols {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-8) var(--space-6);
+      }
+      .ufs-footer__cols > .ufs-footer__col:first-child {
+        grid-column: 1 / -1;
+        order: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: var(--space-4);
+        padding-top: var(--space-12);
+        border-top: 1px solid rgba(255,255,255,0.08);
+      }
+      .ufs-footer__brand-logo {
+        margin-bottom: 0;
+      }
+      .ufs-footer__bottom {
+        flex-direction: column-reverse;
+        align-items: center;
+        text-align: center;
+      }
+      .ufs-footer__socials {
+        width: 100%;
+        justify-content: space-evenly;
+      }
+    }
+
+    /* ── Breadcrumb ───────────────────────────────────────
+       Independent, swappable row (see Primary Nav) — renders directly below
+       the header on interior pages (category/PLP/PDP), never on the
+       homepage. Desktop shows the full trail; mobile hides the middle
+       levels (.ufs-breadcrumb__mid) and reveals a "…" trigger instead
+       (.ufs-breadcrumb__collapsed) that opens a dropdown listing them —
+       same visual/interaction pattern as the utility bar's language
+       dropdown, for consistency. */
+    .ufs-breadcrumb { padding: var(--space-3) var(--space-8); background: var(--color-salt); }
+    /* No overflow-x:auto here on purpose — with the mobile collapse below
+       there are only ever 3 visible top-level items on any breakpoint (Home,
+       "…", Current), so it never needs to scroll; adding it clips the "…"
+       dropdown instead, since overflow-x:auto implicitly computes overflow-y
+       as auto too, and the dropdown needs to render outside this row. */
+    .ufs-breadcrumb__list { display: flex; align-items: baseline; list-style: none; margin: 0; padding: 0; gap: var(--space-2); flex-wrap: nowrap; }
+    .ufs-breadcrumb__item { display: flex; align-items: center; flex-shrink: 0; }
+    .ufs-breadcrumb__item.is-current { flex-shrink: 1; min-width: 0; }
+    .ufs-breadcrumb__link { font-size: var(--text-body-xs-size); font-weight: var(--text-body-w); color: var(--color-mushroom-900); text-decoration: none; white-space: nowrap; transition: color 0.15s; }
+    .ufs-breadcrumb__link:hover { color: var(--color-brand-dark); text-decoration: underline; }
+    .ufs-breadcrumb__home-icon { display: none; width: 14px; height: 14px; flex-shrink: 0; }
+    .ufs-breadcrumb__current { font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; min-width: 0; }
+    .ufs-breadcrumb__sep { display: flex; align-items: center; color: var(--color-mushroom-700); flex-shrink: 0; }
+    .ufs-breadcrumb__sep svg { width: 8px; height: 8px; display: block; }
+
+    /* Mobile collapse trigger + dropdown — hidden on desktop */
+    .ufs-breadcrumb__collapsed { display: none; position: relative; align-items: center; }
+    .ufs-breadcrumb__ellipsis {
+      font-size: var(--text-body-xs-size); font-weight: var(--text-btn-w); color: var(--color-mushroom-900);
+      background: var(--color-mushroom-100); border: none; border-radius: var(--radius-xs);
+      width: 22px; height: 18px; line-height: 1; cursor: pointer; padding: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, color 0.15s;
+    }
+    .ufs-breadcrumb__ellipsis:hover, .ufs-breadcrumb__collapsed.is-open .ufs-breadcrumb__ellipsis { background: var(--color-mushroom-300); color: var(--color-brand-dark); }
+    .ufs-breadcrumb__drop {
+      position: absolute; top: calc(100% + var(--space-2)); left: 0; z-index: 300;
+      min-width: 180px; background: var(--color-salt);
+      border-radius: var(--radius-md); box-shadow: var(--shadow-lg);
+      border: 1px solid var(--color-mushroom-300);
+      opacity: 0; pointer-events: none; transform: translateY(-6px);
+      transition: opacity 0.18s, transform 0.18s;
+      padding: var(--space-1) 0;
+    }
+    .ufs-breadcrumb__collapsed.is-open .ufs-breadcrumb__drop { opacity: 1; pointer-events: all; transform: translateY(0); }
+    .ufs-breadcrumb__drop-item {
+      display: block; padding: var(--space-2) var(--space-4);
+      font-size: var(--text-body-sm-size); color: var(--color-mushroom-900);
+      text-decoration: none; white-space: nowrap; transition: background 0.12s, color 0.12s;
+    }
+    .ufs-breadcrumb__drop-item:hover { background: var(--color-mushroom-100); color: var(--color-brand-dark); }
+
+    @media (max-width: 768px) {
+      .ufs-breadcrumb { padding: var(--space-3) var(--space-4); }
+      .ufs-breadcrumb__mid { display: none; }
+      .ufs-breadcrumb__collapsed { display: flex; }
+      .ufs-breadcrumb__home-icon { display: block; }
+      .ufs-breadcrumb__home-text { display: none; }
+    }
+
+    /* ================================================================
+       ACCORDION — reusable expand/collapse list (FAQ usage below).
+       Single-open: expanding one item collapses whichever was open,
+       matching .ufs-drawer-acc-trigger's convention elsewhere on this
+       page. Rows beyond the initial visible count carry .is-extra and
+       stay hidden until the "show more" trigger sets .is-expanded on
+       the panel.
+    ================================================================ */
+    .ufs-accordion__title { text-align: center; color: var(--color-brand-dark); margin-bottom: var(--space-8); }
+    .ufs-accordion__panel { display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--color-salt); box-shadow: var(--shadow-xs); overflow: hidden; }
+    .ufs-accordion__item { border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-accordion__item:last-child { border-bottom: none; }
+    .ufs-accordion__item.is-extra { display: none; }
+    .ufs-accordion__panel.is-expanded .ufs-accordion__item.is-extra { display: block; animation: ufsAccordionReveal 0.35s ease; }
+    @keyframes ufsAccordionReveal {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .ufs-accordion__trigger {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-8);
+      width: 100%; padding: var(--space-6); background: var(--color-salt); border: none; cursor: pointer;
+      text-align: left; font-family: var(--font-family); color: var(--color-brand-dark);
+      transition: background 0.15s ease;
+    }
+    .ufs-accordion__trigger:hover { background: var(--color-mushroom-100); }
+    .ufs-accordion__q { font-size: var(--text-body-size); font-weight: 600; line-height: var(--text-body-lh); transition: color 0.2s ease; }
+    .ufs-accordion__item.is-open .ufs-accordion__q { color: var(--color-accessible-orange); }
+    .ufs-accordion__chev {
+      flex-shrink: 0; width: var(--space-5); height: var(--space-5); margin-top: var(--space-1); color: var(--color-brand-dark); opacity: 0.5;
+      transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), color 0.2s ease, opacity 0.2s ease;
+    }
+    .ufs-accordion__trigger:hover .ufs-accordion__chev { opacity: 0.85; }
+    .ufs-accordion__item.is-open .ufs-accordion__chev { transform: rotate(180deg); color: var(--color-accessible-orange); opacity: 1; }
+
+    .ufs-accordion__content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .ufs-accordion__item.is-open .ufs-accordion__content { grid-template-rows: 1fr; }
+    .ufs-accordion__content-inner { overflow: hidden; min-height: 0; }
+    .ufs-accordion__a { margin-top: var(--space-2); padding: 0 var(--space-6) var(--space-6); color: var(--color-mushroom-900); font-size: var(--text-body-size); line-height: var(--text-body-lh); }
+    /* ================================================================
+       CATALOG PAGE EXAMPLE — Title section, Filters panel, Filters
+       drawer, responsive tiles grid. lg: >1280px, md: 768-1279px,
+       sm: <768px (matches the .ufs-catalog-grid tile-reflow breakpoint
+       already shipped for the Tiles component).
+    ================================================================ */
+
+    /* --- Title section (eyebrow + heading + description), centered.
+       See handover/title-spec.html for full anatomy docs. --- */
+    .ufs-title-section { width: 100%; padding: var(--space-16) var(--space-24) var(--space-4); text-align: center; }
+    .ufs-title-section__eyebrow { font-size: var(--text-overline-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-accessible-orange); margin: 0 0 var(--space-3); }
+    .ufs-title-section__heading { font-size: var(--text-h2-size); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); font-weight: var(--text-h2-w); color: var(--color-brand-dark); margin: 0 0 var(--space-3); }
+    .ufs-title-section__heading--h3 { font-size: var(--text-h3-size); line-height: var(--text-h3-lh); letter-spacing: var(--text-h3-ls); font-weight: var(--text-h3-w); }
+    .ufs-title-section__desc { font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-squid-500); margin: 0; }
+    .ufs-title-section__inner { max-width: 720px; margin: 0 auto; }
+    .ufs-title-section--left { text-align: left; }
+    .ufs-title-section--left .ufs-title-section__inner { margin: 0; }
+    .ufs-title-section--dark { background: var(--color-brand-dark); }
+    .ufs-title-section--dark .ufs-title-section__heading,
+    .ufs-title-section--dark .ufs-title-section__desc { color: var(--color-salt); }
+    .ufs-title-section--mushroom { background: var(--color-mushroom-100); }
+    .ufs-title-section--page-top { padding-top: var(--space-8); }
+
+    /* --- Filters bar (search + quick dropdowns + All filters) --- */
+    .ufs-filters-bar {
+      display: flex; align-items: center; gap: var(--space-4); max-width: 1280px; margin: 0 auto; padding: var(--space-4);
+      margin-top: var(--space-2);
+      background: var(--color-mushroom-100); border-radius: var(--radius-lg);
+      position: sticky; top: var(--nav-h); z-index: 90;
+      transition: border-radius 0.15s;
+    }
+    /* .is-stuck is set in JS by comparing the bar's live position against its
+       own sticky offset — CSS has no selector for "currently stuck". Top
+       corners square off only while parked under the header. */
+    .ufs-filters-bar.is-stuck { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .ufs-filters-search { position: relative; flex: 1; min-width: 0; }
+    .ufs-filters-search__icon { position: absolute; left: var(--space-4); top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: var(--color-mushroom-700); pointer-events: none; }
+    [dir="rtl"] .ufs-filters-search__icon { left: auto; right: var(--space-4); }
+    .ufs-filters-search__input { width: 100%; height: var(--space-12); box-sizing: border-box; padding: 0 var(--space-4) 0 var(--space-10); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm); background: var(--color-salt); font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); outline: none; transition: border-color 0.15s; }
+    .ufs-filters-search__input:focus { border-color: var(--color-brand-dark); }
+    .ufs-filters-search__input::placeholder { color: var(--color-mushroom-700); }
+
+    .ufs-filters-dropdown { position: relative; flex-shrink: 0; }
+    .ufs-filters-dropdown__trigger { display: flex; align-items: center; gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-4); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm); background: var(--color-salt); font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); cursor: pointer; white-space: nowrap; transition: border-color 0.15s; }
+    .ufs-filters-dropdown__trigger:hover { border-color: var(--color-brand-dark); }
+    .ufs-filters-dropdown.is-open .ufs-filters-dropdown__trigger { border-color: var(--color-brand-dark); }
+    .ufs-filters-dropdown__chev { width: 14px; height: 14px; transition: transform 0.2s ease; }
+    .ufs-filters-dropdown.is-open .ufs-filters-dropdown__chev { transform: rotate(180deg); }
+    .ufs-filters-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 4px; border-radius: var(--radius-full); background: var(--color-accessible-orange); color: var(--color-salt); font-size: var(--text-badge-size); font-weight: 600; line-height: 1; }
+    .ufs-filters-badge[hidden] { display: none; }
+    .ufs-filters-dropdown__panel { display: none; position: absolute; top: calc(100% + 8px); left: 0; z-index: 30; min-width: 240px; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: var(--space-4); }
+    [dir="rtl"] .ufs-filters-dropdown__panel { left: auto; right: 0; }
+    .ufs-filters-dropdown.is-open .ufs-filters-dropdown__panel { display: block; }
+    .ufs-filters-dropdown__panel .fi-checkbox-row { margin: 0; }
+    .ufs-filters-dropdown__ft { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-4); padding-top: var(--space-4); border-top: 1px solid var(--color-mushroom-300); }
+    .ufs-filters-dropdown__ft .btn-primary { flex: 1; }
+
+    .ufs-filters-bar .btn-secondary { background: var(--color-salt); }
+    .ufs-filters-bar .btn-secondary:hover:not(:disabled) { background: transparent; }
+    .ufs-filters-allbtn__icon { width: 18px; height: 18px; }
+    .ufs-filters-allbtn__badge { display: none; position: absolute; top: -8px; right: -8px; }
+    [dir="rtl"] .ufs-filters-allbtn__badge { right: auto; left: -8px; }
+
+    /* Row holding the results count (left) and the sort control (right) —
+       stays a row on every breakpoint, unlike .ufs-filters-dropdown which
+       hides below 1279px, since this needs to stay visible+right-aligned
+       on mobile too. */
+    .ufs-catalog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); max-width: 1280px; margin: var(--space-4) auto 0; }
+    .ufs-catalog-results { font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-mushroom-900); margin: 0; }
+
+    /* Sort control — cosmetic only, no open/close JS. Trigger is plain
+       text + icon (no button box), and the options panel is permanently
+       visible (no display:none / click-to-open) so the 3 drafted options
+       are readable without needing any interaction. */
+    .ufs-catalog-sort { position: relative; flex-shrink: 0; }
+    .ufs-catalog-sort__trigger { display: flex; align-items: center; gap: var(--space-2); background: none; border: none; padding: 0; font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; cursor: pointer; }
+    .ufs-catalog-sort__chev { width: 14px; height: 14px; flex-shrink: 0; transition: transform 0.2s ease; }
+    .ufs-catalog-sort.is-open .ufs-catalog-sort__chev { transform: rotate(180deg); }
+    .ufs-catalog-sort__panel { display: none; position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; min-width: 180px; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); padding: var(--space-2); }
+    [dir="rtl"] .ufs-catalog-sort__panel { right: auto; left: 0; }
+    .ufs-catalog-sort.is-open .ufs-catalog-sort__panel { display: block; }
+    .ufs-catalog-sort__option { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); border-radius: var(--radius-xs); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); cursor: pointer; }
+    .ufs-catalog-sort__option:hover { background: var(--color-mushroom-100); }
+
+    /* Brand filter stripe — same circular-logo scroller as the header
+       megamenu's .mm-brands (see the MEGAMENU section above), duplicated
+       under its own class since it's a different context and, unlike
+       that one, each logo is now a clickable filter rather than a plain
+       link. Reads/writes the SAME filterState.brand array the "Brand"
+       quick dropdown and the "All filters" drawer accordion already
+       share — clicking a logo here checks the matching checkbox in both
+       surfaces, and vice versa (see togglePopularFilter/syncFilterUI,
+       reused as-is: it's already generic over data-filter-key/-value,
+       not scoped to Popular Filters specifically). */
+    .ufs-brand-filters { display: flex; align-items: center; justify-content: center; gap: var(--space-4); max-width: 1280px; margin: var(--space-4) auto; padding: 0 var(--space-4); }
+    .ufs-brand-filters__label { font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; flex-shrink: 0; }
+    /* flex:0 1 auto (not flex:1) — sized to its own content so the whole
+       label+logos group centers together via the parent's
+       justify-content:center, rather than stretching full-width and
+       leaving the logos flush-left with empty space to their right.
+       min-width:0 still lets it shrink below content width on narrow
+       viewports instead of forcing the row to overflow the page. */
+    .ufs-brand-filters__scroll-wrap { position: relative; flex: 0 1 auto; min-width: 0; max-width: 100%; }
+    .ufs-brand-filters__list { display: flex; align-items: center; gap: var(--space-8); overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; padding: var(--space-2) var(--space-10); margin: 0; }
+    .ufs-brand-filters__list::-webkit-scrollbar { display: none; }
+    .ufs-brand-filters__scroll-btn { position: absolute; top: 50%; transform: translateY(-50%); z-index: 2; width: var(--space-10); height: var(--space-10); border-radius: var(--radius-sm); background: var(--color-salt); border: 1px solid var(--color-accessible-orange); box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: opacity 0.2s; padding: 0; }
+    .ufs-brand-filters__scroll-btn--prev { left: 0; }
+    .ufs-brand-filters__scroll-btn--next { right: 0; }
+    [dir="rtl"] .ufs-brand-filters__scroll-btn--prev { left: auto; right: 0; }
+    [dir="rtl"] .ufs-brand-filters__scroll-btn--next { right: auto; left: 0; }
+    .ufs-brand-filters__scroll-btn.is-hidden { opacity: 0; pointer-events: none; }
+    .ufs-brand-filters__scroll-btn svg { width: 18px; height: 18px; stroke: var(--color-accessible-orange); }
+    [dir="rtl"] .ufs-brand-filters__scroll-btn svg { transform: scaleX(-1); }
+
+    /* Each item is a toggle button, not a link — default state is the
+       plain logo circle (same shadow/hover-scale as the megamenu's
+       .mm-brand-item); .is-active adds an accessible-orange ring, same
+       token used for every other active-filter surface on this page
+       (.ufs-popular-filters__pill.is-active, .ufs-active-filters__pill). */
+    .ufs-brand-filters__item { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); flex-shrink: 0; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-family); }
+    .ufs-brand-filters__item-logo { width: 80px; height: 80px; border-radius: var(--radius-full); box-shadow: 0 2px 4px rgba(0,0,0,0.1); outline: 1px solid transparent; outline-offset: 2px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease, outline-color 0.2s ease; }
+    .ufs-brand-filters__item-logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .ufs-brand-filters__item:hover .ufs-brand-filters__item-logo { transform: scale(1.06); box-shadow: 0 6px 16px rgba(0,0,0,0.15); }
+    .ufs-brand-filters__item.is-active .ufs-brand-filters__item-logo { outline-color: var(--color-accessible-orange); }
+    .ufs-brand-filters__item-label { font-size: var(--text-badge-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); text-align: center; transition: color 0.15s; }
+    .ufs-brand-filters__item.is-active .ufs-brand-filters__item-label { color: var(--color-accessible-orange); }
+
+    @media (max-width: 768px) {
+      /* Label on its own line, left-aligned, brand stripe below it — same
+         column-stack + edge-bleed technique as Popular Filters/Active
+         Filters above: align-items:flex-start shrinks the scroll-wrap to
+         content width by default (column mode's cross-axis default), so
+         align-self:stretch caps it back to the row's full width, letting
+         its own overflow-x:auto scroll instead of the whole page; the
+         negative margin + matching padding then bleeds that scrollable
+         area to the true screen edge. */
+      .ufs-brand-filters { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--space-3); margin-bottom: var(--space-10); }
+      /* width:calc(100% + 2 * space-4), not just align-self:stretch +
+         negative margins alone — a stretched flex item's negative
+         margin-right doesn't feed back into its auto cross-size in every
+         browser's flexbox implementation, so margin-left bled to the true
+         edge but margin-right didn't (confirmed via getBoundingClientRect:
+         left landed at 0 as expected, right stopped 32px short instead of
+         reaching innerWidth). The explicit width removes that ambiguity. */
+      .ufs-brand-filters__scroll-wrap {
+        align-self: stretch;
+        width: calc(100% + 2 * var(--space-4));
+        max-width: none;
+        margin-left: calc(-1 * var(--space-4));
+        margin-right: calc(-1 * var(--space-4));
+        padding-left: 0;
+        padding-right: 0;
+      }
+      /* Arrows are a desktop-only affordance here too (same convention as
+         Product Hero's gallery, see product-hero-spec.html) — mobile is
+         native touch-swipe instead. Without this, the prev/next buttons
+         (which need padding reserved on the wrap/list to sit without
+         overlapping content) would cover the first/last logo the moment
+         they un-hide on scroll, since that reserved space is zeroed below
+         for a true edge-to-edge bleed — first/last logo's own pixels
+         reach x:0 / x:innerWidth, not just the scroll-wrap's box. */
+      .ufs-brand-filters__scroll-btn { display: none; }
+      /* padding-left here (not on .ufs-brand-filters__scroll-wrap) is
+         deliberate — this is the actual scrolling element, so the padding
+         scrolls away with the content as soon as the user swipes, instead
+         of sitting as a fixed gap that never goes away (that was the bug
+         in the previous attempt, which put the padding on the wrap). */
+      .ufs-brand-filters__list { padding-left: var(--space-4); padding-right: var(--space-4); gap: var(--space-6); }
+      .ufs-brand-filters__item-logo { width: 64px; height: 64px; }
+    }
+
+    /* Popular filters — a shortcut row of pill toggles for a handful of
+       filter values, sitting directly below the filters bar. Each pill
+       reads/writes the SAME filterState the quick dropdowns and the "All
+       filters" drawer accordion already share (see FILTER_CATEGORIES /
+       togglePopularFilter / syncFilterUI) — activating a pill checks the
+       matching checkbox in both surfaces, and vice versa.
+       Hidden for now (product owner request) — the brand filter stripe
+       above covers the same "quick shortcut" need for launch; kept in
+       the DOM/JS as-is (not deleted) so it's a one-line revert away. */
+    .ufs-popular-filters { display: flex; align-items: center; justify-content: center; gap: var(--space-3); max-width: 1280px; margin: var(--space-4) auto var(--space-4); }
+    .ufs-popular-filters[hidden] { display: none; }
+    .ufs-popular-filters__label { font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; margin: 0; flex-shrink: 0; }
+    .ufs-popular-filters__pills { display: flex; align-items: center; gap: var(--space-3); overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+    .ufs-popular-filters__pills::-webkit-scrollbar { display: none; }
+    .ufs-popular-filters__pill { display: flex; align-items: center; gap: var(--space-1); height: var(--space-8); padding: 0 var(--space-4); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-full); background: none; font-family: var(--font-family); font-size: var(--text-btn-sm-size); color: var(--color-brand-dark); white-space: nowrap; cursor: pointer; flex-shrink: 0; transition: border-color 0.15s, background 0.15s; }
+    .ufs-popular-filters__pill:hover { border-color: var(--color-brand-dark); }
+    .ufs-popular-filters__pill.is-active { background: var(--color-mushroom-100); border-color: var(--color-accessible-orange); font-weight: var(--text-btn-w); }
+    .ufs-popular-filters__pill-check { width: 14px; height: 14px; flex-shrink: 0; display: none; }
+    .ufs-popular-filters__pill.is-active .ufs-popular-filters__pill-check { display: block; }
+
+    /* Active Filters — replaces Popular Filters entirely while any filter
+       is active (see syncFilterUI/renderActiveFilters). Same row shape as
+       Popular Filters (label + scrollable pill row), plus a pinned "Clear
+       all" that never scrolls away with the pills. Pills are always in
+       their "active" visual (mushroom-100 + orange border) since, unlike
+       Popular Filters, every chip here represents a currently-applied
+       value by definition. */
+    .ufs-active-filters { display: flex; align-items: center; gap: var(--space-3); max-width: 1280px; margin: var(--space-4) auto var(--space-4); }
+    .ufs-active-filters[hidden] { display: none; }
+    .ufs-active-filters__label { font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; margin: 0; flex-shrink: 0; }
+    .ufs-active-filters__pills { display: flex; align-items: center; gap: var(--space-3); overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; flex: 0 1 auto; min-width: 0; }
+    .ufs-active-filters__pills::-webkit-scrollbar { display: none; }
+    .ufs-active-filters__pill { display: flex; align-items: center; gap: var(--space-2); height: var(--space-8); padding: 0 var(--space-2) 0 var(--space-4); border: 1px solid var(--color-accessible-orange); border-radius: var(--radius-full); background: var(--color-mushroom-100); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-brand-dark); white-space: nowrap; flex-shrink: 0; }
+    [dir="rtl"] .ufs-active-filters__pill { padding: 0 var(--space-4) 0 var(--space-2); }
+    .ufs-active-filters__pill-remove { display: flex; align-items: center; justify-content: center; width: var(--space-5); height: var(--space-5); border-radius: var(--radius-full); border: none; background: none; padding: 0; color: var(--color-brand-dark); cursor: pointer; flex-shrink: 0; transition: background 0.15s; }
+    .ufs-active-filters__pill-remove:hover { background: rgba(0,0,0,0.08); }
+    .ufs-active-filters__pill-remove svg { width: 10px; height: 10px; }
+    .ufs-active-filters__clear { flex-shrink: 0; background: none; border: none; font-family: inherit; font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-w); color: var(--color-accessible-orange); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; white-space: nowrap; }
+    .ufs-active-filters__clear:hover { color: var(--color-brand-dark); }
+
+    @media (max-width: 768px) {
+      .ufs-popular-filters { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--space-2); padding: 0 var(--space-4); }
+      /* align-items:flex-start above shrinks __pills to its content width
+         (column mode's cross-axis default) instead of the row's available
+         width, so an overflowing pill row stretches the whole page instead
+         of scrolling within itself. align-self:stretch caps it back to the
+         row's width so its own overflow-x:auto is what scrolls, not the
+         page. Negative margin + matching padding then bleeds the scrollable
+         area to the true screen edge (same technique as .drawer-brands-list
+         above) so an overflowing pill is visible right up to the edge
+         instead of clipping 16px early at the row's own padding. */
+      .ufs-popular-filters__pills {
+        align-self: stretch;
+        margin-left: calc(-1 * var(--space-4));
+        margin-right: calc(-1 * var(--space-4));
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+      }
+      /* Same column-stack + edge-bleed technique as Popular Filters above:
+         label, then the scrollable pill row, then Clear all as its own
+         line below (all 3 are separate flex children in column mode). */
+      .ufs-active-filters { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--space-2); padding: 0 var(--space-4); }
+      .ufs-active-filters__pills {
+        align-self: stretch;
+        margin-left: calc(-1 * var(--space-4));
+        margin-right: calc(-1 * var(--space-4));
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+      }
+    }
+
+    /* --- Tiles grid --- */
+    .pg-catalog-grid { max-width: 1280px; margin: var(--space-6) auto 0; padding: 0 0 var(--space-16); display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: var(--space-8); }
+    .pg-catalog-grid .ufs-tile { min-width: 0; width: 100%; }
+    .pg-catalog-loadmore { max-width: 1280px; margin: 0 auto var(--space-16); text-align: center; }
+
+    /* SEO copy block below Load More — centred, 720px reading-width column
+       (matches .ufs-title-section__inner's convention). Only the intro
+       paragraph shows by default; the rest sits behind a Read more/less
+       toggle so it doesn't push real page content down, while still being
+       present in the DOM for search engines either way. */
+    .ufs-catalog-seo { max-width: 720px; margin: 0 auto var(--space-16); padding: 0 var(--space-4); text-align: center; }
+    .ufs-catalog-seo__text { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); margin: 0; }
+    .ufs-catalog-seo__more { margin-top: var(--space-4); text-align: left; }
+    .ufs-catalog-seo__more p { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); margin: 0 0 var(--space-4); }
+    .ufs-catalog-seo__more p:last-child { margin-bottom: 0; }
+    .ufs-catalog-seo__toggle { display: inline-block; margin-top: var(--space-3); font-family: var(--font-family); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; }
+
+    /* --- lg: >1480px — cap container width so it doesn't stretch edge-to-edge --- */
+    @media (min-width: 1480px) {
+      .ufs-filters-bar,
+      .ufs-catalog-toolbar,
+      .ufs-popular-filters,
+      .ufs-active-filters,
+      .pg-catalog-grid,
+      .pg-catalog-loadmore { max-width: 1440px; }
+    }
+
+    /* --- md: 768-1279px — dropdowns hide, grid becomes 2x2 --- */
+    @media (max-width: 1279px) {
+      .ufs-filters-dropdown { display: none; }
+      .pg-catalog-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+
+    /* --- Header switches to the mobile nav + persistent mobile search bar
+       at 1024px (see MOBILE NAV BAR + DRAWER above) — the filters bar's
+       sticky offset follows suit so it parks directly below both instead of
+       under the desktop nav's shorter height.
+
+       The mobile search bar and the filters bar then trade off the same
+       slot on scroll (wired in hideMobileSearchBar/showMobileSearchBar):
+       scrolling down hides the search bar and docks the filters bar flush
+       under #mobile-nav in its place; scrolling back up brings the search
+       bar back and hides the filters bar. Both start visible, stacked, on
+       initial load — the swap only kicks in once scrolling triggers it. --- */
+    @media (max-width: 1024px) {
+      .ufs-filters-bar { top: calc(var(--mnav-h) + var(--msearch-bar-h)); transition: transform 0.3s ease, top 0.3s ease, border-radius 0.15s; }
+      .ufs-filters-bar.is-docked { top: var(--mnav-h); }
+      /* Gated on .is-stuck (not just .is-hidden): showMobileSearchBar() can
+         re-add .is-hidden on the very tick the bar unsticks (still scrolling
+         up, search-bar-hidden flag not yet reset) — without this gate that
+         would translate/disable the bar even in its normal flow position. */
+      .ufs-filters-bar.is-stuck.is-hidden { transform: translateY(-100%); pointer-events: none; }
+    }
+
+    /* --- sm: <768px — All filters becomes icon-only, tiles stack inline,
+       title heading shrinks --- */
+    @media (max-width: 768px) {
+      .ufs-title-section { padding: var(--space-12) var(--space-4) var(--space-4); }
+      .ufs-title-section__heading { font-size: var(--text-h2-mob-size); }
+      .ufs-title-section__heading--h3 { font-size: var(--text-h3-mob-size); }
+      .ufs-title-section__desc { font-size: var(--text-body-sm-size); }
+      .ufs-title-section--page-top { padding-top: var(--space-4); }
+      .ufs-filters-bar { margin: var(--space-2) 0 0; padding: var(--space-3); gap: var(--space-3); border-radius: 0; }
+      .ufs-filters-bar.is-stuck { border-radius: 0; }
+      .ufs-filters-allbtn { width: var(--space-12); padding: 0; flex-shrink: 0; position: relative; }
+      .ufs-filters-allbtn__badge { display: flex; }
+      .ufs-filters-allbtn__label { display: none; }
+      .ufs-catalog-toolbar { padding: 0 var(--space-4); }
+      .pg-catalog-grid { grid-template-columns: 1fr; gap: 0; padding: 0 0 var(--space-8); margin-top: var(--space-4); }
+    }
+
+    /* --- Filters side drawer: heading 6 title, multi-open accordion,
+       orange-accent checkboxes, always-visible sticky button footer --- */
+    #filters-panel .signin-panel-title { font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); margin-bottom: 0; }
+    #filters-panel .signin-panel-body { padding: 0 0 var(--space-6); }
+    .ufs-filters-accordion { border-radius: 0; box-shadow: none; }
+    .ufs-filters-accordion .ufs-accordion__trigger { padding: var(--space-4); }
+    .ufs-filters-accordion .ufs-accordion__q { font-size: var(--text-body-sm-size); font-weight: 600; }
+    .ufs-filters-checklist { background: var(--color-mushroom-100); padding: var(--space-4); margin: 0 !important; }
+    .ufs-filters-checklist .fi-checkbox input:checked + .fi-checkbox-box,
+    .ufs-filters-dropdown__panel .fi-checkbox input:checked + .fi-checkbox-box { background: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .signin-panel-ft { flex-shrink: 0; display: flex; gap: var(--space-6); padding: var(--space-4) var(--space-6) var(--space-16); box-shadow: var(--shadow-lg); background: var(--color-salt); }
+    .signin-panel-ft .btn { flex: 1; }
+    @media (max-width: 768px) {
+      #filters-panel .signin-panel-title { font-size: var(--text-h6-mob-size); }
+      .signin-panel-ft .btn { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
+    }
+
+
     /* ── Product Tile (copied from handover/tiles-spec.html) ──────── */
     .ufs-tile { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-4); color: inherit; transition: box-shadow 0.2s, transform 0.2s; min-width: 0; width: 100%; }
     @media (hover: hover) and (pointer: fine) { .ufs-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); } }
+    /* Whole tile opens the product page: the title link stretches over the tile
+       (one real link, so keyboard, screen readers and "open in new tab" work).
+       No PDP in this prototype yet, so href="#". Controls sit above the overlay. */
+    .ufs-tile { position: relative; }
+    .ufs-tile__pdp { color: inherit; text-decoration: none; }
+    .ufs-tile__pdp::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+    .ufs-tile:has(.ufs-tile__pdp:focus-visible) { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+    .ufs-tile__pdp:focus-visible { outline: none; }
+    .ufs-tile__cta, .x-opts { position: relative; z-index: 2; }
+    .x-tile-flags, .ufs-tile__badge, .ufs-tile .x-points { pointer-events: none; }   /* labels only: clicks fall through to the link */
+    /* Photo zoom on hover, desktop only (as in handover/template-products-catalog.html) */
+    @media (hover: hover) and (pointer: fine) and (min-width: 769px) { .ufs-tile:hover .ufs-tile__image-media { transform: scale(1.06); } }
+    /* Favourite button: copied verbatim from handover/template-products-catalog.html */
+    .ufs-tile__fav {
+      position: absolute; top: var(--space-3); right: var(--space-3); z-index: 2;
+      width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.8); backdrop-filter: blur(3px);
+      box-shadow: var(--shadow-xs), 1px 1px 0px rgba(255,255,255,0.5) inset, -1px -1px 0px rgba(255,255,255,0.5) inset;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      overflow: visible;
+      touch-action: pan-x;
+    }
+    .ufs-tile__fav svg { width: 20px; height: 18px; }
+    .ufs-tile__fav svg path { fill: none; stroke: var(--color-brand-dark); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
+    [dir="rtl"] .ufs-tile__fav { right: auto; left: var(--space-3); }
+    .ufs-tile__fav.is-active svg path { fill: var(--color-brand-primary); stroke: var(--color-brand-primary); stroke-width: 1; }
+    @keyframes ufs-tile-fav-pop { 0% { transform: scale(1); } 35% { transform: scale(1.5); } 65% { transform: scale(0.9); } 100% { transform: scale(1); } }
+    @keyframes ufs-tile-fav-splash { 0% { transform: rotate(var(--angle)) translateY(-8px) scaleY(1); opacity: 1; } 100% { transform: rotate(var(--angle)) translateY(-26px) scaleY(0.5); opacity: 0; } }
+    .ufs-tile__fav svg.fav-pop { animation: ufs-tile-fav-pop 0.32s ease forwards; }
+    .ufs-tile__fav-splash { position: absolute; width: 3px; height: 11px; border-radius: 3px; top: 50%; left: 50%; margin: -5.5px 0 0 -1.5px; pointer-events: none; animation: ufs-tile-fav-splash 0.42s cubic-bezier(0.2, 0, 0.5, 1) forwards; background: var(--color-brand-primary); }
     .ufs-tile__image { position: relative; width: 100%; height: 240px; flex-shrink: 0; background-color: var(--color-mushroom-100); border-radius: var(--radius-md) var(--radius-md) 0 0; overflow: hidden; }
     .ufs-tile__image-media { display: block; width: 100%; height: 100%; background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #fff; transition: transform 0.35s ease; }
     .ufs-tile__badge { position: absolute; top: var(--space-4); left: var(--space-4); z-index: 2; background: var(--color-aubergine); border: 1px solid var(--color-brand-primary); border-radius: var(--radius-full); height: var(--space-6); display: inline-flex; align-items: center; padding: 0 var(--space-3); color: var(--color-salt); font-size: var(--text-badge-size); font-weight: var(--text-badge-w); letter-spacing: var(--text-badge-ls); text-transform: uppercase; }
@@ -1368,12 +2095,17 @@
     .ufs-tile__cta .btn { width: 100%; }
 
     /* Catalog grid — 4 cols, 2 cols ≤1279px, inline rows ≤768px (as template-products-catalog.html) */
-    .x-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-8); align-items: stretch; }
-    @media (max-width: 1279px) { .x-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    /* Desktop/tablet grid = catalog's .pg-catalog-grid; .x-grid only adds the prototype's mobile layout below */
     @media (max-width: 768px) {
       .x-grid { grid-template-columns: minmax(0, 1fr); gap: 0; border-top: 1px solid var(--color-mushroom-300); }
       .x-grid .ufs-tile { display: grid; grid-template-columns: 112px 1fr; grid-template-areas: "image content"; align-items: start; column-gap: var(--space-3); border: none; border-bottom: 1px solid var(--color-mushroom-300); border-radius: 0; padding: var(--space-4); }
       .x-grid .ufs-tile:hover { box-shadow: none; transform: none; }
+      /* Fav sits on the tile's own top-right corner (not the photo's) */
+      .x-grid .ufs-tile__fav { width: var(--space-8); height: var(--space-8); top: var(--space-4); right: var(--space-4); }
+      .x-grid .ufs-tile__eyebrow, .x-grid .ufs-tile__title { padding-right: var(--space-10); }
+      .x-grid .ufs-tile__fav svg { width: 16px; height: 14px; }
+      [dir="rtl"] .x-grid .ufs-tile__fav { right: auto; left: var(--space-4); }
+      [dir="rtl"] .x-grid .ufs-tile__eyebrow, [dir="rtl"] .x-grid .ufs-tile__title { padding-right: 0; padding-left: var(--space-10); }
       .x-grid .ufs-tile__image { grid-area: image; width: 112px; height: 112px; border-radius: var(--radius-md); position: relative; }
       .x-grid .ufs-tile__badge { top: var(--space-2); left: var(--space-2); height: auto; padding: 2px var(--space-2); }
       .x-grid .ufs-tile__content { display: flex; flex-direction: column; grid-area: content; min-width: 0; }
@@ -1386,8 +2118,13 @@
     }
 
     /* ── Pack info line (new, both concepts) ──────────────────────── */
+    /* Unit price, in the slot the rating used (Concepts 1–2) */
+    .x-unit-price { margin: var(--space-1) 0 0; font-size: var(--text-body-sm-size); line-height: 1.4; color: var(--color-mushroom-900); }
+    .x-unit-note { margin-left: var(--space-1); font-size: var(--text-badge-size); }
+    .x-unit-price b { font-size: var(--text-body-size); font-weight: 600; color: var(--color-brand-dark); }
     .x-packinfo { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); margin-top: var(--space-1); }
     .x-packinfo b { color: var(--color-brand-dark); font-weight: 600; }
+    @media (max-width: 768px) { .x-packinfo { font-size: var(--text-body-xs-size); } }
 
     /* ── Quantity Selector (copied from handover/index.html .fi-qty) ─ */
     .fi-qty { display: inline-flex; align-items: center; justify-content: space-between; width: 100%; padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-mushroom-100); }
@@ -1419,13 +2156,11 @@
     .x-incart-edit:focus-visible { outline: 2px solid var(--color-brand-dark); border-radius: 4px; }
     @media (max-width: 768px) { .x-incart { min-height: var(--space-10); } }
 
-    /* ── Concept 2: steppers in the tile ──────────────────────────── */
+    /* ── Concept 1: in-tile stepper for single-pack products ──────── */
     .x-rows { display: flex; flex-direction: column; gap: var(--space-2); }
     .x-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
     .x-row-label { font-size: var(--text-body-sm-size); font-weight: 600; line-height: 1.3; min-width: 0; }
     .x-row-label small { display: block; font-weight: 400; color: var(--color-mushroom-900); font-size: var(--text-body-xs-size); }
-    .x-add-other { align-self: flex-start; border: none; background: none; color: var(--color-accessible-orange); font-weight: 600; font-size: var(--text-body-sm-size); cursor: pointer; padding: 4px 0; text-decoration: underline; }
-    .x-add-other:focus-visible { outline: 2px solid var(--color-brand-dark); border-radius: 4px; }
 
     /* ── Concept 1: picker (popover desktop / bottom sheet ≤768px) ── */
     .x-backdrop { position: fixed; inset: 0; z-index: 90; background: rgba(0,0,0,0); pointer-events: none; transition: background 0.2s; }
@@ -1445,9 +2180,11 @@
     .x-pack-price { font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); }
     .x-pack-price b { color: var(--color-brand-dark); }
     .x-pack .fi-qty { width: auto; }
+    #picker .fi-qty-btn { width: var(--space-10); height: var(--space-10); }
     .x-picker-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: var(--space-3); border-top: 1px solid var(--color-mushroom-300); font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); }
+    .x-picker-pts { display: flex; justify-content: flex-end; margin-top: calc(var(--space-1) - var(--space-4)); }   /* 4px from the total: cancels the picker's 16px row gap */
+    .x-picker-pts .x-points { position: static; transform-origin: right center; }
     .x-picker-total b { font-size: var(--text-h6-size); color: var(--color-brand-dark); }
-    .x-picker .btn { width: 100%; }
     .x-picker-arrow { position: absolute; width: 14px; height: 14px; background: var(--color-salt); border-left: 1px solid var(--color-mushroom-300); border-top: 1px solid var(--color-mushroom-300); transform: rotate(45deg); }
     @media (max-width: 768px) {
       .x-backdrop.is-open { background: rgba(0,0,0,0.5); }
@@ -1459,18 +2196,21 @@
       .x-pack-img { width: 48px; height: 48px; }
     }
 
-    /* ── Concept 3 · Box shortcut (Figma 3443:4634 / 3455:4669 / 3455:4718 / 3455:4760) ── */
+    /* ── Concept 4 tile layout (class name kept from the earlier box-shortcut concept) ── */
     .ufs-tile--c3 .ufs-tile__image { height: auto; aspect-ratio: 288 / 222; }
     .ufs-tile--c3 .ufs-tile__body { gap: 6px; }
     /* Points pill — the DS .ufs-tile__points (Reward tile) look, placed on the image */
     .x-points {
       position: absolute; top: var(--space-3); left: var(--space-2); z-index: 2;
       display: inline-flex; align-items: center; gap: var(--space-1);
-      padding: var(--space-2); border-radius: var(--radius-full);
+      padding: var(--space-1) var(--space-2); border-radius: var(--radius-full);
       background: color-mix(in srgb, var(--color-gold) 10%, var(--color-salt)); border: 1px solid var(--color-gold);
       font-size: var(--text-body-sm-size); line-height: 1; color: var(--color-brand-dark);
       transform-origin: left center;
     }
+    /* Picker: points pill + optional badge stacked in the top-left corner */
+    .x-tile-flags { position: absolute; top: var(--space-3); left: var(--space-2); z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+    .x-tile-flags .x-points, .x-tile-flags .ufs-tile__badge { position: static; }
     .x-points svg { width: 12px; height: 12px; fill: var(--color-gold); flex-shrink: 0; }
     .x-points-val { font-variant-numeric: tabular-nums; }
     /* Pulse: a soft gold ring that breathes out once, with a barely-there swell */
@@ -1484,10 +2224,7 @@
     /* Meta tags (DS .ufs-tile__meta) */
     .ufs-tile__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1); }
     .ufs-tile__meta-item { font-size: var(--text-badge-size); letter-spacing: var(--text-badge-ls); color: var(--color-mushroom-900); text-transform: uppercase; }
-    .ufs-tile__meta-sep { color: var(--color-mushroom-500); font-size: var(--text-badge-size); }
-    .x-price { display: flex; align-items: baseline; gap: 6px; margin: 0; }
-    .x-price b { font-size: var(--text-body-size); font-weight: 600; line-height: 1.4; }
-    .x-price span { font-size: var(--text-fine-print-size); line-height: 1.4; color: var(--color-mushroom-900); }
+    .ufs-tile__meta-sep { color: var(--color-mushroom-900); font-size: var(--text-badge-size); }
     .ufs-tile--c3 .ufs-tile__cta { display: flex; flex-direction: column; gap: var(--space-4); }
     /* Compact full-width stepper (Figma: 48px tall, 32px buttons) */
     .fi-qty--tile { height: var(--space-12); padding: 5px; }
@@ -1495,43 +2232,76 @@
     .fi-qty--tile .fi-qty-btn svg { width: var(--space-5); height: var(--space-5); }
     .fi-qty--tile .fi-qty-input { font-size: var(--text-body-sm-size); }
     .fi-qty--tile .fi-qty-btn--delete:hover:not(:disabled) { color: var(--color-error, #d1242f); }
-    .x-box-link {
-      align-self: stretch; border: none; background: none; cursor: pointer; text-align: center;
-      font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--color-accessible-orange);
-      text-decoration: underline; text-underline-offset: 2px; padding: 2px 0;
+    /* ── Concept 4 · Pack cards (Figma 3539:5179 → 3539:5498) ── */
+    .x-tile-flags--row { flex-direction: row; align-items: center; }
+    .x-opts { display: flex; gap: var(--space-2); width: 100%; margin-top: 2px; }
+    .x-opt {
+      position: relative; flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1);
+      padding: var(--space-2); border: 1px solid var(--color-mushroom); border-radius: var(--radius-sm);
+      background: var(--color-salt); color: #000; text-align: start; cursor: pointer; font: inherit;
+      transition: border-color 0.15s;
     }
-    .x-box-note { margin: 0; padding: 2px 0; text-align: center; font-size: 13px; line-height: 1.4; color: var(--color-mushroom-900); }
-    .x-box-link:focus-visible { outline: 2px solid var(--color-brand-dark); border-radius: 4px; }
+    .x-opt:hover:not(:disabled) { border-color: var(--color-mushroom-900); }
+    .x-opt[aria-checked="true"], .x-opt[aria-checked="true"]:hover { border-color: var(--color-accessible-orange); }
+    .x-opt:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+    .x-opt-label { font-size: var(--text-body-xs-size); line-height: 1.4; color: #000; }
+    .x-opt-price { font-size: var(--text-body-size); font-weight: 600; line-height: 1.5; color: #000; }
+    .x-opt:disabled { background: var(--color-mushroom-100); border-color: var(--color-mushroom-300); cursor: not-allowed; }
+    /* + keeps the "Add to cart" look: dark orange fill, white icon */
+    .ufs-tile--c4 .fi-qty-btn[data-role="inc"] { background: var(--color-accessible-orange); color: var(--color-salt); }
+    .ufs-tile--c4 .fi-qty-btn[data-role="inc"]:hover:not(:disabled) { background: var(--color-orange-900); color: var(--color-salt); }
+    /* The active card's border grows a pointer toward the CTA below (Figma
+       3636:5546). A white rotated square sits on the bottom border: its top
+       half hides that stretch of border, its two lower edges draw the notch.
+       12px square ≈ Figma's 17px × 8px. */
+    .ufs-tile--c4 .x-opt[aria-checked="true"]::after {
+      content: ""; position: absolute; left: 50%; bottom: -6.5px; width: 12px; height: 12px;
+      background: var(--color-salt); border-right: 1px solid var(--color-accessible-orange); border-bottom: 1px solid var(--color-accessible-orange);
+      border-bottom-right-radius: 2px; transform: translateX(-50%) rotate(45deg); pointer-events: none;
+    }
+    .x-opt-na { font-size: var(--text-body-xs-size); line-height: 1.4; color: var(--color-mushroom-900); }
+    /* Fly-to-cart: a copy of the product photo arcs from the tile to the cart icon */
+    .x-fly { position: fixed; z-index: 1000; pointer-events: none; border-radius: var(--radius-sm); background: #fff center / contain no-repeat; box-shadow: var(--shadow-lg); will-change: transform, opacity; }
+    /* Rolling counter: old number slides out, new one slides in (up = more, down = less) */
+    .fi-qty:has(> .x-roll) { position: relative; }   /* only while a roll is running; never leaks into the fade ghost */
+    .x-roll { position: absolute; overflow: hidden; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+    .x-roll span { position: absolute; animation: 0.26s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+    .x-roll .x-roll-out-up { animation-name: roll-out-up; }     .x-roll .x-roll-in-up { animation-name: roll-in-up; }
+    .x-roll .x-roll-out-down { animation-name: roll-out-down; } .x-roll .x-roll-in-down { animation-name: roll-in-down; }
+    @keyframes roll-out-up   { to   { transform: translateY(-100%); opacity: 0; } }
+    @keyframes roll-in-up    { from { transform: translateY(100%);  opacity: 0; } }
+    @keyframes roll-out-down { to   { transform: translateY(100%);  opacity: 0; } }
+    @keyframes roll-in-down  { from { transform: translateY(-100%); opacity: 0; } }
+    /* Count bubble: Figma #BF4400 has no token, nearest DS orange used */
+    .x-opt-count {
+      position: absolute; top: -2px; right: -2px; transform: translate(25%, -25%);
+      min-width: 19px; height: 19px; padding: 0 5px; border-radius: var(--radius-full);
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--color-accessible-orange); color: var(--color-salt);
+      font-size: 11px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums;
+    }
     @media (max-width: 768px) {
       .x-grid .ufs-tile--c3 .ufs-tile__image { aspect-ratio: auto; height: 112px; }
       .x-points { top: var(--space-1); left: var(--space-1); padding: 5px 6px; font-size: var(--text-body-xs-size); }
       .x-points svg { width: 10px; height: 10px; }
+      .x-tile-flags { top: var(--space-1); left: var(--space-1); gap: var(--space-1); }
       .x-grid .ufs-tile--c3 .ufs-tile__cta { gap: var(--space-3); }
       .fi-qty--tile { height: var(--space-10); padding: 4px; }
-      .x-box-link, .x-box-note { text-align: start; }
     }
 
     /* ── Toast ────────────────────────────────────────────────────── */
-    .x-toast { position: fixed; left: 50%; bottom: 24px; z-index: 120; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s; background: var(--color-brand-dark); color: #fff; border-radius: var(--radius-sm); padding: 12px 16px; font-size: var(--text-body-sm-size); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; max-width: calc(100vw - 32px); }
-    .x-toast.is-on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
-    .x-toast button { border: none; background: none; color: var(--color-brand-primary); font-weight: 700; cursor: pointer; text-decoration: underline; font-size: var(--text-body-sm-size); white-space: nowrap; }
+    /* Toasts: one per cart change, newest at the bottom, max 2 */
+    .x-toast-stack { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 960; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); width: max-content; max-width: calc(100vw - 32px); pointer-events: none; }
+    .x-toast-item { pointer-events: auto; background: var(--color-brand-dark); color: #fff; border-radius: var(--radius-sm); padding: 12px 16px; font-size: var(--text-body-sm-size); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 12px; max-width: 100%; }
+    .x-toast-item button { border: none; background: none; color: var(--color-brand-primary); font-weight: 700; cursor: pointer; text-decoration: underline; font-size: var(--text-body-sm-size); white-space: nowrap; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     /* Mobile toast spans the gutters (long product names) */
     @media (max-width: 768px) {
-      .x-toast { left: var(--space-4); right: var(--space-4); max-width: none; justify-content: space-between; transform: translateY(20px); }
-      .x-toast.is-on { transform: translateY(0); }
+      .x-toast-stack { left: var(--space-4); right: var(--space-4); transform: none; width: auto; max-width: none; align-items: stretch; }
+      .x-toast-item { justify-content: space-between; }
     }
-    /* Concept 3 · CTA ⇄ quantity selector transition */
+    /* Concept 4 · outgoing control while the CTA ⇄ quantity selector fade runs */
     .x-ghost { position: absolute; margin: 0; pointer-events: none; z-index: 1; }
-    .x-out-up   { animation: x-out-up 0.18s ease-in forwards; }
-    .x-out-down { animation: x-out-down 0.18s ease-in forwards; }
-    .x-in-up    { animation: x-in-up 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) 0.06s both; }
-    .x-in-down  { animation: x-in-down 0.26s cubic-bezier(0.2, 0.8, 0.2, 1) 0.06s both; }
-    @keyframes x-out-up   { to   { opacity: 0; transform: translateY(-8px); } }
-    @keyframes x-out-down { to   { opacity: 0; transform: translateY(8px); } }
-    @keyframes x-in-up    { from { opacity: 0; transform: translateY(8px); } }
-    @keyframes x-in-down  { from { opacity: 0; transform: translateY(-8px); } }
-    @media (prefers-reduced-motion: reduce) { .x-out-up, .x-out-down, .x-in-up, .x-in-down { animation: none; } }
   </style>
 </head>
 <body>
@@ -1541,24 +2311,8 @@
     <div class="proto-group">
       <span class="proto-label">Concept</span>
       <div class="proto-seg" role="group" aria-label="Concept">
-        <button type="button" data-concept="picker" class="is-on" onclick="setConcept('picker')">1 · Picker</button>
-        <button type="button" data-concept="direct" onclick="setConcept('direct')">2 · Direct add</button>
-        <button type="button" data-concept="box" onclick="setConcept('box')">3 · Box shortcut</button>
-      </div>
-    </div>
-    <div class="proto-group">
-      <span class="proto-label">Order history</span>
-      <div class="proto-seg" role="group" aria-label="Order history">
-        <button type="button" data-history="off" class="is-on" onclick="setHistory(false)">New customer</button>
-        <button type="button" data-history="on" onclick="setHistory(true)">Returning</button>
-      </div>
-    </div>
-    <div class="proto-group" id="motion-group" hidden>
-      <span class="proto-label">Points motion</span>
-      <div class="proto-seg" role="group" aria-label="Points motion">
-        <button type="button" data-motion="both" class="is-on" onclick="setMotion('both')">Count + pulse</button>
-        <button type="button" data-motion="count" onclick="setMotion('count')">Count-up</button>
-        <button type="button" data-motion="pulse" onclick="setMotion('pulse')">Pulse</button>
+        <button type="button" data-concept="picker" onclick="setConcept('picker')">1 · Picker</button>
+        <button type="button" data-concept="cards" class="is-on" onclick="setConcept('cards')">4 · Pack cards</button>
       </div>
     </div>
     <button type="button" class="proto-link" onclick="resetCart()">Reset cart</button>
@@ -2187,10 +2941,6 @@
        (controls bar, AI bar, panels). Inert placeholders. -->
   <div hidden aria-hidden="true">
     <div id="ai-chat-overlay"></div>
-    <div id="brand-filters-list"></div>
-    <div id="brand-filters-next"></div>
-    <div id="brand-filters-prev"></div>
-    <div id="catalog-sort"></div>
     <div id="ctrl-ai-false"></div>
     <div id="ctrl-ai-true"></div>
     <div id="ctrl-auth-false"></div>
@@ -2216,7 +2966,6 @@
     <div id="fbe-prompt-2"></div>
     <div id="fbe-prompt-3"></div>
     <div id="fbe-typing"></div>
-    <div id="filters-bar"></div>
     <div id="landing-hero-cta"></div>
     <div id="landing-sticky-cta"></div>
     <div id="mobile-preview-frame"></div>
@@ -2226,11 +2975,289 @@
     <div id="state-text"></div>
   </div>
 
-  <main class="x-page" id="main-content" tabindex="-1">
-    <h1>Sauces &amp; Condiments</h1>
-    <p class="x-sub" id="count"></p>
-    <div class="x-grid" id="grid"></div>
+  <main id="main-content" tabindex="-1">
+    
+    <nav class="ufs-breadcrumb" aria-label="Breadcrumb">
+      <ol class="ufs-breadcrumb__list">
+        <li class="ufs-breadcrumb__item"><a href="#" class="ufs-breadcrumb__link" aria-label="Home"><svg class="ufs-breadcrumb__home-icon" viewBox="0 0 45 45" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M35.6281 15.9671L25.7007 7.26398C23.8164 5.57867 20.9666 5.57867 19.0823 7.26398L9.15489 15.9671C8.09173 16.9179 7.48897 18.2801 7.50015 19.7064V34.1674C7.50015 36.9088 9.72265 39.1311 12.464 39.1311H32.319C35.0603 39.1311 37.2827 36.9088 37.2827 34.1674V19.6899C37.2893 18.2693 36.6869 16.9141 35.6281 15.9671ZM19.0823 35.822V27.5491C19.0823 26.6353 19.8231 25.8945 20.7369 25.8945H24.046C24.9598 25.8945 25.7006 26.6353 25.7006 27.5491V35.822H19.0823ZM32.3189 35.822H29.0097V27.5491C29.0097 24.8077 26.7874 22.5854 24.046 22.5854H20.7369C17.9955 22.5854 15.7731 24.8077 15.7731 27.5491V35.822H12.464C11.5502 35.822 10.8094 35.0812 10.8094 34.1674V19.6899C10.81 19.2146 11.0149 18.7626 11.372 18.4489L21.2994 9.76241C21.924 9.21368 22.8588 9.21368 23.4835 9.76241L33.4109 18.4489C33.768 18.7626 33.9729 19.2146 33.9735 19.6899V34.1674C33.9735 35.0812 33.2327 35.822 32.3189 35.822Z"/></svg><span class="ufs-breadcrumb__home-text">Home</span></a></li>
+        <li class="ufs-breadcrumb__sep" aria-hidden="true"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg></li>
+        <li class="ufs-breadcrumb__item is-current"><span class="ufs-breadcrumb__current" aria-current="page">Products</span></li>
+      </ol>
+    </nav>
+
+    <!-- ================================================================
+         TITLE SECTION — eyebrow + heading + description. See
+         handover/title-spec.html for full anatomy docs.
+    ================================================================ -->
+    <section class="ufs-title-section ufs-title-section--page-top">
+      <div class="ufs-title-section__inner">
+        <p class="ufs-title-section__eyebrow">Our Range</p>
+        <h1 class="ufs-title-section__heading">Products</h1>
+        <p class="ufs-title-section__desc">Professional-grade ingredients and bases from Knorr, Hellmann's and Carte d'Or — built to help your kitchen deliver consistent quality at scale.</p>
+      </div>
+    </section>
+
+    <!-- ================================================================
+         FILTERS PANEL — search + 3 quick dropdowns (own checkbox popovers,
+         state shared with the "All filters" side drawer) + secondary button.
+    ================================================================ -->
+    <div class="ufs-filters-bar" id="filters-bar">
+      <div class="ufs-filters-search">
+        <svg class="ufs-filters-search__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><line x1="17.5" y1="17.5" x2="13.5" y2="13.5"/></svg>
+        <input type="text" class="ufs-filters-search__input" placeholder="Search products" aria-label="Search products" />
+      </div>
+
+      <div class="ufs-filters-dropdown" data-filter-key="brand" id="dropdown-brand">
+        <button type="button" class="ufs-filters-dropdown__trigger" onclick="toggleFilterDropdown('brand')" aria-expanded="false" aria-haspopup="true" aria-controls="panel-brand">
+          <span>Brand</span>
+          <span class="ufs-filters-badge" id="badge-row-brand" hidden>0</span>
+          <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="ufs-filters-dropdown__panel" id="panel-brand" role="region" aria-label="Brand filters"></div>
+      </div>
+
+      <div class="ufs-filters-dropdown" data-filter-key="category" id="dropdown-category">
+        <button type="button" class="ufs-filters-dropdown__trigger" onclick="toggleFilterDropdown('category')" aria-expanded="false" aria-haspopup="true" aria-controls="panel-category">
+          <span>Category</span>
+          <span class="ufs-filters-badge" id="badge-row-category" hidden>0</span>
+          <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="ufs-filters-dropdown__panel" id="panel-category" role="region" aria-label="Category filters"></div>
+      </div>
+
+      <div class="ufs-filters-dropdown" data-filter-key="dietetics" id="dropdown-dietetics">
+        <button type="button" class="ufs-filters-dropdown__trigger" onclick="toggleFilterDropdown('dietetics')" aria-expanded="false" aria-haspopup="true" aria-controls="panel-dietetics">
+          <span>Dietetics</span>
+          <span class="ufs-filters-badge" id="badge-row-dietetics" hidden>0</span>
+          <svg class="ufs-filters-dropdown__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="ufs-filters-dropdown__panel" id="panel-dietetics" role="region" aria-label="Dietetics filters"></div>
+      </div>
+
+      <button type="button" class="btn btn-secondary ufs-filters-allbtn" id="all-filters-btn" onclick="openFiltersPanel()" aria-label="All filters">
+        <svg class="ufs-filters-allbtn__icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="17" y2="6"/><line x1="6" y1="10" x2="14" y2="10"/><line x1="8.5" y1="14" x2="11.5" y2="14"/></svg>
+        <span class="ufs-filters-allbtn__label">All filters</span>
+        <span class="ufs-filters-badge ufs-filters-allbtn__badge" id="all-filters-badge" hidden>0</span>
+      </button>
+    </div>
+
+    <!-- ================================================================
+         BRAND FILTER STRIPE — same circular-logo scroller as the header
+         megamenu's .mm-brands, repurposed here as filter toggles (see
+         .ufs-brand-filters CSS above for the full rationale). Each item
+         reads/writes filterState.brand, same as the Brand quick dropdown.
+    ================================================================ -->
+    <div class="ufs-brand-filters" id="brand-filters-row">
+      <p class="ufs-brand-filters__label">Filter by brand:</p>
+      <div class="ufs-brand-filters__scroll-wrap">
+        <button type="button" class="ufs-brand-filters__scroll-btn ufs-brand-filters__scroll-btn--prev is-hidden" id="brand-filters-prev" onclick="brandFiltersScroll(-1)" aria-label="Previous brands">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="ufs-brand-filters__list" id="brand-filters-list" onscroll="brandFiltersUpdateArrows()">
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Knorr" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="../../handover/images/brands/knorr.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Knorr</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Hellmann's" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="../../handover/images/brands/hellmanns.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Hellmann's</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Colman's" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="../../handover/images/brands/colmans.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Colman's</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Carte d'Or" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="../../handover/images/brands/carte-dor.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Carte d'Or</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Marmite" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="../../handover/images/brands/marmite.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Marmite</span>
+          </button>
+          <button type="button" class="ufs-brand-filters__item" data-filter-key="brand" data-filter-value="Pot Noodle" onclick="togglePopularFilter(this)" aria-pressed="false">
+            <span class="ufs-brand-filters__item-logo"><img src="../../handover/images/brands/potnoodle.png" alt=""/></span>
+            <span class="ufs-brand-filters__item-label">Pot Noodle</span>
+          </button>
+        </div>
+        <button type="button" class="ufs-brand-filters__scroll-btn ufs-brand-filters__scroll-btn--next" id="brand-filters-next" onclick="brandFiltersScroll(1)" aria-label="Next brands">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="ufs-popular-filters" id="popular-filters-row" hidden>
+      <p class="ufs-popular-filters__label">Popular filters:</p>
+      <div class="ufs-popular-filters__pills">
+        <button type="button" class="ufs-popular-filters__pill" data-filter-key="brand" data-filter-value="Knorr" onclick="togglePopularFilter(this)">
+          <span>Knorr</span>
+          <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+        </button>
+        <button type="button" class="ufs-popular-filters__pill" data-filter-key="category" data-filter-value="Sauces &amp; Stocks" onclick="togglePopularFilter(this)">
+          <span>Sauces &amp; Stocks</span>
+          <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+        </button>
+        <button type="button" class="ufs-popular-filters__pill" data-filter-key="dietetics" data-filter-value="Gluten-Free" onclick="togglePopularFilter(this)">
+          <span>Gluten-Free</span>
+          <svg class="ufs-popular-filters__pill-check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 10 8 14 16 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ================================================================
+         ACTIVE FILTERS — replaces Popular Filters entirely while any
+         filter is active. Pills rebuilt from filterState by
+         renderActiveFilters() every time syncFilterUI() runs.
+    ================================================================ -->
+    <div class="ufs-active-filters" id="active-filters-row" hidden>
+      <p class="ufs-active-filters__label">Active filters:</p>
+      <div class="ufs-active-filters__pills" id="active-filters-pills"></div>
+      <button type="button" class="ufs-active-filters__clear" onclick="clearAllFilters()">Clear all</button>
+    </div>
+
+    <div class="ufs-catalog-toolbar">
+      <p class="ufs-catalog-results" id="catalog-results">16 products</p>
+
+      <!-- Sort control — open/close only (matches .ufs-filters-dropdown's
+           toggle + click-outside-to-close pattern); no real re-sorting of
+           the grid, selecting an option just updates the trigger label. -->
+      <div class="ufs-catalog-sort" id="catalog-sort">
+        <button type="button" class="ufs-catalog-sort__trigger" onclick="toggleSortDropdown()" aria-haspopup="true" aria-expanded="false" aria-controls="catalog-sort-panel">
+          <span id="catalog-sort-label">Sort by: A–Z</span>
+          <svg class="ufs-catalog-sort__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="ufs-catalog-sort__panel" id="catalog-sort-panel" role="region" aria-label="Sort options">
+          <label class="ufs-catalog-sort__option"><input type="radio" name="catalog-sort" checked onchange="selectSortOption(this, 'A–Z')"/> A–Z</label>
+          <label class="ufs-catalog-sort__option"><input type="radio" name="catalog-sort" onchange="selectSortOption(this, 'Latest Added')"/> Latest Added</label>
+          <label class="ufs-catalog-sort__option"><input type="radio" name="catalog-sort" onchange="selectSortOption(this, 'Most Popular')"/> Most Popular</label>
+        </div>
+      </div>
+    </div>
+
+
+    <div class="pg-catalog-grid x-grid" id="grid"></div>
+
+    <div class="pg-catalog-loadmore">
+      <button type="button" class="btn btn-primary">Load More Products</button>
+    </div>
+
+    <section class="ufs-catalog-seo">
+      <p class="ufs-catalog-seo__text">Discover our full range of professional-grade products, built for foodservice kitchens. Our Knorr, Hellmann's and Carte d'Or ranges help you deliver consistent quality, cut prep time, and control costs across every dish on your menu.</p>
+      <div class="ufs-catalog-seo__more" id="catalog-seo-more" hidden>
+        <p>If you would like nutrition information for any of our products, please contact us.</p>
+        <p><strong>Plant-based Products –</strong> We support the plant-forward movement to include more plant-based foods and less animal products in the diet. Our guiding principle is that our plant-based products contain at least 80% plant-derived ingredients and up to 20% animal-derived ingredients.</p>
+        <p><strong>Vegetarian Products –</strong> Our (ovo-lacto) vegetarian products may contain dairy products and eggs, but no other animal products.</p>
+        <p>Always check the label of all additional ingredients you use alongside these products to ensure they are free of all animal products.</p>
+        <p><strong>Vegan Products –</strong> Our vegan products do not contain any animal products or animal by-products.</p>
+        <p>Always check the label of all additional ingredients you use alongside these products to ensure they are vegan.</p>
+        <p><strong>Gluten-free Products –</strong> Our gluten-free products do not contain gluten, a protein found in many foods including wheat, rye, barley, etc.</p>
+        <p>Always check the label of all other ingredients you use alongside these products to ensure they are gluten-free.</p>
+      </div>
+      <button type="button" class="ufs-catalog-seo__toggle" id="catalog-seo-toggle" onclick="toggleCatalogSeo()" aria-expanded="false" aria-controls="catalog-seo-more">Read more</button>
+    </section>
   </main>
+
+  <footer class="ufs-footer" id="site-footer">
+    <!-- Newsletter band — centered column layout -->
+    <div class="ufs-footer__band">
+      <div>
+        <h2 class="ufs-footer__nl-heading" data-i18n="footer-heading">Stay in the loop</h2>
+        <p class="ufs-footer__nl-sub" data-i18n="footer-sub">Sign up to receive recipe ideas, industry trends, special offers, and more in your inbox.</p>
+      </div>
+      <form class="ufs-footer__nl-form" onsubmit="return false">
+        <input class="ufs-footer__nl-input" type="email" id="footer-nl-email" dir="ltr" placeholder="Enter your email" data-i18n-ph="footer-input-ph" autocomplete="email" />
+        <button class="ufs-footer__nl-btn" type="submit" data-i18n="footer-subscribe">Subscribe</button>
+      </form>
+    </div>
+
+    <!-- Link columns + bottom bar -->
+    <div class="ufs-footer__main">
+      <div class="ufs-footer__cols">
+        <!-- Brand column: logo + tagline -->
+        <div class="ufs-footer__col">
+          <img src="../../handover/images/ufs-logo.png" class="ufs-footer__brand-logo" alt="UFS" />
+          <p class="ufs-footer__brand-tagline" data-i18n-html="footer-tagline">Products and services created <span class="text-ch-h5" style="display:block">by chefs for chefs</span></p>
+        </div>
+        <!-- Company -->
+        <div class="ufs-footer__col">
+          <h3 class="ufs-footer__col-heading" data-i18n="footer-col-company">Company</h3>
+          <ul class="ufs-footer__col-links">
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-about">About Us</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-brands">Brands</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-sustainability">Sustainability</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-trade">Trade Terms</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-partners">Partners</a></li>
+          </ul>
+        </div>
+        <!-- Help & Support -->
+        <div class="ufs-footer__col">
+          <h3 class="ufs-footer__col-heading" data-i18n="footer-col-support">Help &amp; Support</h3>
+          <ul class="ufs-footer__col-links">
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-track">Track My Order</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-shipping">Shipping Info</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-returns">Returns &amp; Exchanges</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-faq">FAQ</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-contact">Contact Us</a></li>
+          </ul>
+        </div>
+        <!-- Legal -->
+        <div class="ufs-footer__col">
+          <h3 class="ufs-footer__col-heading" data-i18n="footer-col-legal">Legal</h3>
+          <ul class="ufs-footer__col-links">
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-privacy">Privacy Policy</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-cookie">Cookie Policy</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-terms">Terms and Conditions</a></li>
+            <li><a href="#" class="ufs-footer__link" data-i18n="footer-accessibility">Accessibility</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Bottom bar -->
+      <div class="ufs-footer__divider"></div>
+      <div class="ufs-footer__bottom">
+        <p class="ufs-footer__copyright" data-i18n="footer-copyright">© 2027 UFS. All rights reserved.</p>
+        <div class="ufs-footer__socials">
+          <a href="#" class="ufs-footer__social-link" aria-label="Instagram">
+            <img src="../../handover/icons/instagram.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+          <a href="#" class="ufs-footer__social-link" aria-label="TikTok">
+            <img src="../../handover/icons/tiktok.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+          <a href="#" class="ufs-footer__social-link" aria-label="Facebook">
+            <img src="../../handover/icons/facebook.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+          <a href="#" class="ufs-footer__social-link" aria-label="YouTube">
+            <img src="../../handover/icons/youtube.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+          <a href="#" class="ufs-footer__social-link" aria-label="LinkedIn">
+            <img src="../../handover/icons/linkedin.svg" class="ufs-footer__social-icon" alt="" />
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ================================================================
+       FILTERS PANEL — side drawer reusing the .signin-panel base.
+       Heading 6 title, multi-open accordion of filter categories with
+       checkbox lists, always-visible sticky button area (Clear filters /
+       Show Results). State is shared with the 3 quick dropdowns above.
+  ================================================================ -->
+  <div class="signin-backdrop" id="filters-backdrop" onclick="closeFiltersPanel()"></div>
+  <div class="signin-panel" id="filters-panel">
+    <div class="signin-panel-hd">
+      <h2 class="signin-panel-title" id="filters-panel-title">Filter by</h2>
+      <button class="signin-close" onclick="closeFiltersPanel()" aria-label="Close filters">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="signin-panel-body" id="filters-panel-body">
+      <div class="ufs-accordion__panel ufs-filters-accordion" id="filters-accordion"></div>
+    </div>
+    <div class="signin-panel-ft" id="filters-panel-ft">
+      <button type="button" class="btn btn-secondary" id="filters-clear-btn" disabled onclick="clearAllFilters()">Clear filters</button>
+      <button type="button" class="btn btn-primary" id="filters-show-btn" disabled onclick="closeFiltersPanel()">Show Results (<span id="filters-show-count">0</span>)</button>
+    </div>
+  </div>
 
   <!-- Concept 1 picker (one instance, filled per product) -->
   <div class="x-backdrop" id="backdrop" onclick="closePicker()"></div>
@@ -2244,11 +3271,11 @@
     </div>
     <div id="picker-rows"></div>
     <div class="x-picker-total"><span id="picker-count">0 items</span><b id="picker-sum">€0.00</b></div>
-    <button type="button" class="btn btn-primary" id="picker-submit" onclick="submitPicker()"></button>
+    <div class="x-picker-pts"><span class="x-points" id="pts-picker"><span class="x-cart-coin"></span><span class="x-points-val" id="pts-val-picker">0</span><span class="sr-only"> points</span></span></div>
   </div>
 
   <div class="sr-only" id="sr-live" aria-live="polite"></div>
-  <div class="x-toast" id="toast" role="status" aria-live="polite"><span id="toast-text"></span><button type="button" onclick="openCartPanel()">View cart</button></div>
+  <div class="x-toast-stack" id="toast-stack" role="status" aria-live="polite"></div>
 
   <!-- DS mobile bottom navigation — copied from handover/template-products-catalog.html -->
   <button class="ufs-bottom-nav__ai-fab" id="bottom-nav-ai-fab" onclick="openAIChat()" aria-label="ChefAI">
@@ -3742,9 +4769,7 @@
       el.classList.add('is-active');
     }
 
-    /* Catalog-page panels the copied Esc handler also closes; not on this page */
-    function closeFilterDropdowns() {}
-    function closeSortDropdown() {}
+    /* Catalog-page panel the copied Esc handler also closes; not on this page */
     function closeWholesalerPanel() {}
 
     applyState();
@@ -3763,14 +4788,19 @@
       { id: 'garlic', name: 'Knorr Aromat Seasoning 1 kg', cat: 'Seasonings', img: 'product-detail/product-hero/product-2.png', price: 12.30, multi: 6, rating: 45, pts: 210, tags: ['Vegetarian','Gluten free'] },
       { id: 'roux', name: 'Knorr Professional Blanc Roux 1 kg', cat: 'Sauces', img: 'tiles/product.jpg', price: 15.60, multi: 4, rating: 29, pts: 260, tags: ['Vegetarian'] },
       { id: 'tomato', name: 'Knorr Tomato Pronto 2 kg', cat: 'Sauces', img: 'tiles/packshot.webp', price: 9.80, multi: 6, rating: 210, badge: 'Popular', pts: 160, tags: ['Vegan','Gluten free'] },
-      { id: 'basil', name: 'Knorr Primerba Basil 340 g', cat: 'Seasonings', img: 'product-detail/product-hero/product-4.png', price: 11.90, multi: null, rating: 18, pts: 190, tags: ['Vegan','No MSG'] }
+      { id: 'basil', name: 'Knorr Primerba Basil 340 g', cat: 'Seasonings', img: 'product-detail/product-hero/product-4.png', price: 11.90, multi: null, rating: 18, pts: 190, tags: ['Vegan','No MSG'] },
+      { id: 'gravy', name: 'Knorr Professional Gravy Granules 1.3 kg', cat: 'Sauces', img: 'tiles/product.jpg', price: 19.40, multi: 6, rating: 96, pts: 350, tags: ['Vegetarian'] },
+      { id: 'chicken', name: 'Knorr Professional Chicken Stock Paste 1 kg', cat: 'Stocks', img: 'tiles/packshot.webp', price: 22.60, multi: 6, rating: 154, badge: 'Bestseller', pts: 410, tags: ['Gluten free','No MSG'] },
+      { id: 'veg', name: 'Knorr Professional Vegetable Bouillon 1 kg', cat: 'Stocks', img: 'product-detail/product-hero/product-2.png', price: 14.20, multi: 4, rating: 71, pts: 250, tags: ['Vegan','Gluten free'] },
+      { id: 'pesto', name: 'Knorr Primerba Pesto 340 g', cat: 'Seasonings', img: 'product-detail/product-hero/product-4.png', price: 12.80, multi: null, rating: 22, pts: 200, tags: ['Vegetarian'] },
+      { id: 'mash', name: 'Knorr Professional Mashed Potato 4 kg', cat: 'Sides', img: 'tiles/product.jpg', price: 27.90, multi: 4, rating: 38, pts: 480, tags: ['Vegetarian','Gluten free'] },
+      { id: 'curry', name: 'Knorr Professional Korma Sauce 2.4 kg', cat: 'Sauces', img: 'tiles/packshot.webp', price: 29.50, multi: 4, rating: 57, badge: 'New', pts: 500, tags: ['Gluten free'] },
+      { id: 'garlic2', name: 'Knorr Primerba Garlic 340 g', cat: 'Seasonings', img: 'product-detail/product-hero/product-4.png', price: 11.40, multi: null, rating: 14, pts: 180, tags: ['Vegan'] },
+      { id: 'beef', name: 'Knorr Professional Beef Bouillon 1 kg', cat: 'Stocks', img: 'product-detail/product-hero/product-2.png', price: 16.80, multi: 6, rating: 83, pts: 290, tags: ['No MSG'] }
     ];
-    /* Mock order history for "Returning customer": usual quantities per pack */
-    var HISTORY = { hollandaise: { single: 2, multi: 1 }, mayo: { multi: 1 }, tomato: { single: 4 }, bouillon: { single: 3 } };
 
-    var state = { concept: 'picker', history: false, cart: {} };   // cart[id] = { single: n, multi: n }
-    var expanded = {};                                                // concept 2: product ids whose 2nd row is open
-    var pickerFor = null, pickerDraft = null, pickerTrigger = null;
+    var state = { concept: 'cards', cart: {} };   // cart[id] = { single: n, multi: n }
+    var pickerFor = null, pickerTrigger = null;
 
     var ICON_MINUS = '<svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M33.75 20.7C34.4542 20.7 35.0917 20.9854 35.5531 21.4469C36.0146 21.9083 36.3 22.5458 36.3 23.25C36.3 23.9542 36.0146 24.5917 35.5531 25.0531C35.0917 25.5146 34.4542 25.8 33.75 25.8H11.25C10.5458 25.8 9.90835 25.5146 9.44689 25.0531C8.98543 24.5917 8.70001 23.9542 8.70001 23.25C8.70001 22.5458 8.98543 21.9083 9.44689 21.4469C9.90835 20.9854 10.5458 20.7 11.25 20.7H33.75Z"/></svg>';
     var ICON_PLUS = '<svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M22.5 9.45C23.2042 9.45 23.8417 9.73542 24.3031 10.1969C24.7646 10.6583 25.05 11.2958 25.05 12V20.7H33.75C34.4542 20.7 35.0917 20.9854 35.5531 21.4469C36.0146 21.9083 36.3 22.5458 36.3 23.25C36.3 23.9542 36.0146 24.5917 35.5531 25.0531C35.0917 25.5146 34.4542 25.8 33.75 25.8H25.05V34.5C25.05 35.2042 24.7646 35.8417 24.3031 36.3031C23.8417 36.7646 23.2042 37.05 22.5 37.05C21.7958 37.05 21.1583 36.7646 20.6969 36.3031C20.2354 35.8417 19.95 35.2042 19.95 34.5V25.8H11.25C10.5458 25.8 9.90835 25.5146 9.44689 25.0531C8.98543 24.5917 8.70001 23.9542 8.70001 23.25C8.70001 22.5458 8.98543 21.9083 9.44689 21.4469C9.90835 20.9854 10.5458 20.7 11.25 20.7H19.95V12C19.95 11.2958 20.2354 10.6583 20.6969 10.1969C21.1583 9.73542 21.7958 9.45 22.5 9.45Z"/></svg>';
@@ -3782,7 +4812,7 @@
     /* ───────────────────────── Helpers ───────────────────────── */
     function byId(id) { return PRODUCTS.filter(function (p) { return p.id === id; })[0]; }
     function money(n) { return '€' + n.toFixed(2); }
-    function packLabel(p, pack) { return pack === 'single' ? (state.concept === 'box' ? 'Units' : 'Single item') : 'Pack of ' + p.multi; }
+    function packLabel(p, pack) { return pack === 'single' ? 'Single item' : (state.concept === 'cards' ? 'Box of ' : 'Pack of ') + p.multi; }
     function packPrice(p, pack) { return pack === 'single' ? p.price : p.price * p.multi; }
     function lineOf(id) { return state.cart[id] || { single: 0, multi: 0 }; }
     function inCart(id) { var l = lineOf(id); return (l.single || 0) + (l.multi || 0) > 0; }
@@ -3801,103 +4831,48 @@
 
     function packInfo(p) {
       return p.multi
-        ? '<p class="x-packinfo"><b>Single</b> or <b>pack of ' + p.multi + '</b> · ' + money(p.price) + ' / item</p>'
-        : '<p class="x-packinfo"><b>Single item</b> · ' + money(p.price) + '</p>';
+        ? '<p class="x-packinfo"><b>Single ' + unitSize(p) + '</b> or <b>pack of ' + p.multi + '</b></p>'
+        : '<p class="x-packinfo"><b>Single ' + unitSize(p) + '</b></p>';
     }
 
     /* ───────────────────────── Tiles ───────────────────────── */
     function renderGrid() {
       document.getElementById('grid').innerHTML = PRODUCTS.map(function (p) {
-        if (state.concept === 'box') return c3TileHTML(p);
-        return '<article class="ufs-tile" id="tile-' + p.id + '">' +
+        if (state.concept === 'cards') return c4TileHTML(p);
+        var badge = p.badge ? '<span class="ufs-tile__badge">' + p.badge + '</span>' : '';
+        // Picker: points pill in the corner, badge stacked under it
+        if (state.concept === 'picker') badge = '<div class="x-tile-flags">' + pointsPill(p, true) + badge + '</div>';
+        return '<article class="ufs-tile" id="tile-' + p.id + '">' + favBtn(p) +
           '<div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url(\'' + IMG + p.img + '\')"></div>' +
-          (p.badge ? '<span class="ufs-tile__badge">' + p.badge + '</span>' : '') + '</div>' +
+          badge + '</div>' +
           '<div class="ufs-tile__content">' +
             '<div class="ufs-tile__body">' +
               '<div class="ufs-tile__eyebrow">' + p.cat + '</div>' +
-              '<h3 class="ufs-tile__title">' + esc(p.name) + '</h3>' +
-              '<div class="ufs-tile__rating"><span style="display:flex">' + STAR + STAR + STAR + STAR + STAR + '</span><span>(' + p.rating + ')</span></div>' +
+              '<h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">' + esc(p.name) + '</a></h3>' +
+              '<p class="x-unit-price"><b>' + money(p.price) + '</b> <span class="x-unit-note">Price indication (excl. VAT)</span></p>' +
               packInfo(p) +
             '</div>' +
             '<div class="ufs-tile__cta" id="cta-' + p.id + '">' + ctaHTML(p) + '</div>' +
           '</div>' +
         '</article>';
       }).join('');
-      document.getElementById('count').textContent = PRODUCTS.length + ' products';
     }
 
-    /* ── Concept 3 · Box shortcut ── */
     function fmt(n) { return n.toLocaleString('de-DE'); }   // 4.320, as in the cart panel design
-    function c3Units(id) { var l = lineOf(id), p = byId(id); return (l.single || 0) + (l.multi || 0) * (p.multi || 0); }
-    function c3Points(p) { return p.pts * Math.max(c3Units(p.id), 1); }   // per-unit points until something is added
-    function c3TileHTML(p) {
-      return '<article class="ufs-tile ufs-tile--c3" id="tile-' + p.id + '">' +
-        '<div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url(\'' + IMG + p.img + '\')"></div>' +
-          '<span class="x-points" id="pts-' + p.id + '">' + ICON_COIN + '<span class="x-points-val" id="pts-val-' + p.id + '">' + fmt(c3Points(p)) + '</span><span class="sr-only"> points</span></span></div>' +
-        '<div class="ufs-tile__content">' +
-          '<div class="ufs-tile__body">' +
-            '<div class="ufs-tile__eyebrow">' + p.cat + '</div>' +
-            '<h3 class="ufs-tile__title">' + esc(p.name) + '</h3>' +
-            '<div class="ufs-tile__meta">' + p.tags.map(function (t) { return '<span class="ufs-tile__meta-item">' + t + '</span>'; }).join('<span class="ufs-tile__meta-sep" aria-hidden="true">·</span>') + '</div>' +
-            '<p class="x-price"><b>' + money(p.price) + '</b><span>Price indication (excl. VAT)</span></p>' +
-          '</div>' +
-          '<div class="ufs-tile__cta" id="cta-' + p.id + '">' + c3CtaHTML(p) + '</div>' +
-        '</div>' +
-      '</article>';
+    function unitsInCart(id) { var l = lineOf(id), p = byId(id); return (l.single || 0) + (l.multi || 0) * (p.multi || 0); }
+    function livePoints(p) { return p.pts * Math.max(unitsInCart(p.id), 1); }   // per-unit points until something is added
+    var favs = {};   // product id → true; kept across concept switches
+    function favBtn(p) {
+      var on = !!favs[p.id];
+      return '<button type="button" class="ufs-tile__fav' + (on ? ' is-active' : '') + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Remove from favourites' : 'Add to favourites') + '" onclick="toggleTileFav(this, event); favs[\'' + p.id + '\'] = this.classList.contains(\'is-active\')">' +
+        '<svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>';
     }
-    function c3CtaHTML(p) {
-      var u = c3Units(p.id), html;
-      if (!u) html = addBtn(p);
-      else html = '<div class="fi-qty fi-qty--tile">' +
-        (u === 1
-          ? '<button type="button" class="fi-qty-btn fi-qty-btn--delete" data-role="dec" aria-label="Remove ' + esc(p.name) + ' from cart" onclick="c3Step(\'' + p.id + '\',-1)">' + ICON_DELETE + '</button>'
-          : '<button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease ' + esc(p.name) + ' quantity" onclick="c3Step(\'' + p.id + '\',-1)">' + ICON_MINUS + '</button>') +
-        '<input class="fi-qty-input" type="number" inputmode="numeric" min="0" max="999" value="' + u + '" aria-label="' + esc(p.name) + ' quantity, in units" onchange="c3Set(\'' + p.id + '\', this.value)" onfocus="this.select()" />' +
-        '<button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase ' + esc(p.name) + ' quantity" onclick="c3Step(\'' + p.id + '\',1)">' + ICON_PLUS + '</button></div>';
-      if (p.multi) html += '<button type="button" class="x-box-link" data-role="box" onclick="c3Box(\'' + p.id + '\')">+ Add box of ' + p.multi + ' units</button>';
-      else html += '<p class="x-box-note">Product not available in packs</p>';   // same line height as the box link, so CTAs stay aligned across the row
-      return html;
-    }
-    function c3Set(id, v, focusRole) {
-      var p = byId(id), before = c3Units(id), q = clampQty(v);
-      var l = lineOf(id); l.single = q; l.multi = 0; state.cart[id] = l;
-      if (!q) delete state.cart[id];
-      renderCartUI(q > before);
-      c3RenderCta(p, !before !== !q, q > 0);
-      var pts = c3Points(p);
-      animatePoints(id, pts);
-      document.getElementById('sr-live').textContent = q
-        ? p.name + ': ' + q + (q === 1 ? ' unit' : ' units') + ' in cart, earns ' + fmt(pts) + ' points'
-        : p.name + ' removed from cart';
-      if (q > before) toast((before ? 'Updated: ' : 'Added: ') + p.name + ' · ' + q + (q === 1 ? ' unit' : ' units'));
-      else if (!q) toast('Removed: ' + p.name);
-      // keep focus where the person is working
-      var target = !q ? document.getElementById('add-' + id)
-        : document.querySelector('#cta-' + id + ' [data-role="' + (focusRole || 'inc') + '"]') || document.querySelector('#cta-' + id + ' [data-role="inc"]');
-      if (target && focusRole !== 'none') target.focus({ preventScroll: true });
-    }
-    // Button ⇄ quantity selector: the outgoing control fades out while the
-    // incoming one fades in, both drifting the same way: up when adding,
-    // down when the last unit is removed. Same height, so nothing below moves.
-    function c3RenderCta(p, modeChanged, adding) {
-      var cta = document.getElementById('cta-' + p.id);
-      [].forEach.call(cta.querySelectorAll('.x-ghost'), function (g) { g.remove(); });   // fast repeat clicks
-      var old = cta.firstElementChild;
-      if (!modeChanged || !old || reduceMotion.matches) { cta.innerHTML = c3CtaHTML(p); return; }
-      cta.style.position = 'relative';
-      var box = { top: old.offsetTop, left: old.offsetLeft, width: old.offsetWidth };
-      cta.innerHTML = c3CtaHTML(p);
-      old.removeAttribute('id');
-      old.classList.add('x-ghost', adding ? 'x-out-up' : 'x-out-down');
-      old.setAttribute('aria-hidden', 'true'); old.inert = true;
-      old.style.top = box.top + 'px'; old.style.left = box.left + 'px'; old.style.width = box.width + 'px';
-      var incoming = cta.firstElementChild;
-      incoming.classList.add(adding ? 'x-in-up' : 'x-in-down');
-      cta.insertBefore(old, incoming);
-      setTimeout(function () { old.remove(); incoming.classList.remove('x-in-up', 'x-in-down'); }, 320);
+    // fixed: per-unit points that never change (Concept 1 — live total lives in the picker)
+    function pointsPill(p, fixed) {
+      return '<span class="x-points" id="pts-' + p.id + '">' + ICON_COIN + '<span class="x-points-val" id="pts-val-' + p.id + '">' + fmt(fixed ? p.pts : livePoints(p)) + '</span><span class="sr-only"> points</span></span>';
     }
     // Points motion: count the number from old to new value, and/or a soft pulse ring
-    var motion = 'both', countRaf = {};
+    var motion = 'both', countRaf = {};   // count-up + pulse
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
     function animatePoints(id, to) {
       var val = document.getElementById('pts-val-' + id), pill = document.getElementById('pts-' + id);
@@ -3915,28 +4890,167 @@
         if (t < 1) countRaf[id] = requestAnimationFrame(tick);
       })(start);
     }
-    function setMotion(m) {
-      motion = m;
-      document.querySelectorAll('[data-motion]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-motion') === m); });
+    /* ── Concept 4 · Pack cards ── */
+    var c4Sel = {};                                                   // product id → 'single' | 'multi'
+    function c4SelOf(p) { return p.multi && c4Sel[p.id] === 'multi' ? 'multi' : 'single'; }
+    function unitSize(p) { var m = p.name.match(/(\d+(?:[.,]\d+)?\s?(?:kg|g|ml|L))$/i); return m ? m[1] : 'Single'; }
+    function c4TileHTML(p) {
+      var badge = p.badge ? '<span class="ufs-tile__badge">' + p.badge + '</span>' : '';
+      return '<article class="ufs-tile ufs-tile--c3 ufs-tile--c4" id="tile-' + p.id + '">' + favBtn(p) +
+        '<div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url(\'' + IMG + p.img + '\')"></div>' +
+          '<div class="x-tile-flags x-tile-flags--row">' + badge + pointsPill(p) + '</div></div>' +
+        '<div class="ufs-tile__content">' +
+          '<div class="ufs-tile__body">' +
+            '<div class="ufs-tile__eyebrow">' + p.cat + '</div>' +
+            '<h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">' + esc(p.name) + '</a></h3>' +
+            '<div class="ufs-tile__meta">' + p.tags.map(function (t) { return '<span class="ufs-tile__meta-item">' + t + '</span>'; }).join('<span class="ufs-tile__meta-sep" aria-hidden="true">·</span>') + '</div>' +
+            '<div class="x-opts" role="radiogroup" aria-label="' + esc(p.name) + ' pack type" id="packs-' + p.id + '">' + c4PacksHTML(p) + '</div>' +
+          '</div>' +
+          '<div class="ufs-tile__cta" id="cta-' + p.id + '">' + c4CtaHTML(p) + '</div>' +
+        '</div>' +
+      '</article>';
     }
-
-    function c3Step(id, d) { c3Set(id, c3Units(id) + d, d > 0 ? 'inc' : 'dec'); }
-    function c3Box(id) { c3Set(id, c3Units(id) + byId(id).multi, 'box'); }
+    function c4PacksHTML(p) {
+      var sel = c4SelOf(p), l = lineOf(p.id);
+      function card(k, label) {
+        var n = l[k] || 0;
+        return '<button type="button" class="x-opt" role="radio" aria-checked="' + (sel === k) + '" data-pack="' + k + '" onclick="c4Select(\'' + p.id + '\',\'' + k + '\')">' +
+          '<span class="x-opt-label">' + label + '</span><span class="x-opt-price">' + money(packPrice(p, k)) + '</span>' +
+          (n ? '<span class="x-opt-count" aria-hidden="true">' + n + '</span><span class="sr-only">, ' + n + ' in cart</span>' : '') + '</button>';
+      }
+      return card('single', unitSize(p)) + (p.multi
+        ? card('multi', 'Box of ' + p.multi + ' × ' + unitSize(p))
+        : '<button type="button" class="x-opt" role="radio" aria-checked="false" disabled><span class="x-opt-na">Not available in packs</span></button>');
+    }
+    function c4CtaHTML(p) {
+      var k = c4SelOf(p), q = lineOf(p.id)[k] || 0, what = esc(p.name) + ', ' + packLabel(p, k).toLowerCase();
+      if (!q) return addBtn(p);
+      return '<div class="fi-qty fi-qty--tile">' +
+        (q === 1
+          ? '<button type="button" class="fi-qty-btn fi-qty-btn--delete" data-role="dec" aria-label="Remove ' + what + ' from cart" onclick="c4Step(\'' + p.id + '\',-1)">' + ICON_DELETE + '</button>'
+          : '<button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease ' + what + ' quantity" onclick="c4Step(\'' + p.id + '\',-1)">' + ICON_MINUS + '</button>') +
+        '<input class="fi-qty-input" type="number" inputmode="numeric" min="0" max="999" value="' + q + '" aria-label="' + what + ' quantity" onchange="c4Set(\'' + p.id + '\', this.value)" onfocus="this.select()" />' +
+        '<button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase ' + what + ' quantity" onclick="c4Step(\'' + p.id + '\',1)">' + ICON_PLUS + '</button></div>';
+    }
+    // Re-render cards + CTA; animate the button ⇄ stepper swap when it flips
+    function c4Refresh(id, adding, focusRole) {
+      var p = byId(id), cta = document.getElementById('cta-' + id);
+      var oldInput = cta.querySelector('.fi-qty-input'), oldQ = oldInput ? oldInput.value : null;
+      document.getElementById('packs-' + id).innerHTML = c4PacksHTML(p);
+      var wasAdd = !!cta.querySelector('#add-' + id), isAdd = !(lineOf(id)[c4SelOf(p)] || 0);
+      // CTA focus waits until the new control is visible (hidden elements can't take focus)
+      function focusCta() {
+        var t = isAdd ? document.getElementById('add-' + id)
+          : document.querySelector('#cta-' + id + ' [data-role="' + focusRole + '"]') || document.querySelector('#cta-' + id + ' [data-role="inc"]');
+        if (t) t.focus({ preventScroll: true });
+      }
+      var ctaFocus = focusRole && focusRole !== 'pack' && focusRole !== 'none' ? focusCta : null;
+      c4FadeCta(p, wasAdd !== isAdd, ctaFocus);
+      if (oldQ && !isAdd && (focusRole === 'inc' || focusRole === 'dec')) rollQty(cta, oldQ, focusRole === 'inc');
+      if (focusRole === 'pack') { var c = document.querySelector('#packs-' + id + ' [aria-checked="true"]'); if (c) c.focus({ preventScroll: true }); }
+    }
+    function c4Select(id, k) { if (c4Sel[id] === k) return; var was = !(lineOf(id)[c4SelOf(byId(id))] || 0); c4Sel[id] = k; c4Refresh(id, was, 'pack'); }
+    function c4Set(id, v, focusRole, fly) {
+      var p = byId(id), k = c4SelOf(p), before = lineOf(id)[k] || 0, q = clampQty(v);
+      setLine(id, k, q);
+      c4Refresh(id, q > before, focusRole || 'none');
+      document.getElementById('sr-live').textContent = q
+        ? p.name + ', ' + packLabel(p, k).toLowerCase() + ': ' + q + ' in cart'
+        : p.name + ', ' + packLabel(p, k).toLowerCase() + ' removed from cart';
+      if (fly && q > before) flyToCart(id);
+    }
+    // Button ⇄ stepper: sequential fade. The old control fades out fully,
+    // then the new one fades in; never both visible.
+    var FADE_OUT = 150, FADE_IN = 200;
+    function c4FadeCta(p, changed, onShown) {
+      var cta = document.getElementById('cta-' + p.id);
+      var token = cta._swap = (cta._swap || 0) + 1;   // a newer swap invalidates any pending callbacks
+      // What's on screen right now: a ghost still fading out (its replacement is
+      // hidden behind it), otherwise the live control.
+      var shown = cta.querySelector('.x-ghost') || cta.firstElementChild;
+      var op = shown ? parseFloat(getComputedStyle(shown).opacity) : 0;
+      cta.getAnimations({ subtree: true }).forEach(function (a) { a.cancel(); });
+      if (!changed || !shown || reduceMotion.matches) { cta.innerHTML = c4CtaHTML(p); if (onShown) onShown(); return; }
+      cta.style.position = 'relative';   // set before measuring: offsets are relative to the CTA
+      var box = { top: shown.offsetTop, left: shown.offsetLeft, width: shown.offsetWidth };
+      shown.remove();
+      cta.innerHTML = c4CtaHTML(p);      // drops any other leftover (hidden) control
+      shown.removeAttribute('id'); shown.style.visibility = ''; shown.style.opacity = '';
+      shown.style.position = 'absolute';   // out of flow even if something set an inline position
+      [].forEach.call(shown.querySelectorAll('.x-roll'), function (r) { r.remove(); });
+      [].forEach.call(shown.querySelectorAll('.fi-qty-input'), function (i) { i.style.color = ''; });
+      shown.classList.add('x-ghost'); shown.setAttribute('aria-hidden', 'true'); shown.inert = true;
+      shown.style.top = box.top + 'px'; shown.style.left = box.left + 'px'; shown.style.width = box.width + 'px';
+      var incoming = cta.firstElementChild;
+      cta.insertBefore(shown, incoming);
+      // The incoming control stays hidden (not just transparent) until the old one
+      // is out of the DOM, so no frame can ever show both.
+      incoming.style.visibility = 'hidden';
+      shown.animate([{ opacity: op }, { opacity: 0 }],
+        { duration: Math.max(FADE_OUT * op, 1), easing: 'ease-in', fill: 'forwards' }).onfinish = function () {
+        if (token !== cta._swap) return;   // superseded: the newer swap owns these nodes
+        shown.remove();
+        incoming.style.opacity = '0'; incoming.style.visibility = '';
+        if (onShown) onShown();
+        incoming.animate([{ opacity: 0 }, { opacity: 1 }], { duration: FADE_IN, easing: 'ease-out' })
+          .onfinish = function () { if (token === cta._swap) incoming.style.opacity = ''; };
+      };
+    }
+    // Number roll over the stepper input; the input's own text hides until it lands
+    function rollQty(cta, from, up) {
+      if (reduceMotion.matches) return;
+      var qty = cta.querySelector('.fi-qty:not(.x-ghost)'), input = qty && qty.querySelector('.fi-qty-input');
+      if (!input || input.value === from) return;
+      var cs = getComputedStyle(input), roll = document.createElement('span');
+      roll.className = 'x-roll'; roll.setAttribute('aria-hidden', 'true');
+      var ir = input.getBoundingClientRect(), qr = qty.getBoundingClientRect();   // input box relative to the stepper (its positioning context while rolling)
+      roll.style.cssText = 'left:' + (ir.left - qr.left - qty.clientLeft) + 'px;top:' + (ir.top - qr.top - qty.clientTop) + 'px;width:' + ir.width + 'px;height:' + ir.height + 'px;font:' + cs.font + ';color:' + cs.color;
+      var dir = up ? 'up' : 'down';
+      roll.innerHTML = '<span class="x-roll-out-' + dir + '">' + esc(from) + '</span><span class="x-roll-in-' + dir + '">' + esc(input.value) + '</span>';
+      input.style.color = 'transparent';
+      qty.appendChild(roll);
+      setTimeout(function () { roll.remove(); input.style.color = ''; }, 270);
+    }
+    // Product photo arcs from the tile into whichever cart icon is on screen
+    function flyToCart(id) {
+      if (reduceMotion.matches) return;
+      var img = document.querySelector('#tile-' + id + ' .ufs-tile__image-media');
+      var target = ['nav-cart', 'mnav-cart'].map(function (b) { return document.getElementById(b); })
+        .filter(function (b) { var r = b && b.getBoundingClientRect(); return r && r.width && r.bottom > 0 && r.top < innerHeight; })[0];
+      if (!img || !target) return;
+      var a = img.getBoundingClientRect(), t = target.getBoundingClientRect();
+      var size = Math.min(a.width, a.height, 160);
+      var x0 = a.left + (a.width - size) / 2, y0 = a.top + (a.height - size) / 2;
+      var dx = t.left + t.width / 2 - (x0 + size / 2), dy = t.top + t.height / 2 - (y0 + size / 2), end = 24 / size;
+      var fly = document.createElement('div');
+      fly.className = 'x-fly';
+      fly.style.cssText = 'left:' + x0 + 'px;top:' + y0 + 'px;width:' + size + 'px;height:' + size + 'px;background-image:' + getComputedStyle(img).backgroundImage;
+      document.body.appendChild(fly);
+      fly.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: 'translate(' + dx * 0.45 + 'px,' + (dy * 0.45 - 60) + 'px) scale(0.55)', opacity: 1, offset: 0.45 },
+        { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + end + ')', opacity: 0.6 }
+      ], { duration: 700, easing: 'cubic-bezier(0.45, 0, 0.55, 1)' }).onfinish = function () {
+        fly.remove();
+        var badge = target.querySelector('.ufs-nav__badge');
+        if (badge) { badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump'); }
+      };
+    }
+    function c4Step(id, d) { var p = byId(id); c4Set(id, (lineOf(id)[c4SelOf(p)] || 0) + d, d > 0 ? 'inc' : 'dec'); }
 
     function addBtn(p) {
       return '<button type="button" class="btn btn-primary" id="add-' + p.id + '" onclick="onAdd(\'' + p.id + '\', this)"><img src="../../handover/icons/cart.svg" alt="" />Add to cart</button>';
     }
 
     function ctaHTML(p) {
-      if (state.concept === 'box') return c3CtaHTML(p);
       var l = lineOf(p.id);
-      // Single-pack products: same in both concepts — direct add, then an inline stepper
+      // Single-pack products: direct add, then an inline stepper
       if (!p.multi) {
         if (!inCart(p.id)) return addBtn(p);
         return '<div class="x-rows"><div class="x-row"><span class="x-row-label">In cart</span>' +
           stepper({ value: l.single, label: p.name + ' quantity', onStep: "tileStep.bind(null,'" + p.id + "','single')", onInput: "tileSet.bind(null,'" + p.id + "','single')", small: true, pack: 'single' }) + '</div></div>';
       }
-      if (state.concept === 'picker') {
+      {
         if (!inCart(p.id)) return addBtn(p);
         var parts = [];
         if (l.single) parts.push(l.single + ' single');
@@ -3944,26 +5058,28 @@
         return '<div class="x-incart"><span class="x-incart-text">' + ICON_CHECK + '<span>In cart: ' + parts.join(' · ') + '</span></span>' +
           '<button type="button" class="x-incart-edit" onclick="openPicker(\'' + p.id + '\', this)" aria-label="Edit ' + esc(p.name) + ' in cart">Edit</button></div>';
       }
-      // Concept 2 — direct add + expand
-      if (!inCart(p.id) && !expanded[p.id]) return addBtn(p);
-      var rows = ['single', 'multi'].filter(function (k) { return (l[k] || 0) > 0 || expanded[p.id] === k || expanded[p.id] === 'both'; });
-      var html = '<div class="x-rows">' + rows.map(function (k) {
-        return '<div class="x-row"><span class="x-row-label">' + packLabel(p, k) + (k === 'multi' ? '<small>' + p.multi + ' items</small>' : '') + '</span>' +
-          stepper({ value: l[k] || 0, label: p.name + ', ' + packLabel(p, k) + ' quantity', onStep: "tileStep.bind(null,'" + p.id + "','" + k + "')", onInput: "tileSet.bind(null,'" + p.id + "','" + k + "')", small: true, pack: k }) + '</div>';
-      }).join('');
-      var other = rows.indexOf('single') < 0 ? 'single' : (rows.indexOf('multi') < 0 ? 'multi' : null);
-      if (other) html += '<button type="button" class="x-add-other" onclick="addOther(\'' + p.id + '\', \'' + other + '\')">+ Add ' + (other === 'multi' ? 'pack of ' + p.multi : 'single item') + '</button>';
-      return html + '</div>';
     }
 
-    function refreshTile(id) { document.getElementById('cta-' + id).innerHTML = ctaHTML(byId(id)); }
+    function refreshTile(id) {
+      if (state.concept === 'cards') { c4Refresh(id, false); return; }
+      document.getElementById('cta-' + id).innerHTML = ctaHTML(byId(id));
+    }
 
     /* ───────────────────────── Cart ───────────────────────── */
+    // Every cart change in Concepts 1, 2 and 4 (tile, picker, cart panel) goes through here
     function setLine(id, pack, qty, silent) {
-      var l = lineOf(id); var before = l[pack] || 0;
-      l[pack] = clampQty(qty); state.cart[id] = l;
+      var l = lineOf(id); var before = l[pack] || 0, q = clampQty(qty);
+      l[pack] = q; state.cart[id] = l;
       if (!inCart(id)) delete state.cart[id];
-      renderCartUI(l[pack] > before && !silent);
+      renderCartUI(q > before && !silent);
+      if (q !== before) cartToast(byId(id), packLabel(byId(id), pack), before, q, '× ');
+    }
+    // One wording for every cart change: Added / Updated / Removed
+    function cartToast(p, what, before, q, mult) {
+      var line = p.name + (what ? ' · ' + what : '');
+      toast(!q ? 'Removed: ' + line
+        : !before ? 'Added: ' + line + (q > 1 ? ' ' + mult + q : '')
+        : 'Updated: ' + line + ' ' + mult + q);
     }
 
     function renderCartUI(bump) {
@@ -3981,15 +5097,18 @@
         if (bump) { badge.classList.remove('bump'); void badge.offsetWidth; badge.classList.add('bump'); }
       });
       renderCartPanel(count, total);
+      // Concept 4 tiles: points pill follows the units in cart (tile or cart panel)
+      if (state.concept === 'cards') PRODUCTS.forEach(function (p) {
+        if (document.getElementById('pts-val-' + p.id)) animatePoints(p.id, livePoints(p));
+      });
     }
 
     /* ── Side cart panel ── */
-    // Rows: one per product in Concept 3 (units); one per pack line in Concepts 1–2
+    // Rows: one per pack line
     function cartRows() {
       var rows = [];
       Object.keys(state.cart).forEach(function (id) {
         var p = byId(id), l = state.cart[id];
-        if (state.concept === 'box') { var u = c3Units(id); if (u) rows.push({ p: p, k: 'single', q: u, units: u, price: u * p.price, label: '' }); return; }
         ['single', 'multi'].forEach(function (k) {
           if (l[k]) rows.push({ p: p, k: k, q: l[k], units: l[k] * (k === 'multi' ? p.multi : 1), price: l[k] * packPrice(p, k), label: p.multi ? packLabel(p, k) : '' });
         });
@@ -4011,32 +5130,30 @@
         return '<div class="x-cart-row" data-row="' + k + '">' +
           '<div class="x-cart-img" style="background-image:url(\'' + IMG + r.p.img + '\')" role="img" aria-label="' + esc(r.p.name) + '"></div>' +
           '<div class="x-cart-info">' +
-            '<p class="x-cart-name">' + esc(r.p.name) + (r.label ? '<span class="x-cart-pack">' + r.label + '</span>' : '') + '</p>' +
+            '<p class="x-cart-name"><a href="#" onclick="return false;">' + esc(r.p.name) + '</a>' + '<span class="x-cart-pack">' + (r.label ? '<span>' + r.label + '</span>' : '') +
+              '<span class="x-points">' + ICON_COIN + '<span class="x-points-val">' + fmt(r.units * r.p.pts) + '</span><span class="sr-only"> points</span></span></span></p>' +
             '<div class="fi-qty fi-qty--cart">' +
-              (r.q === 1
-                ? '<button type="button" class="fi-qty-btn" data-role="dec" data-key="' + k + '|dec" aria-label="Remove ' + name + '" onclick="cartRemove(\'' + r.p.id + '\',\'' + r.k + '\')">' + ICON_DELETE + '</button>'
-                : '<button type="button" class="fi-qty-btn" data-role="dec" data-key="' + k + '|dec" aria-label="Decrease ' + name + '" onclick="cartSet(\'' + r.p.id + '\',\'' + r.k + '\',' + (r.q - 1) + ')">' + ICON_MINUS + '</button>') +
+              // Minus stops at 1; removing is the row's bin button
+              '<button type="button" class="fi-qty-btn" data-role="dec" data-key="' + k + '|dec" aria-label="Decrease ' + name + '" onclick="cartSet(\'' + r.p.id + '\',\'' + r.k + '\',' + (r.q - 1) + ')"' + (r.q <= 1 ? ' disabled' : '') + '>' + ICON_MINUS + '</button>' +
               '<input class="fi-qty-input" type="number" inputmode="numeric" min="0" max="999" value="' + r.q + '" data-key="' + k + '|qty" aria-label="' + name + ' quantity" onchange="cartSet(\'' + r.p.id + '\',\'' + r.k + '\', this.value)" onfocus="this.select()" />' +
               '<button type="button" class="fi-qty-btn" data-role="inc" data-key="' + k + '|inc" aria-label="Increase ' + name + '" onclick="cartSet(\'' + r.p.id + '\',\'' + r.k + '\',' + (r.q + 1) + ')">' + ICON_PLUS + '</button>' +
             '</div>' +
             '<div class="x-cart-price"><b>' + money(r.price) + '</b><span class="x-fine">Price indication (excl. VAT)</span></div>' +
           '</div>' +
+          '<button type="button" class="x-cart-remove" data-key="' + k + '|remove" aria-label="Remove ' + name + ' from cart" onclick="cartRemove(\'' + r.p.id + '\',\'' + r.k + '\')">' + ICON_DELETE + '</button>' +
         '</div>';
       }).join('') : '<div class="x-cart-empty"><p>Your cart is empty.</p><button type="button" class="btn btn-secondary" onclick="closeCartPanel()">Continue shopping</button></div>';
       if (key) {
-        var el = list.querySelector('[data-key="' + key + '"]')
-          || (key.slice(-4) === '|dec' && list.querySelector('[data-key="' + key.replace('|dec', '|inc') + '"]'))   // delete ⇄ minus swap
-          || list.querySelector('.fi-qty-btn') || document.querySelector('#cart-panel .signin-close');
+        var el = list.querySelector('[data-key="' + key + '"]:not(:disabled)')
+          || (key.slice(-4) === '|dec' && list.querySelector('[data-key="' + key.replace('|dec', '|inc') + '"]'))   // minus just disabled at 1
+          || list.querySelector('.x-cart-remove') || document.querySelector('#cart-panel .signin-close');
         el.focus({ preventScroll: true });
       }
     }
     // Panel edits go through the same paths as the tiles, so tiles stay in sync
     function cartSet(id, pack, v) {
       var q = clampQty(v);
-      if (state.concept === 'box') { c3Set(id, q, 'none'); return; }
       setLine(id, pack, q);
-      if (!inCart(id)) delete expanded[id];
-      else if (!q && lineOf(id)[pack === 'single' ? 'multi' : 'single']) expanded[id] = pack === 'single' ? 'multi' : 'single';
       refreshTile(id);
     }
     function cartRemove(id, pack) {
@@ -4049,9 +5166,8 @@
     function cartOpen() { return document.getElementById('cart-panel').classList.contains('is-open'); }
     function openCartPanel() {
       if (pickerFor) closePicker(true);
-      cartReturnFocus = document.activeElement && document.activeElement.closest('.x-toast') ? cartBtn() : document.activeElement;
+      cartReturnFocus = document.activeElement && document.activeElement.closest('.x-toast-item') ? cartBtn() : document.activeElement;
       var panel = document.getElementById('cart-panel');
-      document.getElementById('toast').classList.remove('is-on');
       panel.inert = false; panel.removeAttribute('aria-hidden');
       panel.classList.add('is-open'); document.getElementById('cart-backdrop').classList.add('is-open');
       document.body.style.overflow = 'hidden';
@@ -4074,100 +5190,121 @@
       b.addEventListener('click', openCartPanel);
     });
     document.querySelector('#cart-pts .x-cart-coin').outerHTML = ICON_COIN;
+    document.querySelector('#pts-picker .x-cart-coin').outerHTML = ICON_COIN;
 
-    var toastTimer = null;
+    // Mobile: while the picker bottom sheet is open, the toast sits just above it.
+    // Uses the sheet's height (it's anchored to the bottom), not its rect, so it's
+    // right even mid slide-in.
+    function positionToast() {
+      var st = document.getElementById('toast-stack'), pk = document.getElementById('picker');
+      if (pickerFor && isMobile()) st.style.setProperty('bottom', 'calc(' + pk.offsetHeight + 'px + var(--space-3))', 'important');
+      else st.style.removeProperty('bottom');
+    }
+    var TOAST_MAX = 2, TOAST_MS = 3200;
+    function stackToast(msg, force) {
+      var st = document.getElementById('toast-stack'), el = document.createElement('div');
+      el.className = 'x-toast-item';
+      el.innerHTML = '<span></span>' + (force || cartOpen() ? '' : '<button type="button" onclick="openCartPanel()">View cart</button>');
+      el.firstChild.textContent = msg;
+      st.appendChild(el);
+      var live = [].filter.call(st.children, function (c) { return !c.classList.contains('is-leaving'); });
+      while (live.length > TOAST_MAX) dismissToast(live.shift());   // oldest goes first
+      // Grow in from the bottom so the older ones glide up instead of jumping
+      if (!reduceMotion.matches) {
+        var h = el.offsetHeight; el.style.overflow = 'hidden';
+        el.animate([{ height: 0, opacity: 0, marginTop: '-8px', transform: 'translateY(8px)' }, { height: h + 'px', opacity: 1, marginTop: '0px', transform: 'none' }],
+          { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }).onfinish = function () { el.style.overflow = ''; };
+      }
+      el._timer = setTimeout(function () { dismissToast(el); }, TOAST_MS);
+    }
+    function dismissToast(el) {
+      if (el.classList.contains('is-leaving')) return;
+      el.classList.add('is-leaving'); clearTimeout(el._timer);
+      if (reduceMotion.matches) { el.remove(); return; }
+      var h = el.offsetHeight; el.style.overflow = 'hidden';
+      el.animate([{ height: h + 'px', opacity: 1, marginBottom: '0px' }, { height: 0, opacity: 0, marginBottom: '-8px' }],
+        { duration: 200, easing: 'ease-in', fill: 'forwards' }).onfinish = function () { el.remove(); };
+    }
     function toast(msg, force) {
-      if (cartOpen() && !force) return;   // the panel itself shows the change
-      document.getElementById('toast-text').textContent = msg;
-      document.querySelector('#toast button').hidden = !!force;
-      var t = document.getElementById('toast'); t.classList.add('is-on');
-      clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.classList.remove('is-on'); }, 3200);
+      positionToast();
+      stackToast(msg, force);
     }
 
     /* ───────────────────────── Add to cart ───────────────────────── */
     function onAdd(id, btn) {
       var p = byId(id);
-      if (state.concept === 'box') { c3Set(id, c3Units(id) + 1, 'inc'); return; }
+      if (state.concept === 'cards') { c4Set(id, 1, 'inc', true); return; }
       if (!p.multi) {                                   // single-pack: always direct
-        setLine(id, 'single', 1); refreshTile(id); toast('Added: ' + p.name);
+        setLine(id, 'single', 1); refreshTile(id);
+        flyToCart(id);
         focusIn(id); return;
       }
-      if (state.concept === 'picker') { openPicker(id, btn); return; }
-      // Concept 2: add 1 of the default pack (usual pack for returning customers, else Single)
-      var h = state.history && HISTORY[id];
-      var def = h && h.multi && !h.single ? 'multi' : 'single';
-      setLine(id, def, 1); expanded[id] = def; refreshTile(id);
-      toast('Added: ' + p.name + ' · ' + packLabel(p, def));
-      focusIn(id);
+      {                                                // picker: 1 single goes in straight away, then the picker opens to adjust
+        setLine(id, 'single', 1); refreshTile(id); flyToCart(id);
+        openPicker(id, document.querySelector('#cta-' + id + ' .x-incart-edit') || btn);
+      }
     }
     function focusIn(id) { var el = document.querySelector('#cta-' + id + ' .fi-qty-input, #cta-' + id + ' .x-incart-edit'); if (el) el.focus({ preventScroll: true }); }
 
-    // Concept 2 / single-pack tile steppers
+    // Single-pack tile stepper (Concept 1)
     function tileStep(id, pack, d) { tileSet(id, pack, (lineOf(id)[pack] || 0) + d, true); }
     function tileSet(id, pack, v, fromStep) {
       var p = byId(id), q = clampQty(v);
       setLine(id, pack, q);
-      if (!inCart(id)) { delete expanded[id]; refreshTile(id); var b = document.getElementById('add-' + id); if (b) b.focus(); toast('Removed: ' + p.name); return; }
-      // A pack that drops to 0 hides its row (the other pack is still in the cart)
-      if (q === 0) expanded[id] = pack === 'single' ? 'multi' : 'single';
+      if (!inCart(id)) { refreshTile(id); var b = document.getElementById('add-' + id); if (b) b.focus(); return; }
       refreshTile(id);
       if (fromStep) {
         var row = document.querySelector('#cta-' + id + ' .fi-qty[data-pack="' + pack + '"]');
         if (row) { var btns = row.querySelectorAll('.fi-qty-btn'); (q > 0 ? btns[1] : btns[0]).focus({ preventScroll: true }); }
-        else { var link = document.querySelector('#cta-' + id + ' .x-add-other, #cta-' + id + ' .fi-qty-btn'); if (link) link.focus({ preventScroll: true }); }
       }
     }
-    function addOther(id, pack) {
-      var p = byId(id); expanded[id] = 'both';
-      setLine(id, pack, 1); refreshTile(id); toast('Added: ' + p.name + ' · ' + packLabel(p, pack));
-    }
-
     /* ───────────────────────── Concept 1 picker ───────────────────────── */
+    // Concept 1 picker edits the cart live: every stepper change is applied
+    // straight away (no submit button). The tile behind it stays in sync.
     function openPicker(id, trigger) {
       var p = byId(id);
       pickerFor = id; pickerTrigger = trigger;
-      var cur = lineOf(id), h = state.history && HISTORY[id];
-      pickerDraft = inCart(id) ? { single: cur.single || 0, multi: cur.multi || 0 }
-                  : h ? { single: h.single || 0, multi: h.multi || 0 } : { single: 0, multi: 0 };
       document.getElementById('picker-title').textContent = p.name;
       renderPicker();
       var pk = document.getElementById('picker');
       pk.classList.add('is-open'); document.getElementById('backdrop').classList.add('is-open');
       positionPicker(trigger);
+      positionToast();
       setTimeout(function () { var f = pk.querySelector('.fi-qty-input'); if (f) f.focus({ preventScroll: true }); }, isMobile() ? 260 : 0);
     }
-    function renderPicker() {
-      var p = byId(pickerFor), d = pickerDraft;
+    function renderPicker(animate) {
+      var p = byId(pickerFor), d = lineOf(pickerFor);
       document.getElementById('picker-rows').innerHTML = ['single', 'multi'].map(function (k) {
         return '<div class="x-pack"><div class="x-pack-img" style="background-image:url(\'' + IMG + p.img + '\')">' + (k === 'multi' ? '<span class="x-pack-n">×' + p.multi + '</span>' : '') + '</div>' +
           '<div><div class="x-pack-name">' + packLabel(p, k) + '</div><div class="x-pack-price">' +
-          (k === 'multi' ? p.multi + ' items · <b>' + money(packPrice(p, k)) + '</b>' : '<b>' + money(p.price) + '</b>') + '</div></div>' +
-          stepper({ value: d[k], label: packLabel(p, k) + ' quantity', onStep: "pickStep.bind(null,'" + k + "')", onInput: "pickSet.bind(null,'" + k + "')" }) + '</div>';
+          '<b>' + money(packPrice(p, k)) + '</b></div></div>' +
+          stepper({ value: d[k] || 0, label: packLabel(p, k) + ' quantity', onStep: "pickStep.bind(null,'" + k + "')", onInput: "pickSet.bind(null,'" + k + "')" }) + '</div>';
       }).join('');
-      var items = d.single + d.multi * p.multi, sum = d.single * p.price + d.multi * p.price * p.multi;
-      document.getElementById('picker-count').textContent = items + ' item' + (items === 1 ? '' : 's') + (d.multi ? ' (' + d.single + ' single + ' + d.multi + ' × ' + p.multi + ')' : '');
+      var single = d.single || 0, multi = d.multi || 0;
+      var items = single + multi * p.multi, sum = single * p.price + multi * p.price * p.multi;
+      document.getElementById('picker-count').textContent = items + ' item' + (items === 1 ? '' : 's') + ' in cart' + (multi ? ' (' + single + ' single + ' + multi + ' × ' + p.multi + ')' : '');
       document.getElementById('picker-sum').textContent = money(sum);
-      var btn = document.getElementById('picker-submit'), editing = inCart(pickerFor), none = d.single + d.multi === 0;
-      btn.disabled = none && !editing;
-      btn.textContent = editing ? (none ? 'Remove from cart' : 'Update cart') : (none ? 'Add to cart' : 'Add ' + items + ' item' + (items === 1 ? '' : 's') + ' to cart');
+      var pts = items * p.pts, val = document.getElementById('pts-val-picker');
+      if (animate) animatePoints('picker', pts);
+      else { cancelAnimationFrame(countRaf.picker); val.setAttribute('data-to', pts); val.textContent = fmt(pts); }
     }
-    function pickStep(k, d) { pickSet(k, pickerDraft[k] + d, true); }
+    function pickStep(k, d) { pickSet(k, (lineOf(pickerFor)[k] || 0) + d, true); }
     function pickSet(k, v, fromStep) {
-      pickerDraft[k] = clampQty(v); renderPicker();
-      if (fromStep) { var rows = document.querySelectorAll('#picker-rows .x-pack'); var b = rows[k === 'single' ? 0 : 1].querySelectorAll('.fi-qty-btn'); (pickerDraft[k] > 0 ? b[1] : b[0]).focus({ preventScroll: true }); }
-    }
-    function submitPicker() {
-      var p = byId(pickerFor), d = pickerDraft, was = inCart(pickerFor);
-      setLine(pickerFor, 'single', d.single, true); setLine(pickerFor, 'multi', d.multi);
-      var id = pickerFor; closePicker(true); refreshTile(id);
-      toast(!inCart(id) ? 'Removed: ' + p.name : (was ? 'Cart updated: ' : 'Added: ') + p.name);
-      focusIn(id);
-      if (!inCart(id)) { var b = document.getElementById('add-' + id); if (b) b.focus(); }
+      var id = pickerFor;
+      setLine(id, k, clampQty(v));
+      refreshTile(id);           // tile behind: "In cart … · Edit", or "Add to cart" again at 0
+      renderPicker(true);
+      if (fromStep) { var rows = document.querySelectorAll('#picker-rows .x-pack'); var b = rows[k === 'single' ? 0 : 1].querySelectorAll('.fi-qty-btn'); ((lineOf(id)[k] || 0) > 0 ? b[1] : b[0]).focus({ preventScroll: true }); }
     }
     function closePicker(keepFocusHandling) {
       document.getElementById('picker').classList.remove('is-open'); document.getElementById('backdrop').classList.remove('is-open');
-      if (!keepFocusHandling && pickerTrigger && document.body.contains(pickerTrigger)) pickerTrigger.focus({ preventScroll: true });
+      if (!keepFocusHandling) {
+        var back = pickerTrigger && document.body.contains(pickerTrigger) ? pickerTrigger
+          : document.querySelector('#cta-' + pickerFor + ' .x-incart-edit, #add-' + pickerFor);
+        if (back) back.focus({ preventScroll: true });
+      }
       pickerFor = null;
+      positionToast();
     }
     function positionPicker(trigger) {
       var pk = document.getElementById('picker'), arrow = document.getElementById('picker-arrow');
@@ -4202,29 +5339,358 @@
       }
     });
 
+    /* ================================================================
+       CATALOG FILTERS / SORT / SEO — copied verbatim from
+       handover/template-products-catalog.html. UI state only, as there:
+       nothing filters or re-sorts the tiles.
+    ================================================================ */
+    var FILTER_CATEGORIES = [
+      { key: 'brand',      label: 'Brand',      options: ['Knorr', "Hellmann's", "Colman's", "Carte d'Or", 'Marmite', 'Pot Noodle'] },
+      { key: 'category',   label: 'Category',   options: ['Condiments', 'Sauces & Stocks', 'Seasoning', 'Soups & Bouillons', 'Desserts & Toppings'] },
+      { key: 'dietetics',  label: 'Dietetics',  options: ['Gluten-Free', 'Dairy-Free', 'Vegan', 'Vegetarian', 'Nut-Free', 'Halal'] },
+      { key: 'channel',    label: 'Channel',    options: ['Canteens', 'Catering', 'Deli', 'Restaurants', 'Hotel & Conferencing'] },
+      { key: 'size',       label: 'Size',       options: ['Blue', 'Portion Control', 'Pouch'] }
+    ];
+    var QUICK_DROPDOWN_KEYS = ['brand', 'category', 'dietetics'];
+    var filterState = {};
+    FILTER_CATEGORIES.forEach(function(cat) { filterState[cat.key] = []; });
+    // Catalog starts with no filters active.
+
+    /* Quick dropdowns (desktop ufs-filters-bar only) stage changes here and
+       only commit into filterState on Save — unlike the side drawer's
+       accordion, which still applies live via onFilterCheckboxChange. */
+    var quickFilterDraft = {};
+    QUICK_DROPDOWN_KEYS.forEach(function(key) { quickFilterDraft[key] = filterState[key].slice(); });
+
+    function filterCategoryByKey(key) {
+      for (var i = 0; i < FILTER_CATEGORIES.length; i++) if (FILTER_CATEGORIES[i].key === key) return FILTER_CATEGORIES[i];
+      return null;
+    }
+
+    function filterChecklistHtml(cat, idPrefix, state, onchangeFn) {
+      var html = '';
+      cat.options.forEach(function(opt, i) {
+        var id = idPrefix + '-' + cat.key + '-' + i;
+        var checked = state[cat.key].indexOf(opt) !== -1;
+        html += '<label class="fi-checkbox" for="' + id + '">' +
+          '<input type="checkbox" id="' + id + '" data-filter-key="' + cat.key + '" data-filter-value="' + opt + '"' + (checked ? ' checked' : '') + ' onchange="' + onchangeFn + '(this)"/>' +
+          '<span class="fi-checkbox-box"><img src="../../handover/icons/check.svg" alt=""/></span>' +
+          '<span class="fi-checkbox-label">' + opt + '</span>' +
+          '</label>';
+      });
+      return html;
+    }
+
+    function buildFiltersUI() {
+      var accHtml = '';
+      FILTER_CATEGORIES.forEach(function(cat, i) {
+        var open = i === 0;
+        accHtml += '<div class="ufs-accordion__item' + (open ? ' is-open' : '') + '">' +
+          '<button type="button" class="ufs-accordion__trigger" onclick="toggleFilterAccordionItem(this)" aria-expanded="' + open + '" aria-controls="facc-' + cat.key + '" id="facc-t-' + cat.key + '">' +
+          '<span class="ufs-accordion__q">' + cat.label + '</span>' +
+          '<svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>' +
+          '</button>' +
+          '<div class="ufs-accordion__content" id="facc-' + cat.key + '" role="region" aria-labelledby="facc-t-' + cat.key + '">' +
+          '<div class="ufs-accordion__content-inner">' +
+          '<div class="fi-checkbox-row ufs-filters-checklist">' + filterChecklistHtml(cat, 'drawer', filterState, 'onFilterCheckboxChange') + '</div>' +
+          '</div></div></div>';
+      });
+      document.getElementById('filters-accordion').innerHTML = accHtml;
+
+      QUICK_DROPDOWN_KEYS.forEach(function(key) {
+        var cat = filterCategoryByKey(key);
+        var panel = document.getElementById('panel-' + key);
+        if (panel) panel.innerHTML =
+          '<div class="fi-checkbox-row">' + filterChecklistHtml(cat, 'row', quickFilterDraft, 'onQuickFilterCheckboxChange') + '</div>' +
+          '<div class="ufs-filters-dropdown__ft">' +
+          '<button type="button" class="btn btn-secondary btn-sm" id="quick-clear-' + key + '" onclick="clearQuickFilterCategory(\'' + key + '\')">Clear</button>' +
+          '<button type="button" class="btn btn-primary btn-sm" id="quick-save-' + key + '" onclick="saveQuickFilterCategory(\'' + key + '\')">Save</button>' +
+          '</div>';
+        syncQuickDropdownButtons(key);
+      });
+
+      syncFilterUI();
+    }
+
+    function onFilterCheckboxChange(input) {
+      var key = input.getAttribute('data-filter-key');
+      var val = input.getAttribute('data-filter-value');
+      var arr = filterState[key];
+      var idx = arr.indexOf(val);
+      if (input.checked && idx === -1) arr.push(val);
+      if (!input.checked && idx !== -1) arr.splice(idx, 1);
+      syncFilterUI();
+    }
+
+    function syncFilterUI() {
+      var totalActive = 0;
+      FILTER_CATEGORIES.forEach(function(cat) {
+        var count = filterState[cat.key].length;
+        totalActive += count;
+        /* Scoped to the drawer accordion only — quick-dropdown checkboxes
+           are draft-driven (quickFilterDraft) and stay untouched here so an
+           unsaved dropdown selection isn't wiped by a change made elsewhere. */
+        document.querySelectorAll('#filters-accordion input[data-filter-key="' + cat.key + '"]').forEach(function(inp) {
+          var should = filterState[cat.key].indexOf(inp.getAttribute('data-filter-value')) !== -1;
+          if (inp.checked !== should) inp.checked = should;
+        });
+        var badge = document.getElementById('badge-row-' + cat.key);
+        if (badge) {
+          if (count > 0) { badge.textContent = count; badge.hidden = false; }
+          else { badge.hidden = true; }
+        }
+      });
+
+      /* Mobile-only total-count indicator on the "All filters" icon button —
+         see .ufs-filters-allbtn__badge CSS (display:none above 768px). */
+      var allFiltersBadge = document.getElementById('all-filters-badge');
+      if (allFiltersBadge) {
+        if (totalActive > 0) { allFiltersBadge.textContent = totalActive; allFiltersBadge.hidden = false; }
+        else { allFiltersBadge.hidden = true; }
+      }
+
+      var hasAny = totalActive > 0;
+
+      /* Popular filter pills read the same filterState — kept in sync here
+         so they reflect a change made from any surface (a pill itself, the
+         drawer accordion, or a saved quick dropdown), not just their own
+         clicks. */
+      document.querySelectorAll('.ufs-popular-filters__pill').forEach(function(pill) {
+        var key = pill.getAttribute('data-filter-key');
+        var val = pill.getAttribute('data-filter-value');
+        pill.classList.toggle('is-active', filterState[key].indexOf(val) !== -1);
+      });
+
+      /* Brand filter stripe — same reflect-filterState pattern as the
+         Popular Filters pills above, kept as its own loop since it's a
+         different element/class (see .ufs-brand-filters). */
+      document.querySelectorAll('.ufs-brand-filters__item').forEach(function(item) {
+        var val = item.getAttribute('data-filter-value');
+        var active = filterState.brand.indexOf(val) !== -1;
+        item.classList.toggle('is-active', active);
+        item.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+
+      /* Active Filters replaces Popular Filters entirely the moment any
+         filter is active — rebuilt fresh from filterState every call so it
+         always reflects every active value across every category, not
+         just the 3 curated Popular Filters pills.
+         Popular Filters itself stays permanently hidden for now (see its
+         own CSS comment) — the brand filter stripe replaces its "quick
+         shortcut" role, so this only ever un-hides Active Filters. */
+      var popularRow = document.getElementById('popular-filters-row');
+      var activeRow = document.getElementById('active-filters-row');
+      if (popularRow) popularRow.hidden = true;
+      if (activeRow) activeRow.hidden = !hasAny;
+      if (hasAny) renderActiveFilters();
+
+      var results = Math.max(4, 16 - totalActive * 3);
+      var showCount = document.getElementById('filters-show-count');
+      var resultsEl = document.getElementById('catalog-results');
+      if (showCount) showCount.textContent = results;
+      if (resultsEl) resultsEl.textContent = results + (results === 1 ? ' product' : ' products');
+
+      var clearBtn = document.getElementById('filters-clear-btn');
+      var showBtn = document.getElementById('filters-show-btn');
+      if (clearBtn) clearBtn.disabled = !hasAny;
+      if (showBtn) showBtn.disabled = !hasAny;
+
+      /* Future Menus 4 Recipes carousel is a promo, not search results — it
+         hides as soon as any filter is active (the page is now a filtered
+         results view) and comes back once every filter is cleared. */
+      var promoCarousel = document.getElementById('future-menus-carousel');
+      if (promoCarousel) promoCarousel.hidden = hasAny;
+    }
+
+    /* Rebuilds the Active Filters pill row from filterState — one pill per
+       active value, in FILTER_CATEGORIES order, across every category (not
+       just the 3 curated Popular Filters). Called from syncFilterUI()
+       whenever any filter is active, so it always reflects the latest
+       state regardless of which surface (drawer, quick dropdown, popular
+       pill, or a pill's own close icon) made the change. */
+    function renderActiveFilters() {
+      var html = '';
+      FILTER_CATEGORIES.forEach(function(cat) {
+        filterState[cat.key].forEach(function(val) {
+          /* data-filter-key/-value (read via getAttribute in
+             removeActiveFilter below), not an inline onclick built by
+             concatenating the value into a quoted JS string — several
+             brand names contain a literal apostrophe (Colman's,
+             Hellmann's, Carte d'Or), which broke the old
+             onclick="removeActiveFilter('brand','Colman's')" string
+             (terminated early at the apostrophe, leaving invalid trailing
+             JS) and silently failed on click. Double-quoted HTML
+             attributes don't have this problem for values containing '. */
+          html += '<span class="ufs-active-filters__pill">' +
+            '<span>' + val + '</span>' +
+            '<button type="button" class="ufs-active-filters__pill-remove" data-filter-key="' + cat.key + '" data-filter-value="' + val + '" aria-label="Remove ' + val + ' filter" onclick="removeActiveFilter(this)">' +
+            '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>' +
+            '</button></span>';
+        });
+      });
+      var pills = document.getElementById('active-filters-pills');
+      if (pills) pills.innerHTML = html;
+    }
+
+    function removeActiveFilter(btn) {
+      var key = btn.getAttribute('data-filter-key');
+      var val = btn.getAttribute('data-filter-value');
+      var arr = filterState[key];
+      var idx = arr.indexOf(val);
+      if (idx !== -1) arr.splice(idx, 1);
+      syncFilterUI();
+    }
+
+    function clearAllFilters() {
+      FILTER_CATEGORIES.forEach(function(cat) { filterState[cat.key] = []; });
+      syncFilterUI();
+    }
+
+    function togglePopularFilter(btn) {
+      var key = btn.getAttribute('data-filter-key');
+      var val = btn.getAttribute('data-filter-value');
+      var arr = filterState[key];
+      var idx = arr.indexOf(val);
+      if (idx === -1) arr.push(val); else arr.splice(idx, 1);
+      syncFilterUI();
+    }
+
+    function toggleCatalogSeo() {
+      var more = document.getElementById('catalog-seo-more');
+      var btn = document.getElementById('catalog-seo-toggle');
+      var willShow = more.hidden;
+      more.hidden = !willShow;
+      btn.setAttribute('aria-expanded', String(willShow));
+      btn.textContent = willShow ? 'Read less' : 'Read more';
+    }
+
+    /* Quick dropdown checkboxes only stage a change into quickFilterDraft —
+       filterState (and therefore results/badges) is untouched until Save. */
+    function onQuickFilterCheckboxChange(input) {
+      var key = input.getAttribute('data-filter-key');
+      var val = input.getAttribute('data-filter-value');
+      var arr = quickFilterDraft[key];
+      var idx = arr.indexOf(val);
+      if (input.checked && idx === -1) arr.push(val);
+      if (!input.checked && idx !== -1) arr.splice(idx, 1);
+      syncQuickDropdownButtons(key);
+    }
+
+    function syncQuickDropdownButtons(key) {
+      var clearBtn = document.getElementById('quick-clear-' + key);
+      if (clearBtn) clearBtn.disabled = quickFilterDraft[key].length === 0;
+    }
+
+    function saveQuickFilterCategory(key) {
+      filterState[key] = quickFilterDraft[key].slice();
+      syncFilterUI();
+      var dropdown = document.getElementById('dropdown-' + key);
+      if (dropdown) dropdown.classList.remove('is-open');
+    }
+
+    function clearQuickFilterCategory(key) {
+      quickFilterDraft[key] = [];
+      document.querySelectorAll('#panel-' + key + ' input[data-filter-key="' + key + '"]').forEach(function(inp) { inp.checked = false; });
+      syncQuickDropdownButtons(key);
+    }
+
+    /* Re-stages the draft from the last-saved filterState every time a quick
+       dropdown opens — this is what makes an unsaved edit get discarded when
+       the panel is dismissed without Save (outside click, or opening another
+       dropdown): there's nothing to restore from, so it just resets. */
+    function resetQuickFilterDraft(key) {
+      quickFilterDraft[key] = filterState[key].slice();
+      document.querySelectorAll('#panel-' + key + ' input[data-filter-key="' + key + '"]').forEach(function(inp) {
+        inp.checked = quickFilterDraft[key].indexOf(inp.getAttribute('data-filter-value')) !== -1;
+      });
+      syncQuickDropdownButtons(key);
+    }
+
+    function toggleFilterDropdown(key) {
+      var dropdown = document.getElementById('dropdown-' + key);
+      var isOpen = dropdown.classList.contains('is-open');
+      document.querySelectorAll('.ufs-filters-dropdown.is-open').forEach(function(d) {
+        d.classList.remove('is-open');
+        d.querySelector('.ufs-filters-dropdown__trigger').setAttribute('aria-expanded', 'false');
+      });
+      if (!isOpen) {
+        dropdown.classList.add('is-open');
+        dropdown.querySelector('.ufs-filters-dropdown__trigger').setAttribute('aria-expanded', 'true');
+        resetQuickFilterDraft(key);
+      }
+    }
+    function closeFilterDropdowns() {
+      document.querySelectorAll('.ufs-filters-dropdown.is-open').forEach(function(d) {
+        d.classList.remove('is-open');
+        d.querySelector('.ufs-filters-dropdown__trigger').setAttribute('aria-expanded', 'false');
+      });
+    }
+    document.addEventListener('click', function(e) {
+      document.querySelectorAll('.ufs-filters-dropdown.is-open').forEach(function(d) {
+        if (!d.contains(e.target)) { d.classList.remove('is-open'); d.querySelector('.ufs-filters-dropdown__trigger').setAttribute('aria-expanded', 'false'); }
+      });
+      var sort = document.getElementById('catalog-sort');
+      if (sort.classList.contains('is-open') && !sort.contains(e.target)) closeSortDropdown();
+    });
+
+    /* Sort control — open/close only, same toggle + click-outside-to-close
+       pattern as toggleFilterDropdown above. Selecting an option updates
+       the trigger label and closes the panel; it doesn't actually re-sort
+       the grid (no real data to sort against here). */
+    function toggleSortDropdown() {
+      var sort = document.getElementById('catalog-sort');
+      var isOpen = sort.classList.contains('is-open');
+      if (isOpen) closeSortDropdown(); else openSortDropdown();
+    }
+    function openSortDropdown() {
+      var sort = document.getElementById('catalog-sort');
+      sort.classList.add('is-open');
+      sort.querySelector('.ufs-catalog-sort__trigger').setAttribute('aria-expanded', 'true');
+    }
+    function closeSortDropdown() {
+      var sort = document.getElementById('catalog-sort');
+      sort.classList.remove('is-open');
+      sort.querySelector('.ufs-catalog-sort__trigger').setAttribute('aria-expanded', 'false');
+    }
+    function selectSortOption(input, label) {
+      document.getElementById('catalog-sort-label').textContent = 'Sort by: ' + label;
+      closeSortDropdown();
+    }
+
+    function toggleFilterAccordionItem(trigger) {
+      var item = trigger.closest('.ufs-accordion__item');
+      var isOpen = item.classList.contains('is-open');
+      item.classList.toggle('is-open', !isOpen);
+      trigger.setAttribute('aria-expanded', String(!isOpen));
+    }
+
+    function openFiltersPanel() {
+      document.getElementById('filters-backdrop').classList.add('is-open');
+      document.getElementById('filters-panel').classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeFiltersPanel() {
+      document.getElementById('filters-backdrop').classList.remove('is-open');
+      document.getElementById('filters-panel').classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+
     /* ───────────────────────── Prototype controls ───────────────────────── */
     var NOTES = {
-      picker: 'Concept 1 · Picker: tiles stay clean. "Add to cart" opens one picker (a popover on desktop, a bottom sheet on mobile) with a stepper per pack and a live total. After adding, the tile shows what\'s in the cart, with Edit. Single-pack products add directly.',
-      box: 'Concept 3 · Box shortcut: one quantity, in units. "Add to cart" adds 1, and "+ Add box of N units" adds N (also from the stepper state). The button turns into a compact stepper, with a delete icon at 1. The points pill on the image shows points per unit × quantity and animates when it changes (compare styles with "Points motion"). Order history doesn\'t apply to this concept.',
-      direct: 'Concept 2 · Direct add: "Add to cart" adds 1 of the default pack immediately (Single, or the usual pack for returning customers) and turns into a stepper in the tile, with a link to add the other pack. Setting everything to 0 brings the button back.'
+      picker: 'Concept 1 · Picker: "Add to cart" adds 1 single item straight away (the photo flies to the cart) and opens the picker (a popover on desktop, a bottom sheet on mobile) with a stepper per pack and a live total. Steppers update the cart directly, so there is no submit button. The tile shows what\'s in the cart, with Edit. Single-pack products add directly. ',
+      cards: 'Concept 4 · Pack cards: single and box are two always-visible cards; the selected one has an orange border. "Add to cart" adds 1 of the selected card and turns into a stepper for it, and a count bubble marks each card that is in the cart. Picking a card that isn\'t in the cart yet brings "Add to cart" back. Products without a box show that card disabled. ',
     };
     function setConcept(c) {
       state.concept = c; expanded = {};
-      Object.keys(state.cart).forEach(function (id) { var l = state.cart[id]; if (l.single && l.multi) expanded[id] = 'both'; });
       document.querySelectorAll('[data-concept]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-concept') === c); });
-      document.getElementById('motion-group').hidden = c !== 'box';
-      document.getElementById('proto-note').textContent = NOTES[c] + (state.history && c !== 'box' ? ' Returning customer: their usual quantities are pre-filled.' : '');
+      document.getElementById('proto-note').textContent = NOTES[c];
       if (pickerFor) closePicker(true);
       renderGrid();
     }
-    function setHistory(on) {
-      state.history = on;
-      document.querySelectorAll('[data-history]').forEach(function (b) { b.classList.toggle('is-on', b.getAttribute('data-history') === (on ? 'on' : 'off')); });
-      setConcept(state.concept);
-    }
-    function resetCart() { state.cart = {}; expanded = {}; renderCartUI(false); setConcept(state.concept); }
+    function resetCart() { state.cart = {}; renderCartUI(false); setConcept(state.concept); }
 
-    setConcept('picker');
+    buildFiltersUI();
+    setConcept('cards');
     renderCartUI(false);
   </script>
 </body>
