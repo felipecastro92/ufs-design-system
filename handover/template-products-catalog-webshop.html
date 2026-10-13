@@ -3367,28 +3367,65 @@
     .ufs-tps__step[hidden] { display: none; }
     .ufs-tps__label { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 500; white-space: nowrap; }
     .ufs-tps__selects { display: flex; gap: var(--space-3); }
+    /* Dropdown = .fi-field trigger button + search/list popover, same
+       pattern as the sign-up form's country-code dropdown
+       (.reg-phone-code-* in template-home-basic.html): search input on
+       top, scrollable list below, Enter picks the first match, Esc
+       closes, click outside closes. Trigger chevron is Figma's, drawn as
+       ::after so it can flip when open. */
     .ufs-tps__select {
-      width: 300px; cursor: pointer;
-      appearance: none; -webkit-appearance: none;
+      width: 300px; position: relative; cursor: pointer; text-align: start;
+      line-height: 22px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
       padding-right: calc(var(--space-3) + 20px + var(--space-2));
-      background: var(--color-mushroom-100) url('icons/tps-chevron.svg') no-repeat right var(--space-3) center / 20px 21px;
     }
+    .ufs-tps__select::after {
+      content: ''; position: absolute; top: 50%; right: var(--space-3); margin-top: -10.5px;
+      width: 20px; height: 21px; background: url('icons/tps-chevron.svg') no-repeat center / 20px 21px;
+      transition: transform 0.15s;
+    }
+    .ufs-tps__select[aria-expanded="true"]::after { transform: rotate(180deg); }
     /* Figma's disabled select keeps the mushroom-100 fill (unlike the
        form-journeys .fi-field:disabled mushroom-300 fill) — only the
        border, text and chevron lighten. */
-    .ufs-tps__select:disabled {
-      cursor: not-allowed; opacity: 1; color: var(--color-mushroom-900); border-color: var(--color-mushroom-300);
-      background: var(--color-mushroom-100) url('icons/tps-chevron-disabled.svg') no-repeat right var(--space-3) center / 20px 21px;
+    .ufs-tps__select:disabled { cursor: not-allowed; opacity: 1; color: var(--color-mushroom-900); border-color: var(--color-mushroom-300); background: var(--color-mushroom-100); }
+    .ufs-tps__select:disabled::after { background-image: url('icons/tps-chevron-disabled.svg'); }
+    .ufs-tps__panel {
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 30; min-width: 240px;
+      background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-lg); overflow: hidden; text-align: start;
     }
+    /* Lift the whole component above the sticky filters bar (z-index 90)
+       only while a dropdown is open — permanently would make it paint over
+       the bar once the bar sticks and scrolls over it. Stays under the nav. */
+    .ufs-tps.is-drop-open { z-index: 91; }
+    .ufs-tps__search-wrap { padding: var(--space-2); border-bottom: 1px solid var(--color-mushroom-100); }
+    .ufs-tps__search {
+      width: 100%; height: var(--space-9); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-xs);
+      padding: 0 var(--space-3); font-size: var(--text-body-sm-size); font-family: var(--font-family);
+      color: var(--color-brand-dark); background: var(--color-salt); outline: none; box-sizing: border-box;
+    }
+    .ufs-tps__search:focus { border-color: var(--color-brand-dark); }
+    .ufs-tps__list { list-style: none; margin: 0; max-height: 220px; overflow-y: auto; padding: var(--space-1) 0; }
+    .ufs-tps__item {
+      padding: var(--space-2) var(--space-4); font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh);
+      color: var(--color-brand-dark); cursor: pointer; transition: background 0.12s;
+    }
+    .ufs-tps__item:hover { background: var(--color-mushroom-100); }
+    .ufs-tps__item[aria-selected="true"] { font-weight: 600; }
+    .ufs-tps__empty { padding: var(--space-4); font-size: var(--text-body-sm-size); color: var(--color-mushroom-700); text-align: center; }
     .ufs-tps__field { position: relative; display: block; }
+    /* The open field stacks above its siblings — the partner field's reveal
+       animation makes it its own stacking context on mobile, and the note
+       is positioned there too, so without this they'd paint over the panel */
+    .ufs-tps__field.is-open { z-index: 2; }
     .ufs-tps__status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
     /* Loading (1.5s after both picks, before the "selected" state): both
        selects lock but keep their normal look, and the partner select's
        chevron becomes the DS button-loading spinner (index.html
        .btn-loading::after — same size, stroke and speed). */
     .ufs-tps.is-loading .ufs-tps__select:disabled { cursor: progress; color: var(--color-brand-dark); border-color: var(--color-mushroom-700); }
-    .ufs-tps.is-loading #tps-city { background-image: url('icons/tps-chevron.svg'); }
-    .ufs-tps.is-loading #tps-partner { background-image: none; }
+    .ufs-tps.is-loading .ufs-tps__select:disabled::after { background-image: url('icons/tps-chevron.svg'); }
+    .ufs-tps.is-loading #tps-partner::after { display: none; }
     .ufs-tps.is-loading .ufs-tps__field--partner::after {
       content: ''; position: absolute; top: 50%; right: calc(var(--space-3) + 1px); margin-top: -9px;
       width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid;
@@ -3399,7 +3436,8 @@
     @keyframes tps-spin { to { transform: rotate(360deg); } }
     .ufs-tps__step.is-revealing { animation: tps-reveal 0.3s ease both; }
     @keyframes tps-reveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
-    [dir="rtl"] .ufs-tps__select { padding-right: var(--space-4); padding-left: calc(var(--space-3) + 20px + var(--space-2)); background-position: left var(--space-3) center; }
+    [dir="rtl"] .ufs-tps__select { padding-right: var(--space-4); padding-left: calc(var(--space-3) + 20px + var(--space-2)); }
+    [dir="rtl"] .ufs-tps__select::after { right: auto; left: var(--space-3); }
     .ufs-tps__step--selected { gap: var(--space-2); }
     .ufs-tps__choice { display: flex; align-items: center; gap: var(--space-4); }
     .ufs-tps__partner { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
@@ -3444,7 +3482,7 @@
 
     @media (max-width: 1024px) {
       /* Full-bleed band on mobile — no gutter, border or radius */
-      .ufs-tps { margin: var(--space-2) 0 0; padding: var(--space-4); gap: var(--space-2); border: 0; border-radius: 0; }
+      .ufs-tps { margin: var(--space-2) 0 0; padding: var(--space-4); gap: var(--space-4); border: 0; border-radius: 0; }
       /* Partner select only appears once a city is picked (.has-city) */
       .ufs-tps:not(.has-city) .ufs-tps__field--partner { display: none; }
       .ufs-tps.has-city .ufs-tps__field--partner { animation: tps-reveal 0.3s ease both; }
@@ -4195,16 +4233,24 @@
       <div class="ufs-tps__step ufs-tps__step--select">
         <p class="ufs-tps__label" id="tps-label">Please select your trade partner:</p>
         <div class="ufs-tps__selects">
-          <span class="ufs-tps__field"><select class="fi-field ufs-tps__select" id="tps-city" aria-label="City" aria-describedby="tps-label" onchange="tpsSelectCity(this.value)">
-            <option value="" selected disabled>Please select city</option>
-            <option>Johannesburg</option>
-            <option>Cape Town</option>
-            <option>Durban</option>
-            <option>Pretoria</option>
-          </select></span>
-          <span class="ufs-tps__field ufs-tps__field--partner"><select class="fi-field ufs-tps__select" id="tps-partner" aria-label="Trade partner" aria-describedby="tps-label" disabled onchange="tpsSelectPartner(this.value)">
-            <option value="" selected disabled>Please select trade partner</option>
-          </select></span>
+          <div class="ufs-tps__field">
+            <button type="button" class="fi-field ufs-tps__select" id="tps-city" aria-haspopup="listbox" aria-expanded="false" aria-controls="tps-city-panel" aria-label="City: Please select city" aria-describedby="tps-label" onclick="tpsDropToggle('city')">Please select city</button>
+            <div class="ufs-tps__panel" id="tps-city-panel" hidden>
+              <div class="ufs-tps__search-wrap">
+                <input type="text" class="ufs-tps__search" id="tps-city-search" placeholder="Search city" aria-label="Search city" autocomplete="off" oninput="tpsDropRender('city', this.value)" onkeydown="tpsDropKeydown(event, 'city')"/>
+              </div>
+              <ul class="ufs-tps__list" id="tps-city-list" role="listbox" aria-label="City"></ul>
+            </div>
+          </div>
+          <div class="ufs-tps__field ufs-tps__field--partner">
+            <button type="button" class="fi-field ufs-tps__select" id="tps-partner" aria-haspopup="listbox" aria-expanded="false" aria-controls="tps-partner-panel" aria-label="Trade partner: Please select trade partner" aria-describedby="tps-label" disabled onclick="tpsDropToggle('partner')">Please select trade partner</button>
+            <div class="ufs-tps__panel" id="tps-partner-panel" hidden>
+              <div class="ufs-tps__search-wrap">
+                <input type="text" class="ufs-tps__search" id="tps-partner-search" placeholder="Search trade partner" aria-label="Search trade partner" autocomplete="off" oninput="tpsDropRender('partner', this.value)" onkeydown="tpsDropKeydown(event, 'partner')"/>
+              </div>
+              <ul class="ufs-tps__list" id="tps-partner-list" role="listbox" aria-label="Trade partner"></ul>
+            </div>
+          </div>
         </div>
       </div>
       <div class="ufs-tps__step ufs-tps__step--selected" hidden>
@@ -6057,10 +6103,9 @@
        Johannesburg partners can connect.
     ================================================================ */
     var TPS_PARTNERS = {
-      'Johannesburg': [
-        { name: 'Bidfood', platform: 'MyBidfood' },
-        { name: 'The Food Service Company', platform: 'TFSC Direct' },
-        { name: 'Makro', platform: 'Makro Trade' }
+      'Bloemfontein': [
+        { name: 'Bidfood' },
+        { name: 'Makro' }
       ],
       'Cape Town': [
         { name: 'Bidfood' },
@@ -6070,37 +6115,159 @@
         { name: 'Bidfood' },
         { name: 'Coastal Catering Supplies' }
       ],
+      'East London': [
+        { name: 'Bidfood' },
+        { name: 'The Food Service Company' }
+      ],
+      'George': [
+        { name: 'Bidfood' }
+      ],
+      'Gqeberha (Port Elizabeth)': [
+        { name: 'Bidfood' },
+        { name: 'Makro' },
+        { name: 'The Food Service Company' }
+      ],
+      'Johannesburg': [
+        { name: 'Bidfood', platform: 'MyBidfood' },
+        { name: 'The Food Service Company', platform: 'TFSC Direct' },
+        { name: 'Makro', platform: 'Makro Trade' }
+      ],
+      'Kimberley': [
+        { name: 'Makro' }
+      ],
+      'Mbombela (Nelspruit)': [
+        { name: 'Bidfood' },
+        { name: 'Makro' }
+      ],
+      'Pietermaritzburg': [
+        { name: 'Bidfood' },
+        { name: 'Coastal Catering Supplies' }
+      ],
+      'Polokwane': [
+        { name: 'Makro' },
+        { name: 'The Food Service Company' }
+      ],
       'Pretoria': [
         { name: 'The Food Service Company' },
         { name: 'Makro' }
+      ],
+      'Rustenburg': [
+        { name: 'Makro' }
       ]
     };
+    var TPS_LABELS = {
+      city: { name: 'City', placeholder: 'Please select city' },
+      partner: { name: 'Trade partner', placeholder: 'Please select trade partner' }
+    };
+    var tpsCity = '';
     var tpsSelection = null;
     var tpsLoadingTimer = null;
+    var tpsDropOpen = null;
 
-    function tpsSelectCity(city) {
-      var sel = document.getElementById('tps-partner');
-      sel.innerHTML = '<option value="" selected disabled>Please select trade partner</option>';
-      (TPS_PARTNERS[city] || []).forEach(function(p, i) {
-        var opt = document.createElement('option');
-        opt.value = i; opt.textContent = p.name;
-        sel.appendChild(opt);
+    /* --- Dropdowns (city / partner) --- */
+    function tpsDropOptions(key) {
+      return key === 'city'
+        ? Object.keys(TPS_PARTNERS)
+        : (TPS_PARTNERS[tpsCity] || []).map(function(p) { return p.name; });
+    }
+    function tpsDropSetValue(key, value) {
+      var trigger = document.getElementById('tps-' + key);
+      var text = value || TPS_LABELS[key].placeholder;
+      trigger.textContent = text;
+      trigger.setAttribute('aria-label', TPS_LABELS[key].name + ': ' + text);
+      trigger.dataset.value = value || '';
+    }
+    function tpsDropRender(key, query) {
+      var q = (query || '').trim().toLowerCase();
+      var current = document.getElementById('tps-' + key).dataset.value;
+      var ul = document.getElementById('tps-' + key + '-list');
+      ul.innerHTML = '';
+      var matches = tpsDropOptions(key).filter(function(o) { return o.toLowerCase().indexOf(q) !== -1; });
+      if (!matches.length) {
+        ul.innerHTML = '<li class="ufs-tps__empty">No matches</li>';
+        return;
+      }
+      matches.forEach(function(o) {
+        var li = document.createElement('li');
+        li.className = 'ufs-tps__item';
+        li.setAttribute('role', 'option');
+        li.setAttribute('aria-selected', o === current ? 'true' : 'false');
+        li.textContent = o;
+        li.addEventListener('mousedown', function(e) { e.preventDefault(); tpsDropSelect(key, o); });
+        ul.appendChild(li);
       });
-      sel.disabled = !city;
+    }
+    function tpsDropClose() {
+      document.querySelectorAll('.ufs-tps__panel').forEach(function(p) { p.hidden = true; });
+      document.querySelectorAll('.ufs-tps__select').forEach(function(t) { t.setAttribute('aria-expanded', 'false'); });
+      document.querySelectorAll('.ufs-tps__field').forEach(function(f) { f.classList.remove('is-open'); });
+      document.getElementById('trade-partner-selector').classList.remove('is-drop-open');
+      tpsDropOpen = null;
+    }
+    function tpsDropToggle(key) {
+      var wasOpen = tpsDropOpen === key;
+      tpsDropClose();
+      if (wasOpen) return;
+      document.getElementById('tps-' + key + '-panel').hidden = false;
+      document.getElementById('tps-' + key).setAttribute('aria-expanded', 'true');
+      document.getElementById('tps-' + key).parentNode.classList.add('is-open');
+      document.getElementById('trade-partner-selector').classList.add('is-drop-open');
+      tpsDropOpen = key;
+      var search = document.getElementById('tps-' + key + '-search');
+      search.value = '';
+      tpsDropRender(key, '');
+      search.focus();
+    }
+    function tpsDropSelect(key, value) {
+      tpsDropClose();
+      if (key === 'city') {
+        document.getElementById('tps-city').focus();
+        tpsSelectCity(value);
+      } else {
+        tpsSelectPartner(value);
+      }
+    }
+    function tpsDropKeydown(event, key) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        tpsDropClose();
+        document.getElementById('tps-' + key).focus();
+        return;
+      }
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      var q = event.target.value.trim().toLowerCase();
+      var match = tpsDropOptions(key).filter(function(o) { return o.toLowerCase().indexOf(q) !== -1; })[0];
+      if (match) tpsDropSelect(key, match);
+    }
+    document.addEventListener('click', function(e) {
+      if (tpsDropOpen && !e.target.closest('.ufs-tps__field')) tpsDropClose();
+    });
+
+    /* --- Steps --- */
+    function tpsSelectCity(city) {
+      if (city === tpsCity) return;
+      tpsCity = city;
+      tpsDropSetValue('city', city);
+      tpsDropSetValue('partner', '');
+      document.getElementById('tps-partner').disabled = !city;
       document.getElementById('trade-partner-selector').classList.toggle('has-city', !!city);
     }
-    function tpsSelectPartner(index) {
-      var city = document.getElementById('tps-city').value;
-      var partner = (TPS_PARTNERS[city] || [])[index];
+    function tpsSelectPartner(name) {
+      var city = tpsCity;
+      var partner = (TPS_PARTNERS[city] || []).filter(function(p) { return p.name === name; })[0];
       if (!partner) return;
+      tpsDropSetValue('partner', name);
       tpsSelection = { city: city, name: partner.name, platform: partner.platform };
       document.getElementById('tps-summary').textContent = partner.name + ' - ' + city;
       document.getElementById('trade-partner-selector').classList.toggle('no-connect', !partner.platform);
       // 1.5s loading state before the "selected" step (prototype stand-in
-      // for the real partner lookup)
+      // for the real partner lookup). Focus is deliberately left alone —
+      // nothing is auto-focused when the step switches.
       var root = document.getElementById('trade-partner-selector');
-      var selects = root.querySelectorAll('.ufs-tps__select');
-      selects.forEach(function(el) { el.disabled = true; });
+      var triggers = root.querySelectorAll('.ufs-tps__select');
+      triggers.forEach(function(el) { el.disabled = true; });
       root.classList.add('is-loading');
       root.setAttribute('aria-busy', 'true');
       document.getElementById('tps-status').textContent = 'Loading trade partner…';
@@ -6108,21 +6275,15 @@
         root.classList.remove('is-loading');
         root.setAttribute('aria-busy', 'false');
         document.getElementById('tps-status').textContent = 'Selected trade partner: ' + partner.name + ' - ' + city;
-        selects.forEach(function(el) { el.disabled = false; });
+        triggers.forEach(function(el) { el.disabled = false; });
         tpsSetState('selected');
-        // The select that had focus is now hidden — hand focus to whichever
-        // Change control is visible (button on desktop, link on mobile)
-        var change = document.getElementById('tps-change');
-        (change.offsetParent ? change : root.querySelector('.ufs-tps__edit')).focus();
       }, 1500);
     }
     function tpsChange() {
       tpsSelection = null;
       document.getElementById('tps-status').textContent = '';
-      document.getElementById('tps-city').selectedIndex = 0;
       tpsSelectCity('');
       tpsSetState('select');
-      document.getElementById('tps-city').focus();
     }
     function tpsSetState(state) {
       var root = document.getElementById('trade-partner-selector');
@@ -6205,6 +6366,7 @@
         closeProfilePanel();
         closeWholesalerPanel();
         closeTradePartnerPanel();
+        tpsDropClose();
         closeSearchOverlay('nav');
         document.getElementById('nav-search-btn').blur();
         closeSearchOverlay('mnav');
