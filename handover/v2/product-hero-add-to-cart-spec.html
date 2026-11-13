@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Hero + Add to Cart — UFS Spec v2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../tokens.css" />
+  <style>
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       campaign-hero-spec.html. The Overview demo button depends on
+       it; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       v2.0 DOC ADDITIONS (spec-doc only)
+    ═══════════════════════════════════════ */
+    .doc-topbar-version { margin-inline-start: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-brand-primary); background: rgba(255,90,0,0.15); border-radius: 3px; padding: 2px 6px; }
+    .doc-header-meta-val a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    .doc-header-meta-val a:hover { color: var(--color-salt); }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-pad { padding: 32px 24px; }
+    .pv-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    .pv-col { flex: 1 1 320px; min-width: 0; }
+    .spec-table-wrap { overflow-x: auto; margin-top: 10px; }
+    .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; }
+    .spec-table th { text-align: start; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--color-mushroom-900); padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-300); white-space: nowrap; }
+    .spec-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-100); vertical-align: top; color: var(--color-brand-dark); }
+    .spec-table td:first-child { font-weight: 600; }
+    .spec-table td[dir="rtl"] { font-family: 'IBM Plex Arabic', system-ui, sans-serif; font-size: 13px; }
+    kbd { font-family: var(--font-family-mono); font-size: 11px; background: var(--color-mushroom-300); border-radius: 3px; padding: 1px 5px; }
+    /* Doc-only stand-in for the header cart icon: target for the fly-to-cart + badge bump */
+    .pv-cartbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; margin: -32px -24px 24px; background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md) var(--radius-md) 0 0; font-size: 12px; color: var(--color-mushroom-900); }
+    .pv-cartbar .ufs-nav__icon-btn { position: relative; width: 40px; height: 40px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pv-cartbar .ufs-nav__icon-btn img { width: 24px; height: 24px; }
+    .ufs-nav__badge {
+      position: absolute; top: var(--space-1); right: var(--space-1);
+      min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-full);
+      background: var(--color-brand-primary); color: var(--color-salt);
+      font-size: 9px; font-weight: var(--text-btn-w);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ufs-nav__badge[hidden] { display: none; }
+
+
+    /* ═══════════════════════════════════════
+       PRODUCT HERO INFO COLUMN — mirrored 1:1 from v1 product-hero-spec.html,
+       and STICKY CTA from v1 nav-header-spec.html. Previews depend on them;
+       not part of this spec. The gallery is unchanged and omitted here.
+    ═══════════════════════════════════════ */
+    .ufs-product-hero__info { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-6); }
+    .ufs-product-hero__intro { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); width: 100%; }
+    .ufs-product-hero__header { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; }
+    .ufs-product-hero__eyebrow { font-size: var(--text-overline-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: rgba(34,29,55,0.6); margin: 0; }
+    .ufs-product-hero__title { font-size: var(--text-h2-size); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); font-weight: var(--text-h2-w); color: var(--color-brand-dark); margin: 0; }
+    .ufs-product-hero__tags { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-3); }
+    .ufs-product-hero__tag { display: inline-flex; align-items: center; justify-content: center; height: var(--space-6); padding: var(--space-1) var(--space-3); background: var(--color-mushroom-100); border: 1px solid rgba(78, 78, 78, 0.2); border-radius: var(--radius-full); font-size: var(--text-badge-size); line-height: var(--text-overline-lh); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); text-transform: uppercase; color: var(--color-mushroom-900); white-space: nowrap; }
+    .ufs-product-hero__usps { display: flex; flex-direction: column; gap: var(--space-2); width: 100%; }
+    .ufs-product-hero__usps-label { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600; color: var(--color-brand-dark); margin: 0; }
+    .ufs-product-hero__usps-list { list-style: disc; margin: 0; padding-inline-start: 21px; display: flex; flex-direction: column; gap: var(--space-1); }
+    .ufs-product-hero__usps-list li { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); }
+    .ufs-product-hero__sku { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-brand-dark); margin: 0; }
+    .ufs-sticky-cta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 500; box-shadow: 0 -2px 6px rgba(0,0,0,0.25); padding: 21px var(--space-8); transform: translateY(100%); transition: transform 0.3s ease; }
+    .ufs-sticky-cta.is-visible { transform: translateY(0); }
+    .ufs-sticky-cta__inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: center; gap: var(--space-6); }
+    .ufs-sticky-cta__text { display: flex; flex-direction: column; gap: 4px; }
+    .ufs-sticky-cta__headline { font-size: 16px; font-weight: 600; margin: 0; order: 1; }
+    .ufs-sticky-cta__disclaimer { font-size: 12px; margin: 0; order: 3; }
+    .ufs-sticky-cta--squid { background: var(--color-brand-dark); }
+    .ufs-sticky-cta--squid .ufs-sticky-cta__headline { color: var(--color-salt); }
+    .ufs-sticky-cta--squid .ufs-sticky-cta__disclaimer { color: rgba(255,255,255,0.75); }
+    .ufs-sticky-cta__btn { flex-shrink: 0; order: 2; }
+
+    .pv-hero { display: flex; gap: 48px; align-items: flex-start; background: var(--color-salt); border-radius: var(--radius-md); padding: 32px; }
+    .pv-hero__gallery { flex: 0 0 380px; aspect-ratio: 1; border-radius: var(--radius-md); border: 1px solid var(--color-mushroom-300); background: #fff center / contain no-repeat; display: flex; align-items: flex-end; justify-content: center; padding: 12px; font-size: 11px; color: var(--color-mushroom-900); }
+    .pv-hero .ufs-product-hero__info { max-width: 520px; }
+    .pv-buy { max-width: 520px; background: var(--color-salt); border-radius: var(--radius-md); padding: 24px; }
+    .pv-sticky .ufs-sticky-cta { position: relative !important; transform: none !important; z-index: auto; border-radius: var(--radius-sm); }
+    .pv-mobile-hero { width: 390px; max-width: 100%; margin: 0 auto; background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); padding: 16px; }
+    /* .pv-mobile-hero restates this spec's ≤768px rules + the shared pack-row mobile rules */
+    .pv-mobile-hero .ufs-pack-row { grid-template-columns: 48px 1fr auto !important; gap: var(--space-3) !important; min-height: 72px !important; }
+    .pv-mobile-hero .ufs-pack-row__img { width: 48px !important; height: 48px !important; }
+    .pv-mobile-hero .ufs-pack-row__name { font-size: var(--text-body-sm-size) !important; }
+    .pv-mobile-hero .ufs-pack-row__meta { font-size: var(--text-body-xs-size) !important; }
+    .pv-mobile-hero .ufs-pack-row__ctl { width: 144px !important; }
+    .pv-mobile-hero .ufs-product-hero__add { padding: 0 var(--space-3) !important; }
+    .pv-mobile-hero .fi-qty-input { width: 36px !important; }
+    .pv-mobile-hero .ufs-product-hero__title { font-size: var(--text-h3-mob-size); }
+
+/* Points pill — the Reward tile's points look (gold ring on a 10% gold tint) */
+.ufs-points {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-gold) 10%, var(--color-salt));
+  border: 1px solid var(--color-gold);
+  font-size: var(--text-body-xs-size); line-height: 1; font-weight: 400; color: var(--color-brand-dark);
+  white-space: nowrap; transform-origin: left center;
+}
+.ufs-points svg { width: 12px; height: 12px; fill: var(--color-gold); flex-shrink: 0; }
+.ufs-points__val { font-variant-numeric: tabular-nums; }
+.ufs-points.is-pulse { animation: ufs-points-pulse 0.7s ease-out; }
+@keyframes ufs-points-pulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-gold) 45%, transparent); }
+  35%  { transform: scale(1.04); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-gold) 0%, transparent); }
+}
+
+/* Quantity Selector — v1 .fi-qty (Design System › Input Fields) plus the
+   cart modifier: typed value, 32px buttons, + as the primary action. */
+.fi-qty {
+  display: inline-flex; align-items: center; justify-content: space-between; width: 100%;
+  padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-mushroom-100);
+}
+.fi-qty-btn {
+  flex-shrink: 0; width: var(--space-12); height: var(--space-12); border-radius: var(--radius-full);
+  background: var(--color-salt); border: none; box-shadow: var(--shadow-xs);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: box-shadow 0.15s, color 0.15s, background 0.15s;
+  color: var(--color-brand-dark);
+}
+.fi-qty-btn:hover:not(:disabled) { box-shadow: var(--shadow-sm); color: var(--color-accessible-orange); }
+.fi-qty-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.fi-qty-btn:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+.fi-qty-btn svg { width: var(--space-5); height: var(--space-5); display: block; fill: currentColor; }
+
+/* ── New in v2.0: .fi-qty--cart ── */
+.fi-qty--cart { width: auto; }
+.fi-qty--cart .fi-qty-btn { width: var(--space-8); height: var(--space-8); }
+/* Increase keeps the "Add to cart" look: dark orange fill, white icon */
+.fi-qty--cart .fi-qty-btn[data-role="inc"] { background: var(--color-accessible-orange); color: var(--color-salt); }
+.fi-qty--cart .fi-qty-btn[data-role="inc"]:hover:not(:disabled) { background: var(--color-orange-900); color: var(--color-salt); }
+/* At quantity 1 (rows that fall back to "Add to cart"), minus becomes a bin */
+.fi-qty-btn--delete:hover:not(:disabled) { color: var(--color-error); }
+/* Typed value replaces .fi-qty-pill: B2B quantities are often typed, not stepped */
+.fi-qty-input {
+  width: 40px; border: none; background: transparent; text-align: center; border-radius: 6px;
+  font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: 600; color: var(--color-brand-dark);
+  -moz-appearance: textfield;
+}
+.fi-qty-input::-webkit-outer-spin-button, .fi-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.fi-qty-input:focus-visible { outline: 2px solid var(--color-brand-dark); }
+
+/* Pack row — one per pack type (Single item / Pack of N) */
+.ufs-pack-row {
+  display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) 0; border-top: 1px solid var(--color-mushroom-300);
+}
+.ufs-pack-row__img {
+  position: relative; width: 56px; height: 56px;
+  border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
+  background: var(--color-salt) center / contain no-repeat;
+}
+/* "×6" on the multi-pack thumbnail */
+.ufs-pack-row__count {
+  position: absolute; inset-inline-end: -6px; bottom: -6px; padding: 1px 6px; border-radius: 9px;
+  background: var(--color-brand-dark); color: var(--color-salt);
+  font-size: 10px; font-weight: 700; line-height: 1.5;
+  direction: ltr; unicode-bidi: isolate;   /* stays "×6" inside RTL text */
+}
+.ufs-pack-row__txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ufs-pack-row__name {
+  margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2);
+  font-size: var(--text-body-size); line-height: 1.3; font-weight: 600; color: var(--color-brand-dark);
+}
+.ufs-pack-row__meta { margin: 0; font-size: var(--text-body-sm-size); line-height: 1.4; color: var(--color-mushroom-900); }
+.ufs-pack-row__meta b { font-weight: 600; color: var(--color-brand-dark); }
+.ufs-pack-row__ctl { display: flex; justify-content: flex-end; }
+@media (max-width: 768px) {
+  .ufs-pack-row { grid-template-columns: 48px 1fr auto; }
+  .ufs-pack-row__img { width: 48px; height: 48px; }
+  .ufs-pack-row__name { font-size: var(--text-body-sm-size); }
+  .ufs-pack-row__meta { font-size: var(--text-body-xs-size); }
+}
+
+/* Pack summary — "N items in cart" + total, live points underneath */
+.ufs-pack-summary { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; }
+.ufs-pack-summary[hidden] { display: none; }
+.ufs-pack-summary__row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3);
+  font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900);
+}
+.ufs-pack-summary__row b { font-size: var(--text-h6-size); line-height: 1.2; color: var(--color-brand-dark); font-variant-numeric: tabular-nums; }
+.ufs-pack-summary__points { display: flex; justify-content: flex-end; }
+.ufs-pack-summary__points .ufs-points { transform-origin: right center; }
+
+/* Pack Size Picker — popover on desktop, bottom sheet ≤768px */
+.ufs-pack-picker-backdrop {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(0,0,0,0); pointer-events: none; transition: background 0.2s;
+}
+.ufs-pack-picker-backdrop.is-open { pointer-events: auto; }
+.ufs-pack-picker {
+  position: fixed; z-index: 100; width: 380px; padding: var(--space-3);
+  display: none; flex-direction: column; gap: var(--space-4);
+  background: var(--color-salt); border: 1px solid var(--color-mushroom-300);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+}
+.ufs-pack-picker.is-open { display: flex; }
+.ufs-pack-picker:focus { outline: none; }
+.ufs-pack-picker__hd { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.ufs-pack-picker__title { margin: 0; font-size: var(--text-body-size); line-height: var(--text-body-lh); font-weight: 600; color: var(--color-brand-dark); }
+.ufs-pack-picker__sub { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); }
+.ufs-pack-picker__close {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+  background: var(--color-mushroom-100); color: var(--color-brand-dark); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.ufs-pack-picker__close:focus-visible { outline: 2px solid var(--color-brand-dark); }
+.ufs-pack-picker__close svg { width: 12px; height: 12px; }
+/* Arrow: always on the bottom edge, pointing down at the trigger (left is set in JS).
+   A rotated square whose two bordered edges draw the notch. */
+.ufs-pack-picker__arrow {
+  position: absolute; bottom: -8px; width: 14px; height: 14px; background: var(--color-salt);
+  border-left: 1px solid var(--color-mushroom-300); border-top: 1px solid var(--color-mushroom-300);
+  transform: rotate(225deg);
+}
+.ufs-pack-picker .ufs-pack-summary { padding-top: var(--space-3); border-top: 1px solid var(--color-mushroom-300); }
+/* Desktop: the popover is tile-width (~296px), so rows tighten to keep each stepper on one line */
+@media (min-width: 769px) {
+  .ufs-pack-picker .ufs-pack-row { grid-template-columns: 40px 1fr auto; gap: var(--space-2); }
+  .ufs-pack-picker .ufs-pack-row__img { width: 40px; height: 40px; }
+  .ufs-pack-picker .ufs-pack-row__name { font-size: var(--text-body-sm-size); }
+  .ufs-pack-picker .fi-qty-input { width: 32px; }
+}
+@media (max-width: 768px) {
+  .ufs-pack-picker-backdrop.is-open { background: rgba(0,0,0,0.5); }
+  .ufs-pack-picker {
+    left: 0 !important; right: 0; top: auto !important; bottom: 0; width: 100% !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: var(--space-3) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+    display: flex; visibility: hidden; transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), visibility 0s 0.25s;
+  }
+  .ufs-pack-picker.is-open { transform: translateY(0); visibility: visible; transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+  /* Grab handle */
+  .ufs-pack-picker::before { content: ''; align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--color-mushroom-500); }
+  .ufs-pack-picker__arrow { display: none; }
+  .ufs-pack-picker .fi-qty--cart .fi-qty-btn { width: var(--space-10); height: var(--space-10); }
+}
+
+/* Cart feedback — shared by every add-to-cart surface */
+/* Toasts: one per cart change, newest at the bottom, max 2 on screen */
+.ufs-cart-toasts {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 960;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  width: max-content; max-width: calc(100vw - 32px); pointer-events: none;
+}
+.ufs-cart-toast {
+  pointer-events: auto; display: flex; align-items: center; gap: var(--space-3); max-width: 100%;
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+  background: var(--color-brand-dark); color: var(--color-salt); font-size: var(--text-body-sm-size);
+}
+.ufs-cart-toast button {
+  border: none; background: none; cursor: pointer; white-space: nowrap; text-decoration: underline;
+  color: var(--color-brand-primary); font-family: inherit; font-size: var(--text-body-sm-size); font-weight: 700;
+}
+@media (max-width: 768px) {
+  /* Spans the gutters (long product names) */
+  .ufs-cart-toasts { left: var(--space-4); right: var(--space-4); transform: none; width: auto; max-width: none; align-items: stretch; }
+  .ufs-cart-toast { justify-content: space-between; }
+}
+
+/* Fly-to-cart: a copy of the product photo arcs into the header cart icon */
+.ufs-cart-fly {
+  position: fixed; z-index: 1000; pointer-events: none; will-change: transform, opacity;
+  border-radius: var(--radius-sm); background: var(--color-salt) center / contain no-repeat; box-shadow: var(--shadow-lg);
+}
+/* Header cart badge bump when the photo lands */
+.ufs-nav__badge.is-bump { animation: ufs-badge-bump 0.35s ease; }
+@keyframes ufs-badge-bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+
+/* Rolling quantity: old number slides out, new one slides in (up = more, down = less) */
+.fi-qty:has(> .ufs-qty-roll) { position: relative; }
+.ufs-qty-roll { position: absolute; overflow: hidden; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.ufs-qty-roll span { position: absolute; animation: 0.26s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.ufs-qty-roll .is-out-up   { animation-name: ufs-roll-out-up; }
+.ufs-qty-roll .is-in-up    { animation-name: ufs-roll-in-up; }
+.ufs-qty-roll .is-out-down { animation-name: ufs-roll-out-down; }
+.ufs-qty-roll .is-in-down  { animation-name: ufs-roll-in-down; }
+@keyframes ufs-roll-out-up   { to   { transform: translateY(-100%); opacity: 0; } }
+@keyframes ufs-roll-in-up    { from { transform: translateY(100%);  opacity: 0; } }
+@keyframes ufs-roll-out-down { to   { transform: translateY(100%);  opacity: 0; } }
+@keyframes ufs-roll-in-down  { from { transform: translateY(-100%); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ufs-points.is-pulse, .ufs-nav__badge.is-bump { animation: none; }
+  .ufs-pack-picker { transition: none !important; }
+}
+
+/* RTL — logical properties (inset-inline-*, padding-inline-*) cover most of the
+   mirroring; these are the physical leftovers */
+[dir="rtl"] .ufs-points { transform-origin: right center; }
+[dir="rtl"] .ufs-pack-summary__points .ufs-points { transform-origin: left center; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* Product Hero + Add to cart — .ufs-product-hero__buy replaces __cta / __ctas
+   in the info column (between the intro and the SKU). Pack rows, cart stepper,
+   points and summary come from the Pack Size Picker spec. */
+.ufs-product-hero__buy { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.ufs-product-hero__buy-hd { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.ufs-product-hero__buy-label { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600; color: var(--color-brand-dark); }
+.ufs-product-hero__buy-note { margin: 0; font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-900); }
+.ufs-product-hero__packs { border-bottom: 1px solid var(--color-mushroom-300); }
+.ufs-product-hero__buy .ufs-pack-row { gap: var(--space-4); min-height: 80px; }
+.ufs-product-hero__buy .ufs-pack-row__name .ufs-points { font-weight: 400; }
+.ufs-product-hero__buy .ufs-pack-row__ctl { width: 160px; }
+.ufs-product-hero__add { width: 100%; padding: 0 var(--space-4); }
+.ufs-product-hero__add img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
+/* Stepper = the button's 48px, so Add to cart → stepper doesn't shift the row */
+.ufs-product-hero__buy .fi-qty { width: 100%; height: var(--space-12); padding: 5px; }
+.ufs-product-hero__sample { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); }
+.ufs-product-hero__sample a { --color-accessible-orange: #B03D00; font-weight: 600; color: var(--color-accessible-orange); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+@media (max-width: 768px) {
+  .ufs-product-hero__buy .ufs-pack-row { gap: var(--space-3); min-height: 72px; }
+  .ufs-product-hero__buy .ufs-pack-row__ctl { width: 144px; }
+  .ufs-product-hero__add { padding: 0 var(--space-3); }
+  .ufs-product-hero__buy .fi-qty-input { width: 36px; }
+}
+
+
+    /* ═══════════════════════════════════════
+       DOC CHROME ≤768px (spec-doc only): 16px gutters, stacked header,
+       previews never wider than the screen (they scroll inside their card)
+    ═══════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .doc-topbar { padding: 0 16px 0 64px; height: 66px; overflow: hidden; white-space: nowrap; }
+      .doc-topbar-current { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .doc-topbar-version { display: none; }
+      .doc-header-inner { flex-direction: column; gap: 16px; padding: 28px 16px 24px; }
+      .doc-header-vdiv { display: none; }
+      .doc-header-meta { align-items: flex-start; padding-top: 0; }
+      .content { padding: 32px 16px 96px; }
+      .ds-card { padding: 20px 16px 24px; }
+      .ds-card > * { max-width: 100%; }
+      .ds-card > [class*="pv-"]:not(.pv-label) { overflow-x: auto; position: relative; }
+      .pv-pad { padding: 24px 16px; }
+      .pv-cartbar { margin: -24px -16px 24px; }
+      .pv-grid, .pv-states { grid-template-columns: minmax(0, 296px); }
+      .pv-grid-m { grid-template-columns: minmax(0, 1fr); }
+      .pv-anchor { width: auto; max-width: 296px; }
+      .pv-row, .pv-drawer { flex-wrap: wrap; }
+      .pv-drawer { padding: 24px 12px; }
+      .pv-col { flex-basis: 100%; }
+      .token-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+      .token-var { overflow-wrap: anywhere; }
+      .token-note { text-align: start; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="../images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System v2.0
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#states" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> States</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#behavior" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Add to Cart Flow</a>
+      <a href="#animation" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Animation</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New in v2.0.<br/>Extends v1 Product Hero (product-hero-spec.html).</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <nav class="doc-topbar" aria-label="Breadcrumb">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System v2.0
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Product Hero + Add to Cart</span>
+    <span class="doc-topbar-version">New in v2.0</span>
+  </nav>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="../images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec · v2.0</div>
+        <h1 class="doc-header-title">Product Hero <span>+ Add to Cart</span></h1>
+        <p class="doc-header-desc">Webshop Product Hero: the CTA becomes a buy block with one row per pack size (Single item / Pack of N), each with its own Add to cart, plus a running summary with points.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val"><a href="template-product-webshop.html">handover/v2/<br/>template-product-webshop.html</a></span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content" id="main">
+
+    <!-- ═══════════════════════════════════════ FULL COMPONENT PREVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">The webshop version of the v1 <strong>Product Hero</strong> (<a href="../product-hero-spec.html"><code>product-hero-spec.html</code></a>). The CTA (<code>__cta</code> / <code>__ctas</code>) is replaced by a buy block: one <a href="pack-size-picker-spec.html#pack-row">pack row</a> per pack size, each with its own Add to cart, a running summary, and a sample link. Gallery, title, tags, USPs, SKU and utility bar are the v1 hero, unchanged. Unlike the tile, there is no popover: both pack sizes are always visible.</p>
+      <div class="notice notice--tip"><span class="notice-icon">💡</span><div>Live: add either pack, step it, type a quantity, or step down to the bin. The summary, points, sticky bar copy, toasts and fly-to-cart all update.</div></div><div class="ds-card"><div class="card-title">Live hero (info column; the v1 gallery is unchanged and shown as a placeholder)</div><div class="pv-light pv-pad"><div class="pv-cartbar"><span>Header cart icon (doc stand-in: the photo flies here, the badge bumps)</span>
+  <button type="button" class="ufs-nav__icon-btn" data-cart-button onclick="openCartPanel()"><img src="../icons/cart.svg" alt="Cart"/><span class="ufs-nav__badge" hidden>0</span></button></div><div class="pv-hero"><div class="pv-hero__gallery" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')">v1 gallery</div><div class="ufs-product-hero__info"><div class="ufs-product-hero__intro"><div class="ufs-product-hero__header"><p class="ufs-product-hero__eyebrow">Stocks</p><h1 class="ufs-product-hero__title">Knorr Chicken Stock Granules 1 kg</h1><div class="ufs-product-hero__tags"><span class="ufs-product-hero__tag">Vegan</span><span class="ufs-product-hero__tag">Gluten Free</span><span class="ufs-product-hero__tag">No MSG</span></div></div></div>
+  <div class="ufs-product-hero__buy" id="hero-buy">
+    <div class="ufs-product-hero__buy-hd"><p class="ufs-product-hero__buy-label">Choose pack size and quantity</p><p class="ufs-product-hero__buy-note">Price indication (excl. VAT)</p></div>
+    <div class="ufs-product-hero__packs" data-packs></div>
+    <div class="ufs-pack-summary" data-summary hidden>
+      <div class="ufs-pack-summary__row"><span data-summary-count>0 items in cart</span><b data-summary-total>€0.00</b></div>
+      <div class="ufs-pack-summary__points" data-summary-points></div>
+    </div>
+    <p class="ufs-product-hero__sample">Not sure yet? <a href="#" onclick="openRequestSample(); return false;">Request a free sample</a></p>
+  </div>
+  <p class="ufs-product-hero__sku">SKU: 94000640</p></div></div><div class="pv-label" style="margin-top:24px">Sticky Bottom CTA (v1 component, webshop copy), pinned here. Live it appears once the buy block scrolls out of view.</div><div class="pv-sticky"><div class="ufs-sticky-cta ufs-sticky-cta--squid is-visible" id="product-sticky-cta"><div class="ufs-sticky-cta__inner">
+  <div class="ufs-sticky-cta__text"><p class="ufs-sticky-cta__headline">Knorr Chicken Stock Granules 1 kg</p><p class="ufs-sticky-cta__disclaimer" id="product-sticky-cta-sub"></p></div>
+  <button type="button" class="btn btn-primary ufs-sticky-cta__btn" id="product-sticky-cta-btn" onclick="heroStickyPrimary()">Add to cart</button></div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">The buy block takes the place of the v1 CTA in <code>.ufs-product-hero__info</code>, after the intro and before the SKU. The pack rows, cart stepper, points pill and summary are the shared components from the Pack Size Picker spec, so only the block wrapper and its spacing are new here.</p>
+      <div class="ds-card"><div class="card-title">Parts</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Part</th><th>Element</th><th>Content</th></tr></thead><tbody><tr><td>Header</td><td><code>__buy-hd</code></td><td>"Choose pack size and quantity" (14px, 600) + "Price indication (excl. VAT)" (12px), space-between, wraps on narrow widths</td></tr><tr><td>Pack rows</td><td><code>__packs &gt; .ufs-pack-row</code> ×2</td><td>Thumbnail (×N on the multi-pack), name + fixed points for one pack, price line, control</td></tr><tr><td>Price line</td><td><code>.ufs-pack-row__meta</code></td><td>Single: "<b>€18.90</b> · 1 kg". Pack: "<b>€113.40</b> · 6 × 1 kg (€18.90 each)"</td></tr><tr><td>Control</td><td><code>.ufs-pack-row__ctl</code></td><td>160px. "Add to cart" at 0, cart stepper from 1 (bin at 1).</td></tr><tr><td>Summary</td><td><code>.ufs-pack-summary</code></td><td>Hidden until the product is in the cart. Items + breakdown, total, live points.</td></tr><tr><td>Sample link</td><td><code>__sample</code></td><td>"Not sure yet? Request a free sample" opens the v1 Request Sample journey (form-journeys.html)</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">Reference markup</div><div class="code-block-wrap"><div class="code-tabs"><div class="code-tab active" onclick="switchTab(this,'cb1-0')">HTML</div><div class="code-tab" onclick="switchTab(this,'cb1-1')">CSS</div></div><div class="code-panel active" data-tab="cb1-0"><div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-hero__info"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-hero__intro"</span><span class="t-tag">&gt;</span>…v1 header, tags, USPs, link…<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-hero__buy"</span> <span class="t-at">id</span>=<span class="t-str">"hero-buy"</span> <span class="t-at">data-product</span>=<span class="t-str">"granules"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-hero__buy-hd"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-hero__buy-label"</span><span class="t-tag">&gt;</span>Choose pack size and quantity<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-hero__buy-note"</span><span class="t-tag">&gt;</span>Price indication (excl. VAT)<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- Two .ufs-pack-row, rendered by renderHeroRows() --&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-hero__packs"</span> <span class="t-at">data-packs</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- Hidden until something of this product is in the cart --&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-summary"</span> <span class="t-at">data-summary</span> <span class="t-at">hidden</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-summary__row"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">data-summary-count</span><span class="t-tag">&gt;</span>0 items in cart<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;b</span> <span class="t-at">data-summary-total</span><span class="t-tag">&gt;</span>€0.00<span class="t-tag">&lt;/b</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-summary__points"</span> <span class="t-at">data-summary-points</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-hero__sample"</span><span class="t-tag">&gt;</span>Not sure yet? <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">onclick</span>=<span class="t-str">"openRequestSample(); return false;"</span><span class="t-tag">&gt;</span>Request a free sample<span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+  <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-product-hero__sku"</span><span class="t-tag">&gt;</span>SKU: 94000640<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+  <span class="t-cm">&lt;!-- …v1 utility bar… --&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+<span class="t-cm">&lt;!-- v1 Sticky Bottom CTA (nav-header-spec.html), webshop copy --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-sticky-cta ufs-sticky-cta--squid"</span> <span class="t-at">id</span>=<span class="t-str">"product-sticky-cta"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-sticky-cta__inner"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-sticky-cta__text"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-sticky-cta__headline"</span><span class="t-tag">&gt;</span>Knorr Chicken Stock Granules 1 kg<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-sticky-cta__disclaimer"</span> <span class="t-at">id</span>=<span class="t-str">"product-sticky-cta-sub"</span><span class="t-tag">&gt;</span>Single item €18.90 · Pack of 6 €113.40<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary ufs-sticky-cta__btn"</span> <span class="t-at">id</span>=<span class="t-str">"product-sticky-cta-btn"</span> <span class="t-at">onclick</span>=<span class="t-str">"heroStickyPrimary()"</span><span class="t-tag">&gt;</span>Add to cart<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre></div><div class="code-panel" data-tab="cb1-1"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Product Hero + Add to cart — .ufs-product-hero__buy replaces __cta / __ctas</span>
+   <span class="t-cm">in the info column (between the intro and the SKU). Pack rows, cart stepper,</span>
+   <span class="t-cm">points and summary come from the Pack Size Picker spec. */</span>
+<span class="t-pr">.ufs-product-hero__buy</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-product-hero__buy-hd</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">baseline</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">flex-wrap</span>: <span class="t-vl">wrap</span>; }
+<span class="t-pr">.ufs-product-hero__buy-label</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-product-hero__buy-note</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-xs-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-product-hero__packs</span> { <span class="t-pr">border-bottom</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>; }
+<span class="t-pr">.ufs-product-hero__buy .ufs-pack-row</span> { <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">min-height</span>: <span class="t-vl">80px</span>; }
+<span class="t-pr">.ufs-product-hero__buy .ufs-pack-row__name .ufs-points</span> { <span class="t-pr">font-weight</span>: <span class="t-vl">400</span>; }
+<span class="t-pr">.ufs-product-hero__buy .ufs-pack-row__ctl</span> { <span class="t-pr">width</span>: <span class="t-vl">160px</span>; }
+<span class="t-pr">.ufs-product-hero__add</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-product-hero__add img</span> { <span class="t-pr">width</span>: <span class="t-vl">20px</span>; <span class="t-pr">height</span>: <span class="t-vl">20px</span>; <span class="t-pr">filter</span>: <span class="t-vl">brightness(0)</span> <span class="t-vl">invert(1)</span>; }
+<span class="t-cm">/* Stepper = the button's 48px, so Add to cart → stepper doesn't shift the row */</span>
+<span class="t-pr">.ufs-product-hero__buy .fi-qty</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-12)</span>; <span class="t-pr">padding</span>: <span class="t-vl">5px</span>; }
+<span class="t-pr">.ufs-product-hero__sample</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-product-hero__sample a</span> { <span class="t-pr">--color-accessible-orange</span>: <span class="t-vl">#B03D00</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">underline</span>; <span class="t-pr">text-underline-offset</span>: <span class="t-vl">2px</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-pr">.ufs-product-hero__buy .ufs-pack-row</span> { <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">min-height</span>: <span class="t-vl">72px</span>; }
+  <span class="t-pr">.ufs-product-hero__buy .ufs-pack-row__ctl</span> { <span class="t-pr">width</span>: <span class="t-vl">144px</span>; }
+  <span class="t-pr">.ufs-product-hero__add</span> { <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-3)</span>; }
+  <span class="t-pr">.ufs-product-hero__buy .fi-qty-input</span> { <span class="t-pr">width</span>: <span class="t-vl">36px</span>; }
+}</pre></div></div><div class="card-subtitle">Key Tokens</div><div class="token-list"><div class="token-row"><span class="token-prop">Block gap</span><span class="token-var">--space-4</span><span class="token-note">16px between header, rows, summary and sample link</span></div><div class="token-row"><span class="token-prop">Row</span><span class="token-var">min-height 80px · gap --space-4</span><span class="token-note">72px / 12px ≤768px</span></div><div class="token-row"><span class="token-prop">Control</span><span class="token-var">160px (144px ≤768px)</span><span class="token-note">button and stepper are both 48px tall, so the row never jumps</span></div><div class="token-row"><span class="token-prop">Stepper</span><span class="token-var">.fi-qty--cart, 48px, 5px padding</span><span class="token-note">32px buttons, + filled --color-accessible-orange</span></div><div class="token-row"><span class="token-prop">Pack-row points</span><span class="token-var">--text-body-xs-size, weight 400</span><span class="token-note">fixed per pack (single: pts, pack: pts × N)</span></div><div class="token-row"><span class="token-prop">Sample link</span><span class="token-var">--color-accessible-orange, 600, underline offset 2px</span><span class="token-note">14px</span></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ STATES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="states">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">States</h2>
+      <p class="section-desc">Each row is independent: the buyer can add singles, packs or both. The summary appears with the first item and hides again when the product leaves the cart.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-row"><div class="pv-col"><div class="pv-label">Nothing in cart</div><div class="pv-buy"><div class="ufs-product-hero__buy"><div class="ufs-product-hero__buy-hd"><p class="ufs-product-hero__buy-label">Choose pack size and quantity</p><p class="ufs-product-hero__buy-note">Price indication (excl. VAT)</p></div><div class="ufs-product-hero__packs"><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Single item<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b> · 1 kg</p></div><div class="ufs-pack-row__ctl"><button type="button" class="btn btn-primary ufs-product-hero__add"><img src="../icons/cart.svg" alt=""/>Add to cart</button></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Pack of 6<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.100</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b> · 6 × 1 kg (<bdi>€18.90</bdi> each)</p></div><div class="ufs-pack-row__ctl"><button type="button" class="btn btn-primary ufs-product-hero__add"><img src="../icons/cart.svg" alt=""/>Add to cart</button></div></div></div><p class="ufs-product-hero__sample">Not sure yet? <a href="#" onclick="return false;">Request a free sample</a></p></div></div></div><div class="pv-col"><div class="pv-label">1 single (minus is a bin)</div><div class="pv-buy"><div class="ufs-product-hero__buy"><div class="ufs-product-hero__buy-hd"><p class="ufs-product-hero__buy-label">Choose pack size and quantity</p><p class="ufs-product-hero__buy-note">Price indication (excl. VAT)</p></div><div class="ufs-product-hero__packs"><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Single item<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b> · 1 kg</p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn fi-qty-btn--delete" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" d="M29.17 12.6v-1.65C29.17 8.22 26.93 6 24.17 6h-3.34c-2.76 0-5 2.22-5 4.95v1.65H9.17a1.66 1.66 0 1 0 0 3.3h1.66v18.15c0 2.73 2.24 4.95 5 4.95h13.34c2.76 0 5-2.22 5-4.95V15.9h1.66a1.66 1.66 0 1 0 0-3.3zm-8.34-3.3h3.34c.92 0 1.66.74 1.66 1.65v1.65h-6.66v-1.65c0-.91.74-1.65 1.66-1.65zm8.34 26.4H15.83c-.92 0-1.66-.74-1.66-1.65V15.9h16.66v18.15c0 .91-.74 1.65-1.66 1.65z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Pack of 6<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.100</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b> · 6 × 1 kg (<bdi>€18.90</bdi> each)</p></div><div class="ufs-pack-row__ctl"><button type="button" class="btn btn-primary ufs-product-hero__add"><img src="../icons/cart.svg" alt=""/>Add to cart</button></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>1 item in cart</span><b><bdi>€18.90</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span></div></div><p class="ufs-product-hero__sample">Not sure yet? <a href="#" onclick="return false;">Request a free sample</a></p></div></div></div><div class="pv-col"><div class="pv-label">3 single + 2 packs</div><div class="pv-buy"><div class="ufs-product-hero__buy"><div class="ufs-product-hero__buy-hd"><p class="ufs-product-hero__buy-label">Choose pack size and quantity</p><p class="ufs-product-hero__buy-note">Price indication (excl. VAT)</p></div><div class="ufs-product-hero__packs"><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Single item<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b> · 1 kg</p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="3" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Pack of 6<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.100</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b> · 6 × 1 kg (<bdi>€18.90</bdi> each)</p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="2" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>15 items in cart (3 × single · 2 × pack of 6)</span><b><bdi>€283.50</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">5.250</span><span class="sr-only"> points</span></span></div></div><p class="ufs-product-hero__sample">Not sure yet? <a href="#" onclick="return false;">Request a free sample</a></p></div></div></div></div></div><div class="ds-card"><div class="card-title">Sticky Bottom CTA copy</div><div class="card-desc">The v1 sticky bar keeps its layout and show/hide rule (it appears once the hero's own CTA has scrolled out of view). Only its text and button action change.</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Cart state</th><th>Disclaimer line</th><th>Button</th><th>Button action</th></tr></thead><tbody><tr><td>Empty</td><td>"Single item €18.90 · Pack of 6 €113.40"</td><td>Add to cart</td><td>Scrolls the buy block to the centre and focuses the first Add to cart (after 450ms)</td></tr><tr><td>In cart</td><td>"In cart: 3 × single · 2 × pack of 6 · €283.50"</td><td>View cart</td><td>Opens the cart panel</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ADD TO CART FLOW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="behavior">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Add to Cart Flow</h2>
+      <p class="section-desc">No picker and no confirm step: each row writes to the cart directly through the shared <code>setLine()</code>, and every change gets the same toast, fly-to-cart and badge feedback as the tile.</p>
+      <div class="ds-card"><div class="card-title">Interaction</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Action</th><th>Result</th><th>Focus</th></tr></thead><tbody><tr><td>Add to cart (row)</td><td>1 of that pack added. The button becomes the stepper. The thumbnail flies to the cart.</td><td>+ of the new stepper</td></tr><tr><td>+ / −</td><td>±1, quantity rolls. + flies, − bumps the badge.</td><td>Stays on the pressed button</td></tr><tr><td>Bin (at 1)</td><td>Line removed, the row returns to Add to cart</td><td>That row's Add to cart</td></tr><tr><td>Type a quantity</td><td>Applied on change, clamped 0–999. 0 removes the line.</td><td>Stays in the field</td></tr><tr><td>Changes from the cart panel</td><td>Hero controls and summary re-render (they listen to the cart)</td><td>Not moved</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">JS</div><div class="card-desc">Needs the shared cart engine and pack rows from <a href="pack-size-picker-spec.html#editing">pack-size-picker-spec.html</a>.</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* ── Product Hero + Add to cart ──
+   Uses the shared cart engine (pack-size-picker-spec.html). */</span>
+TEXT.heroParts = <span class="t-str">'{parts}'</span>;
+TEXT.partSingleHero = <span class="t-str">'{q} × single'</span>;
+TEXT.partMultiHero = <span class="t-str">'{q} × pack of {n}'</span>;
+TEXT.inCartSticky = <span class="t-str">'In cart: {parts} · {total}'</span>;
+
+<span class="t-kw">var</span> HERO_ID = <span class="t-str">'granules'</span>;                 <span class="t-cm">// the product on this page</span>
+<span class="t-kw">function</span> heroRoot() { <span class="t-kw">return</span> document.getElementById(<span class="t-str">'hero-buy'</span>); }
+
+<span class="t-kw">function</span> heroParts(p, l) {
+  <span class="t-kw">var</span> parts = [];
+  <span class="t-kw">if</span> (l.single) parts.push(t(<span class="t-str">'partSingleHero'</span>, { q: l.single }));
+  <span class="t-kw">if</span> (l.multi) parts.push(t(<span class="t-str">'partMultiHero'</span>, { q: l.multi, n: p.multi }));
+  <span class="t-kw">return</span> parts.join(<span class="t-str">' · '</span>);
+}
+
+<span class="t-cm">// "€18.90 · 1 kg"  /  "€113.40 · 6 × 1 kg (€18.90 each)"</span>
+<span class="t-kw">function</span> heroMeta(p, pack) {
+  <span class="t-kw">return</span> pack === <span class="t-str">'single'</span>
+    ? <span class="t-str">'&lt;b&gt;'</span> + money(p.price) + <span class="t-str">'&lt;/b&gt; · '</span> + p.unit
+    : <span class="t-str">'&lt;b&gt;'</span> + money(packPrice(p, <span class="t-str">'multi'</span>)) + <span class="t-str">'&lt;/b&gt; · '</span> + p.multi + <span class="t-str">' × '</span> + p.unit + <span class="t-str">' ('</span> + money(p.price) + <span class="t-str">' '</span> + t(<span class="t-str">'each'</span>) + <span class="t-str">')'</span>;
+}
+
+<span class="t-cm">// At 0 the row shows "Add to cart"; from 1 a stepper whose minus is a bin at 1</span>
+<span class="t-kw">function</span> heroControl(pack) {
+  <span class="t-kw">var</span> p = PRODUCTS[HERO_ID], q = lineOf(HERO_ID)[pack] || 0;
+  <span class="t-kw">if</span> (!q) {
+    <span class="t-kw">return</span> <span class="t-str">'&lt;button type="button" class="btn btn-primary ufs-product-hero__add" data-add="'</span> + pack + <span class="t-str">'" onclick="heroStep(\''</span> + pack + <span class="t-str">'\',1)"'</span> +
+      <span class="t-str">' aria-label="'</span> + escHTML(t(<span class="t-str">'add'</span>) + <span class="t-str">': '</span> + packLabel(p, pack)) + <span class="t-str">'"&gt;&lt;img src="../icons/cart.svg" alt=""/&gt;'</span> + t(<span class="t-str">'add'</span>) + <span class="t-str">'&lt;/button&gt;'</span>;
+  }
+  <span class="t-kw">return</span> stepperHTML({ p: p, pack: pack, value: q, scope: <span class="t-str">'hero'</span>, deleteAtOne: <span class="t-kw">true</span> });
+}
+
+<span class="t-cm">// Rows render once; afterwards only the controls and summary update, so focus survives</span>
+<span class="t-kw">function</span> renderHeroRows() {
+  <span class="t-kw">var</span> p = PRODUCTS[HERO_ID], packs = p.multi ? [<span class="t-str">'single'</span>, <span class="t-str">'multi'</span>] : [<span class="t-str">'single'</span>];
+  heroRoot().querySelector(<span class="t-str">'[data-packs]'</span>).innerHTML = packs.map(<span class="t-kw">function</span> (pack) {
+    <span class="t-kw">var</span> pts = pointsHTML(p.pts * (pack === <span class="t-str">'multi'</span> ? p.multi : 1));     <span class="t-cm">// fixed: points one pack earns</span>
+    <span class="t-kw">return</span> packRowHTML(p, pack, { points: pts, price: heroMeta(p, pack) }, heroControl(pack));
+  }).join(<span class="t-str">''</span>);
+  heroRoot().querySelector(<span class="t-str">'[data-summary-points]'</span>).innerHTML = pointsHTML(0);
+}
+
+<span class="t-kw">function</span> renderHero(animate) {
+  <span class="t-kw">var</span> root = heroRoot(), p = PRODUCTS[HERO_ID], l = lineOf(HERO_ID), units = lineUnits(p, l);
+  root.querySelectorAll(<span class="t-str">'[data-ctl]'</span>).forEach(<span class="t-kw">function</span> (ctl) { ctl.innerHTML = heroControl(ctl.getAttribute(<span class="t-str">'data-ctl'</span>)); });
+  root.querySelector(<span class="t-str">'[data-summary]'</span>).hidden = units === 0;
+  root.querySelector(<span class="t-str">'[data-summary-count]'</span>).textContent =
+    (units === 1 ? t(<span class="t-str">'itemInCart'</span>) : t(<span class="t-str">'itemsInCart'</span>, { n: units })) + (l.multi ? <span class="t-str">' ('</span> + heroParts(p, l) + <span class="t-str">')'</span> : <span class="t-str">''</span>);
+  root.querySelector(<span class="t-str">'[data-summary-total]'</span>).textContent = money(lineTotal(p, l));
+  (animate ? animatePoints : setPoints)(root.querySelector(<span class="t-str">'[data-summary-points] .ufs-points'</span>), units * p.pts);
+  renderHeroSticky();
+}
+cartViews.push(<span class="t-kw">function</span> (id) { <span class="t-kw">if</span> (id === HERO_ID) renderHero(<span class="t-kw">true</span>); });   <span class="t-cm">// cart panel edits update the hero too</span>
+
+<span class="t-kw">function</span> heroStep(pack, d) { heroSet(pack, (lineOf(HERO_ID)[pack] || 0) + d, <span class="t-kw">true</span>); }
+<span class="t-kw">function</span> heroSet(pack, value, fromStep) {
+  <span class="t-kw">var</span> row = heroRoot().querySelector(<span class="t-str">'[data-row="'</span> + pack + <span class="t-str">'"]'</span>);
+  <span class="t-kw">var</span> before = setLine(HERO_ID, pack, value), q = lineOf(HERO_ID)[pack] || 0;   <span class="t-cm">// setLine re-renders the controls</span>
+  <span class="t-kw">if</span> (q === before) { renderHero(<span class="t-kw">false</span>); <span class="t-kw">return</span>; }
+  <span class="t-kw">if</span> (before &amp;&amp; q) rollQty(row.querySelector(<span class="t-str">'.fi-qty'</span>), before, q &gt; before);
+  <span class="t-kw">if</span> (q &gt; before) flyToCart(row.querySelector(<span class="t-str">'.ufs-pack-row__img'</span>), IMG + PRODUCTS[HERO_ID].img); <span class="t-kw">else</span> bumpBadge();
+  <span class="t-kw">if</span> (fromStep) {          <span class="t-cm">// focus stays on the pressed control, or on Add to cart once the line is gone</span>
+    <span class="t-kw">var</span> f = !q ? row.querySelector(<span class="t-str">'[data-add]'</span>) : row.querySelector(q &lt; before ? <span class="t-str">'[data-role="dec"]'</span> : <span class="t-str">'[data-role="inc"]'</span>);
+    f.focus({ preventScroll: <span class="t-kw">true</span> });
+  }
+}
+
+<span class="t-cm">/* Sticky Bottom CTA (v1): shows when the hero's buy block scrolls out of view */</span>
+<span class="t-kw">function</span> renderHeroSticky() {
+  <span class="t-kw">var</span> sub = document.getElementById(<span class="t-str">'product-sticky-cta-sub'</span>), btn = document.getElementById(<span class="t-str">'product-sticky-cta-btn'</span>);
+  <span class="t-kw">if</span> (!sub) <span class="t-kw">return</span>;
+  <span class="t-kw">var</span> p = PRODUCTS[HERO_ID], l = lineOf(HERO_ID);
+  sub.textContent = lineUnits(p, l)
+    ? t(<span class="t-str">'inCartSticky'</span>, { parts: heroParts(p, l), total: money(lineTotal(p, l)) })
+    : t(<span class="t-str">'single'</span>) + <span class="t-str">' '</span> + money(p.price) + (p.multi ? <span class="t-str">' · '</span> + packLabel(p, <span class="t-str">'multi'</span>) + <span class="t-str">' '</span> + money(packPrice(p, <span class="t-str">'multi'</span>)) : <span class="t-str">''</span>);
+  btn.textContent = lineUnits(p, l) ? t(<span class="t-str">'viewCart'</span>) : t(<span class="t-str">'add'</span>);
+}
+<span class="t-kw">function</span> heroStickyPrimary() {
+  <span class="t-kw">if</span> (lineUnits(PRODUCTS[HERO_ID], lineOf(HERO_ID))) { openCartPanel(); <span class="t-kw">return</span>; }
+  <span class="t-kw">var</span> root = heroRoot(), first = root.querySelector(<span class="t-str">'[data-add]'</span>);
+  root.scrollIntoView({ behavior: reduceMotion.matches ? <span class="t-str">'auto'</span> : <span class="t-str">'smooth'</span>, block: <span class="t-str">'center'</span> });
+  <span class="t-kw">if</span> (first) setTimeout(<span class="t-kw">function</span> () { first.focus({ preventScroll: <span class="t-kw">true</span> }); }, 450);
+}</pre></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANIMATION ═══════════════════════════════════════ -->
+    <section class="doc-section" id="animation">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Animation</h2>
+      <p class="section-desc">Same motion vocabulary as the tile and picker (full specs in <a href="pack-size-picker-spec.html#animation">Pack Size Picker › Animation</a>). All of it is skipped with reduced motion.</p>
+      <div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Element</th><th>Trigger</th><th>Animation</th><th>Duration</th><th>Easing</th></tr></thead><tbody><tr><td>Fly-to-cart</td><td>Any increase</td><td>Pack thumbnail copy (56px) arcs to the header cart: lifts 60px, scale 0.8 mid-way, lands 24px</td><td>700ms</td><td>cubic-bezier(0.45, 0, 0.55, 1)</td></tr><tr><td>Badge bump</td><td>Thumbnail lands / any decrease</td><td>scale 1 → 1.35 → 1</td><td>350ms</td><td>ease</td></tr><tr><td>Quantity roll</td><td>Stepper change (not on Add or on removal)</td><td>Old number out, new number in</td><td>260ms</td><td>cubic-bezier(0.2, 0.7, 0.3, 1)</td></tr><tr><td>Summary points</td><td>Total points change</td><td>Count-up + gold pulse</td><td>600ms / 700ms</td><td>ease-out</td></tr><tr><td>Add ⇄ stepper</td><td>First add / removal</td><td>None: instant swap. Both are 48px, so the row doesn't shift.</td><td>–</td><td>–</td></tr><tr><td>Summary show / hide</td><td>First item / last removed</td><td>None (<code>hidden</code> toggle)</td><td>–</td><td>–</td></tr><tr><td>Sticky bar (v1)</td><td>Buy block leaves / re-enters the viewport</td><td>translateY(100%) → 0</td><td>300ms</td><td>ease</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">At ≤768px the hero stacks (v1 rule) and the buy block goes full width. Rows tighten (48px thumbnail, 14px / 12px text, 72px min-height) and the control narrows to 144px. Toasts sit above the mobile bottom nav. The preview restates these rules under <code>.pv-mobile-hero</code>.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-row"><div><div class="pv-label">390px, empty</div><div class="pv-mobile-hero"><div class="ufs-product-hero__intro"><div class="ufs-product-hero__header"><p class="ufs-product-hero__eyebrow">Stocks</p><h1 class="ufs-product-hero__title">Knorr Chicken Stock Granules 1 kg</h1><div class="ufs-product-hero__tags"><span class="ufs-product-hero__tag">Vegan</span><span class="ufs-product-hero__tag">Gluten Free</span><span class="ufs-product-hero__tag">No MSG</span></div></div></div><div style="height:16px"></div><div class="ufs-product-hero__buy"><div class="ufs-product-hero__buy-hd"><p class="ufs-product-hero__buy-label">Choose pack size and quantity</p><p class="ufs-product-hero__buy-note">Price indication (excl. VAT)</p></div><div class="ufs-product-hero__packs"><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Single item<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b> · 1 kg</p></div><div class="ufs-pack-row__ctl"><button type="button" class="btn btn-primary ufs-product-hero__add"><img src="../icons/cart.svg" alt=""/>Add to cart</button></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Pack of 6<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.100</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b> · 6 × 1 kg (<bdi>€18.90</bdi> each)</p></div><div class="ufs-pack-row__ctl"><button type="button" class="btn btn-primary ufs-product-hero__add"><img src="../icons/cart.svg" alt=""/>Add to cart</button></div></div></div><p class="ufs-product-hero__sample">Not sure yet? <a href="#" onclick="return false;">Request a free sample</a></p></div></div></div><div><div class="pv-label">390px, 1 single + 1 pack</div><div class="pv-mobile-hero"><div class="ufs-product-hero__intro"><div class="ufs-product-hero__header"><p class="ufs-product-hero__eyebrow">Stocks</p><h1 class="ufs-product-hero__title">Knorr Chicken Stock Granules 1 kg</h1><div class="ufs-product-hero__tags"><span class="ufs-product-hero__tag">Vegan</span><span class="ufs-product-hero__tag">Gluten Free</span><span class="ufs-product-hero__tag">No MSG</span></div></div></div><div style="height:16px"></div><div class="ufs-product-hero__buy"><div class="ufs-product-hero__buy-hd"><p class="ufs-product-hero__buy-label">Choose pack size and quantity</p><p class="ufs-product-hero__buy-note">Price indication (excl. VAT)</p></div><div class="ufs-product-hero__packs"><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Single item<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b> · 1 kg</p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn fi-qty-btn--delete" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" d="M29.17 12.6v-1.65C29.17 8.22 26.93 6 24.17 6h-3.34c-2.76 0-5 2.22-5 4.95v1.65H9.17a1.66 1.66 0 1 0 0 3.3h1.66v18.15c0 2.73 2.24 4.95 5 4.95h13.34c2.76 0 5-2.22 5-4.95V15.9h1.66a1.66 1.66 0 1 0 0-3.3zm-8.34-3.3h3.34c.92 0 1.66.74 1.66 1.65v1.65h-6.66v-1.65c0-.91.74-1.65 1.66-1.65zm8.34 26.4H15.83c-.92 0-1.66-.74-1.66-1.65V15.9h16.66v18.15c0 .91-.74 1.65-1.66 1.65z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Pack of 6<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.100</span><span class="sr-only"> points</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b> · 6 × 1 kg (<bdi>€18.90</bdi> each)</p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn fi-qty-btn--delete" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" d="M29.17 12.6v-1.65C29.17 8.22 26.93 6 24.17 6h-3.34c-2.76 0-5 2.22-5 4.95v1.65H9.17a1.66 1.66 0 1 0 0 3.3h1.66v18.15c0 2.73 2.24 4.95 5 4.95h13.34c2.76 0 5-2.22 5-4.95V15.9h1.66a1.66 1.66 0 1 0 0-3.3zm-8.34-3.3h3.34c.92 0 1.66.74 1.66 1.65v1.65h-6.66v-1.65c0-.91.74-1.65 1.66-1.65zm8.34 26.4H15.83c-.92 0-1.66-.74-1.66-1.65V15.9h16.66v18.15c0 .91-.74 1.65-1.66 1.65z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>7 items in cart (1 × single · 1 × pack of 6)</span><b><bdi>€132.30</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.450</span><span class="sr-only"> points</span></span></div></div><p class="ufs-product-hero__sample">Not sure yet? <a href="#" onclick="return false;">Request a free sample</a></p></div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N &AMP; RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The rows mirror on their own (grid + logical properties): the thumbnail moves to the right and the control to the left, and the ×N count moves to the thumbnail's bottom-left. The header label and price note swap sides. Prices are in <code>&lt;bdi&gt;</code> so <span dir="rtl">"6 × 1 كغ (<bdi>€18.90</bdi> للقطعة)"</span> keeps its order.</p>
+      <div class="ds-card"><div class="card-title">Strings</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Key</th><th>English</th><th>Arabic</th></tr></thead><tbody><tr><td><code>choose</code></td><td>Choose pack size and quantity</td><td><span dir="rtl">اختر حجم العبوة والكمية</span></td></tr><tr><td><code>priceNote</code></td><td>Price indication (excl. VAT)</td><td><span dir="rtl">سعر تقديري (غير شامل ضريبة القيمة المضافة)</span></td></tr><tr><td><code>single</code></td><td>Single item</td><td><span dir="rtl">قطعة واحدة</span></td></tr><tr><td><code>packOf</code></td><td>Pack of {n}</td><td><span dir="rtl">عبوة من {n}</span></td></tr><tr><td><code>add</code></td><td>Add to cart</td><td><span dir="rtl">أضف إلى السلة</span></td></tr><tr><td><code>each</code></td><td>each</td><td><span dir="rtl">للقطعة</span></td></tr><tr><td><code>itemsInCart</code></td><td>{n} items in cart</td><td><span dir="rtl">{n} منتجات في السلة</span></td></tr><tr><td><code>partSingle</code></td><td>{q} × single</td><td><span dir="rtl">{q} × مفردة</span></td></tr><tr><td><code>partMulti</code></td><td>{q} × pack of {n}</td><td><span dir="rtl">{q} × عبوة من {n}</span></td></tr><tr><td><code>sample</code></td><td>Not sure yet? Request a free sample</td><td><span dir="rtl">لست متأكدًا بعد؟ اطلب عينة مجانية</span></td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">RTL previews</div><div aria-hidden="true" inert class="pv-row"><div class="pv-col"><div class="pv-label">Desktop info column, dir="rtl"</div><div class="pv-buy" dir="rtl"><div class="ufs-product-hero__intro"><div class="ufs-product-hero__header"><p class="ufs-product-hero__eyebrow">مرق</p><h1 class="ufs-product-hero__title">كنور حبيبات مرق الدجاج 1 كغ</h1><div class="ufs-product-hero__tags"><span class="ufs-product-hero__tag">نباتي</span><span class="ufs-product-hero__tag">خالٍ من الغلوتين</span><span class="ufs-product-hero__tag">بدون أحادي غلوتامات الصوديوم</span></div></div></div><div style="height:24px"></div><div class="ufs-product-hero__buy"><div class="ufs-product-hero__buy-hd"><p class="ufs-product-hero__buy-label">اختر حجم العبوة والكمية</p><p class="ufs-product-hero__buy-note">سعر تقديري (غير شامل ضريبة القيمة المضافة)</p></div><div class="ufs-product-hero__packs"><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">قطعة واحدة<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> نقطة</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b> · 1 كغ</p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="2" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">عبوة من 6<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.100</span><span class="sr-only"> نقطة</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b> · 6 × 1 كغ (<bdi>€18.90</bdi> للقطعة)</p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn fi-qty-btn--delete" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" d="M29.17 12.6v-1.65C29.17 8.22 26.93 6 24.17 6h-3.34c-2.76 0-5 2.22-5 4.95v1.65H9.17a1.66 1.66 0 1 0 0 3.3h1.66v18.15c0 2.73 2.24 4.95 5 4.95h13.34c2.76 0 5-2.22 5-4.95V15.9h1.66a1.66 1.66 0 1 0 0-3.3zm-8.34-3.3h3.34c.92 0 1.66.74 1.66 1.65v1.65h-6.66v-1.65c0-.91.74-1.65 1.66-1.65zm8.34 26.4H15.83c-.92 0-1.66-.74-1.66-1.65V15.9h16.66v18.15c0 .91-.74 1.65-1.66 1.65z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>8 منتجات في السلة (2 × مفردة · 1 × عبوة من 6)</span><b><bdi>€151.20</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.800</span><span class="sr-only"> نقطة</span></span></div></div><p class="ufs-product-hero__sample">لست متأكدًا بعد؟ <a href="#" onclick="return false;">اطلب عينة مجانية</a></p></div></div></div><div><div class="pv-label">Mobile, dir="rtl"</div><div class="pv-mobile-hero" dir="rtl"><div class="ufs-product-hero__buy"><div class="ufs-product-hero__buy-hd"><p class="ufs-product-hero__buy-label">اختر حجم العبوة والكمية</p><p class="ufs-product-hero__buy-note">سعر تقديري (غير شامل ضريبة القيمة المضافة)</p></div><div class="ufs-product-hero__packs"><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">قطعة واحدة<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> نقطة</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b> · 1 كغ</p></div><div class="ufs-pack-row__ctl"><button type="button" class="btn btn-primary ufs-product-hero__add"><img src="../icons/cart.svg" alt=""/>أضف إلى السلة</button></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/chicken-stock-granules-1kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">عبوة من 6<span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.100</span><span class="sr-only"> نقطة</span></span></p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b> · 6 × 1 كغ (<bdi>€18.90</bdi> للقطعة)</p></div><div class="ufs-pack-row__ctl"><button type="button" class="btn btn-primary ufs-product-hero__add"><img src="../icons/cart.svg" alt=""/>أضف إلى السلة</button></div></div></div><p class="ufs-product-hero__sample">لست متأكدًا بعد؟ <a href="#" onclick="return false;">اطلب عينة مجانية</a></p></div></div></div></div></div><div class="ds-card"><div class="card-title">RTL rules</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Element</th><th>Rule</th></tr></thead><tbody><tr><td>Rows, header, summary</td><td>Grid / flex, so they mirror with no override</td></tr><tr><td>×N count, points origin</td><td>Shared rules in the Pack Size Picker spec</td></tr><tr><td>Fly-to-cart</td><td>Flies to the cart icon wherever it is (top-left in RTL)</td></tr><tr><td>Sticky bar</td><td>v1 flex row mirrors: the button sits on the left</td></tr></tbody></table></div></div>
+    </section>
+
+  </main>
+
+<!-- Cart toasts (one per page) + a screen-reader live region -->
+<div class="ufs-cart-toasts" id="cart-toasts" role="status" aria-live="polite"></div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+
+// Doc chrome: a table that scrolls sideways gets a keyboard stop + a name, only while it overflows
+function markScrollRegions() {
+  document.querySelectorAll('.spec-table-wrap').forEach(function (w) {
+    if (w.closest('[inert]')) return;
+    if (w.scrollWidth > w.clientWidth + 1) {
+      var t = w.closest('.ds-card') && w.closest('.ds-card').querySelector('.card-title');
+      w.tabIndex = 0; w.setAttribute('role', 'region'); w.setAttribute('aria-label', (t ? t.textContent + ' ' : '') + 'table, scrolls sideways');
+    } else { w.removeAttribute('tabindex'); w.removeAttribute('role'); w.removeAttribute('aria-label'); }
+  });
+}
+window.addEventListener('load', markScrollRegions);
+window.addEventListener('resize', markScrollRegions);
+
+
+/* Demo catalogue. price = one single item; multi = items in the multi-pack
+   (null = sold as single items only); pts = loyalty points per single item. */
+var IMG = '../images/';
+var PRODUCTS = {
+  tomato:  { id: 'tomato',  name: 'Knorr Professional Tomato Pronto 2 kg', cat: 'Sauces', unit: '2 kg', img: 'catalog/knorr/tomato-pronto-2kg.jpg', price: 18.90, multi: 6, pts: 350, badge: 'New' },
+  mash:    { id: 'mash',    name: 'Knorr Professional Mash Flakes 2 kg', cat: 'Sides', unit: '2 kg', img: 'catalog/knorr/mash-flakes-2kg.jpg', price: 24.90, multi: 6, pts: 450 },
+  pouch:   { id: 'pouch',   name: 'Knorr Aromat Original (Pouch) 1 kg', cat: 'Seasonings', unit: '1 kg', img: 'catalog/knorr/aromat-pouch-1kg.jpg', price: 21.75, multi: null, pts: 380 },
+  granules:{ id: 'granules',name: 'Knorr Chicken Stock Granules 1 kg', cat: 'Stocks', unit: '1 kg', img: 'catalog/knorr/chicken-stock-granules-1kg.jpg', price: 18.90, multi: 6, pts: 350 }
+};
+
+var ICON = {
+  minus: '<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg>',
+  plus:  '<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg>',
+  del:   '<svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" d="M29.17 12.6v-1.65C29.17 8.22 26.93 6 24.17 6h-3.34c-2.76 0-5 2.22-5 4.95v1.65H9.17a1.66 1.66 0 1 0 0 3.3h1.66v18.15c0 2.73 2.24 4.95 5 4.95h13.34c2.76 0 5-2.22 5-4.95V15.9h1.66a1.66 1.66 0 1 0 0-3.3zm-8.34-3.3h3.34c.92 0 1.66.74 1.66 1.65v1.65h-6.66v-1.65c0-.91.74-1.65 1.66-1.65zm8.34 26.4H15.83c-.92 0-1.66-.74-1.66-1.65V15.9h16.66v18.15c0 .91-.74 1.65-1.66 1.65z"/></svg>',
+  coin:  '<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg>',
+  check: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 8.5 6.5 12 13 4.5"/></svg>',
+  close: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>'
+};
+
+/* UI copy — every string goes through t() so a locale only swaps this table.
+   Arabic values are in the i18n & RTL section of each spec. */
+var TEXT = {
+  add: 'Add to cart', single: 'Single item', packOf: 'Pack of {n}',
+  choose: 'Choose pack size and quantity', priceNote: 'Price indication (excl. VAT)',
+  inCart: 'In cart', edit: 'Edit', close: 'Close', points: 'points', each: 'each',
+  itemsInCart: '{n} items in cart', itemInCart: '1 item in cart',
+  added: 'Added: {what}', updated: 'Updated: {what}', removed: 'Removed: {what}', viewCart: 'View cart',
+  increase: 'Increase {what}', decrease: 'Decrease {what}', remove: 'Remove {what}', quantity: '{what} quantity'
+};
+function t(key, vars) {
+  return TEXT[key].replace(/\{(\w+)\}/g, function (_, k) { return vars[k]; });
+}
+
+/* ── Cart state ──────────────────────────────────────────────
+   One line per product, one quantity per pack type:
+   cart = { tomato: { single: 2, multi: 1 } }
+   Every change (tile, picker, hero, cart panel) goes through setLine(),
+   and every view re-renders from this one state. Persist it however the
+   platform stores the cart; the prototype keeps it in localStorage. */
+var cart = {};
+var cartViews = [];                       // render functions called after each change
+var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function lineOf(id) { return cart[id] || { single: 0, multi: 0 }; }
+function clampQty(v) { v = parseInt(v, 10); return isNaN(v) || v < 0 ? 0 : Math.min(v, 999); }
+function packLabel(p, pack) { return pack === 'single' ? t('single') : t('packOf', { n: p.multi }); }
+function packPrice(p, pack) { return pack === 'single' ? p.price : p.price * p.multi; }
+function lineUnits(p, l) { return (l.single || 0) + (l.multi || 0) * (p.multi || 1); }
+function lineTotal(p, l) { return (l.single || 0) * p.price + (p.multi ? (l.multi || 0) * packPrice(p, 'multi') : 0); }
+function money(n) { return '€' + n.toFixed(2); }        // use Intl.NumberFormat(locale, { style: 'currency' }) in production
+function fmtPoints(n) { return n.toLocaleString('de-DE'); }
+function escHTML(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+// Returns the previous quantity, so callers can animate old → new
+function setLine(id, pack, qty, quiet) {
+  var l = lineOf(id), before = l[pack] || 0, q = clampQty(qty);
+  if (q === before) return before;
+  l = { single: l.single || 0, multi: l.multi || 0 };
+  l[pack] = q;
+  if (l.single + l.multi) cart[id] = l; else delete cart[id];
+  renderCartBadge();
+  if (!quiet) cartToast(PRODUCTS[id], pack, before, q);
+  cartViews.forEach(function (render) { render(id); });
+  return before;
+}
+
+function cartCount() {
+  return Object.keys(cart).reduce(function (n, id) { return n + cart[id].single + cart[id].multi; }, 0);
+}
+function renderCartBadge() {
+  var n = cartCount();
+  document.querySelectorAll('[data-cart-button]').forEach(function (btn) {
+    var badge = btn.querySelector('.ufs-nav__badge');
+    badge.textContent = n; badge.hidden = n === 0;
+    btn.setAttribute('aria-label', 'Cart, ' + n + ' item' + (n === 1 ? '' : 's'));
+  });
+}
+
+/* ── Cart feedback ── */
+// One wording for every change: Added / Updated / Removed
+function cartToast(p, pack, before, q) {
+  var what = p.name + (p.multi ? ' · ' + packLabel(p, pack) : '');
+  var msg = !q ? t('removed', { what: what })
+    : !before ? t('added', { what: what + (q > 1 ? ' × ' + q : '') })
+    : t('updated', { what: what + ' × ' + q });
+  showToast(msg, { label: t('viewCart'), fn: openCartPanel });
+}
+
+var TOAST_MAX = 2, TOAST_MS = 3200;
+function showToast(msg, action) {
+  var stack = document.getElementById('cart-toasts'), el = document.createElement('div');
+  el.className = 'ufs-cart-toast';
+  var text = document.createElement('span');
+  text.textContent = msg;
+  el.appendChild(text);
+  if (action) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = action.label;
+    b.onclick = function () { action.fn(); dismissToast(el); };
+    el.appendChild(b);
+  }
+  stack.appendChild(el);
+  var live = [].filter.call(stack.children, function (c) { return !c.classList.contains('is-leaving'); });
+  while (live.length > TOAST_MAX) dismissToast(live.shift());      // oldest leaves first
+  if (!reduceMotion.matches) {                                      // grows in, so older toasts glide up
+    var h = el.offsetHeight; el.style.overflow = 'hidden';
+    el.animate([{ height: 0, opacity: 0, transform: 'translateY(8px)' }, { height: h + 'px', opacity: 1, transform: 'none' }],
+      { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }).onfinish = function () { el.style.overflow = ''; };
+  }
+  el._timer = setTimeout(function () { dismissToast(el); }, TOAST_MS);
+}
+function dismissToast(el) {
+  if (el.classList.contains('is-leaving')) return;
+  el.classList.add('is-leaving'); clearTimeout(el._timer);
+  if (reduceMotion.matches) { el.remove(); return; }
+  var h = el.offsetHeight; el.style.overflow = 'hidden';
+  el.animate([{ height: h + 'px', opacity: 1 }, { height: 0, opacity: 0 }],
+    { duration: 200, easing: 'ease-in', fill: 'forwards' }).onfinish = function () { el.remove(); };
+}
+
+// Product photo arcs from fromEl into whichever cart icon is on screen, then the badge bumps
+function flyToCart(fromEl, imgUrl) {
+  var target = [].filter.call(document.querySelectorAll('[data-cart-button]'), function (b) {
+    var r = b.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight;
+  })[0];
+  if (reduceMotion.matches || !fromEl || !target) { bumpBadge(); return; }
+  var a = fromEl.getBoundingClientRect(), c = target.getBoundingClientRect();
+  var size = Math.max(56, Math.min(a.width, a.height, 160));          // tile photo → 160, pack thumbnail → 56
+  var x0 = a.left + (a.width - size) / 2, y0 = a.top + (a.height - size) / 2;
+  var dx = c.left + c.width / 2 - (x0 + size / 2), dy = c.top + c.height / 2 - (y0 + size / 2);
+  var mid = size > 100 ? 0.55 : 0.8, end = 24 / size;                 // lands 24px wide on the icon
+  var fly = document.createElement('div');
+  fly.className = 'ufs-cart-fly';
+  fly.style.cssText = 'left:' + x0 + 'px;top:' + y0 + 'px;width:' + size + 'px;height:' + size + 'px;background-image:url(\'' + imgUrl + '\')';
+  document.body.appendChild(fly);
+  fly.animate([
+    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+    { transform: 'translate(' + dx * 0.45 + 'px,' + (dy * 0.45 - 60) + 'px) scale(' + mid + ')', opacity: 1, offset: 0.45 },
+    { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + end + ')', opacity: 0.6 }
+  ], { duration: 700, easing: 'cubic-bezier(0.45, 0, 0.55, 1)' }).onfinish = function () { fly.remove(); bumpBadge(); };
+}
+function bumpBadge() {
+  document.querySelectorAll('[data-cart-button] .ufs-nav__badge').forEach(function (badge) {
+    badge.classList.remove('is-bump'); void badge.offsetWidth; badge.classList.add('is-bump');
+  });
+}
+
+// Number roll over a stepper's input; the input's own text hides until it lands
+function rollQty(qty, from, up) {
+  var input = qty && qty.querySelector('.fi-qty-input');
+  if (reduceMotion.matches || !input || String(input.value) === String(from)) return;
+  var cs = getComputedStyle(input), roll = document.createElement('span');
+  var ir = input.getBoundingClientRect(), qr = qty.getBoundingClientRect();
+  roll.className = 'ufs-qty-roll'; roll.setAttribute('aria-hidden', 'true');
+  roll.style.cssText = 'left:' + (ir.left - qr.left) + 'px;top:' + (ir.top - qr.top) + 'px;width:' + ir.width + 'px;height:' + ir.height + 'px;font:' + cs.font + ';color:' + cs.color;
+  var dir = up ? 'up' : 'down';
+  roll.innerHTML = '<span class="is-out-' + dir + '">' + from + '</span><span class="is-in-' + dir + '">' + input.value + '</span>';
+  input.style.color = 'transparent';
+  qty.appendChild(roll);
+  setTimeout(function () { roll.remove(); input.style.color = ''; }, 270);
+}
+
+// Points: count from the old value to the new one (600ms ease-out) + one soft gold pulse
+function animatePoints(pill, to) {
+  var val = pill.querySelector('.ufs-points__val');
+  var from = parseInt(val.getAttribute('data-value') || '0', 10);
+  val.setAttribute('data-value', to);
+  cancelAnimationFrame(pill._raf);
+  if (from === to || reduceMotion.matches) { val.textContent = fmtPoints(to); return; }
+  pill.classList.remove('is-pulse'); void pill.offsetWidth; pill.classList.add('is-pulse');
+  var start = performance.now();
+  (function tick(now) {
+    var k = Math.min(Math.max((now - start) / 600, 0), 1), e = 1 - Math.pow(1 - k, 3);   // ease-out cubic
+    val.textContent = fmtPoints(Math.round(from + (to - from) * e));
+    if (k < 1) pill._raf = requestAnimationFrame(tick);
+  })(start);
+}
+function setPoints(pill, to) {
+  var val = pill.querySelector('.ufs-points__val');
+  cancelAnimationFrame(pill._raf);
+  val.setAttribute('data-value', to); val.textContent = fmtPoints(to);
+}
+function pointsHTML(value) {
+  return '<span class="ufs-points">' + ICON.coin + '<span class="ufs-points__val" data-value="' + value + '">' + fmtPoints(value) +
+    '</span><span class="sr-only"> ' + t('points') + '</span></span>';
+}
+
+/* ── Pack rows (shared by the picker and the Product Hero) ── */
+// o: { p, pack, value, scope, args, deleteAtOne, min }  (min: minus disables at this value, default 0)
+// Buttons call {scope}Step(args, ±1), the field calls {scope}Set(args, value).
+// args defaults to the pack: "'single'"; tiles pass "'tomato','single'".
+function stepperHTML(o) {
+  var args = o.args || "'" + o.pack + "'";
+  var what = packLabel(o.p, o.pack), del = o.deleteAtOne && o.value === 1;
+  return '<div class="fi-qty fi-qty--cart" data-pack="' + o.pack + '">' +
+    '<button type="button" class="fi-qty-btn' + (del ? ' fi-qty-btn--delete' : '') + '" data-role="dec"' +
+      ' aria-label="' + escHTML(t(del ? 'remove' : 'decrease', { what: what })) + '"' +
+      ' onclick="' + o.scope + 'Step(' + args + ',-1)"' + (o.value <= (o.min || 0) ? ' disabled' : '') + '>' + (del ? ICON.del : ICON.minus) + '</button>' +
+    '<input class="fi-qty-input" type="number" inputmode="numeric" min="0" max="999" value="' + o.value + '"' +
+      ' aria-label="' + escHTML(t('quantity', { what: what })) + '" onchange="' + o.scope + 'Set(' + args + ',this.value)" onfocus="this.select()"/>' +
+    '<button type="button" class="fi-qty-btn" data-role="inc" aria-label="' + escHTML(t('increase', { what: what })) + '"' +
+      ' onclick="' + o.scope + 'Step(' + args + ',1)">' + ICON.plus + '</button>' +
+  '</div>';
+}
+// meta: the price line under the name — rows choose how much detail to show
+function packRowHTML(p, pack, meta, control) {
+  return '<div class="ufs-pack-row" data-row="' + pack + '">' +
+    '<div class="ufs-pack-row__img" style="background-image:url(\'' + IMG + p.img + '\')">' +
+      (pack === 'multi' ? '<span class="ufs-pack-row__count" aria-hidden="true">×' + p.multi + '</span>' : '') + '</div>' +
+    '<div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">' + packLabel(p, pack) + meta.points + '</p>' +
+      '<p class="ufs-pack-row__meta">' + meta.price + '</p></div>' +
+    '<div class="ufs-pack-row__ctl" data-ctl="' + pack + '">' + control + '</div>' +
+  '</div>';
+}
+
+/* ── Pack Size Picker ──────────────────────────────────────
+   One instance per page, filled per product. Edits the cart live:
+   every stepper change is applied immediately (no submit button). */
+var picker = { id: null, trigger: null };
+
+function openPicker(id, trigger) {
+  picker.id = id; picker.trigger = trigger;
+  var el = document.getElementById('pack-picker');
+  document.getElementById('pack-picker-title').textContent = PRODUCTS[id].name;
+  renderPicker(false);
+  el.classList.add('is-open');
+  document.getElementById('pack-picker-backdrop').classList.add('is-open');
+  positionPicker(trigger);
+  positionToasts();
+  // Focus the dialog itself (no ring, nothing pre-selected); Tab moves to its first control.
+  // On mobile wait for the sheet to finish sliding in.
+  setTimeout(function () { el.focus({ preventScroll: true }); }, isMobile() ? 260 : 0);
+}
+
+function renderPicker(animate) {
+  var p = PRODUCTS[picker.id], l = lineOf(picker.id);
+  document.getElementById('pack-picker-rows').innerHTML = ['single', 'multi'].map(function (pack) {
+    return packRowHTML(p, pack, { points: '', price: '<b>' + money(packPrice(p, pack)) + '</b>' },
+      stepperHTML({ p: p, pack: pack, value: l[pack] || 0, scope: 'picker' }));
+  }).join('');
+  var units = lineUnits(p, l);
+  document.getElementById('pack-picker-count').textContent =
+    (units === 1 ? t('itemInCart') : t('itemsInCart', { n: units })) +
+    (l.multi ? ' (' + (l.single || 0) + ' single + ' + l.multi + ' × ' + p.multi + ')' : '');
+  document.getElementById('pack-picker-total').textContent = money(lineTotal(p, l));
+  var pill = document.querySelector('#pack-picker-points .ufs-points');
+  (animate ? animatePoints : setPoints)(pill, units * p.pts);
+}
+
+function pickerStep(pack, d) { pickerSet(pack, (lineOf(picker.id)[pack] || 0) + d, true); }
+function pickerSet(pack, value, fromStep) {
+  var before = setLine(picker.id, pack, value), q = lineOf(picker.id)[pack] || 0;   // setLine re-renders the picker
+  if (q === before) { renderPicker(false); return; }                                 // e.g. "abc" typed: restore the field
+  var row = document.querySelector('#pack-picker-rows [data-row="' + pack + '"]');
+  rollQty(row.querySelector('.fi-qty'), before, q > before);
+  if (q > before) flyToCart(row.querySelector('.ufs-pack-row__img'), IMG + PRODUCTS[picker.id].img);
+  else bumpBadge();
+  if (fromStep) {                                     // focus stays on the pressed button…
+    var btn = row.querySelector(q < before ? '[data-role="dec"]' : '[data-role="inc"]');
+    if (btn.disabled) btn = row.querySelector('[data-role="inc"]');   // …unless minus just disabled at 0
+    btn.focus({ preventScroll: true });
+  }
+}
+
+function closePicker(skipFocus) {
+  if (!picker.id) return;
+  document.getElementById('pack-picker').classList.remove('is-open');
+  document.getElementById('pack-picker-backdrop').classList.remove('is-open');
+  var back = pickerTrigger();
+  if (!skipFocus && back) back.focus({ preventScroll: true });
+  picker.id = null;
+  positionToasts();
+}
+
+// While the mobile sheet is open, toasts sit 12px above it instead of behind it
+function positionToasts() {
+  var stack = document.getElementById('cart-toasts'), el = document.getElementById('pack-picker');
+  if (picker.id && isMobile()) stack.style.bottom = 'calc(' + el.offsetHeight + 'px + var(--space-3))';
+  else stack.style.bottom = '';
+}
+
+// The trigger may have been re-rendered while the picker was open (the tile behind it
+// updates live), so fall back to the product's current Edit / Add to cart control.
+function pickerTrigger() {
+  if (picker.trigger && document.contains(picker.trigger)) return picker.trigger;
+  return document.querySelector('[data-picker-return="' + picker.id + '"]');
+}
+
+function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
+
+// Desktop: always ABOVE the trigger, 12px gap, same width as the tile and flush with
+// its edges; the arrow (bottom edge) points at the trigger's centre. If there isn't
+// room above, the page first smooth-scrolls just enough to fit it, 16px below the sticky
+// header, with the picker riding along with the tile.
+function pickerSafeTop() {
+  var header = document.querySelector('[data-sticky-header]');   // the site header, while it's on screen
+  return Math.max(0, header ? header.getBoundingClientRect().bottom : 0) + 16;
+}
+function positionPicker(trigger) {
+  var el = document.getElementById('pack-picker'), arrow = el.querySelector('.ufs-pack-picker__arrow');
+  if (isMobile()) { el.style.width = ''; return; }
+  var tile = trigger.closest('[data-picker-anchor]'), box = tile && tile.getBoundingClientRect();
+  if (box) el.style.width = box.width + 'px';
+  var h = el.offsetHeight, need = h + 12 + pickerSafeTop(), r = trigger.getBoundingClientRect();
+  if (r.top < need - 1 && scrollY > 0 && !picker.autoScroll) startPickerScroll(need - r.top);
+  var w = el.offsetWidth;
+  var left = box ? box.left : Math.min(Math.max(16, r.left + r.width / 2 - w / 2), innerWidth - w - 16);
+  el.style.left = left + 'px';
+  // While scrolling-to-fit it follows the tile; afterwards the floor only applies when
+  // the page can't scroll further
+  el.style.top = (picker.autoScroll ? r.top - 12 - h : Math.max(pickerSafeTop(), r.top - 12 - h)) + 'px';
+  arrow.style.left = (r.left + r.width / 2 - left - 7) + 'px';
+}
+
+window.addEventListener('resize', function () { if (picker.id && pickerTrigger()) positionPicker(pickerTrigger()); });
+// Desktop popover is anchored to the page: it closes on scroll instead of drifting
+window.addEventListener('scroll', function () {
+  if (picker.autoScroll) { if (picker.id && pickerTrigger()) positionPicker(pickerTrigger()); return; }   // ride along
+  if (picker.id && !isMobile()) closePicker();
+}, { passive: true });
+// Scroll-to-fit: smooth (instant with reduced motion). Our own scroll must not close
+// the picker; it repositions on every frame instead, then once more when it settles.
+function startPickerScroll(gap) {
+  picker.autoScroll = true;
+  var done = function () {
+    if (!picker.autoScroll) return;
+    picker.autoScroll = false; clearTimeout(fallback);
+    if (picker.id && pickerTrigger()) positionPicker(pickerTrigger());
+  };
+  var fallback = setTimeout(done, 1000);   // no scrollend event (older Safari)
+  window.addEventListener('scrollend', done, { once: true });
+  window.scrollBy({ top: -gap, behavior: reduceMotion.matches ? 'instant' : 'smooth' });
+}
+document.addEventListener('keydown', function (e) {
+  if (!picker.id) return;
+  if (e.key === 'Escape') { closePicker(); return; }
+  if (e.key !== 'Tab') return;                       // keep Tab inside the open picker
+  var f = [].slice.call(document.querySelectorAll('#pack-picker button:not(:disabled), #pack-picker input'));
+  if (e.shiftKey && (document.activeElement === f[0] || document.activeElement.id === 'pack-picker')) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+});
+cartViews.push(function (id) { if (picker.id === id) renderPicker(true); });
+
+/* Doc-only stand-in: the Cart Panel has its own spec. Here "View cart" just bumps the badge. */
+function openCartPanel() { bumpBadge(); }
+document.addEventListener('DOMContentLoaded', function () {
+  var pts = document.getElementById('pack-picker-points');
+  if (pts) pts.innerHTML = pointsHTML(0);
+  renderCartBadge();
+});
+
+/* ── Product Hero + Add to cart ──
+   Uses the shared cart engine (pack-size-picker-spec.html). */
+TEXT.heroParts = '{parts}';
+TEXT.partSingleHero = '{q} × single';
+TEXT.partMultiHero = '{q} × pack of {n}';
+TEXT.inCartSticky = 'In cart: {parts} · {total}';
+
+var HERO_ID = 'granules';                 // the product on this page
+function heroRoot() { return document.getElementById('hero-buy'); }
+
+function heroParts(p, l) {
+  var parts = [];
+  if (l.single) parts.push(t('partSingleHero', { q: l.single }));
+  if (l.multi) parts.push(t('partMultiHero', { q: l.multi, n: p.multi }));
+  return parts.join(' · ');
+}
+
+// "€18.90 · 1 kg"  /  "€113.40 · 6 × 1 kg (€18.90 each)"
+function heroMeta(p, pack) {
+  return pack === 'single'
+    ? '<b>' + money(p.price) + '</b> · ' + p.unit
+    : '<b>' + money(packPrice(p, 'multi')) + '</b> · ' + p.multi + ' × ' + p.unit + ' (' + money(p.price) + ' ' + t('each') + ')';
+}
+
+// At 0 the row shows "Add to cart"; from 1 a stepper whose minus is a bin at 1
+function heroControl(pack) {
+  var p = PRODUCTS[HERO_ID], q = lineOf(HERO_ID)[pack] || 0;
+  if (!q) {
+    return '<button type="button" class="btn btn-primary ufs-product-hero__add" data-add="' + pack + '" onclick="heroStep(\'' + pack + '\',1)"' +
+      ' aria-label="' + escHTML(t('add') + ': ' + packLabel(p, pack)) + '"><img src="../icons/cart.svg" alt=""/>' + t('add') + '</button>';
+  }
+  return stepperHTML({ p: p, pack: pack, value: q, scope: 'hero', deleteAtOne: true });
+}
+
+// Rows render once; afterwards only the controls and summary update, so focus survives
+function renderHeroRows() {
+  var p = PRODUCTS[HERO_ID], packs = p.multi ? ['single', 'multi'] : ['single'];
+  heroRoot().querySelector('[data-packs]').innerHTML = packs.map(function (pack) {
+    var pts = pointsHTML(p.pts * (pack === 'multi' ? p.multi : 1));     // fixed: points one pack earns
+    return packRowHTML(p, pack, { points: pts, price: heroMeta(p, pack) }, heroControl(pack));
+  }).join('');
+  heroRoot().querySelector('[data-summary-points]').innerHTML = pointsHTML(0);
+}
+
+function renderHero(animate) {
+  var root = heroRoot(), p = PRODUCTS[HERO_ID], l = lineOf(HERO_ID), units = lineUnits(p, l);
+  root.querySelectorAll('[data-ctl]').forEach(function (ctl) { ctl.innerHTML = heroControl(ctl.getAttribute('data-ctl')); });
+  root.querySelector('[data-summary]').hidden = units === 0;
+  root.querySelector('[data-summary-count]').textContent =
+    (units === 1 ? t('itemInCart') : t('itemsInCart', { n: units })) + (l.multi ? ' (' + heroParts(p, l) + ')' : '');
+  root.querySelector('[data-summary-total]').textContent = money(lineTotal(p, l));
+  (animate ? animatePoints : setPoints)(root.querySelector('[data-summary-points] .ufs-points'), units * p.pts);
+  renderHeroSticky();
+}
+cartViews.push(function (id) { if (id === HERO_ID) renderHero(true); });   // cart panel edits update the hero too
+
+function heroStep(pack, d) { heroSet(pack, (lineOf(HERO_ID)[pack] || 0) + d, true); }
+function heroSet(pack, value, fromStep) {
+  var row = heroRoot().querySelector('[data-row="' + pack + '"]');
+  var before = setLine(HERO_ID, pack, value), q = lineOf(HERO_ID)[pack] || 0;   // setLine re-renders the controls
+  if (q === before) { renderHero(false); return; }
+  if (before && q) rollQty(row.querySelector('.fi-qty'), before, q > before);
+  if (q > before) flyToCart(row.querySelector('.ufs-pack-row__img'), IMG + PRODUCTS[HERO_ID].img); else bumpBadge();
+  if (fromStep) {          // focus stays on the pressed control, or on Add to cart once the line is gone
+    var f = !q ? row.querySelector('[data-add]') : row.querySelector(q < before ? '[data-role="dec"]' : '[data-role="inc"]');
+    f.focus({ preventScroll: true });
+  }
+}
+
+/* Sticky Bottom CTA (v1): shows when the hero's buy block scrolls out of view */
+function renderHeroSticky() {
+  var sub = document.getElementById('product-sticky-cta-sub'), btn = document.getElementById('product-sticky-cta-btn');
+  if (!sub) return;
+  var p = PRODUCTS[HERO_ID], l = lineOf(HERO_ID);
+  sub.textContent = lineUnits(p, l)
+    ? t('inCartSticky', { parts: heroParts(p, l), total: money(lineTotal(p, l)) })
+    : t('single') + ' ' + money(p.price) + (p.multi ? ' · ' + packLabel(p, 'multi') + ' ' + money(packPrice(p, 'multi')) : '');
+  btn.textContent = lineUnits(p, l) ? t('viewCart') : t('add');
+}
+function heroStickyPrimary() {
+  if (lineUnits(PRODUCTS[HERO_ID], lineOf(HERO_ID))) { openCartPanel(); return; }
+  var root = heroRoot(), first = root.querySelector('[data-add]');
+  root.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'center' });
+  if (first) setTimeout(function () { first.focus({ preventScroll: true }); }, 450);
+}
+
+/* Doc-only init + a sticky bar pinned inside the preview */
+function openRequestSample() {}
+document.addEventListener('DOMContentLoaded', function () { renderHeroRows(); renderHero(false); });
+
+  </script>
+</body>
+</html>

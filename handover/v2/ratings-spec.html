@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ratings — UFS Spec v2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../tokens.css" />
+  <style>
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       campaign-hero-spec.html. The Overview demo button depends on
+       it; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       v2.0 DOC ADDITIONS (spec-doc only)
+    ═══════════════════════════════════════ */
+    .doc-topbar-version { margin-inline-start: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-brand-primary); background: rgba(255,90,0,0.15); border-radius: 3px; padding: 2px 6px; }
+    .doc-header-meta-val a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    .doc-header-meta-val a:hover { color: var(--color-salt); }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-pad { padding: 32px 24px; }
+    .pv-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    .pv-col { flex: 1 1 320px; min-width: 0; }
+    .spec-table-wrap { overflow-x: auto; margin-top: 10px; }
+    .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; }
+    .spec-table th { text-align: start; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--color-mushroom-900); padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-300); white-space: nowrap; }
+    .spec-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-100); vertical-align: top; color: var(--color-brand-dark); }
+    .spec-table td:first-child { font-weight: 600; }
+    .spec-table td[dir="rtl"] { font-family: 'IBM Plex Arabic', system-ui, sans-serif; font-size: 13px; }
+    kbd { font-family: var(--font-family-mono); font-size: 11px; background: var(--color-mushroom-300); border-radius: 3px; padding: 1px 5px; }
+    /* Doc-only stand-in for the header cart icon: target for the fly-to-cart + badge bump */
+    .pv-cartbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; margin: -32px -24px 24px; background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md) var(--radius-md) 0 0; font-size: 12px; color: var(--color-mushroom-900); }
+    .pv-cartbar .ufs-nav__icon-btn { position: relative; width: 40px; height: 40px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pv-cartbar .ufs-nav__icon-btn img { width: 24px; height: 24px; }
+    .ufs-nav__badge {
+      position: absolute; top: var(--space-1); right: var(--space-1);
+      min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-full);
+      background: var(--color-brand-primary); color: var(--color-salt);
+      font-size: 9px; font-weight: var(--text-btn-w);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ufs-nav__badge[hidden] { display: none; }
+
+
+    /* ═══════════════════════════════════════
+       DRAWER SHELL — mirrored 1:1 from v1 full-page-preview-v0.2.html
+       (.signin-backdrop / .signin-panel / -hd / -close / -body / -title / -ft).
+       Shared by Sign-in, Filters, Wholesaler Picker…; not part of this spec.
+    ═══════════════════════════════════════ */
+    :root { --mnav-h: 56px; }
+    .signin-backdrop { position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,0.75); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .signin-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 901; width: 420px; background: var(--color-salt); transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s; box-shadow: none; display: flex; flex-direction: column; }
+    .signin-panel.is-open { transform: translateX(0); box-shadow: -8px 0 40px rgba(0,0,0,0.18); }
+    @media (max-width: 1024px) { .signin-panel { width: calc(100% - 16px); } }
+    .signin-panel-hd { height: var(--mnav-h); padding: 0 var(--space-4); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-mushroom-300); flex-shrink: 0; }
+    .signin-panel-logo { height: var(--space-6); }
+    .signin-close { width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full); background: var(--color-mushroom-100); border: none; cursor: pointer; color: var(--color-brand-dark); display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
+    .signin-close:hover { background: var(--color-mushroom-300); }
+    .signin-close svg { width: 12px; height: 12px; }
+    .signin-panel-body { flex: 1; overflow-y: auto; padding: var(--space-7); }
+    .signin-panel-title { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); margin: 0 0 var(--space-3); }
+    .signin-panel-ft { display: flex; gap: var(--space-3); padding: var(--space-4) var(--space-7); border-top: 1px solid var(--color-mushroom-300); }
+    .signin-panel-ft .btn { flex: 1; }
+    [dir="rtl"] .signin-panel { right: auto; left: 0; transform: translateX(-100%); box-shadow: none; }
+    [dir="rtl"] .signin-panel.is-open { transform: translateX(0); box-shadow: 8px 0 40px rgba(0,0,0,0.18); }
+
+    /* ═══════════════════════════════════════
+       CHECKBOX — mirrored 1:1 from v1 form-journeys.html (consent variant
+       with the check.svg tick). Not part of this spec.
+    ═══════════════════════════════════════ */
+    .fi-checkbox { display: flex; align-items: flex-start; gap: var(--space-3); cursor: pointer; }
+    .fi-checkbox input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .fi-checkbox-box { flex-shrink: 0; width: 20px; height: 20px; border: 1.5px solid var(--color-mushroom-700); border-radius: var(--radius-xs); background: var(--color-salt); display: flex; align-items: center; justify-content: center; transition: background 0.1s, border-color 0.1s; }
+    .fi-checkbox-box img { width: 11px; height: 11px; opacity: 0; filter: brightness(0) invert(1); transition: opacity 0.1s; }
+    .fi-checkbox input:checked + .fi-checkbox-box { background: var(--color-brand-dark); border-color: var(--color-brand-dark); }
+    .fi-checkbox input:checked + .fi-checkbox-box img { opacity: 1; }
+    .fi-checkbox input:focus-visible + .fi-checkbox-box { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+    .fi-checkbox-label { font-size: var(--text-body-sm-size); color: var(--color-brand-dark); line-height: 1.4; padding-top: 1px; }
+    .fi-checkbox-label a { color: var(--color-accessible-orange); text-decoration: underline; text-underline-offset: 2px; }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .pv-drawer { background: var(--color-squid-900); border-radius: var(--radius-md); padding: 32px 24px; display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+    .pv-drawer .signin-panel { position: relative; inset: auto; z-index: auto; transform: none; transition: none; width: 420px; max-width: 100%; height: auto; border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-lg); }
+    .pv-drawer.pv-m .signin-panel { width: 374px; }
+    .pv-recipe { background: var(--color-mushroom-100); border-radius: var(--radius-md); padding: 32px; }
+    .pv-recipe--narrow { max-width: 390px; margin: 0 auto; padding: 16px; }
+    /* .pv-mob restates the ≤768px rules */
+    .pv-mob .ufs-ratings { padding: var(--space-6); }
+    .pv-mob .ufs-ratings__summary { flex-direction: column; align-items: stretch; gap: var(--space-6); }
+    .pv-mob .ufs-ratings__bars { flex-basis: auto; }
+    .pv-mob .ufs-ratings .text-h5 { font-size: var(--text-h5-mob-size); }
+    .pv-mob .ufs-ratings .text-h6 { font-size: var(--text-h6-mob-size); }
+    .pv-mob .ufs-ratings .text-price-xl { font-size: var(--text-price-xl-mob-size); }
+    .pv-mob .signin-panel-title { font-size: var(--text-h5-mob-size); }
+    .pv-star-row { display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-end; }
+    .pv-star-row figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 11px; color: var(--color-mushroom-900); }
+
+/* Star — one shape (a 5-point star mask) that takes any fill. --fill paints that much
+   of the star in --star-on, so averages show partially (4.2 → the 5th star 20% filled).
+   The mask is a data URI on purpose: an external .svg mask is blocked by CORS on file://. */
+.ufs-star {
+  --star-size: var(--space-4); --fill: 0%;
+  --star-on: var(--color-orange-500); --star-off: var(--color-mushroom-500);
+  display: block; flex-shrink: 0; width: var(--star-size); height: var(--star-size);
+  background: linear-gradient(90deg, var(--star-on) var(--fill), var(--star-off) var(--fill));
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 0L19.5922 11.0557H31.2169L21.8123 17.8885L25.4046 28.9443L16 22.1115L6.59544 28.9443L10.1877 17.8885L0.783095 11.0557H12.4078L16 0Z'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 0L19.5922 11.0557H31.2169L21.8123 17.8885L25.4046 28.9443L16 22.1115L6.59544 28.9443L10.1877 17.8885L0.783095 11.0557H12.4078L16 0Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.ufs-stars { display: flex; align-items: center; gap: 1px; }
+/* RTL: a partial star fills from the right */
+[dir="rtl"] .ufs-star { background: linear-gradient(270deg, var(--star-on) var(--fill), var(--star-off) var(--fill)); }
+
+/* Ratings — inline card on the Recipe Detail page (between the tags and the chef tile).
+   Two states on one root via [data-state]: "none" (no ratings yet) and "summary". */
+.ufs-ratings {
+  background: var(--color-salt); border: 1px solid var(--color-mushroom-500);
+  border-radius: var(--radius-lg); padding: var(--space-8); color: var(--color-brand-dark);
+}
+.ufs-ratings h2, .ufs-ratings p { margin: 0; }
+.ufs-ratings__none { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; }
+.ufs-ratings__summary { display: flex; align-items: center; gap: var(--space-8); }
+.ufs-ratings[data-state="none"] .ufs-ratings__summary,
+.ufs-ratings[data-state="summary"] .ufs-ratings__none { display: none; }
+
+.ufs-ratings__overview { flex: 1 0 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: var(--space-3); text-align: center; }
+.ufs-ratings__score-group { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+.ufs-ratings__score { display: flex; flex-direction: column; gap: var(--space-1); }
+.ufs-ratings__avg-row { display: flex; align-items: flex-end; justify-content: center; gap: var(--space-1); }
+
+/* Distribution: one bar per star value, 5 → 1. 371px = Figma's bars column. */
+.ufs-ratings__bars { flex: 0 1 371px; display: flex; flex-direction: column; gap: var(--space-4); list-style: none; margin: 0; padding: 0; }
+.ufs-ratings__bar-row { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-body-sm-size); line-height: 1; }
+.ufs-ratings__bar-label { display: flex; align-items: center; gap: var(--space-1); }
+.ufs-ratings__bar-label .ufs-star { --star-size: var(--space-3); --fill: 100%; }
+.ufs-ratings__bar { flex: 1 0 0; min-width: 0; height: var(--space-2); border-radius: var(--space-1); background: var(--color-mushroom-300); overflow: hidden; }
+.ufs-ratings__bar-fill { display: block; height: 100%; border-radius: inherit; background: var(--color-aubergine); transition: width 0.4s ease; }
+.ufs-ratings__bar-count { min-width: var(--space-5); text-align: center; }
+@media (max-width: 768px) {
+  .ufs-ratings { padding: var(--space-6); }
+  .ufs-ratings__summary { flex-direction: column; align-items: stretch; gap: var(--space-6); }
+  .ufs-ratings__bars { flex-basis: auto; }
+  .ufs-ratings .text-h5 { font-size: var(--text-h5-mob-size); }
+  .ufs-ratings .text-h6 { font-size: var(--text-h6-mob-size); }
+  .ufs-ratings .text-price-xl { font-size: var(--text-price-xl-mob-size); }
+}
+@media (prefers-reduced-motion: reduce) { .ufs-ratings__bar-fill { transition: none; } }
+
+/* Rating drawer — content of the v1 side panel (.signin-panel) */
+.ufs-rating-panel__title { margin-bottom: var(--space-4); }
+.ufs-rating-card {
+  display: flex; flex-direction: column; gap: var(--space-4);
+  padding: var(--space-4); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md);
+}
+.ufs-rating-card p { margin: 0; }
+.ufs-rating-card__head { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; }
+.ufs-rating-card__title { font-size: var(--text-body-size); font-weight: var(--text-btn-w); line-height: var(--text-body-lh); color: var(--color-brand-dark); }
+.ufs-rating-card__result { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-body-sm-size); color: var(--color-brand-dark); }
+.ufs-rating-card__result .ufs-star { --star-size: var(--space-6); --star-on: var(--color-accessible-orange); }
+.ufs-rating-card__photo { height: 200px; border-radius: var(--radius-sm); background: center / cover no-repeat; }
+.ufs-rating-card__input {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-3);
+  padding: var(--space-4) 0; border-radius: var(--radius-md); background: var(--color-mushroom-100);
+  font-size: var(--text-body-sm-size); color: var(--color-brand-dark);
+}
+
+/* Star input: five radio buttons. Hover / focus lifts the star and turns it white */
+.ufs-rating-input { display: flex; gap: 1px; }
+.ufs-rating-input__star { padding: 0; border: none; background: none; cursor: pointer; border-radius: var(--radius-sm); transition: transform 0.15s ease, filter 0.15s ease; }
+.ufs-rating-input__star .ufs-star { --star-size: var(--space-8); --star-on: var(--color-accessible-orange); }
+.ufs-rating-input__star.is-on .ufs-star { --fill: 100%; }
+.ufs-rating-input__star:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 2px; transform: scale(1.15); filter: drop-shadow(var(--shadow-sm)); }
+.ufs-rating-input__star:focus-visible .ufs-star { --star-on: var(--color-salt); --star-off: var(--color-salt); }
+/* Hover only on real pointers, so iOS's simulated hover doesn't leave a tapped star white */
+@media (hover: hover) and (pointer: fine) {
+  .ufs-rating-input__star:hover { transform: scale(1.15); filter: drop-shadow(var(--shadow-sm)); }
+  .ufs-rating-input__star:hover .ufs-star { --star-on: var(--color-salt); --star-off: var(--color-salt); }
+}
+
+.ufs-rating-submit, .ufs-rating-close { width: 100%; margin-top: var(--space-6); }
+.ufs-rating-consent { margin-top: var(--space-6); }
+/* Close button countdown: a lighter sweep fills the button over the 2s auto-close */
+.ufs-rating-close { overflow: hidden; }
+.ufs-rating-close__progress {
+  position: absolute; inset: 0; background: color-mix(in srgb, var(--color-salt) 20%, transparent);
+  transform: scaleX(0); transform-origin: left center; pointer-events: none;
+}
+.ufs-rating-close.is-counting .ufs-rating-close__progress { animation: ufs-rating-countdown 2s linear forwards; }
+.ufs-rating-close__label { position: relative; }
+@keyframes ufs-rating-countdown { to { transform: scaleX(1); } }
+[dir="rtl"] .ufs-rating-close__progress { transform-origin: right center; }
+@media (max-width: 768px) { .signin-panel .ufs-rating-panel__title { font-size: var(--text-h5-mob-size); } }
+@media (prefers-reduced-motion: reduce) { .ufs-rating-input__star { transition: none; } .ufs-rating-close.is-counting .ufs-rating-close__progress { animation: none; transform: scaleX(1); } }
+
+
+    /* ═══════════════════════════════════════
+       DOC CHROME ≤768px (spec-doc only): 16px gutters, stacked header,
+       previews never wider than the screen (they scroll inside their card)
+    ═══════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .doc-topbar { padding: 0 16px 0 64px; height: 66px; overflow: hidden; white-space: nowrap; }
+      .doc-topbar-current { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .doc-topbar-version { display: none; }
+      .doc-header-inner { flex-direction: column; gap: 16px; padding: 28px 16px 24px; }
+      .doc-header-vdiv { display: none; }
+      .doc-header-meta { align-items: flex-start; padding-top: 0; }
+      .content { padding: 32px 16px 96px; }
+      .ds-card { padding: 20px 16px 24px; }
+      .ds-card > * { max-width: 100%; }
+      .ds-card > [class*="pv-"]:not(.pv-label) { overflow-x: auto; position: relative; }
+      .pv-pad { padding: 24px 16px; }
+      .pv-cartbar { margin: -24px -16px 24px; }
+      .pv-grid, .pv-states { grid-template-columns: minmax(0, 296px); }
+      .pv-grid-m { grid-template-columns: minmax(0, 1fr); }
+      .pv-anchor { width: auto; max-width: 296px; }
+      .pv-row, .pv-drawer { flex-wrap: wrap; }
+      .pv-drawer { padding: 24px 12px; }
+      .pv-col { flex-basis: 100%; }
+      .token-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+      .token-var { overflow-wrap: anywhere; }
+      .token-note { text-align: start; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="../images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System v2.0
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#star" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Star</a>
+      <a href="#drawer" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Rating Drawer</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#behavior" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Submitting a Rating</a>
+      <a href="#animation" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Animation</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New in v2.0.<br/>Figma: Rosana 2.0, 4120:5303 · 4120:5308 · 4128:5370 · 4128:5396.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <nav class="doc-topbar" aria-label="Breadcrumb">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System v2.0
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Ratings</span>
+    <span class="doc-topbar-version">New in v2.0</span>
+  </nav>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="../images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec · v2.0</div>
+        <h1 class="doc-header-title"><span>Ratings</span></h1>
+        <p class="doc-header-desc">Recipe ratings: an inline summary (average, fractional stars, count, 5-bar distribution) or a "be the first" prompt, plus a side drawer to submit a star rating with consent.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val"><a href="template-recipe-detail.html">handover/v2/<br/>template-recipe-detail.html</a></span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content" id="main">
+
+    <!-- ═══════════════════════════════════════ FULL COMPONENT PREVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">Recipe ratings: an inline card on the Recipe Detail page that summarises how chefs rated the recipe (average, star display, count and a 5-bar distribution), and a side drawer to add your own. A recipe with no ratings shows a "be the first" prompt instead. Submitting a rating needs a star value and the consent checkbox. The drawer then thanks the user and closes itself after 2 seconds.</p>
+      <div class="notice notice--tip"><span class="notice-icon">💡</span><div>Live: the card below starts with no ratings. Submit one and the card switches to the summary. Submit a few more to watch the bars and the average move.</div></div><div class="ds-card"><div class="card-title">Live</div><div class="pv-recipe"><!-- Loads in "none" when the recipe has no ratings; renderRatings() switches it to "summary" -->
+<section class="ufs-ratings" id="ufs-ratings" data-state="none" aria-label="Recipe ratings">
+  <div class="ufs-ratings__none">
+    <h2 class="text-h5">Be the first one to rate this recipe</h2>
+    <button type="button" class="btn btn-secondary" onclick="openRatingPanel(this)">Submit rating</button>
+  </div>
+  <div class="ufs-ratings__summary">
+    <div class="ufs-ratings__overview">
+      <h2 class="text-h6">Customer ratings</h2>
+      <div class="ufs-ratings__score-group">
+        <div class="ufs-ratings__score">
+          <p class="text-price-xl" id="ratings-avg">0.0</p>
+          <div class="ufs-ratings__avg-row">
+            <div class="ufs-stars" id="ratings-avg-stars" role="img" aria-label="0 out of 5 stars"></div>
+            <span class="text-body-sm" id="ratings-count">(0)</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-secondary" onclick="openRatingPanel(this)">Submit rating</button>
+      </div>
+    </div>
+    <ul class="ufs-ratings__bars" id="ratings-bars" aria-label="Rating distribution"></ul>
+  </div>
+</section></div></div><div class="ds-card"><div class="card-title">Static: summary with 74 ratings</div><div class="card-desc">Average 4.3. The 5th star shows the 0.27 fraction.</div><div aria-hidden="true" inert class="pv-recipe"><section class="ufs-ratings" data-state="summary"><div class="ufs-ratings__summary"><div class="ufs-ratings__overview"><h2 class="text-h6">Customer ratings</h2><div class="ufs-ratings__score-group"><div class="ufs-ratings__score"><p class="text-price-xl">4.3</p><div class="ufs-ratings__avg-row"><div class="ufs-stars"><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:27%"></span></div><span class="text-body-sm">(74)</span></div></div><button type="button" class="btn btn-secondary">Submit rating</button></div></div><ul class="ufs-ratings__bars"><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">5<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:54.1%"></span></span><span class="ufs-ratings__bar-count">40</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">4<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:28.4%"></span></span><span class="ufs-ratings__bar-count">21</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">3<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:10.8%"></span></span><span class="ufs-ratings__bar-count">8</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">2<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:4.1%"></span></span><span class="ufs-ratings__bar-count">3</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">1<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:2.7%"></span></span><span class="ufs-ratings__bar-count">2</span></li></ul></div></section></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">One root, <code>.ufs-ratings</code>, with two state containers switched by <code>data-state</code>. All numbers are rendered by <code>renderRatings()</code> from five counts.</p>
+      <div class="ds-card"><div class="card-title">Parts</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Part</th><th>Element</th><th>Spec</th></tr></thead><tbody><tr><td>Card</td><td><code>.ufs-ratings</code></td><td>--color-salt, 1px --color-mushroom-500 border, --radius-lg, 32px padding (24px ≤768px)</td></tr><tr><td>None state</td><td><code>__none</code></td><td>H5 "Be the first one to rate this recipe" + Submit rating (.btn-secondary), centred, 12px gap</td></tr><tr><td>Overview</td><td><code>__overview</code></td><td>H6 "Customer ratings", average in .text-price-xl (36px / 28px), stars (16px), count "(74)", Submit rating</td></tr><tr><td>Distribution</td><td><code>__bars</code> › <code>__bar-row</code> ×5</td><td>5 → 1. Label "5 ★" (12px star), 8px bar (--color-mushroom-300 track, --color-aubergine fill = count ÷ total), count. 16px between rows, 371px column.</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">Reference markup</div><div class="code-block-wrap"><div class="code-tabs"><div class="code-tab active" onclick="switchTab(this,'cb1-0')">HTML</div><div class="code-tab" onclick="switchTab(this,'cb1-1')">CSS</div></div><div class="code-panel active" data-tab="cb1-0"><div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">&lt;!-- Loads in "none" when the recipe has no ratings; renderRatings() switches it to "summary" --&gt;</span>
+<span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ratings"</span> <span class="t-at">id</span>=<span class="t-str">"ufs-ratings"</span> <span class="t-at">data-state</span>=<span class="t-str">"none"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Recipe ratings"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ratings__none"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"text-h5"</span><span class="t-tag">&gt;</span>Be the first one to rate this recipe<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary"</span> <span class="t-at">onclick</span>=<span class="t-str">"openRatingPanel(this)"</span><span class="t-tag">&gt;</span>Submit rating<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ratings__summary"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ratings__overview"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"text-h6"</span><span class="t-tag">&gt;</span>Customer ratings<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ratings__score-group"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ratings__score"</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"text-price-xl"</span> <span class="t-at">id</span>=<span class="t-str">"ratings-avg"</span><span class="t-tag">&gt;</span>0.0<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ratings__avg-row"</span><span class="t-tag">&gt;</span>
+            <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-stars"</span> <span class="t-at">id</span>=<span class="t-str">"ratings-avg-stars"</span> <span class="t-at">role</span>=<span class="t-str">"img"</span> <span class="t-at">aria-label</span>=<span class="t-str">"0 out of 5 stars"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+            <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"text-body-sm"</span> <span class="t-at">id</span>=<span class="t-str">"ratings-count"</span><span class="t-tag">&gt;</span>(0)<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary"</span> <span class="t-at">onclick</span>=<span class="t-str">"openRatingPanel(this)"</span><span class="t-tag">&gt;</span>Submit rating<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;ul</span> <span class="t-at">class</span>=<span class="t-str">"ufs-ratings__bars"</span> <span class="t-at">id</span>=<span class="t-str">"ratings-bars"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Rating distribution"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/ul</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/section</span><span class="t-tag">&gt;</span></pre></div><div class="code-panel" data-tab="cb1-1"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Ratings — inline card on the Recipe Detail page (between the tags and the chef tile).</span>
+   <span class="t-cm">Two states on one root via [data-state]: "none" (no ratings yet) and "summary". */</span>
+<span class="t-pr">.ufs-ratings</span> {
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-500)</span>;
+  <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-8)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+}
+<span class="t-pr">.ufs-ratings h2, .ufs-ratings p</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-ratings__none</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-ratings__summary</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-8)</span>; }
+<span class="t-pr">.ufs-ratings[data-state="none"] .ufs-ratings__summary,</span>
+<span class="t-pr">.ufs-ratings[data-state="summary"] .ufs-ratings__none</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+
+<span class="t-pr">.ufs-ratings__overview</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span> <span class="t-vl">0</span> <span class="t-vl">0</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-ratings__score-group</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-ratings__score</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; }
+<span class="t-pr">.ufs-ratings__avg-row</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">flex-end</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; }
+
+<span class="t-cm">/* Distribution: one bar per star value, 5 → 1. 371px = Figma's bars column. */</span>
+<span class="t-pr">.ufs-ratings__bars</span> { <span class="t-pr">flex</span>: <span class="t-vl">0</span> <span class="t-vl">1</span> <span class="t-vl">371px</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">list-style</span>: <span class="t-vl">none</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-ratings__bar-row</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1</span>; }
+<span class="t-pr">.ufs-ratings__bar-label</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; }
+<span class="t-pr">.ufs-ratings__bar-label .ufs-star</span> { <span class="t-pr">--star-size</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">--fill</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-ratings__bar</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span> <span class="t-vl">0</span> <span class="t-vl">0</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-pr">.ufs-ratings__bar-fill</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; <span class="t-pr">height</span>: <span class="t-vl">100%</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">inherit</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-aubergine)</span>; <span class="t-pr">transition</span>: <span class="t-vl">width</span> <span class="t-vl">0.4s</span> <span class="t-vl">ease</span>; }
+<span class="t-pr">.ufs-ratings__bar-count</span> { <span class="t-pr">min-width</span>: <span class="t-va">var(--space-5)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-pr">.ufs-ratings</span> { <span class="t-pr">padding</span>: <span class="t-va">var(--space-6)</span>; }
+  <span class="t-pr">.ufs-ratings__summary</span> { <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">stretch</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; }
+  <span class="t-pr">.ufs-ratings__bars</span> { <span class="t-pr">flex-basis</span>: <span class="t-vl">auto</span>; }
+  <span class="t-pr">.ufs-ratings .text-h5</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h5-mob-size)</span>; }
+  <span class="t-pr">.ufs-ratings .text-h6</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h6-mob-size)</span>; }
+  <span class="t-pr">.ufs-ratings .text-price-xl</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-price-xl-mob-size)</span>; }
+}
+<span class="t-kw">@media</span> (<span class="t-pr">prefers-reduced-motion</span>: <span class="t-vl">reduce</span>) { <span class="t-pr">.ufs-ratings__bar-fill</span> { <span class="t-pr">transition</span>: <span class="t-vl">none</span>; } }</pre></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ STAR ═══════════════════════════════════════ -->
+    <section class="doc-section" id="star">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Star</h2>
+      <p class="section-desc">One star element for every size and colour. It's a 5-point star mask painted with a two-stop gradient, so any value between 0 and 1 renders exactly: averages never round to half stars.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-star-row"><figure><div class="ufs-stars"><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:27%"></span></div><figcaption>4.27, 16px (summary)</figcaption></figure><figure><div class="ufs-stars"><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:50%"></span><span class="ufs-star" style="--fill:0%"></span><span class="ufs-star" style="--fill:0%"></span></div><figcaption>2.5</figcaption></figure><figure><div class="ufs-stars"><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span></div><figcaption>Your rating, 24px</figcaption></figure><figure><div class="ufs-stars"><span class="ufs-star" style="--star-size:var(--space-8);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-8);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-8);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-8);--star-on:var(--color-accessible-orange);--fill:0%"></span><span class="ufs-star" style="--star-size:var(--space-8);--star-on:var(--color-accessible-orange);--fill:0%"></span></div><figcaption>Input, 32px</figcaption></figure></div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Star — one shape (a 5-point star mask) that takes any fill. --fill paints that much</span>
+   <span class="t-cm">of the star in --star-on, so averages show partially (4.2 → the 5th star 20% filled).</span>
+   <span class="t-cm">The mask is a data URI on purpose: an external .svg mask is blocked by CORS on file://. */</span>
+<span class="t-pr">.ufs-star</span> {
+  <span class="t-pr">--star-size</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">--fill</span>: <span class="t-vl">0%</span>;
+  <span class="t-pr">--star-on</span>: <span class="t-va">var(--color-orange-500)</span>; <span class="t-pr">--star-off</span>: <span class="t-va">var(--color-mushroom-500)</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">block</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-va">var(--star-size)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--star-size)</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">linear-gradient(90deg,</span> <span class="t-va">var(--star-on)</span> <span class="t-va">var(--fill)</span><span class="t-vl">,</span> <span class="t-va">var(--star-off)</span> <span class="t-va">var(--fill)</span><span class="t-vl">)</span>;
+  <span class="t-pr">-webkit-mask</span>: <span class="t-vl">url("data:image/svg+xml,%3Csvg</span> <span class="t-vl">xmlns='http://www.w3.org/2000/svg'</span> <span class="t-vl">viewBox='0</span> <span class="t-vl">0</span> <span class="t-vl">32</span> <span class="t-vl">32'%3E%3Cpath</span> <span class="t-vl">d='M16</span> <span class="t-vl">0L19.5922</span> <span class="t-vl">11.0557H31.2169L21.8123</span> <span class="t-vl">17.8885L25.4046</span> <span class="t-vl">28.9443L16</span> <span class="t-vl">22.1115L6.59544</span> <span class="t-vl">28.9443L10.1877</span> <span class="t-vl">17.8885L0.783095</span> <span class="t-vl">11.0557H12.4078L16</span> <span class="t-vl">0Z'/%3E%3C/svg%3E")</span> <span class="t-vl">center</span> <span class="t-vl">/</span> <span class="t-vl">contain</span> <span class="t-vl">no-repeat</span>;
+          <span class="t-pr">mask</span>: <span class="t-vl">url("data:image/svg+xml,%3Csvg</span> <span class="t-vl">xmlns='http://www.w3.org/2000/svg'</span> <span class="t-vl">viewBox='0</span> <span class="t-vl">0</span> <span class="t-vl">32</span> <span class="t-vl">32'%3E%3Cpath</span> <span class="t-vl">d='M16</span> <span class="t-vl">0L19.5922</span> <span class="t-vl">11.0557H31.2169L21.8123</span> <span class="t-vl">17.8885L25.4046</span> <span class="t-vl">28.9443L16</span> <span class="t-vl">22.1115L6.59544</span> <span class="t-vl">28.9443L10.1877</span> <span class="t-vl">17.8885L0.783095</span> <span class="t-vl">11.0557H12.4078L16</span> <span class="t-vl">0Z'/%3E%3C/svg%3E")</span> <span class="t-vl">center</span> <span class="t-vl">/</span> <span class="t-vl">contain</span> <span class="t-vl">no-repeat</span>;
+}
+<span class="t-pr">.ufs-stars</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-vl">1px</span>; }
+<span class="t-cm">/* RTL: a partial star fills from the right */</span>
+<span class="t-pr">[dir="rtl"] .ufs-star</span> { <span class="t-pr">background</span>: <span class="t-vl">linear-gradient(270deg,</span> <span class="t-va">var(--star-on)</span> <span class="t-va">var(--fill)</span><span class="t-vl">,</span> <span class="t-va">var(--star-off)</span> <span class="t-va">var(--fill)</span><span class="t-vl">)</span>; }</pre></div><div class="card-subtitle">Key Tokens</div><div class="token-list"><div class="token-row"><span class="token-prop">Size</span><span class="token-var">--star-size</span><span class="token-note">12px (bars) · 16px (summary) · 24px (your rating) · 32px (input)</span></div><div class="token-row"><span class="token-prop">On colour</span><span class="token-var">--star-on: --color-orange-500</span><span class="token-note">--color-accessible-orange in the drawer (input + your rating)</span></div><div class="token-row"><span class="token-prop">Off colour</span><span class="token-var">--star-off: --color-mushroom-500</span><span class="token-note"></span></div><div class="token-row"><span class="token-prop">Fill</span><span class="token-var">--fill: 0–100%</span><span class="token-note">per star: clamp(score − index, 0, 1)</span></div><div class="token-row"><span class="token-prop">Gap</span><span class="token-var">1px</span><span class="token-note">between stars</span></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RATING DRAWER ═══════════════════════════════════════ -->
+    <section class="doc-section" id="drawer">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Rating Drawer</h2>
+      <p class="section-desc">The v1 side drawer with two steps. The form shows the recipe (title + photo), the star input and the consent. The success step repeats the recipe with the submitted stars, then closes after 2s.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-drawer"><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title ufs-rating-panel__title">Tell us what you think</h2><div class="ufs-rating-card"><div class="ufs-rating-card__head"><p class="ufs-rating-card__title">Knorr Professional Mashed Potato for Bulk Cooking</p></div><div class="ufs-rating-card__photo" style="background-image:url('../images/hero/recipe.jpg')"></div><div class="ufs-rating-card__input"><p>Indicate your rating:</p><div class="ufs-rating-input"><button type="button" class="ufs-rating-input__star" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" tabindex="-1"><span class="ufs-star"></span></button></div></div></div><label class="fi-checkbox ufs-rating-consent"><input type="checkbox" tabindex="-1"/><span class="fi-checkbox-box"><img src="../icons/check.svg" alt=""/></span><span class="fi-checkbox-label">Yes, I agree to the <a href="#">Terms and Conditions</a>.*Please read our <a href="#">Privacy</a> and <a href="#">Cookie</a> notices to understand how we use your personal data.<br/><br/>Yes - I confirm that I am 18 years old or older</span></label><button type="button" class="btn btn-primary ufs-rating-submit" disabled>Submit Rating</button></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title ufs-rating-panel__title">Tell us what you think</h2><div class="ufs-rating-card"><div class="ufs-rating-card__head"><p class="ufs-rating-card__title">Knorr Professional Mashed Potato for Bulk Cooking</p></div><div class="ufs-rating-card__photo" style="background-image:url('../images/hero/recipe.jpg')"></div><div class="ufs-rating-card__input"><p>Indicate your rating:</p><div class="ufs-rating-input"><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" tabindex="-1"><span class="ufs-star"></span></button></div></div></div><label class="fi-checkbox ufs-rating-consent"><input type="checkbox" checked tabindex="-1"/><span class="fi-checkbox-box"><img src="../icons/check.svg" alt=""/></span><span class="fi-checkbox-label">Yes, I agree to the <a href="#">Terms and Conditions</a>.*Please read our <a href="#">Privacy</a> and <a href="#">Cookie</a> notices to understand how we use your personal data.<br/><br/>Yes - I confirm that I am 18 years old or older</span></label><button type="button" class="btn btn-primary ufs-rating-submit">Submit Rating</button></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title ufs-rating-panel__title">Thanks for sharing your rating!</h2><div class="ufs-rating-card"><div class="ufs-rating-card__head"><p class="ufs-rating-card__title">Knorr Professional Mashed Potato for Bulk Cooking</p><div class="ufs-rating-card__result"><span>Your rating:</span><div class="ufs-stars"><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:0%"></span></div></div></div><div class="ufs-rating-card__photo" style="background-image:url('../images/hero/recipe.jpg')"></div></div><button type="button" class="btn btn-primary ufs-rating-close is-counting"><span class="ufs-rating-close__progress" style="animation:none;transform:scaleX(0.55)"></span><span class="ufs-rating-close__label">Close</span></button></div></div></div></div><div class="ds-card"><div class="card-title">Reference markup</div><div class="code-block-wrap"><div class="code-tabs"><div class="code-tab active" onclick="switchTab(this,'cb2-0')">HTML</div><div class="code-tab" onclick="switchTab(this,'cb2-1')">CSS</div></div><div class="code-panel active" data-tab="cb2-0"><div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">&lt;!-- Rating drawer: v1 side panel shell. Two steps: form → success --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-backdrop"</span> <span class="t-at">id</span>=<span class="t-str">"rating-backdrop"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeRatingPanel()"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel"</span> <span class="t-at">id</span>=<span class="t-str">"rating-panel"</span> <span class="t-at">role</span>=<span class="t-str">"dialog"</span> <span class="t-at">aria-modal</span>=<span class="t-str">"true"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"rating-panel-title"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span> <span class="t-at">inert</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-hd"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/ufs-logo.png"</span> <span class="t-at">alt</span>=<span class="t-str">"UFS"</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-logo"</span><span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"signin-close"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeRatingPanel()"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Close rating"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 12 12"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"2"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"10"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"2"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-body"</span> <span class="t-at">id</span>=<span class="t-str">"rating-panel-body"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">id</span>=<span class="t-str">"rating-step-form"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-title ufs-rating-panel__title"</span> <span class="t-at">id</span>=<span class="t-str">"rating-panel-title"</span><span class="t-tag">&gt;</span>Tell us what you think<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card__head"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card__title"</span><span class="t-tag">&gt;</span>Knorr Professional Mashed Potato for Bulk Cooking<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card__photo"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('../images/hero/recipe.jpg')"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card__input"</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;p</span> <span class="t-at">id</span>=<span class="t-str">"rating-input-label"</span><span class="t-tag">&gt;</span>Indicate your rating:<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-input"</span> <span class="t-at">id</span>=<span class="t-str">"rating-input"</span> <span class="t-at">role</span>=<span class="t-str">"radiogroup"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"rating-input-label"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-input__star"</span> <span class="t-at">role</span>=<span class="t-str">"radio"</span> <span class="t-at">aria-checked</span>=<span class="t-str">"false"</span> <span class="t-at">aria-label</span>=<span class="t-str">"1 star"</span> <span class="t-at">data-value</span>=<span class="t-str">"1"</span> <span class="t-at">tabindex</span>=<span class="t-str">"0"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-star"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-input__star"</span> <span class="t-at">role</span>=<span class="t-str">"radio"</span> <span class="t-at">aria-checked</span>=<span class="t-str">"false"</span> <span class="t-at">aria-label</span>=<span class="t-str">"2 stars"</span> <span class="t-at">data-value</span>=<span class="t-str">"2"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-star"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-input__star"</span> <span class="t-at">role</span>=<span class="t-str">"radio"</span> <span class="t-at">aria-checked</span>=<span class="t-str">"false"</span> <span class="t-at">aria-label</span>=<span class="t-str">"3 stars"</span> <span class="t-at">data-value</span>=<span class="t-str">"3"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-star"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-input__star"</span> <span class="t-at">role</span>=<span class="t-str">"radio"</span> <span class="t-at">aria-checked</span>=<span class="t-str">"false"</span> <span class="t-at">aria-label</span>=<span class="t-str">"4 stars"</span> <span class="t-at">data-value</span>=<span class="t-str">"4"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-star"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-input__star"</span> <span class="t-at">role</span>=<span class="t-str">"radio"</span> <span class="t-at">aria-checked</span>=<span class="t-str">"false"</span> <span class="t-at">aria-label</span>=<span class="t-str">"5 stars"</span> <span class="t-at">data-value</span>=<span class="t-str">"5"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-star"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;label</span> <span class="t-at">class</span>=<span class="t-str">"fi-checkbox ufs-rating-consent"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;input</span> <span class="t-at">type</span>=<span class="t-str">"checkbox"</span> <span class="t-at">id</span>=<span class="t-str">"rating-consent"</span> <span class="t-at">onchange</span>=<span class="t-str">"updateRatingSubmit()"</span><span class="t-tag">/&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"fi-checkbox-box"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../icons/check.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"fi-checkbox-label"</span><span class="t-tag">&gt;</span>Yes, I agree to the <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span><span class="t-tag">&gt;</span>Terms and Conditions<span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span>.*Please read our <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span><span class="t-tag">&gt;</span>Privacy<span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span> and <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span><span class="t-tag">&gt;</span>Cookie<span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span> notices to understand how we use your personal data.<span class="t-tag">&lt;br</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;br</span><span class="t-tag">/&gt;</span>Yes - I confirm that I am 18 years old or older<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/label</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary ufs-rating-submit"</span> <span class="t-at">id</span>=<span class="t-str">"rating-submit"</span> <span class="t-at">disabled</span> <span class="t-at">onclick</span>=<span class="t-str">"submitRating()"</span><span class="t-tag">&gt;</span>Submit Rating<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">id</span>=<span class="t-str">"rating-step-success"</span> <span class="t-at">hidden</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-title ufs-rating-panel__title"</span> <span class="t-at">id</span>=<span class="t-str">"rating-success-title"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span>Thanks for sharing your rating!<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card__head"</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card__title"</span><span class="t-tag">&gt;</span>Knorr Professional Mashed Potato for Bulk Cooking<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+          <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card__result"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span><span class="t-tag">&gt;</span>Your rating:<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-stars"</span> <span class="t-at">id</span>=<span class="t-str">"rating-result-stars"</span> <span class="t-at">role</span>=<span class="t-str">"img"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-card__photo"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('../images/hero/recipe.jpg')"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary ufs-rating-close"</span> <span class="t-at">id</span>=<span class="t-str">"rating-close-btn"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeRatingPanel()"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-close__progress"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-rating-close__label"</span><span class="t-tag">&gt;</span>Close<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre></div><div class="code-panel" data-tab="cb2-1"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Rating drawer — content of the v1 side panel (.signin-panel) */</span>
+<span class="t-pr">.ufs-rating-panel__title</span> { <span class="t-pr">margin-bottom</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-rating-card</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>;
+}
+<span class="t-pr">.ufs-rating-card p</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-rating-card__head</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-rating-card__title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-va">var(--text-btn-w)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-rating-card__result</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-rating-card__result .ufs-star</span> { <span class="t-pr">--star-size</span>: <span class="t-va">var(--space-6)</span>; <span class="t-pr">--star-on</span>: <span class="t-va">var(--color-accessible-orange)</span>; }
+<span class="t-pr">.ufs-rating-card__photo</span> { <span class="t-pr">height</span>: <span class="t-vl">200px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">background</span>: <span class="t-vl">center</span> <span class="t-vl">/</span> <span class="t-vl">cover</span> <span class="t-vl">no-repeat</span>; }
+<span class="t-pr">.ufs-rating-card__input</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-4)</span> <span class="t-vl">0</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>;
+  <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+}
+
+<span class="t-cm">/* Star input: five radio buttons. Hover / focus lifts the star and turns it white */</span>
+<span class="t-pr">.ufs-rating-input</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">gap</span>: <span class="t-vl">1px</span>; }
+<span class="t-pr">.ufs-rating-input__star</span> { <span class="t-pr">padding</span>: <span class="t-vl">0</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">background</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform</span> <span class="t-vl">0.15s</span> <span class="t-vl">ease,</span> <span class="t-vl">filter</span> <span class="t-vl">0.15s</span> <span class="t-vl">ease</span>; }
+<span class="t-pr">.ufs-rating-input__star .ufs-star</span> { <span class="t-pr">--star-size</span>: <span class="t-va">var(--space-8)</span>; <span class="t-pr">--star-on</span>: <span class="t-va">var(--color-accessible-orange)</span>; }
+<span class="t-pr">.ufs-rating-input__star.is-on .ufs-star</span> { <span class="t-pr">--fill</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-rating-input__star:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">outline-offset</span>: <span class="t-vl">2px</span>; <span class="t-pr">transform</span>: <span class="t-vl">scale(1.15)</span>; <span class="t-pr">filter</span>: <span class="t-vl">drop-shadow(var(--shadow-sm))</span>; }
+<span class="t-pr">.ufs-rating-input__star:focus-visible .ufs-star</span> { <span class="t-pr">--star-on</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">--star-off</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-cm">/* Hover only on real pointers, so iOS's simulated hover doesn't leave a tapped star white */</span>
+<span class="t-kw">@media</span> (<span class="t-pr">hover</span>: <span class="t-vl">hover</span>) and (<span class="t-pr">pointer</span>: <span class="t-vl">fine</span>) {
+  <span class="t-pr">.ufs-rating-input__star:hover</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.15)</span>; <span class="t-pr">filter</span>: <span class="t-vl">drop-shadow(var(--shadow-sm))</span>; }
+  <span class="t-pr">.ufs-rating-input__star:hover .ufs-star</span> { <span class="t-pr">--star-on</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">--star-off</span>: <span class="t-va">var(--color-salt)</span>; }
+}
+
+<span class="t-pr">.ufs-rating-submit, .ufs-rating-close</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-6)</span>; }
+<span class="t-pr">.ufs-rating-consent</span> { <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-6)</span>; }
+<span class="t-cm">/* Close button countdown: a lighter sweep fills the button over the 2s auto-close */</span>
+<span class="t-pr">.ufs-rating-close</span> { <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-pr">.ufs-rating-close__progress</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">background</span>: <span class="t-vl">color-mix(in</span> <span class="t-vl">srgb,</span> <span class="t-va">var(--color-salt)</span> <span class="t-vl">20%,</span> <span class="t-vl">transparent)</span>;
+  <span class="t-pr">transform</span>: <span class="t-vl">scaleX(0)</span>; <span class="t-pr">transform-origin</span>: <span class="t-vl">left</span> <span class="t-vl">center</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>;
+}
+<span class="t-pr">.ufs-rating-close.is-counting .ufs-rating-close__progress</span> { <span class="t-pr">animation</span>: <span class="t-vl">ufs-rating-countdown</span> <span class="t-vl">2s</span> <span class="t-vl">linear</span> <span class="t-vl">forwards</span>; }
+<span class="t-pr">.ufs-rating-close__label</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; }
+<span class="t-kw">@keyframes</span> ufs-rating-countdown { <span class="t-pr">to</span> { <span class="t-pr">transform</span>: <span class="t-vl">scaleX(1)</span>; } }
+<span class="t-pr">[dir="rtl"] .ufs-rating-close__progress</span> { <span class="t-pr">transform-origin</span>: <span class="t-vl">right</span> <span class="t-vl">center</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) { <span class="t-pr">.signin-panel .ufs-rating-panel__title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h5-mob-size)</span>; } }
+<span class="t-kw">@media</span> (<span class="t-pr">prefers-reduced-motion</span>: <span class="t-vl">reduce</span>) { <span class="t-pr">.ufs-rating-input__star</span> { <span class="t-pr">transition</span>: <span class="t-vl">none</span>; } <span class="t-pr">.ufs-rating-close.is-counting .ufs-rating-close__progress</span> { <span class="t-pr">animation</span>: <span class="t-vl">none</span>; <span class="t-pr">transform</span>: <span class="t-vl">scaleX(1)</span>; } }</pre></div></div><div class="card-subtitle">Key Tokens</div><div class="token-list"><div class="token-row"><span class="token-prop">Recipe card</span><span class="token-var">--space-4 padding · 1px --color-mushroom-300 · --radius-md</span><span class="token-note">title Body/600, photo 200px tall, --radius-sm</span></div><div class="token-row"><span class="token-prop">Input area</span><span class="token-var">--color-mushroom-100 · --radius-md</span><span class="token-note">"Indicate your rating:" Body-Small + 5 × 32px stars</span></div><div class="token-row"><span class="token-prop">Star hover / focus</span><span class="token-var">scale(1.15) + drop-shadow --shadow-sm</span><span class="token-note">the star turns white; focus also gets a 2px --color-accessible-orange ring</span></div><div class="token-row"><span class="token-prop">Submit / Close</span><span class="token-var">full-width .btn-primary, 24px above</span><span class="token-note">Submit disabled (45%) until a star + consent</span></div><div class="token-row"><span class="token-prop">Countdown sweep</span><span class="token-var">color-mix(--color-salt 20%)</span><span class="token-note">scaleX 0 → 1 over 2s, linear</span></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ SUBMITTING A RATING ═══════════════════════════════════════ -->
+    <section class="doc-section" id="behavior">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Submitting a Rating</h2>
+      <p class="section-desc">The rating counts immediately: the inline card behind the drawer updates as soon as the rating is submitted.</p>
+      <div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Moment</th><th>What happens</th></tr></thead><tbody><tr><td>Submit rating (either state)</td><td>The drawer opens on a clean form (no star, consent unchecked). Focus moves to the first star.</td></tr><tr><td>Pick stars</td><td>Click, or arrow keys (→ ↑ up, ← ↓ down; mirrored in RTL). Stars up to the pick light up. Roving tabindex: one Tab stop for the group.</td></tr><tr><td>Consent</td><td>Required: Submit enables only with a star AND the box checked</td></tr><tr><td>Submit Rating</td><td>Saved; the card re-renders (none → summary on the first rating, bars animate to their new widths); the success step shows "Your rating" with the stars. Focus moves to the success title.</td></tr><tr><td>Auto-close</td><td>After 2s, with a sweep across the Close button showing the countdown. Pressing Close, the X, the backdrop or Esc closes at once and cancels the timer.</td></tr><tr><td>Close (any way)</td><td>Focus returns to the Submit rating button that opened it (or the visible one, if the card changed state)</td></tr><tr><td>Keyboard</td><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> stay inside the open drawer (wrap from last to first and back).</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">JS</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* ── Ratings ──
+   counts[i] = number of (i + 1)-star ratings for this recipe, from the ratings API.
+   The average is shown to one decimal; stars show it exactly (fractional fill). */</span>
+<span class="t-kw">var</span> ratingCounts = [0, 0, 0, 0, 0];
+<span class="t-kw">var</span> rating = { value: 0, closeTimer: <span class="t-kw">null</span>, trigger: <span class="t-kw">null</span> };
+<span class="t-kw">var</span> RATING_TEXT = {
+  outOf: <span class="t-str">'{n} out of 5 stars'</span>, barLabel: <span class="t-str">'{s} star: {c} ratings'</span>, count: <span class="t-str">'({n})'</span>
+};
+<span class="t-kw">function</span> rt(key, vars) { <span class="t-kw">return</span> RATING_TEXT[key].replace(/\{(\w+)\}/g, <span class="t-kw">function</span> (_, k) { <span class="t-kw">return</span> vars[k]; }); }
+
+<span class="t-kw">function</span> starsMarkup(score) {
+  <span class="t-kw">var</span> html = <span class="t-str">''</span>;
+  <span class="t-kw">for</span> (<span class="t-kw">var</span> i = 0; i &lt; 5; i++) html += <span class="t-str">'&lt;span class="ufs-star" style="--fill:'</span> + Math.max(0, Math.min(1, score - i)) * 100 + <span class="t-str">'%"&gt;&lt;/span&gt;'</span>;
+  <span class="t-kw">return</span> html;
+}
+
+<span class="t-kw">function</span> renderRatings() {
+  <span class="t-kw">var</span> total = ratingCounts.reduce(<span class="t-kw">function</span> (a, b) { <span class="t-kw">return</span> a + b; }, 0);
+  <span class="t-kw">var</span> sum = ratingCounts.reduce(<span class="t-kw">function</span> (a, c, i) { <span class="t-kw">return</span> a + c * (i + 1); }, 0);
+  <span class="t-kw">var</span> avg = total ? sum / total : 0;
+  document.getElementById(<span class="t-str">'ufs-ratings'</span>).dataset.state = total ? <span class="t-str">'summary'</span> : <span class="t-str">'none'</span>;
+  document.getElementById(<span class="t-str">'ratings-avg'</span>).textContent = avg.toFixed(1);
+  <span class="t-kw">var</span> stars = document.getElementById(<span class="t-str">'ratings-avg-stars'</span>);
+  stars.innerHTML = starsMarkup(avg);
+  stars.setAttribute(<span class="t-str">'aria-label'</span>, rt(<span class="t-str">'outOf'</span>, { n: avg.toFixed(1) }));
+  document.getElementById(<span class="t-str">'ratings-count'</span>).textContent = rt(<span class="t-str">'count'</span>, { n: total });
+  <span class="t-kw">var</span> rows = <span class="t-str">''</span>;
+  <span class="t-kw">for</span> (<span class="t-kw">var</span> s = 5; s &gt;= 1; s--) {
+    <span class="t-kw">var</span> c = ratingCounts[s - 1];
+    rows += <span class="t-str">'&lt;li class="ufs-ratings__bar-row" aria-label="'</span> + rt(<span class="t-str">'barLabel'</span>, { s: s, c: c }) + <span class="t-str">'"&gt;'</span> +
+      <span class="t-str">'&lt;span class="ufs-ratings__bar-label" aria-hidden="true"&gt;'</span> + s + <span class="t-str">'&lt;span class="ufs-star"&gt;&lt;/span&gt;&lt;/span&gt;'</span> +
+      <span class="t-str">'&lt;span class="ufs-ratings__bar" aria-hidden="true"&gt;&lt;span class="ufs-ratings__bar-fill" style="width:'</span> + (total ? c / total * 100 : 0) + <span class="t-str">'%"&gt;&lt;/span&gt;&lt;/span&gt;'</span> +
+      <span class="t-str">'&lt;span class="ufs-ratings__bar-count" aria-hidden="true"&gt;'</span> + c + <span class="t-str">'&lt;/span&gt;&lt;/li&gt;'</span>;
+  }
+  document.getElementById(<span class="t-str">'ratings-bars'</span>).innerHTML = rows;
+}
+
+<span class="t-cm">/* Star input: radio group with a roving tabindex. Click / Enter / Space picks;
+   arrow keys move and pick (mirrored in RTL); stars up to the pick light up */</span>
+<span class="t-kw">function</span> setRatingValue(v, focus) {
+  rating.value = v;
+  document.querySelectorAll(<span class="t-str">'.ufs-rating-input__star'</span>).forEach(<span class="t-kw">function</span> (btn) {
+    <span class="t-kw">var</span> n = +btn.dataset.value;
+    btn.classList.toggle(<span class="t-str">'is-on'</span>, n &lt;= v);
+    btn.setAttribute(<span class="t-str">'aria-checked'</span>, n === v ? <span class="t-str">'true'</span> : <span class="t-str">'false'</span>);
+    btn.tabIndex = n === (v || 1) ? 0 : -1;
+    <span class="t-kw">if</span> (focus &amp;&amp; n === v) btn.focus();
+  });
+  updateRatingSubmit();
+}
+document.querySelectorAll(<span class="t-str">'.ufs-rating-input__star'</span>).forEach(<span class="t-kw">function</span> (btn) {
+  btn.addEventListener(<span class="t-str">'click'</span>, <span class="t-kw">function</span> () { setRatingValue(+btn.dataset.value); });
+  btn.addEventListener(<span class="t-str">'keydown'</span>, <span class="t-kw">function</span> (e) {
+    <span class="t-kw">var</span> rtl = getComputedStyle(btn).direction === <span class="t-str">'rtl'</span>;
+    <span class="t-kw">var</span> d = { ArrowRight: rtl ? -1 : 1, ArrowUp: 1, ArrowLeft: rtl ? 1 : -1, ArrowDown: -1 }[e.key];
+    <span class="t-kw">if</span> (!d) <span class="t-kw">return</span>;
+    e.preventDefault();
+    setRatingValue(Math.min(5, Math.max(1, (rating.value || 0) + d)), <span class="t-kw">true</span>);   <span class="t-cm">// from no rating, → picks 1 star</span>
+  });
+});
+
+<span class="t-cm">// Submit needs a rating AND the consent box</span>
+<span class="t-kw">function</span> updateRatingSubmit() {
+  document.getElementById(<span class="t-str">'rating-submit'</span>).disabled = !(rating.value &gt; 0 &amp;&amp; document.getElementById(<span class="t-str">'rating-consent'</span>).checked);
+}
+
+<span class="t-kw">function</span> openRatingPanel(trigger) {
+  rating.trigger = trigger || document.activeElement;
+  setRatingValue(0);
+  document.getElementById(<span class="t-str">'rating-consent'</span>).checked = <span class="t-kw">false</span>;
+  updateRatingSubmit();
+  document.getElementById(<span class="t-str">'rating-step-form'</span>).hidden = <span class="t-kw">false</span>;
+  document.getElementById(<span class="t-str">'rating-step-success'</span>).hidden = <span class="t-kw">true</span>;
+  document.getElementById(<span class="t-str">'rating-close-btn'</span>).classList.remove(<span class="t-str">'is-counting'</span>);
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'rating-panel'</span>);
+  panel.inert = <span class="t-kw">false</span>; panel.removeAttribute(<span class="t-str">'aria-hidden'</span>);
+  document.getElementById(<span class="t-str">'rating-backdrop'</span>).classList.add(<span class="t-str">'is-open'</span>);
+  panel.classList.add(<span class="t-str">'is-open'</span>);
+  document.body.style.overflow = <span class="t-str">'hidden'</span>;
+  document.getElementById(<span class="t-str">'rating-panel-body'</span>).scrollTop = 0;
+  setTimeout(<span class="t-kw">function</span> () { document.querySelector(<span class="t-str">'.ufs-rating-input__star[tabindex="0"]'</span>).focus(); }, 50);
+}
+<span class="t-kw">function</span> closeRatingPanel() {
+  clearTimeout(rating.closeTimer);
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'rating-panel'</span>);
+  <span class="t-kw">if</span> (!panel.classList.contains(<span class="t-str">'is-open'</span>)) <span class="t-kw">return</span>;
+  document.getElementById(<span class="t-str">'rating-backdrop'</span>).classList.remove(<span class="t-str">'is-open'</span>);
+  panel.classList.remove(<span class="t-str">'is-open'</span>);
+  panel.inert = <span class="t-kw">true</span>; panel.setAttribute(<span class="t-str">'aria-hidden'</span>, <span class="t-str">'true'</span>);
+  document.body.style.overflow = <span class="t-str">''</span>;
+  <span class="t-kw">if</span> (rating.trigger &amp;&amp; document.contains(rating.trigger) &amp;&amp; rating.trigger.offsetParent) rating.trigger.focus({ preventScroll: <span class="t-kw">true</span> });
+  <span class="t-kw">else</span> [].filter.call(document.querySelectorAll(<span class="t-str">'#ufs-ratings .btn'</span>), <span class="t-kw">function</span> (b) { <span class="t-kw">return</span> b.offsetParent; })[0].focus({ preventScroll: <span class="t-kw">true</span> });   <span class="t-cm">// the card switched state: its visible button</span>
+}
+<span class="t-cm">// Keep Tab inside an open modal drawer: wrap from the last tabbable element to the</span>
+<span class="t-cm">// first and back. Radio groups count once; the focused title (tabindex -1) counts as</span>
+<span class="t-cm">// "before the first" so Shift+Tab from it goes to the last.</span>
+<span class="t-kw">function</span> trapTab(e, panel) {
+  <span class="t-kw">var</span> f = [].filter.call(panel.querySelectorAll(<span class="t-str">'button, input, select, textarea, a[href], [tabindex="0"]'</span>), <span class="t-kw">function</span> (el) {
+    <span class="t-kw">if</span> (el.disabled || !el.offsetParent || el.closest(<span class="t-str">'[hidden], [inert]'</span>)) <span class="t-kw">return</span> <span class="t-kw">false</span>;
+    <span class="t-kw">if</span> (el.type === <span class="t-str">'radio'</span> &amp;&amp; el.name) {
+      <span class="t-kw">var</span> group = panel.querySelectorAll(<span class="t-str">'input[type="radio"][name="'</span> + el.name + <span class="t-str">'"]'</span>);
+      <span class="t-kw">var</span> checked = [].filter.call(group, <span class="t-kw">function</span> (r) { <span class="t-kw">return</span> r.checked; })[0];
+      <span class="t-kw">return</span> el === (checked || group[0]);
+    }
+    <span class="t-kw">return</span> <span class="t-kw">true</span>;
+  });
+  <span class="t-kw">if</span> (!f.length) { e.preventDefault(); <span class="t-kw">return</span>; }
+  <span class="t-kw">var</span> first = f[0], last = f[f.length - 1], a = document.activeElement, inList = f.indexOf(a) &gt; -1;
+  <span class="t-kw">if</span> (e.shiftKey &amp;&amp; (a === first || !inList)) { e.preventDefault(); last.focus(); }
+  <span class="t-kw">else</span> <span class="t-kw">if</span> (!e.shiftKey &amp;&amp; (a === last || !panel.contains(a))) { e.preventDefault(); first.focus(); }
+}
+document.addEventListener(<span class="t-str">'keydown'</span>, <span class="t-kw">function</span> (e) {
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'rating-panel'</span>);
+  <span class="t-kw">if</span> (!panel.classList.contains(<span class="t-str">'is-open'</span>)) <span class="t-kw">return</span>;
+  <span class="t-kw">if</span> (e.key === <span class="t-str">'Escape'</span>) closeRatingPanel();
+  <span class="t-kw">else</span> <span class="t-kw">if</span> (e.key === <span class="t-str">'Tab'</span>) trapTab(e, panel);
+});
+
+<span class="t-kw">function</span> submitRating() {
+  <span class="t-kw">if</span> (!rating.value || !document.getElementById(<span class="t-str">'rating-consent'</span>).checked) <span class="t-kw">return</span>;
+  saveRating(rating.value);                                  <span class="t-cm">// POST to the ratings API</span>
+  ratingCounts[rating.value - 1]++;
+  renderRatings();                                           <span class="t-cm">// the inline card updates behind the drawer</span>
+  <span class="t-kw">var</span> result = document.getElementById(<span class="t-str">'rating-result-stars'</span>);
+  result.innerHTML = starsMarkup(rating.value);
+  result.setAttribute(<span class="t-str">'aria-label'</span>, rt(<span class="t-str">'outOf'</span>, { n: rating.value }));
+  document.getElementById(<span class="t-str">'rating-step-form'</span>).hidden = <span class="t-kw">true</span>;
+  document.getElementById(<span class="t-str">'rating-step-success'</span>).hidden = <span class="t-kw">false</span>;
+  document.getElementById(<span class="t-str">'rating-panel-body'</span>).scrollTop = 0;
+  document.getElementById(<span class="t-str">'rating-success-title'</span>).focus({ preventScroll: <span class="t-kw">true</span> });
+  <span class="t-cm">// Auto-close after 2s; the Close button's sweep shows the countdown</span>
+  <span class="t-kw">var</span> btn = document.getElementById(<span class="t-str">'rating-close-btn'</span>);
+  btn.classList.remove(<span class="t-str">'is-counting'</span>); void btn.offsetWidth; btn.classList.add(<span class="t-str">'is-counting'</span>);
+  clearTimeout(rating.closeTimer);
+  rating.closeTimer = setTimeout(closeRatingPanel, 2000);
+}</pre></div></div><div class="notice notice--info"><span class="notice-icon">ℹ️</span><div><strong>Added in this spec, not in the prototype:</strong> arrow-key navigation with a roving tabindex on the stars, focus moving into the drawer on open and to the success title after submit, focus returning on close, <kbd>Tab</kbd> kept inside the open drawer, and <code>aria-label</code>s on the average stars. These are needed for keyboard and screen-reader users. Visuals and timings are unchanged.</div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANIMATION ═══════════════════════════════════════ -->
+    <section class="doc-section" id="animation">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Animation</h2>
+      <p class="section-desc">With reduced motion, bars jump to their width, stars don't scale, and the Close sweep shows full (the 2s auto-close still runs).</p>
+      <div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Element</th><th>Trigger</th><th>Animation</th><th>Duration</th><th>Easing</th></tr></thead><tbody><tr><td>Drawer (v1 shell)</td><td>Open / close</td><td>translateX(100%) → 0 (−100% in RTL); backdrop fade</td><td>350 / 300ms</td><td>cubic-bezier(0.4, 0, 0.2, 1)</td></tr><tr><td>Input star</td><td>Hover (fine pointer) / keyboard focus</td><td>scale 1 → 1.15 + drop-shadow; fill turns white</td><td>150ms</td><td>ease</td></tr><tr><td>Distribution bars</td><td>A new rating</td><td>width → new share</td><td>400ms</td><td>ease</td></tr><tr><td>Close countdown</td><td>Success step</td><td>A 20% white sweep, scaleX 0 → 1 from the inline-start edge</td><td>2000ms</td><td>linear</td></tr><tr><td>Auto-close</td><td>End of the countdown</td><td>Drawer closes (v1 slide)</td><td>at 2000ms</td><td>–</td></tr><tr><td>None → summary</td><td>First rating</td><td>None: instant swap</td><td>–</td><td>–</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">At ≤768px the summary stacks: overview on top, bars full width under it, 24px apart. Padding drops to 24px and the H5 / H6 / Price-XL sizes step down. The drawer goes full width minus 16px (v1 shell). Restated under <code>.pv-mob</code>.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-row"><div class="pv-recipe pv-recipe--narrow pv-mob"><section class="ufs-ratings" data-state="summary"><div class="ufs-ratings__summary"><div class="ufs-ratings__overview"><h2 class="text-h6">Customer ratings</h2><div class="ufs-ratings__score-group"><div class="ufs-ratings__score"><p class="text-price-xl">4.3</p><div class="ufs-ratings__avg-row"><div class="ufs-stars"><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:27%"></span></div><span class="text-body-sm">(74)</span></div></div><button type="button" class="btn btn-secondary">Submit rating</button></div></div><ul class="ufs-ratings__bars"><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">5<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:54.1%"></span></span><span class="ufs-ratings__bar-count">40</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">4<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:28.4%"></span></span><span class="ufs-ratings__bar-count">21</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">3<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:10.8%"></span></span><span class="ufs-ratings__bar-count">8</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">2<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:4.1%"></span></span><span class="ufs-ratings__bar-count">3</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">1<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:2.7%"></span></span><span class="ufs-ratings__bar-count">2</span></li></ul></div></section><div style="height:16px"></div><section class="ufs-ratings" data-state="none"><div class="ufs-ratings__none"><h2 class="text-h5">Be the first one to rate this recipe</h2><button type="button" class="btn btn-secondary">Submit rating</button></div></section></div><div class="pv-drawer pv-m pv-mob"><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title ufs-rating-panel__title">Tell us what you think</h2><div class="ufs-rating-card"><div class="ufs-rating-card__head"><p class="ufs-rating-card__title">Knorr Professional Mashed Potato for Bulk Cooking</p></div><div class="ufs-rating-card__photo" style="background-image:url('../images/hero/recipe.jpg')"></div><div class="ufs-rating-card__input"><p>Indicate your rating:</p><div class="ufs-rating-input"><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" tabindex="-1"><span class="ufs-star"></span></button></div></div></div><label class="fi-checkbox ufs-rating-consent"><input type="checkbox" checked tabindex="-1"/><span class="fi-checkbox-box"><img src="../icons/check.svg" alt=""/></span><span class="fi-checkbox-label">Yes, I agree to the <a href="#">Terms and Conditions</a>.*Please read our <a href="#">Privacy</a> and <a href="#">Cookie</a> notices to understand how we use your personal data.<br/><br/>Yes - I confirm that I am 18 years old or older</span></label><button type="button" class="btn btn-primary ufs-rating-submit">Submit Rating</button></div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N &AMP; RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The card is flex, so it mirrors on its own: the overview sits on the right and the bars on the left, with their labels on the right and the fill growing from the right. Two things need explicit rules: a partial star fills from the right (gradient at 270deg), and the Close countdown sweeps from the right. In the input, → and ← swap so that → still moves visually right. Keep Western digits for the average and counts (as elsewhere in the webshop) or use the market's locale formatting consistently.</p>
+      <div class="ds-card"><div class="card-title">Strings</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>English</th><th>Arabic</th></tr></thead><tbody><tr><td>Be the first one to rate this recipe</td><td><span dir="rtl">كن أول من يقيّم هذه الوصفة</span></td></tr><tr><td>Submit rating</td><td><span dir="rtl">أرسل تقييمك</span></td></tr><tr><td>Customer ratings</td><td><span dir="rtl">تقييمات العملاء</span></td></tr><tr><td>({n})</td><td><span dir="rtl">({n})</span></td></tr><tr><td>{n} out of 5 stars</td><td><span dir="rtl">{n} من 5 نجوم</span></td></tr><tr><td>{s} star: {c} ratings</td><td><span dir="rtl">{s} نجوم: {c} تقييمات</span></td></tr><tr><td>Tell us what you think</td><td><span dir="rtl">شاركنا رأيك</span></td></tr><tr><td>Indicate your rating:</td><td><span dir="rtl">حدّد تقييمك:</span></td></tr><tr><td>1 star / {n} stars</td><td><span dir="rtl">نجمة واحدة / {n} نجوم</span></td></tr><tr><td>Submit Rating</td><td><span dir="rtl">إرسال التقييم</span></td></tr><tr><td>Thanks for sharing your rating!</td><td><span dir="rtl">شكرًا لمشاركتك تقييمك!</span></td></tr><tr><td>Your rating:</td><td><span dir="rtl">تقييمك:</span></td></tr><tr><td>Close</td><td><span dir="rtl">إغلاق</span></td></tr><tr><td>Yes, I agree to the Terms and Conditions…</td><td><span dir="rtl">نعم، أوافق على الشروط والأحكام…</span></td></tr><tr><td>Yes - I confirm that I am 18 years old or older</td><td><span dir="rtl">نعم - أؤكد أن عمري 18 عامًا أو أكثر</span></td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">RTL previews</div><div aria-hidden="true" inert class="pv-recipe"><section class="ufs-ratings" data-state="summary" dir="rtl"><div class="ufs-ratings__summary"><div class="ufs-ratings__overview"><h2 class="text-h6">تقييمات العملاء</h2><div class="ufs-ratings__score-group"><div class="ufs-ratings__score"><p class="text-price-xl">4.3</p><div class="ufs-ratings__avg-row"><div class="ufs-stars"><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:100%"></span><span class="ufs-star" style="--fill:27%"></span></div><span class="text-body-sm">(74)</span></div></div><button type="button" class="btn btn-secondary">أرسل تقييمك</button></div></div><ul class="ufs-ratings__bars"><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">5<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:54.1%"></span></span><span class="ufs-ratings__bar-count">40</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">4<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:28.4%"></span></span><span class="ufs-ratings__bar-count">21</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">3<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:10.8%"></span></span><span class="ufs-ratings__bar-count">8</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">2<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:4.1%"></span></span><span class="ufs-ratings__bar-count">3</span></li><li class="ufs-ratings__bar-row"><span class="ufs-ratings__bar-label">1<span class="ufs-star"></span></span><span class="ufs-ratings__bar"><span class="ufs-ratings__bar-fill" style="width:2.7%"></span></span><span class="ufs-ratings__bar-count">2</span></li></ul></div></section></div><div style="height:24px"></div><div aria-hidden="true" inert class="pv-drawer"><div class="signin-panel" dir="rtl"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title ufs-rating-panel__title">شاركنا رأيك</h2><div class="ufs-rating-card"><div class="ufs-rating-card__head"><p class="ufs-rating-card__title">كنور بروفيشنال بطاطس مهروسة للطهي بكميات كبيرة</p></div><div class="ufs-rating-card__photo" style="background-image:url('../images/hero/recipe.jpg')"></div><div class="ufs-rating-card__input"><p>حدّد تقييمك:</p><div class="ufs-rating-input"><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star is-on" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" tabindex="-1"><span class="ufs-star"></span></button></div></div></div><label class="fi-checkbox ufs-rating-consent"><input type="checkbox" checked tabindex="-1"/><span class="fi-checkbox-box"><img src="../icons/check.svg" alt=""/></span><span class="fi-checkbox-label">نعم، أوافق على <a href="#">الشروط والأحكام</a>.* يرجى قراءة إشعاري <a href="#">الخصوصية</a> و<a href="#">ملفات تعريف الارتباط</a> لمعرفة كيفية استخدامنا لبياناتك الشخصية.<br/><br/>نعم - أؤكد أن عمري 18 عامًا أو أكثر</span></label><button type="button" class="btn btn-primary ufs-rating-submit">إرسال التقييم</button></div></div><div class="signin-panel" dir="rtl"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title ufs-rating-panel__title">شكرًا لمشاركتك تقييمك!</h2><div class="ufs-rating-card"><div class="ufs-rating-card__head"><p class="ufs-rating-card__title">كنور بروفيشنال بطاطس مهروسة للطهي بكميات كبيرة</p><div class="ufs-rating-card__result"><span>تقييمك:</span><div class="ufs-stars"><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:100%"></span><span class="ufs-star" style="--star-size:var(--space-6);--star-on:var(--color-accessible-orange);--fill:0%"></span></div></div></div><div class="ufs-rating-card__photo" style="background-image:url('../images/hero/recipe.jpg')"></div></div><button type="button" class="btn btn-primary ufs-rating-close is-counting"><span class="ufs-rating-close__progress" style="animation:none;transform:scaleX(0.55)"></span><span class="ufs-rating-close__label">إغلاق</span></button></div></div></div></div><div class="ds-card"><div class="card-title">RTL rules</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-pr">[dir="rtl"] .ufs-star</span> { <span class="t-pr">background</span>: <span class="t-vl">linear-gradient(270deg,</span> <span class="t-va">var(--star-on)</span> <span class="t-va">var(--fill)</span><span class="t-vl">,</span> <span class="t-va">var(--star-off)</span> <span class="t-va">var(--fill)</span><span class="t-vl">)</span>; }
+<span class="t-pr">[dir="rtl"] .ufs-rating-close__progress</span> { <span class="t-pr">transform-origin</span>: <span class="t-vl">right</span> <span class="t-vl">center</span>; }</pre></div></div>
+    </section>
+
+  </main>
+
+<!-- Rating drawer: v1 side panel shell. Two steps: form → success -->
+<div class="signin-backdrop" id="rating-backdrop" onclick="closeRatingPanel()"></div>
+<div class="signin-panel" id="rating-panel" role="dialog" aria-modal="true" aria-labelledby="rating-panel-title" aria-hidden="true" inert>
+  <div class="signin-panel-hd">
+    <img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+    <button class="signin-close" onclick="closeRatingPanel()" aria-label="Close rating">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+    </button>
+  </div>
+  <div class="signin-panel-body" id="rating-panel-body">
+    <div id="rating-step-form">
+      <h2 class="signin-panel-title ufs-rating-panel__title" id="rating-panel-title">Tell us what you think</h2>
+      <div class="ufs-rating-card">
+        <div class="ufs-rating-card__head"><p class="ufs-rating-card__title">Knorr Professional Mashed Potato for Bulk Cooking</p></div>
+        <div class="ufs-rating-card__photo" style="background-image:url('../images/hero/recipe.jpg')"></div>
+        <div class="ufs-rating-card__input">
+          <p id="rating-input-label">Indicate your rating:</p>
+          <div class="ufs-rating-input" id="rating-input" role="radiogroup" aria-labelledby="rating-input-label"><button type="button" class="ufs-rating-input__star" role="radio" aria-checked="false" aria-label="1 star" data-value="1" tabindex="0"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" role="radio" aria-checked="false" aria-label="2 stars" data-value="2" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" role="radio" aria-checked="false" aria-label="3 stars" data-value="3" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" role="radio" aria-checked="false" aria-label="4 stars" data-value="4" tabindex="-1"><span class="ufs-star"></span></button><button type="button" class="ufs-rating-input__star" role="radio" aria-checked="false" aria-label="5 stars" data-value="5" tabindex="-1"><span class="ufs-star"></span></button></div>
+        </div>
+      </div>
+      <label class="fi-checkbox ufs-rating-consent">
+        <input type="checkbox" id="rating-consent" onchange="updateRatingSubmit()"/>
+        <span class="fi-checkbox-box"><img src="../icons/check.svg" alt=""/></span>
+        <span class="fi-checkbox-label">Yes, I agree to the <a href="#">Terms and Conditions</a>.*Please read our <a href="#">Privacy</a> and <a href="#">Cookie</a> notices to understand how we use your personal data.<br/><br/>Yes - I confirm that I am 18 years old or older</span>
+      </label>
+      <button type="button" class="btn btn-primary ufs-rating-submit" id="rating-submit" disabled onclick="submitRating()">Submit Rating</button>
+    </div>
+    <div id="rating-step-success" hidden>
+      <h2 class="signin-panel-title ufs-rating-panel__title" id="rating-success-title" tabindex="-1">Thanks for sharing your rating!</h2>
+      <div class="ufs-rating-card">
+        <div class="ufs-rating-card__head">
+          <p class="ufs-rating-card__title">Knorr Professional Mashed Potato for Bulk Cooking</p>
+          <div class="ufs-rating-card__result"><span>Your rating:</span><div class="ufs-stars" id="rating-result-stars" role="img"></div></div>
+        </div>
+        <div class="ufs-rating-card__photo" style="background-image:url('../images/hero/recipe.jpg')"></div>
+      </div>
+      <button type="button" class="btn btn-primary ufs-rating-close" id="rating-close-btn" onclick="closeRatingPanel()">
+        <span class="ufs-rating-close__progress"></span><span class="ufs-rating-close__label">Close</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+
+// Doc chrome: a table that scrolls sideways gets a keyboard stop + a name, only while it overflows
+function markScrollRegions() {
+  document.querySelectorAll('.spec-table-wrap').forEach(function (w) {
+    if (w.closest('[inert]')) return;
+    if (w.scrollWidth > w.clientWidth + 1) {
+      var t = w.closest('.ds-card') && w.closest('.ds-card').querySelector('.card-title');
+      w.tabIndex = 0; w.setAttribute('role', 'region'); w.setAttribute('aria-label', (t ? t.textContent + ' ' : '') + 'table, scrolls sideways');
+    } else { w.removeAttribute('tabindex'); w.removeAttribute('role'); w.removeAttribute('aria-label'); }
+  });
+}
+window.addEventListener('load', markScrollRegions);
+window.addEventListener('resize', markScrollRegions);
+
+
+/* ── Ratings ──
+   counts[i] = number of (i + 1)-star ratings for this recipe, from the ratings API.
+   The average is shown to one decimal; stars show it exactly (fractional fill). */
+var ratingCounts = [0, 0, 0, 0, 0];
+var rating = { value: 0, closeTimer: null, trigger: null };
+var RATING_TEXT = {
+  outOf: '{n} out of 5 stars', barLabel: '{s} star: {c} ratings', count: '({n})'
+};
+function rt(key, vars) { return RATING_TEXT[key].replace(/\{(\w+)\}/g, function (_, k) { return vars[k]; }); }
+
+function starsMarkup(score) {
+  var html = '';
+  for (var i = 0; i < 5; i++) html += '<span class="ufs-star" style="--fill:' + Math.max(0, Math.min(1, score - i)) * 100 + '%"></span>';
+  return html;
+}
+
+function renderRatings() {
+  var total = ratingCounts.reduce(function (a, b) { return a + b; }, 0);
+  var sum = ratingCounts.reduce(function (a, c, i) { return a + c * (i + 1); }, 0);
+  var avg = total ? sum / total : 0;
+  document.getElementById('ufs-ratings').dataset.state = total ? 'summary' : 'none';
+  document.getElementById('ratings-avg').textContent = avg.toFixed(1);
+  var stars = document.getElementById('ratings-avg-stars');
+  stars.innerHTML = starsMarkup(avg);
+  stars.setAttribute('aria-label', rt('outOf', { n: avg.toFixed(1) }));
+  document.getElementById('ratings-count').textContent = rt('count', { n: total });
+  var rows = '';
+  for (var s = 5; s >= 1; s--) {
+    var c = ratingCounts[s - 1];
+    rows += '<li class="ufs-ratings__bar-row" aria-label="' + rt('barLabel', { s: s, c: c }) + '">' +
+      '<span class="ufs-ratings__bar-label" aria-hidden="true">' + s + '<span class="ufs-star"></span></span>' +
+      '<span class="ufs-ratings__bar" aria-hidden="true"><span class="ufs-ratings__bar-fill" style="width:' + (total ? c / total * 100 : 0) + '%"></span></span>' +
+      '<span class="ufs-ratings__bar-count" aria-hidden="true">' + c + '</span></li>';
+  }
+  document.getElementById('ratings-bars').innerHTML = rows;
+}
+
+/* Star input: radio group with a roving tabindex. Click / Enter / Space picks;
+   arrow keys move and pick (mirrored in RTL); stars up to the pick light up */
+function setRatingValue(v, focus) {
+  rating.value = v;
+  document.querySelectorAll('.ufs-rating-input__star').forEach(function (btn) {
+    var n = +btn.dataset.value;
+    btn.classList.toggle('is-on', n <= v);
+    btn.setAttribute('aria-checked', n === v ? 'true' : 'false');
+    btn.tabIndex = n === (v || 1) ? 0 : -1;
+    if (focus && n === v) btn.focus();
+  });
+  updateRatingSubmit();
+}
+document.querySelectorAll('.ufs-rating-input__star').forEach(function (btn) {
+  btn.addEventListener('click', function () { setRatingValue(+btn.dataset.value); });
+  btn.addEventListener('keydown', function (e) {
+    var rtl = getComputedStyle(btn).direction === 'rtl';
+    var d = { ArrowRight: rtl ? -1 : 1, ArrowUp: 1, ArrowLeft: rtl ? 1 : -1, ArrowDown: -1 }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    setRatingValue(Math.min(5, Math.max(1, (rating.value || 0) + d)), true);   // from no rating, → picks 1 star
+  });
+});
+
+// Submit needs a rating AND the consent box
+function updateRatingSubmit() {
+  document.getElementById('rating-submit').disabled = !(rating.value > 0 && document.getElementById('rating-consent').checked);
+}
+
+function openRatingPanel(trigger) {
+  rating.trigger = trigger || document.activeElement;
+  setRatingValue(0);
+  document.getElementById('rating-consent').checked = false;
+  updateRatingSubmit();
+  document.getElementById('rating-step-form').hidden = false;
+  document.getElementById('rating-step-success').hidden = true;
+  document.getElementById('rating-close-btn').classList.remove('is-counting');
+  var panel = document.getElementById('rating-panel');
+  panel.inert = false; panel.removeAttribute('aria-hidden');
+  document.getElementById('rating-backdrop').classList.add('is-open');
+  panel.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('rating-panel-body').scrollTop = 0;
+  setTimeout(function () { document.querySelector('.ufs-rating-input__star[tabindex="0"]').focus(); }, 50);
+}
+function closeRatingPanel() {
+  clearTimeout(rating.closeTimer);
+  var panel = document.getElementById('rating-panel');
+  if (!panel.classList.contains('is-open')) return;
+  document.getElementById('rating-backdrop').classList.remove('is-open');
+  panel.classList.remove('is-open');
+  panel.inert = true; panel.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  if (rating.trigger && document.contains(rating.trigger) && rating.trigger.offsetParent) rating.trigger.focus({ preventScroll: true });
+  else [].filter.call(document.querySelectorAll('#ufs-ratings .btn'), function (b) { return b.offsetParent; })[0].focus({ preventScroll: true });   // the card switched state: its visible button
+}
+// Keep Tab inside an open modal drawer: wrap from the last tabbable element to the
+// first and back. Radio groups count once; the focused title (tabindex -1) counts as
+// "before the first" so Shift+Tab from it goes to the last.
+function trapTab(e, panel) {
+  var f = [].filter.call(panel.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]'), function (el) {
+    if (el.disabled || !el.offsetParent || el.closest('[hidden], [inert]')) return false;
+    if (el.type === 'radio' && el.name) {
+      var group = panel.querySelectorAll('input[type="radio"][name="' + el.name + '"]');
+      var checked = [].filter.call(group, function (r) { return r.checked; })[0];
+      return el === (checked || group[0]);
+    }
+    return true;
+  });
+  if (!f.length) { e.preventDefault(); return; }
+  var first = f[0], last = f[f.length - 1], a = document.activeElement, inList = f.indexOf(a) > -1;
+  if (e.shiftKey && (a === first || !inList)) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && (a === last || !panel.contains(a))) { e.preventDefault(); first.focus(); }
+}
+document.addEventListener('keydown', function (e) {
+  var panel = document.getElementById('rating-panel');
+  if (!panel.classList.contains('is-open')) return;
+  if (e.key === 'Escape') closeRatingPanel();
+  else if (e.key === 'Tab') trapTab(e, panel);
+});
+
+function submitRating() {
+  if (!rating.value || !document.getElementById('rating-consent').checked) return;
+  saveRating(rating.value);                                  // POST to the ratings API
+  ratingCounts[rating.value - 1]++;
+  renderRatings();                                           // the inline card updates behind the drawer
+  var result = document.getElementById('rating-result-stars');
+  result.innerHTML = starsMarkup(rating.value);
+  result.setAttribute('aria-label', rt('outOf', { n: rating.value }));
+  document.getElementById('rating-step-form').hidden = true;
+  document.getElementById('rating-step-success').hidden = false;
+  document.getElementById('rating-panel-body').scrollTop = 0;
+  document.getElementById('rating-success-title').focus({ preventScroll: true });
+  // Auto-close after 2s; the Close button's sweep shows the countdown
+  var btn = document.getElementById('rating-close-btn');
+  btn.classList.remove('is-counting'); void btn.offsetWidth; btn.classList.add('is-counting');
+  clearTimeout(rating.closeTimer);
+  rating.closeTimer = setTimeout(closeRatingPanel, 2000);
+}
+
+function saveRating() {}
+renderRatings();
+
+  </script>
+</body>
+</html>

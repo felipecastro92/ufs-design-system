@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz — UFS Spec v2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../tokens.css" />
+  <style>
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       campaign-hero-spec.html. The Overview demo button depends on
+       it; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       v2.0 DOC ADDITIONS (spec-doc only)
+    ═══════════════════════════════════════ */
+    .doc-topbar-version { margin-inline-start: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-brand-primary); background: rgba(255,90,0,0.15); border-radius: 3px; padding: 2px 6px; }
+    .doc-header-meta-val a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    .doc-header-meta-val a:hover { color: var(--color-salt); }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-pad { padding: 32px 24px; }
+    .pv-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    .pv-col { flex: 1 1 320px; min-width: 0; }
+    .spec-table-wrap { overflow-x: auto; margin-top: 10px; }
+    .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; }
+    .spec-table th { text-align: start; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--color-mushroom-900); padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-300); white-space: nowrap; }
+    .spec-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-100); vertical-align: top; color: var(--color-brand-dark); }
+    .spec-table td:first-child { font-weight: 600; }
+    .spec-table td[dir="rtl"] { font-family: 'IBM Plex Arabic', system-ui, sans-serif; font-size: 13px; }
+    kbd { font-family: var(--font-family-mono); font-size: 11px; background: var(--color-mushroom-300); border-radius: 3px; padding: 1px 5px; }
+    /* Doc-only stand-in for the header cart icon: target for the fly-to-cart + badge bump */
+    .pv-cartbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; margin: -32px -24px 24px; background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md) var(--radius-md) 0 0; font-size: 12px; color: var(--color-mushroom-900); }
+    .pv-cartbar .ufs-nav__icon-btn { position: relative; width: 40px; height: 40px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pv-cartbar .ufs-nav__icon-btn img { width: 24px; height: 24px; }
+    .ufs-nav__badge {
+      position: absolute; top: var(--space-1); right: var(--space-1);
+      min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-full);
+      background: var(--color-brand-primary); color: var(--color-salt);
+      font-size: 9px; font-weight: var(--text-btn-w);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ufs-nav__badge[hidden] { display: none; }
+
+
+    /* ═══════════════════════════════════════
+       DRAWER SHELL — mirrored 1:1 from v1 full-page-preview-v0.2.html
+       (.signin-backdrop / .signin-panel / -hd / -close / -body / -title / -ft).
+       Shared by Sign-in, Filters, Wholesaler Picker…; not part of this spec.
+    ═══════════════════════════════════════ */
+    :root { --mnav-h: 56px; }
+    .signin-backdrop { position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,0.75); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .signin-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 901; width: 420px; background: var(--color-salt); transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s; box-shadow: none; display: flex; flex-direction: column; }
+    .signin-panel.is-open { transform: translateX(0); box-shadow: -8px 0 40px rgba(0,0,0,0.18); }
+    @media (max-width: 1024px) { .signin-panel { width: calc(100% - 16px); } }
+    .signin-panel-hd { height: var(--mnav-h); padding: 0 var(--space-4); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-mushroom-300); flex-shrink: 0; }
+    .signin-panel-logo { height: var(--space-6); }
+    .signin-close { width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full); background: var(--color-mushroom-100); border: none; cursor: pointer; color: var(--color-brand-dark); display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
+    .signin-close:hover { background: var(--color-mushroom-300); }
+    .signin-close svg { width: 12px; height: 12px; }
+    .signin-panel-body { flex: 1; overflow-y: auto; padding: var(--space-7); }
+    .signin-panel-title { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); margin: 0 0 var(--space-3); }
+    .signin-panel-ft { display: flex; gap: var(--space-3); padding: var(--space-4) var(--space-7); border-top: 1px solid var(--color-mushroom-300); }
+    .signin-panel-ft .btn { flex: 1; }
+    [dir="rtl"] .signin-panel { right: auto; left: 0; transform: translateX(-100%); box-shadow: none; }
+    [dir="rtl"] .signin-panel.is-open { transform: translateX(0); box-shadow: 8px 0 40px rgba(0,0,0,0.18); }
+
+    /* ═══════════════════════════════════════
+       PROMO BANNER — mirrored 1:1 from v1 promo-banner-spec.html
+       (doc dependency for the entry-point preview; not part of this spec).
+    ═══════════════════════════════════════ */
+
+    /* ═══════════════════════════════════════
+       PROMO BANNER COMPONENT CSS — mirrored 1:1 from
+       handover/full-page-preview-v0.2.html (source of truth)
+    ═══════════════════════════════════════ */
+    .ufs-promo-banner {
+      position: relative;
+      background: var(--color-mushroom-100);
+      border-radius: var(--radius-md);
+    }
+    .ufs-promo-banner__image {
+      position: relative;
+      aspect-ratio: 390 / 295;
+      background-size: cover; background-position: center;
+      border-radius: var(--radius-md) var(--radius-xxl) 0 0;
+    }
+    .ufs-promo-banner__panel {
+      display: flex; flex-direction: column; justify-content: center;
+      align-items: center; text-align: center;
+      gap: var(--space-4);
+      padding: var(--space-8) var(--space-6) var(--space-6);
+    }
+    .ufs-promo-banner__logo { height: 22px; width: auto; }
+    .ufs-promo-banner__body { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); width: 100%; }
+    .ufs-promo-banner__title { color: var(--color-brand-dark); margin: 0; font-size: var(--text-h3-mob-size); line-height: var(--text-h3-lh); }
+    .ufs-promo-banner__desc { color: var(--color-brand-dark); margin: 0; font-size: var(--text-body-sm-size); }
+    .ufs-promo-banner__countdown { display: flex; align-items: center; justify-content: center; gap: var(--space-1); width: 100%; }
+    .ufs-promo-banner__countdown-item { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .ufs-promo-banner__countdown-value { color: var(--color-brand-dark); margin: 0; width: 60px; font-size: var(--text-price-xl-mob-size); }
+    .ufs-promo-banner__countdown-label { color: var(--color-brand-dark); margin: 0; }
+    .ufs-promo-banner__ctas { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+    .ufs-promo-banner__ctas .btn { width: 100%; }
+    .ufs-promo-banner__disclaimer { color: color-mix(in srgb, var(--color-brand-dark) 80%, transparent); margin: 0; }
+    .ufs-promo-banner .btn-secondary { background: var(--color-salt); }
+    .ufs-promo-banner .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: transparent; }
+
+    .ufs-promo-banner--dark { background: var(--color-brand-dark); }
+    .ufs-promo-banner--dark .ufs-promo-banner__title,
+    .ufs-promo-banner--dark .ufs-promo-banner__desc,
+    .ufs-promo-banner--dark .ufs-promo-banner__countdown-value,
+    .ufs-promo-banner--dark .ufs-promo-banner__countdown-label { color: var(--color-salt); }
+    .ufs-promo-banner--dark .ufs-promo-banner__disclaimer { color: color-mix(in srgb, var(--color-salt) 80%, transparent); }
+    .ufs-promo-banner--dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+    .ufs-promo-banner--dark .btn-secondary:hover:not(:disabled):not(.btn-loading) { background: color-mix(in srgb, var(--color-salt) 10%, transparent); }
+
+    @media (min-width: 1024px) {
+      .ufs-promo-banner {
+        display: flex;
+        border-radius: var(--radius-xl);
+        border-top-right-radius: var(--radius-xxxl);
+      }
+      .ufs-promo-banner__panel {
+        flex: 0 0 52%; min-width: 0;
+        align-items: flex-start; text-align: left;
+        min-height: 400px;
+        gap: var(--space-6);
+        padding: var(--space-16) var(--space-16) var(--space-14) var(--space-14);
+        border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+      }
+      .ufs-promo-banner__body { align-items: flex-start; gap: var(--space-4); }
+      .ufs-promo-banner__image {
+        position: absolute; inset: -12px 0 -12px auto; left: 49%;
+        aspect-ratio: auto; width: auto;
+        border-radius: var(--radius-xl) var(--radius-xxxl) var(--radius-xl) var(--radius-xl);
+        z-index: 1;
+      }
+      .ufs-promo-banner__logo { height: 24px; }
+      .ufs-promo-banner__title { font-size: var(--text-h3-size); line-height: var(--text-h3-lh); }
+      .ufs-promo-banner__desc { font-size: var(--text-body-size); }
+      .ufs-promo-banner__countdown { justify-content: flex-start; gap: var(--space-10); }
+      .ufs-promo-banner__countdown-value { text-align: center; font-size: var(--text-price-xl-size); }
+      .ufs-promo-banner__ctas { flex-direction: row; width: auto; }
+      .ufs-promo-banner__ctas .btn { width: auto; }
+      /* RTL — flex order and align-items:flex-start already auto-mirror
+         under dir="rtl"; only the literal-physical values need a flip. */
+      .ufs-promo-banner[dir="rtl"] {
+        border-radius: var(--radius-xl);
+        border-top-left-radius: var(--radius-xxxl);
+      }
+      [dir="rtl"] .ufs-promo-banner__panel {
+        text-align: right;
+        border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+      }
+      [dir="rtl"] .ufs-promo-banner__image {
+        left: 0; right: 49%;
+        border-radius: var(--radius-xxxl) var(--radius-xl) var(--radius-xl) var(--radius-xl);
+      }
+    }
+
+    .pv-drawer { background: var(--color-squid-900); border-radius: var(--radius-md); padding: 32px 24px; display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+    .pv-drawer .signin-panel { position: relative; inset: auto; z-index: auto; transform: none; transition: none; width: 420px; max-width: 100%; height: auto; border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-lg); }
+    .pv-drawer.pv-m .signin-panel { width: 374px; }
+    .pv-m .ufs-quiz__question, .pv-m .ufs-quiz__result-title { font-size: var(--text-h6-mob-size); }
+    .pv-m .ufs-quiz__media--image-only .ufs-quiz__img { width: 160px; height: 113px; }
+    .pv-banner { padding: 24px 0; }
+    #training-course-content { scroll-margin-top: 32px; }
+
+/* Promo Banner — new in v2.0: a bullet list in place of the description paragraph */
+.ufs-promo-banner__list { list-style: disc; padding-inline-start: var(--space-5); text-align: start; display: flex; flex-direction: column; gap: var(--space-1); }
+
+/* Quiz — content of a v1 side drawer (.signin-panel), opened from the Promo Banner */
+.ufs-quiz { display: flex; flex-direction: column; gap: var(--space-6); }
+.ufs-quiz[hidden], .ufs-quiz__view[hidden] { display: none; }
+.ufs-quiz__overline { margin: 0; text-align: center; color: var(--color-brand-dark); }
+.ufs-quiz__progress { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); margin-top: calc(var(--space-4) - var(--space-6)); }
+.ufs-quiz__track { width: 100%; height: var(--space-2); border-radius: var(--radius-full); background: var(--color-mushroom-100); overflow: hidden; }
+.ufs-quiz__fill { height: 100%; border-radius: inherit; background: var(--color-brand-primary); transition: width 0.3s ease; }
+.ufs-quiz__count { margin: 0; color: var(--color-brand-dark); }
+.ufs-quiz__view { display: flex; flex-direction: column; gap: var(--space-4); }
+.ufs-quiz__question { margin: 0; color: var(--color-brand-dark); outline: none; }
+.ufs-quiz__options { display: flex; flex-direction: column; gap: var(--space-4); border: 0; margin: 0; padding: 0; min-width: 0; }
+
+/* Option card: the 2px border is always there (transparent), so selecting or
+   checking an answer never shifts the layout; the padding makes up for it */
+.ufs-quiz__option {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  padding: calc(var(--space-4) - 2px); border: 2px solid transparent; border-radius: var(--radius-sm);
+  background: var(--color-mushroom-100); cursor: pointer;
+  font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark);
+  transition: background 0.15s, border-color 0.15s;
+}
+.ufs-quiz__option input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.ufs-quiz__option:hover { background: var(--color-mushroom-300); }
+.ufs-quiz__option:has(input:focus-visible) { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+.ufs-quiz__option:has(input:checked) { background: var(--color-mushroom-300); border-color: var(--color-mushroom-500); }
+/* Radio: 16px white circle, --color-mushroom-500 ring; selected adds a 10px dark dot */
+.ufs-quiz__radio { flex-shrink: 0; width: 16px; height: 16px; border-radius: var(--radius-full); border: 1px solid var(--color-mushroom-500); background: var(--color-salt); display: grid; place-items: center; }
+.ufs-quiz__option input:checked + .ufs-quiz__radio::after { content: ''; width: 10px; height: 10px; border-radius: var(--radius-full); background: var(--color-brand-dark); }
+.ufs-quiz__mark { display: none; flex-shrink: 0; width: 16px; height: 16px; }
+.ufs-quiz__media { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--space-3); }
+.ufs-quiz__img { flex-shrink: 0; width: 120px; height: 85px; border-radius: var(--radius-sm); object-fit: cover; }
+.ufs-quiz__media--image-only { justify-content: center; }
+.ufs-quiz__media--image-only .ufs-quiz__img { width: 180px; height: 127px; }
+
+/* Checked: options lock; the pick and the right answer get their mark */
+.ufs-quiz__options.is-checked .ufs-quiz__option { cursor: default; background: var(--color-mushroom-100); border-color: transparent; }
+.ufs-quiz__options.is-checked .ufs-quiz__option.is-wrong { border-color: var(--color-error); }
+.ufs-quiz__options.is-checked .ufs-quiz__option.is-right { border-color: var(--color-success); }
+.ufs-quiz__options.is-checked .is-wrong .ufs-quiz__radio,
+.ufs-quiz__options.is-checked .is-right .ufs-quiz__radio { display: none; }
+.ufs-quiz__options.is-checked .is-wrong .ufs-quiz__mark--wrong,
+.ufs-quiz__options.is-checked .is-right .ufs-quiz__mark--right { display: block; }
+
+.ufs-quiz__action { width: 100%; margin-top: var(--space-2); }
+.ufs-quiz__action:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Result (pass / fail) */
+.ufs-quiz__result { display: flex; flex-direction: column; gap: var(--space-6); }
+.ufs-quiz__result[hidden] { display: none; }
+.ufs-quiz__result-title { margin: 0; text-align: center; color: var(--color-brand-dark); outline: none; }
+.ufs-quiz__result-img { width: 100%; aspect-ratio: 480 / 270; border-radius: var(--radius-sm); object-fit: cover; display: block; }
+.ufs-quiz__result-ctas { display: flex; flex-direction: column; gap: var(--space-4); }
+.ufs-quiz__result-ctas .btn { width: 100%; }
+/* v1 button loading spinner (Design System › Buttons, .btn-loading): Download Certificate */
+.ufs-quiz .btn-loading { color: transparent !important; pointer-events: none; }
+.ufs-quiz .btn-loading::after {
+  content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; border: 2.5px solid;
+  border-color: color-mix(in srgb, var(--color-salt) 25%, transparent); border-top-color: var(--color-salt);
+  animation: ufs-quiz-spin 0.65s linear infinite;
+}
+@keyframes ufs-quiz-spin { to { transform: rotate(360deg); } }
+@media (max-width: 768px) {
+  .ufs-quiz__question, .ufs-quiz__result-title { font-size: var(--text-h6-mob-size); }
+  .ufs-quiz__media--image-only .ufs-quiz__img { width: 160px; height: 113px; }
+}
+@media (prefers-reduced-motion: reduce) { .ufs-quiz__fill { transition: none; } }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+
+    /* ═══════════════════════════════════════
+       DOC CHROME ≤768px (spec-doc only): 16px gutters, stacked header,
+       previews never wider than the screen (they scroll inside their card)
+    ═══════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .doc-topbar { padding: 0 16px 0 64px; height: 66px; overflow: hidden; white-space: nowrap; }
+      .doc-topbar-current { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .doc-topbar-version { display: none; }
+      .doc-header-inner { flex-direction: column; gap: 16px; padding: 28px 16px 24px; }
+      .doc-header-vdiv { display: none; }
+      .doc-header-meta { align-items: flex-start; padding-top: 0; }
+      .content { padding: 32px 16px 96px; }
+      .ds-card { padding: 20px 16px 24px; }
+      .ds-card > * { max-width: 100%; }
+      .ds-card > [class*="pv-"]:not(.pv-label) { overflow-x: auto; position: relative; }
+      .pv-pad { padding: 24px 16px; }
+      .pv-cartbar { margin: -24px -16px 24px; }
+      .pv-grid, .pv-states { grid-template-columns: minmax(0, 296px); }
+      .pv-grid-m { grid-template-columns: minmax(0, 1fr); }
+      .pv-anchor { width: auto; max-width: 296px; }
+      .pv-row, .pv-drawer { flex-wrap: wrap; }
+      .pv-drawer { padding: 24px 12px; }
+      .pv-col { flex-basis: 100%; }
+      .token-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+      .token-var { overflow-wrap: anywhere; }
+      .token-note { text-align: start; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="../images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System v2.0
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#entry" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Entry Point</a>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Variants</div>
+      <a href="#types" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Question Types</a>
+      <a href="#states" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Answer States</a>
+      <a href="#results" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Results</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#flow" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Flow &amp; Scoring</a>
+      <a href="#animation" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Animation</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New in v2.0.<br/>Figma: Rosana 2.0, 4190:5689 · 6024 · 6059 · 6105 · 6187 · 6254 · 6293 · 6350.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <nav class="doc-topbar" aria-label="Breadcrumb">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System v2.0
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Quiz</span>
+    <span class="doc-topbar-version">New in v2.0</span>
+  </nav>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="../images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec · v2.0</div>
+        <h1 class="doc-header-title"><span>Quiz</span></h1>
+        <p class="doc-header-desc">Multiple-choice quiz at the end of a training, in the v1 side drawer: check each answer, see right and wrong straight away, pass at 80% to download a certificate.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val"><a href="template-training-detail.html">handover/v2/<br/>template-training-detail.html</a></span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content" id="main">
+
+    <!-- ═══════════════════════════════════════ FULL COMPONENT PREVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">A short multiple-choice quiz at the end of a training. Passing it (80%) earns a certificate. It opens from a Promo Banner on the Training Detail page, in the v1 side drawer. Each question is answered and <em>checked</em> before moving on: the buyer sees straight away whether they were right, and which answer was. The drawer then ends on a pass or fail screen. Taking the quiz needs sign-in: signed-out visitors get the v1 sign-in drawer first, with quiz copy, and the quiz opens as soon as they are signed in.</p>
+      <div class="notice notice--tip"><span class="notice-icon">💡</span><div>Live: the banner's "Take the quiz" runs the real 5-question quiz (correct answers: 3, 3, 2, 1, 2). Get two wrong to see the fail screen.</div></div><div class="ds-card"><div class="card-title">Entry point + live quiz</div><div class="card-desc">v1 Promo Banner, light variant, with the new bullet-list description.</div><div class="pv-banner"><section class="ufs-promo-banner" aria-labelledby="quiz-banner-title">
+  <div class="ufs-promo-banner__image" style="background-image:url('../images/academy/K_GPP_5120.jpg')" aria-hidden="true"></div>
+  <div class="ufs-promo-banner__panel">
+    <div class="ufs-promo-banner__body">
+      <h2 class="ufs-promo-banner__title text-h2" id="quiz-banner-title">Pass the quiz, earn a certificate</h2>
+      <ul class="ufs-promo-banner__desc ufs-promo-banner__list text-body">
+        <li>Quick five minutes quiz</li>
+        <li>Earn a free certificate</li>
+        <li>In collaboration with the Culinary Institute of America</li>
+      </ul>
+    </div>
+    <div class="ufs-promo-banner__ctas">
+      <button type="button" class="btn btn-primary" onclick="openQuiz(this)">Take the quiz</button>
+    </div>
+  </div>
+<div id="training-course-content" class="pv-label" style="margin-top:8px">↑ Course Content would be here: "Re-watch videos" scrolls to it.</div></section></div></div><div class="ds-card"><div class="card-title">Static copies</div><div aria-hidden="true" inert class="pv-drawer"><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:20%"></div></div><p class="ufs-quiz__count text-body-xs">1 out of 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">At what temperature should foods be tested using IDDSI testing methods?</h2><div class="ufs-quiz__options"><label class="ufs-quiz__option"><input type="radio" name="pv1" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Cold</span></label><label class="ufs-quiz__option"><input type="radio" name="pv1" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Hot</span></label><label class="ufs-quiz__option"><input type="radio" name="pv1" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>At the temperature it will be served</span></label></div><button type="button" class="btn btn-primary ufs-quiz__action" disabled>Check the answer</button></div></div></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:20%"></div></div><p class="ufs-quiz__count text-body-xs">1 out of 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">At what temperature should foods be tested using IDDSI testing methods?</h2><div class="ufs-quiz__options is-checked"><label class="ufs-quiz__option is-wrong"><input type="radio" name="pv3" checked disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Cold</span></label><label class="ufs-quiz__option"><input type="radio" name="pv3" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Hot</span></label><label class="ufs-quiz__option is-right"><input type="radio" name="pv3" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>At the temperature it will be served</span></label></div><button type="button" class="btn btn-primary ufs-quiz__action">Next question</button></div></div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ENTRY POINT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="entry">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Entry Point</h2>
+      <p class="section-desc">The v1 <a href="../promo-banner-spec.html">Promo Banner</a> (light, no logo, countdown or disclaimer) placed below the training's Course Content. The only addition is <code>.ufs-promo-banner__list</code>: a bullet list instead of the description paragraph. Everything else is the v1 component.</p>
+      <div class="ds-card"><div class="code-block-wrap"><div class="code-tabs"><div class="code-tab active" onclick="switchTab(this,'cb1-0')">HTML</div><div class="code-tab" onclick="switchTab(this,'cb1-1')">CSS</div></div><div class="code-panel active" data-tab="cb1-0"><div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-tag">&lt;section</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"quiz-banner-title"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__image"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('../images/academy/K_GPP_5120.jpg')"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__panel"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__body"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__title text-h2"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-banner-title"</span><span class="t-tag">&gt;</span>Pass the quiz, earn a certificate<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;ul</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__desc ufs-promo-banner__list text-body"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;li</span><span class="t-tag">&gt;</span>Quick five minutes quiz<span class="t-tag">&lt;/li</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;li</span><span class="t-tag">&gt;</span>Earn a free certificate<span class="t-tag">&lt;/li</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;li</span><span class="t-tag">&gt;</span>In collaboration with the Culinary Institute of America<span class="t-tag">&lt;/li</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/ul</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-promo-banner__ctas"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span> <span class="t-at">onclick</span>=<span class="t-str">"openQuiz(this)"</span><span class="t-tag">&gt;</span>Take the quiz<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/section</span><span class="t-tag">&gt;</span></pre></div><div class="code-panel" data-tab="cb1-1"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Promo Banner — new in v2.0: a bullet list in place of the description paragraph */</span>
+<span class="t-pr">.ufs-promo-banner__list</span> { <span class="t-pr">list-style</span>: <span class="t-vl">disc</span>; <span class="t-pr">padding-inline-start</span>: <span class="t-va">var(--space-5)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">start</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; }</pre></div></div><div class="token-list"><div class="token-row"><span class="token-prop">List</span><span class="token-var">disc · padding-inline-start --space-5</span><span class="token-note">gap --space-1; same type as __desc (Body / Body-Small on mobile)</span></div><div class="token-row"><span class="token-prop">CTA</span><span class="token-var">"Take the quiz", .btn-primary</span><span class="token-note">opens the quiz, or sign-in first</span></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">One question view re-rendered for each step, plus a pass view and a fail view, inside <code>.signin-panel-body</code>. A visually hidden <code>role="status"</code> announces "Correct." / "Incorrect. The right answer is …" after each check.</p>
+      <div class="ds-card"><div class="card-title">Parts</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Part</th><th>Element</th><th>Spec</th></tr></thead><tbody><tr><td>Overline</td><td><code>__overline</code> · .text-overline</td><td>Quiz name, centred ("IDDSI quiz")</td></tr><tr><td>Progress</td><td><code>__track</code> (role="progressbar") + <code>__fill</code> + <code>__count</code></td><td>8px track, --color-mushroom-100; fill --color-brand-primary = current ÷ total; "1 out of 5" (Body-XS). The 16px gap to the overline is tighter than the 24px block gap.</td></tr><tr><td>Question</td><td><code>__question</code> · .text-h6 (h2)</td><td>Gets focus on every new question (tabindex −1, no ring)</td></tr><tr><td>Options</td><td><code>__options</code> (role="radiogroup") › <code>__option</code> (label + native radio)</td><td>16px gap. Card: --color-mushroom-100, 14px padding + 2px transparent border, --radius-sm, Body-Small.</td></tr><tr><td>Action</td><td><code>__action</code>, full-width .btn-primary</td><td>Check the answer (disabled until a pick, 40% opacity) → Next question → See results</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">Reference markup</div><div class="code-block-wrap"><div class="code-tabs"><div class="code-tab active" onclick="switchTab(this,'cb2-0')">HTML</div><div class="code-tab" onclick="switchTab(this,'cb2-1')">CSS</div></div><div class="code-panel active" data-tab="cb2-0"><div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">&lt;!-- Quiz drawer: v1 side panel shell. One question view, re-rendered per step, plus pass / fail views --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-backdrop"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-backdrop"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeQuizPanel()"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-panel"</span> <span class="t-at">role</span>=<span class="t-str">"dialog"</span> <span class="t-at">aria-modal</span>=<span class="t-str">"true"</span> <span class="t-at">aria-label</span>=<span class="t-str">"IDDSI quiz"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span> <span class="t-at">inert</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-hd"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/ufs-logo.png"</span> <span class="t-at">alt</span>=<span class="t-str">"UFS"</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-logo"</span><span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"signin-close"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeQuizPanel()"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Close quiz"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 12 12"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"2"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"10"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"2"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-body"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-panel-body"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"sr-only"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-status"</span> <span class="t-at">role</span>=<span class="t-str">"status"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-run"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__overline text-overline"</span><span class="t-tag">&gt;</span>IDDSI quiz<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__progress"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__track"</span> <span class="t-at">role</span>=<span class="t-str">"progressbar"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Quiz progress"</span> <span class="t-at">aria-valuemin</span>=<span class="t-str">"1"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-track"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__fill"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-fill"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__count text-body-xs"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-count"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__view"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__question text-h6"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-question"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__options"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-options"</span> <span class="t-at">role</span>=<span class="t-str">"radiogroup"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"quiz-question"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary ufs-quiz__action"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-action"</span> <span class="t-at">onclick</span>=<span class="t-str">"quizAction()"</span> <span class="t-at">disabled</span><span class="t-tag">&gt;</span>Check the answer<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz ufs-quiz__result"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-result-fail"</span> <span class="t-at">hidden</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__overline text-overline"</span><span class="t-tag">&gt;</span>IDDSI quiz<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__result-title text-h6"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span>Oh no! You have failed the quiz<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__result-img"</span> <span class="t-at">src</span>=<span class="t-str">"../images/quiz/quiz-fail.png"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__result-ctas"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span> <span class="t-at">onclick</span>=<span class="t-str">"quizRewatch()"</span><span class="t-tag">&gt;</span>Re-watch videos<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary"</span> <span class="t-at">onclick</span>=<span class="t-str">"startQuiz()"</span><span class="t-tag">&gt;</span>Re-take quiz<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz ufs-quiz__result"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-result-pass"</span> <span class="t-at">hidden</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__overline text-overline"</span><span class="t-tag">&gt;</span>IDDSI quiz<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__result-title text-h6"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span>Congratulations!<span class="t-tag">&lt;br</span><span class="t-tag">/&gt;</span>You have passed the quiz<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;img</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__result-img"</span> <span class="t-at">src</span>=<span class="t-str">"../images/quiz/quiz-success.gif"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-quiz__result-ctas"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span> <span class="t-at">id</span>=<span class="t-str">"quiz-download"</span> <span class="t-at">onclick</span>=<span class="t-str">"quizDownload()"</span><span class="t-tag">&gt;</span>Download Certificate<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-secondary"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeQuizPanel()"</span><span class="t-tag">&gt;</span>Continue Learning<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre></div><div class="code-panel" data-tab="cb2-1"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Quiz — content of a v1 side drawer (.signin-panel), opened from the Promo Banner */</span>
+<span class="t-pr">.ufs-quiz</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; }
+<span class="t-pr">.ufs-quiz[hidden], .ufs-quiz__view[hidden]</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-quiz__overline</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-quiz__progress</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">margin-top</span>: <span class="t-vl">calc(var(--space-4)</span> <span class="t-vl">-</span> <span class="t-va">var(--space-6)</span><span class="t-vl">)</span>; }
+<span class="t-pr">.ufs-quiz__track</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; }
+<span class="t-pr">.ufs-quiz__fill</span> { <span class="t-pr">height</span>: <span class="t-vl">100%</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">inherit</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-primary)</span>; <span class="t-pr">transition</span>: <span class="t-vl">width</span> <span class="t-vl">0.3s</span> <span class="t-vl">ease</span>; }
+<span class="t-pr">.ufs-quiz__count</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-quiz__view</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-quiz__question</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">outline</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-quiz__options</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">border</span>: <span class="t-vl">0</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; }
+
+<span class="t-cm">/* Option card: the 2px border is always there (transparent), so selecting or</span>
+   <span class="t-cm">checking an answer never shifts the layout; the padding makes up for it */</span>
+<span class="t-pr">.ufs-quiz__option</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-vl">10px</span>;
+  <span class="t-pr">padding</span>: <span class="t-vl">calc(var(--space-4)</span> <span class="t-vl">-</span> <span class="t-vl">2px)</span>; <span class="t-pr">border</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-vl">transparent</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>;
+  <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+  <span class="t-pr">transition</span>: <span class="t-vl">background</span> <span class="t-vl">0.15s,</span> <span class="t-vl">border-color</span> <span class="t-vl">0.15s</span>;
+}
+<span class="t-pr">.ufs-quiz__option input</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">1px</span>; <span class="t-pr">height</span>: <span class="t-vl">1px</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-quiz__option:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-300)</span>; }
+<span class="t-pr">.ufs-quiz__option:has(input:focus-visible)</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">outline-offset</span>: <span class="t-vl">2px</span>; }
+<span class="t-pr">.ufs-quiz__option:has(input:checked)</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-color</span>: <span class="t-va">var(--color-mushroom-500)</span>; }
+<span class="t-cm">/* Radio: 16px white circle, --color-mushroom-500 ring; selected adds a 10px dark dot */</span>
+<span class="t-pr">.ufs-quiz__radio</span> { <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">16px</span>; <span class="t-pr">height</span>: <span class="t-vl">16px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-500)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">display</span>: <span class="t-vl">grid</span>; <span class="t-pr">place-items</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-quiz__option input:checked + .ufs-quiz__radio::after</span> { <span class="t-pr">content</span>: <span class="t-vl">''</span>; <span class="t-pr">width</span>: <span class="t-vl">10px</span>; <span class="t-pr">height</span>: <span class="t-vl">10px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-quiz__mark</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">16px</span>; <span class="t-pr">height</span>: <span class="t-vl">16px</span>; }
+<span class="t-pr">.ufs-quiz__media</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; }
+<span class="t-pr">.ufs-quiz__img</span> { <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">120px</span>; <span class="t-pr">height</span>: <span class="t-vl">85px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">object-fit</span>: <span class="t-vl">cover</span>; }
+<span class="t-pr">.ufs-quiz__media--image-only</span> { <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-quiz__media--image-only .ufs-quiz__img</span> { <span class="t-pr">width</span>: <span class="t-vl">180px</span>; <span class="t-pr">height</span>: <span class="t-vl">127px</span>; }
+
+<span class="t-cm">/* Checked: options lock; the pick and the right answer get their mark */</span>
+<span class="t-pr">.ufs-quiz__options.is-checked .ufs-quiz__option</span> { <span class="t-pr">cursor</span>: <span class="t-vl">default</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">border-color</span>: <span class="t-vl">transparent</span>; }
+<span class="t-pr">.ufs-quiz__options.is-checked .ufs-quiz__option.is-wrong</span> { <span class="t-pr">border-color</span>: <span class="t-va">var(--color-error)</span>; }
+<span class="t-pr">.ufs-quiz__options.is-checked .ufs-quiz__option.is-right</span> { <span class="t-pr">border-color</span>: <span class="t-va">var(--color-success)</span>; }
+<span class="t-pr">.ufs-quiz__options.is-checked .is-wrong .ufs-quiz__radio,</span>
+<span class="t-pr">.ufs-quiz__options.is-checked .is-right .ufs-quiz__radio</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-quiz__options.is-checked .is-wrong .ufs-quiz__mark--wrong,</span>
+<span class="t-pr">.ufs-quiz__options.is-checked .is-right .ufs-quiz__mark--right</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+
+<span class="t-pr">.ufs-quiz__action</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-2)</span>; }
+<span class="t-pr">.ufs-quiz__action:disabled</span> { <span class="t-pr">opacity</span>: <span class="t-vl">0.4</span>; <span class="t-pr">cursor</span>: <span class="t-vl">not-allowed</span>; }
+
+<span class="t-cm">/* Result (pass / fail) */</span>
+<span class="t-pr">.ufs-quiz__result</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-6)</span>; }
+<span class="t-pr">.ufs-quiz__result[hidden]</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-quiz__result-title</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">outline</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-quiz__result-img</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">aspect-ratio</span>: <span class="t-vl">480</span> <span class="t-vl">/</span> <span class="t-vl">270</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">object-fit</span>: <span class="t-vl">cover</span>; <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+<span class="t-pr">.ufs-quiz__result-ctas</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-quiz__result-ctas .btn</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-cm">/* v1 button loading spinner (Design System › Buttons, .btn-loading): Download Certificate */</span>
+<span class="t-pr">.ufs-quiz .btn-loading</span> { <span class="t-pr">color</span>: <span class="t-vl">transparent</span> <span class="t-vl">!important</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-quiz .btn-loading::after</span> {
+  <span class="t-pr">content</span>: <span class="t-vl">''</span>; <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">width</span>: <span class="t-vl">18px</span>; <span class="t-pr">height</span>: <span class="t-vl">18px</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">50%</span>; <span class="t-pr">border</span>: <span class="t-vl">2.5px</span> <span class="t-vl">solid</span>;
+  <span class="t-pr">border-color</span>: <span class="t-vl">color-mix(in</span> <span class="t-vl">srgb,</span> <span class="t-va">var(--color-salt)</span> <span class="t-vl">25%,</span> <span class="t-vl">transparent)</span>; <span class="t-pr">border-top-color</span>: <span class="t-va">var(--color-salt)</span>;
+  <span class="t-pr">animation</span>: <span class="t-vl">ufs-quiz-spin</span> <span class="t-vl">0.65s</span> <span class="t-vl">linear</span> <span class="t-vl">infinite</span>;
+}
+<span class="t-kw">@keyframes</span> ufs-quiz-spin { <span class="t-pr">to</span> { <span class="t-pr">transform</span>: <span class="t-vl">rotate(360deg)</span>; } }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-pr">.ufs-quiz__question, .ufs-quiz__result-title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h6-mob-size)</span>; }
+  <span class="t-pr">.ufs-quiz__media--image-only .ufs-quiz__img</span> { <span class="t-pr">width</span>: <span class="t-vl">160px</span>; <span class="t-pr">height</span>: <span class="t-vl">113px</span>; }
+}
+<span class="t-kw">@media</span> (<span class="t-pr">prefers-reduced-motion</span>: <span class="t-vl">reduce</span>) { <span class="t-pr">.ufs-quiz__fill</span> { <span class="t-pr">transition</span>: <span class="t-vl">none</span>; } }</pre></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ QUESTION TYPES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="types">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Question Types</h2>
+      <p class="section-desc">Three option layouts, set per question by the CMS. Every type is a native radio inside a label, so the whole card is the target and arrow keys move between options.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-drawer"><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:20%"></div></div><p class="ufs-quiz__count text-body-xs">1 out of 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">At what temperature should foods be tested using IDDSI testing methods?</h2><div class="ufs-quiz__options"><label class="ufs-quiz__option"><input type="radio" name="pv1" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Cold</span></label><label class="ufs-quiz__option"><input type="radio" name="pv1" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Hot</span></label><label class="ufs-quiz__option"><input type="radio" name="pv1" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>At the temperature it will be served</span></label></div><button type="button" class="btn btn-primary ufs-quiz__action" disabled>Check the answer</button></div></div></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:40%"></div></div><p class="ufs-quiz__count text-body-xs">2 out of 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">Which recipe belongs to Italian cuisine?</h2><div class="ufs-quiz__options"><label class="ufs-quiz__option"><input type="radio" name="pv5" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media"><img class="ufs-quiz__img" src="../images/quiz/recipe-sosaties.jpg" alt=""/><span>South African Lamb and Apricot Sosaties</span></span></label><label class="ufs-quiz__option"><input type="radio" name="pv5" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media"><img class="ufs-quiz__img" src="../images/quiz/recipe-watercress.jpg" alt=""/><span>Watercress Soup with Crispy Bacon and Poached Duck Egg</span></span></label><label class="ufs-quiz__option"><input type="radio" name="pv5" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media"><img class="ufs-quiz__img" src="../images/quiz/recipe-pea-asparagus.jpg" alt=""/><span>Pea, Asparagus &amp; Grana Padano</span></span></label></div><button type="button" class="btn btn-primary ufs-quiz__action" disabled>Check the answer</button></div></div></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:80%"></div></div><p class="ufs-quiz__count text-body-xs">4 out of 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">Select the South African Lamb and Apricot recipe:</h2><div class="ufs-quiz__options"><label class="ufs-quiz__option"><input type="radio" name="pv6" checked disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media ufs-quiz__media--image-only"><img class="ufs-quiz__img" src="../images/quiz/recipe-sosaties.jpg" alt=""/></span></label><label class="ufs-quiz__option"><input type="radio" name="pv6" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media ufs-quiz__media--image-only"><img class="ufs-quiz__img" src="../images/quiz/recipe-watercress.jpg" alt=""/></span></label><label class="ufs-quiz__option"><input type="radio" name="pv6" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media ufs-quiz__media--image-only"><img class="ufs-quiz__img" src="../images/quiz/recipe-pea-asparagus.jpg" alt=""/></span></label></div><button type="button" class="btn btn-primary ufs-quiz__action">Check the answer</button></div></div></div></div></div></div><div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Type</th><th>Option content</th><th>Image</th></tr></thead><tbody><tr><td>text</td><td>Radio + label text</td><td>–</td></tr><tr><td>image-text</td><td>Radio + 120 × 85 image + label text</td><td>Decorative (<code>alt=""</code>): the text names the option</td></tr><tr><td>image</td><td>Radio + centred 180 × 127 image (160 × 113 ≤768px)</td><td>The option text becomes the image's <code>alt</code>, the only name the option has</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANSWER STATES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="states">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Answer States</h2>
+      <p class="section-desc">The option card never changes size between states: its 2px border is always there, only its colour changes.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-drawer"><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:20%"></div></div><p class="ufs-quiz__count text-body-xs">1 out of 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">At what temperature should foods be tested using IDDSI testing methods?</h2><div class="ufs-quiz__options"><label class="ufs-quiz__option"><input type="radio" name="pv2" checked disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Cold</span></label><label class="ufs-quiz__option"><input type="radio" name="pv2" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Hot</span></label><label class="ufs-quiz__option"><input type="radio" name="pv2" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>At the temperature it will be served</span></label></div><button type="button" class="btn btn-primary ufs-quiz__action">Check the answer</button></div></div></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:20%"></div></div><p class="ufs-quiz__count text-body-xs">1 out of 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">At what temperature should foods be tested using IDDSI testing methods?</h2><div class="ufs-quiz__options is-checked"><label class="ufs-quiz__option"><input type="radio" name="pv4" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Cold</span></label><label class="ufs-quiz__option"><input type="radio" name="pv4" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Hot</span></label><label class="ufs-quiz__option is-right"><input type="radio" name="pv4" checked disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>At the temperature it will be served</span></label></div><button type="button" class="btn btn-primary ufs-quiz__action">Next question</button></div></div></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:20%"></div></div><p class="ufs-quiz__count text-body-xs">1 out of 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">At what temperature should foods be tested using IDDSI testing methods?</h2><div class="ufs-quiz__options is-checked"><label class="ufs-quiz__option is-wrong"><input type="radio" name="pv3" checked disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Cold</span></label><label class="ufs-quiz__option"><input type="radio" name="pv3" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>Hot</span></label><label class="ufs-quiz__option is-right"><input type="radio" name="pv3" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>At the temperature it will be served</span></label></div><button type="button" class="btn btn-primary ufs-quiz__action">Next question</button></div></div></div></div></div></div><div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>State</th><th>Option card</th><th>Radio / mark</th></tr></thead><tbody><tr><td>Default</td><td>--color-mushroom-100, transparent border; hover --color-mushroom-300</td><td>White circle, --color-mushroom-500 ring</td></tr><tr><td>Selected</td><td>--color-mushroom-300 + --color-mushroom-500 border</td><td>10px --color-brand-dark dot</td></tr><tr><td>Checked: right answer</td><td>Back to --color-mushroom-100 + --color-success border</td><td>Radio replaced by a green tick mark</td></tr><tr><td>Checked: wrong pick</td><td>--color-error border</td><td>Red cross mark. The right answer is marked too.</td></tr><tr><td>Checked: others</td><td>Locked (inputs disabled), no border</td><td>Plain radio</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ RESULTS ═══════════════════════════════════════ -->
+    <section class="doc-section" id="results">
+      <div class="section-breadcrumb">Variants</div>
+      <h2 class="section-title">Results</h2>
+      <p class="section-desc">Same structure for both outcomes: overline, title (h6, centred), a 16:9 illustration, two full-width CTAs. The pass illustration is an animated GIF.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-drawer"><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz ufs-quiz__result"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><h2 class="ufs-quiz__result-title text-h6">Oh no! You have failed the quiz</h2><img class="ufs-quiz__result-img" src="../images/quiz/quiz-fail.png" alt=""/><div class="ufs-quiz__result-ctas"><button type="button" class="btn btn-primary">Re-watch videos</button><button type="button" class="btn btn-secondary">Re-take quiz</button></div></div></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz ufs-quiz__result"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><h2 class="ufs-quiz__result-title text-h6">Congratulations!<br/>You have passed the quiz</h2><img class="ufs-quiz__result-img" src="../images/quiz/quiz-success.gif" alt=""/><div class="ufs-quiz__result-ctas"><button type="button" class="btn btn-primary">Download Certificate</button><button type="button" class="btn btn-secondary">Continue Learning</button></div></div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ FLOW &AMP; SCORING ═══════════════════════════════════════ -->
+    <section class="doc-section" id="flow">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Flow &amp; Scoring</h2>
+      <p class="section-desc">One button drives the whole run. The score only counts checked first picks: an option can't be changed after "Check the answer".</p>
+      <div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Moment</th><th>What happens</th></tr></thead><tbody><tr><td>Open</td><td>Signed in: drawer opens, attempt starts at question 1, focus on the question. Signed out: v1 sign-in drawer with "Sign up or Log in to take the quiz" / "Pass it to earn a free certificate.", then the quiz opens by itself after sign-in.</td></tr><tr><td>Pick an option</td><td>Enables "Check the answer"</td></tr><tr><td>Check the answer</td><td>Locks the options, marks the right answer (and the wrong pick), announces the result, button becomes "Next question" / "See results"</td></tr><tr><td>Next question</td><td>Progress fills one more step, the next question renders, focus moves to it, the panel scrolls to the top</td></tr><tr><td>See results</td><td>score ÷ questions ≥ 0.8 → pass view, otherwise fail. Focus moves to the result title.</td></tr><tr><td>Fail</td><td>"Re-watch videos" closes the drawer and scrolls to the training's Course Content. "Re-take quiz" restarts at question 1.</td></tr><tr><td>Pass</td><td>"Download Certificate" spins (v1 .btn-loading) while the PDF is generated, then reads "Certificate downloaded" and disables. "Continue Learning" closes.</td></tr><tr><td>Close / backdrop / Esc</td><td>Closes and throws the attempt away. Reopening always starts again. Focus returns to the trigger.</td></tr><tr><td>Keyboard</td><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> stay inside the open drawer (wrap from last to first and back).</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">JS</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* ── Quiz ──
+   Questions come from the CMS per training. Three types: 'text', 'image-text',
+   'image' (image only: the option text becomes the image's alt). Pass mark 80%.
+   Every question is "Check the answer" first, then "Next question" ("See results"
+   on the last one). Closing the drawer throws the attempt away. */</span>
+<span class="t-kw">var</span> QUIZ_IMG = <span class="t-str">'../images/quiz/'</span>;
+<span class="t-kw">var</span> QUIZ_PASS = 0.8;
+<span class="t-kw">var</span> QUIZ = [
+  { type: <span class="t-str">'text'</span>, q: <span class="t-str">'At what temperature should foods be tested using IDDSI testing methods?'</span>,
+    options: [{ text: <span class="t-str">'Cold'</span> }, { text: <span class="t-str">'Hot'</span> }, { text: <span class="t-str">'At the temperature it will be served'</span> }], answer: 2 },
+  { type: <span class="t-str">'image-text'</span>, q: <span class="t-str">'Which recipe belongs to Italian cuisine?'</span>,
+    options: [{ text: <span class="t-str">'South African Lamb and Apricot Sosaties'</span>, img: <span class="t-str">'recipe-sosaties.jpg'</span> },
+              { text: <span class="t-str">'Watercress Soup with Crispy Bacon and Poached Duck Egg'</span>, img: <span class="t-str">'recipe-watercress.jpg'</span> },
+              { text: <span class="t-str">'Pea, Asparagus &amp; Grana Padano'</span>, img: <span class="t-str">'recipe-pea-asparagus.jpg'</span> }], answer: 2 },
+  { type: <span class="t-str">'text'</span>, q: <span class="t-str">'How many levels does the IDDSI framework have?'</span>,
+    options: [{ text: <span class="t-str">'5 levels'</span> }, { text: <span class="t-str">'8 levels (0 to 7)'</span> }, { text: <span class="t-str">'10 levels'</span> }], answer: 1 },
+  { type: <span class="t-str">'image'</span>, q: <span class="t-str">'Select the South African Lamb and Apricot recipe:'</span>,
+    options: [{ text: <span class="t-str">'South African Lamb and Apricot Sosaties'</span>, img: <span class="t-str">'recipe-sosaties.jpg'</span> },
+              { text: <span class="t-str">'Watercress Soup with Crispy Bacon and Poached Duck Egg'</span>, img: <span class="t-str">'recipe-watercress.jpg'</span> },
+              { text: <span class="t-str">'Pea, Asparagus &amp; Grana Padano'</span>, img: <span class="t-str">'recipe-pea-asparagus.jpg'</span> }], answer: 0 },
+  { type: <span class="t-str">'text'</span>, q: <span class="t-str">'Which IDDSI level is "Liquidised" food?'</span>,
+    options: [{ text: <span class="t-str">'Level 1'</span> }, { text: <span class="t-str">'Level 3'</span> }, { text: <span class="t-str">'Level 6'</span> }], answer: 1 }
+];
+<span class="t-kw">var</span> QUIZ_TEXT = {
+  count: <span class="t-str">'{n} out of {total}'</span>, check: <span class="t-str">'Check the answer'</span>, next: <span class="t-str">'Next question'</span>, results: <span class="t-str">'See results'</span>,
+  correct: <span class="t-str">'Correct.'</span>, incorrect: <span class="t-str">'Incorrect. The right answer is {answer}.'</span>,
+  download: <span class="t-str">'Download Certificate'</span>, downloaded: <span class="t-str">'Certificate downloaded'</span>
+};
+<span class="t-kw">function</span> qt(key, vars) { <span class="t-kw">return</span> QUIZ_TEXT[key].replace(/\{(\w+)\}/g, <span class="t-kw">function</span> (_, k) { <span class="t-kw">return</span> vars[k]; }); }
+<span class="t-kw">var</span> MARK_WRONG = <span class="t-str">'&lt;svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"&gt;&lt;circle cx="8" cy="8" r="8" fill="var(--color-error)"/&gt;&lt;path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/&gt;&lt;/svg&gt;'</span>;
+<span class="t-kw">var</span> MARK_RIGHT = <span class="t-str">'&lt;svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"&gt;&lt;circle cx="8" cy="8" r="8" fill="var(--color-success)"/&gt;&lt;path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/&gt;&lt;/svg&gt;'</span>;
+<span class="t-kw">var</span> quiz = { step: 0, score: 0, checked: <span class="t-kw">false</span>, trigger: <span class="t-kw">null</span> };
+
+<span class="t-kw">function</span> quizEsc(s) { <span class="t-kw">var</span> d = document.createElement(<span class="t-str">'div'</span>); d.textContent = s; <span class="t-kw">return</span> d.innerHTML; }
+<span class="t-kw">function</span> quizShow(view) {
+  document.getElementById(<span class="t-str">'quiz-run'</span>).hidden = view !== <span class="t-str">'run'</span>;
+  document.getElementById(<span class="t-str">'quiz-result-fail'</span>).hidden = view !== <span class="t-str">'fail'</span>;
+  document.getElementById(<span class="t-str">'quiz-result-pass'</span>).hidden = view !== <span class="t-str">'pass'</span>;
+  document.getElementById(<span class="t-str">'quiz-panel-body'</span>).scrollTop = 0;
+}
+<span class="t-kw">function</span> renderQuizQuestion() {
+  <span class="t-kw">var</span> item = QUIZ[quiz.step], total = QUIZ.length;
+  quiz.checked = <span class="t-kw">false</span>;
+  document.getElementById(<span class="t-str">'quiz-fill'</span>).style.width = ((quiz.step + 1) / total * 100) + <span class="t-str">'%'</span>;
+  <span class="t-kw">var</span> track = document.getElementById(<span class="t-str">'quiz-track'</span>);
+  track.setAttribute(<span class="t-str">'aria-valuemax'</span>, total);
+  track.setAttribute(<span class="t-str">'aria-valuenow'</span>, quiz.step + 1);
+  document.getElementById(<span class="t-str">'quiz-count'</span>).textContent = qt(<span class="t-str">'count'</span>, { n: quiz.step + 1, total: total });
+  document.getElementById(<span class="t-str">'quiz-question'</span>).textContent = item.q;
+  <span class="t-kw">var</span> opts = document.getElementById(<span class="t-str">'quiz-options'</span>);
+  opts.classList.remove(<span class="t-str">'is-checked'</span>);
+  opts.innerHTML = item.options.map(<span class="t-kw">function</span> (o, i) {
+    <span class="t-kw">var</span> media = item.type === <span class="t-str">'text'</span> ? <span class="t-str">'&lt;span&gt;'</span> + quizEsc(o.text) + <span class="t-str">'&lt;/span&gt;'</span>
+      : <span class="t-str">'&lt;span class="ufs-quiz__media'</span> + (item.type === <span class="t-str">'image'</span> ? <span class="t-str">' ufs-quiz__media--image-only'</span> : <span class="t-str">''</span>) + <span class="t-str">'"&gt;'</span> +
+          <span class="t-str">'&lt;img class="ufs-quiz__img" src="'</span> + QUIZ_IMG + o.img + <span class="t-str">'" alt="'</span> + (item.type === <span class="t-str">'image'</span> ? quizEsc(o.text) : <span class="t-str">''</span>) + <span class="t-str">'"/&gt;'</span> +
+          (item.type === <span class="t-str">'image'</span> ? <span class="t-str">''</span> : <span class="t-str">'&lt;span&gt;'</span> + quizEsc(o.text) + <span class="t-str">'&lt;/span&gt;'</span>) + <span class="t-str">'&lt;/span&gt;'</span>;
+    <span class="t-kw">return</span> <span class="t-str">'&lt;label class="ufs-quiz__option"&gt;&lt;input type="radio" name="quiz-option" value="'</span> + i + <span class="t-str">'" onchange="quizSelect()"/&gt;'</span> +
+      <span class="t-str">'&lt;span class="ufs-quiz__radio" aria-hidden="true"&gt;&lt;/span&gt;'</span> + MARK_WRONG + MARK_RIGHT + media + <span class="t-str">'&lt;/label&gt;'</span>;
+  }).join(<span class="t-str">''</span>);
+  <span class="t-kw">var</span> btn = document.getElementById(<span class="t-str">'quiz-action'</span>);
+  btn.textContent = qt(<span class="t-str">'check'</span>, {});
+  btn.disabled = <span class="t-kw">true</span>;                              <span class="t-cm">// until an option is picked</span>
+}
+<span class="t-kw">function</span> quizSelect() { <span class="t-kw">if</span> (!quiz.checked) document.getElementById(<span class="t-str">'quiz-action'</span>).disabled = <span class="t-kw">false</span>; }
+
+<span class="t-cm">// One button, two jobs: check the picked answer, then move on</span>
+<span class="t-kw">function</span> quizAction() {
+  <span class="t-kw">var</span> item = QUIZ[quiz.step], picked = document.querySelector(<span class="t-str">'#quiz-options input:checked'</span>);
+  <span class="t-kw">if</span> (!quiz.checked) {
+    <span class="t-kw">if</span> (!picked) <span class="t-kw">return</span>;
+    <span class="t-kw">var</span> pick = +picked.value, labels = document.querySelectorAll(<span class="t-str">'#quiz-options .ufs-quiz__option'</span>);
+    quiz.checked = <span class="t-kw">true</span>;
+    <span class="t-kw">if</span> (pick === item.answer) quiz.score++;
+    labels[item.answer].classList.add(<span class="t-str">'is-right'</span>);
+    <span class="t-kw">if</span> (pick !== item.answer) labels[pick].classList.add(<span class="t-str">'is-wrong'</span>);
+    document.getElementById(<span class="t-str">'quiz-options'</span>).classList.add(<span class="t-str">'is-checked'</span>);
+    document.querySelectorAll(<span class="t-str">'#quiz-options input'</span>).forEach(<span class="t-kw">function</span> (i) { i.disabled = <span class="t-kw">true</span>; });
+    document.getElementById(<span class="t-str">'quiz-status'</span>).textContent = pick === item.answer
+      ? qt(<span class="t-str">'correct'</span>, {}) : qt(<span class="t-str">'incorrect'</span>, { answer: item.options[item.answer].text });
+    document.getElementById(<span class="t-str">'quiz-action'</span>).textContent = qt(quiz.step === QUIZ.length - 1 ? <span class="t-str">'results'</span> : <span class="t-str">'next'</span>, {});
+    <span class="t-kw">return</span>;
+  }
+  <span class="t-kw">if</span> (quiz.step &lt; QUIZ.length - 1) {
+    quiz.step++;
+    renderQuizQuestion();
+    document.getElementById(<span class="t-str">'quiz-question'</span>).focus({ preventScroll: <span class="t-kw">true</span> });
+    <span class="t-kw">return</span>;
+  }
+  <span class="t-kw">var</span> passed = quiz.score / QUIZ.length &gt;= QUIZ_PASS;
+  quizShow(passed ? <span class="t-str">'pass'</span> : <span class="t-str">'fail'</span>);
+  document.querySelector(<span class="t-str">'#quiz-result-'</span> + (passed ? <span class="t-str">'pass'</span> : <span class="t-str">'fail'</span>) + <span class="t-str">' .ufs-quiz__result-title'</span>).focus({ preventScroll: <span class="t-kw">true</span> });
+}
+
+<span class="t-kw">function</span> startQuiz() {
+  quiz.step = 0; quiz.score = 0;
+  <span class="t-kw">var</span> dl = document.getElementById(<span class="t-str">'quiz-download'</span>);
+  dl.classList.remove(<span class="t-str">'btn-loading'</span>); dl.disabled = <span class="t-kw">false</span>; dl.textContent = qt(<span class="t-str">'download'</span>, {});
+  document.getElementById(<span class="t-str">'quiz-status'</span>).textContent = <span class="t-str">''</span>;
+  renderQuizQuestion();
+  quizShow(<span class="t-str">'run'</span>);
+  document.getElementById(<span class="t-str">'quiz-question'</span>).focus({ preventScroll: <span class="t-kw">true</span> });
+}
+<span class="t-cm">// Signed out: the v1 sign-in drawer opens first with the 'quiz' copy, and the quiz opens straight after sign-in</span>
+<span class="t-kw">function</span> openQuiz(trigger) {
+  <span class="t-kw">if</span> (!isSignedIn()) { openSignIn(<span class="t-str">'quiz'</span>, <span class="t-kw">function</span> () { openQuiz(trigger); }); <span class="t-kw">return</span>; }
+  quiz.trigger = trigger || document.activeElement;
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'quiz-panel'</span>);
+  panel.inert = <span class="t-kw">false</span>; panel.removeAttribute(<span class="t-str">'aria-hidden'</span>);
+  document.getElementById(<span class="t-str">'quiz-backdrop'</span>).classList.add(<span class="t-str">'is-open'</span>);
+  panel.classList.add(<span class="t-str">'is-open'</span>);
+  document.body.style.overflow = <span class="t-str">'hidden'</span>;
+  setTimeout(startQuiz, 50);
+}
+<span class="t-kw">function</span> closeQuizPanel() {
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'quiz-panel'</span>);
+  <span class="t-kw">if</span> (!panel.classList.contains(<span class="t-str">'is-open'</span>)) <span class="t-kw">return</span>;
+  document.getElementById(<span class="t-str">'quiz-backdrop'</span>).classList.remove(<span class="t-str">'is-open'</span>);
+  panel.classList.remove(<span class="t-str">'is-open'</span>);
+  panel.inert = <span class="t-kw">true</span>; panel.setAttribute(<span class="t-str">'aria-hidden'</span>, <span class="t-str">'true'</span>);
+  document.body.style.overflow = <span class="t-str">''</span>;
+  <span class="t-kw">if</span> (quiz.trigger &amp;&amp; document.contains(quiz.trigger)) quiz.trigger.focus({ preventScroll: <span class="t-kw">true</span> });
+}
+<span class="t-cm">// Keep Tab inside an open modal drawer: wrap from the last tabbable element to the</span>
+<span class="t-cm">// first and back. Radio groups count once; the focused title (tabindex -1) counts as</span>
+<span class="t-cm">// "before the first" so Shift+Tab from it goes to the last.</span>
+<span class="t-kw">function</span> trapTab(e, panel) {
+  <span class="t-kw">var</span> f = [].filter.call(panel.querySelectorAll(<span class="t-str">'button, input, select, textarea, a[href], [tabindex="0"]'</span>), <span class="t-kw">function</span> (el) {
+    <span class="t-kw">if</span> (el.disabled || !el.offsetParent || el.closest(<span class="t-str">'[hidden], [inert]'</span>)) <span class="t-kw">return</span> <span class="t-kw">false</span>;
+    <span class="t-kw">if</span> (el.type === <span class="t-str">'radio'</span> &amp;&amp; el.name) {
+      <span class="t-kw">var</span> group = panel.querySelectorAll(<span class="t-str">'input[type="radio"][name="'</span> + el.name + <span class="t-str">'"]'</span>);
+      <span class="t-kw">var</span> checked = [].filter.call(group, <span class="t-kw">function</span> (r) { <span class="t-kw">return</span> r.checked; })[0];
+      <span class="t-kw">return</span> el === (checked || group[0]);
+    }
+    <span class="t-kw">return</span> <span class="t-kw">true</span>;
+  });
+  <span class="t-kw">if</span> (!f.length) { e.preventDefault(); <span class="t-kw">return</span>; }
+  <span class="t-kw">var</span> first = f[0], last = f[f.length - 1], a = document.activeElement, inList = f.indexOf(a) &gt; -1;
+  <span class="t-kw">if</span> (e.shiftKey &amp;&amp; (a === first || !inList)) { e.preventDefault(); last.focus(); }
+  <span class="t-kw">else</span> <span class="t-kw">if</span> (!e.shiftKey &amp;&amp; (a === last || !panel.contains(a))) { e.preventDefault(); first.focus(); }
+}
+document.addEventListener(<span class="t-str">'keydown'</span>, <span class="t-kw">function</span> (e) {
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'quiz-panel'</span>);
+  <span class="t-kw">if</span> (!panel.classList.contains(<span class="t-str">'is-open'</span>)) <span class="t-kw">return</span>;
+  <span class="t-kw">if</span> (e.key === <span class="t-str">'Escape'</span>) closeQuizPanel();
+  <span class="t-kw">else</span> <span class="t-kw">if</span> (e.key === <span class="t-str">'Tab'</span>) trapTab(e, panel);
+});
+
+<span class="t-cm">// Fail: back to the training's videos (Course Content section)</span>
+<span class="t-kw">function</span> quizRewatch() {
+  closeQuizPanel();
+  document.getElementById(<span class="t-str">'training-course-content'</span>).scrollIntoView({ behavior: <span class="t-str">'smooth'</span>, block: <span class="t-str">'start'</span> });
+}
+<span class="t-cm">// Pass: the button spins while the certificate PDF is generated, then confirms</span>
+<span class="t-kw">function</span> quizDownload() {
+  <span class="t-kw">var</span> btn = document.getElementById(<span class="t-str">'quiz-download'</span>);
+  <span class="t-kw">if</span> (btn.disabled) <span class="t-kw">return</span>;
+  btn.classList.add(<span class="t-str">'btn-loading'</span>);
+  requestCertificate().then(<span class="t-kw">function</span> () {
+    btn.classList.remove(<span class="t-str">'btn-loading'</span>);
+    btn.textContent = qt(<span class="t-str">'downloaded'</span>, {});
+    btn.disabled = <span class="t-kw">true</span>;
+  });
+}</pre></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANIMATION ═══════════════════════════════════════ -->
+    <section class="doc-section" id="animation">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Animation</h2>
+      <p class="section-desc">The quiz is deliberately calm: state changes are instant so the right/wrong marks read immediately. With reduced motion, the progress fill jumps.</p>
+      <div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Element</th><th>Trigger</th><th>Animation</th><th>Duration</th><th>Easing</th></tr></thead><tbody><tr><td>Drawer (v1 shell)</td><td>Open / close</td><td>translateX(100%) → 0 (−100% in RTL); backdrop fade</td><td>350 / 300ms</td><td>cubic-bezier(0.4, 0, 0.2, 1)</td></tr><tr><td>Progress fill</td><td>Next question</td><td>width → (n ÷ total)</td><td>300ms</td><td>ease</td></tr><tr><td>Option hover / select / check</td><td>Pointer / pick / check</td><td>Background + border colour</td><td>150ms</td><td>ease</td></tr><tr><td>Certificate button</td><td>Download Certificate</td><td>Label hidden, 18px ring spinner (v1 .btn-loading)</td><td>650ms per turn, until done</td><td>linear</td></tr><tr><td>Pass illustration</td><td>Pass view</td><td>Animated GIF (the asset itself)</td><td>–</td><td>–</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">The drawer goes full width minus 16px (v1 shell). Question and result titles drop to H6 mobile size, and image-only options to 160 × 113. Restated under <code>.pv-m</code>.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-drawer pv-m"><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:40%"></div></div><p class="ufs-quiz__count text-body-xs">2 out of 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">Which recipe belongs to Italian cuisine?</h2><div class="ufs-quiz__options"><label class="ufs-quiz__option"><input type="radio" name="pv5" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media"><img class="ufs-quiz__img" src="../images/quiz/recipe-sosaties.jpg" alt=""/><span>South African Lamb and Apricot Sosaties</span></span></label><label class="ufs-quiz__option"><input type="radio" name="pv5" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media"><img class="ufs-quiz__img" src="../images/quiz/recipe-watercress.jpg" alt=""/><span>Watercress Soup with Crispy Bacon and Poached Duck Egg</span></span></label><label class="ufs-quiz__option"><input type="radio" name="pv5" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media"><img class="ufs-quiz__img" src="../images/quiz/recipe-pea-asparagus.jpg" alt=""/><span>Pea, Asparagus &amp; Grana Padano</span></span></label></div><button type="button" class="btn btn-primary ufs-quiz__action" disabled>Check the answer</button></div></div></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz ufs-quiz__result"><p class="ufs-quiz__overline text-overline">IDDSI quiz</p><h2 class="ufs-quiz__result-title text-h6">Congratulations!<br/>You have passed the quiz</h2><img class="ufs-quiz__result-img" src="../images/quiz/quiz-success.gif" alt=""/><div class="ufs-quiz__result-ctas"><button type="button" class="btn btn-primary">Download Certificate</button><button type="button" class="btn btn-secondary">Continue Learning</button></div></div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N &AMP; RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Everything is flex, so the radio and image move to the right and text aligns right without overrides. The v1 drawer slides in from the left. The progress fill grows from the right on its own, because the fill is a block in an RTL track. The list in the entry banner uses <code>padding-inline-start</code>. Questions and answers are CMS content: translate them per market alongside the UI strings below.</p>
+      <div class="ds-card"><div class="card-title">Strings</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>English</th><th>Arabic</th></tr></thead><tbody><tr><td>IDDSI quiz</td><td><span dir="rtl">اختبار IDDSI</span></td></tr><tr><td>Pass the quiz, earn a certificate</td><td><span dir="rtl">اجتز الاختبار واحصل على شهادة</span></td></tr><tr><td>Quick five minutes quiz</td><td><span dir="rtl">اختبار سريع مدته خمس دقائق</span></td></tr><tr><td>Earn a free certificate</td><td><span dir="rtl">احصل على شهادة مجانية</span></td></tr><tr><td>In collaboration with the Culinary Institute of America</td><td><span dir="rtl">بالتعاون مع معهد الطهي الأمريكي</span></td></tr><tr><td>Take the quiz</td><td><span dir="rtl">ابدأ الاختبار</span></td></tr><tr><td>{n} out of {total}</td><td><span dir="rtl">{n} من {total}</span></td></tr><tr><td>Check the answer</td><td><span dir="rtl">تحقق من الإجابة</span></td></tr><tr><td>Next question</td><td><span dir="rtl">السؤال التالي</span></td></tr><tr><td>See results</td><td><span dir="rtl">عرض النتائج</span></td></tr><tr><td>Correct.</td><td><span dir="rtl">إجابة صحيحة.</span></td></tr><tr><td>Incorrect. The right answer is {answer}.</td><td><span dir="rtl">إجابة خاطئة. الإجابة الصحيحة هي {answer}.</span></td></tr><tr><td>Oh no! You have failed the quiz</td><td><span dir="rtl">للأسف! لم تجتز الاختبار</span></td></tr><tr><td>Re-watch videos</td><td><span dir="rtl">إعادة مشاهدة الفيديوهات</span></td></tr><tr><td>Re-take quiz</td><td><span dir="rtl">إعادة الاختبار</span></td></tr><tr><td>Congratulations! You have passed the quiz</td><td><span dir="rtl">تهانينا! لقد اجتزت الاختبار</span></td></tr><tr><td>Download Certificate</td><td><span dir="rtl">تنزيل الشهادة</span></td></tr><tr><td>Certificate downloaded</td><td><span dir="rtl">تم تنزيل الشهادة</span></td></tr><tr><td>Continue Learning</td><td><span dir="rtl">متابعة التعلّم</span></td></tr><tr><td>Sign up or Log in to take the quiz</td><td><span dir="rtl">أنشئ حسابًا أو سجّل الدخول لبدء الاختبار</span></td></tr><tr><td>Pass it to earn a free certificate.</td><td><span dir="rtl">اجتزه لتحصل على شهادة مجانية.</span></td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">RTL previews</div><div aria-hidden="true" inert class="pv-drawer"><div class="signin-panel" dir="rtl"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">اختبار IDDSI</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:20%"></div></div><p class="ufs-quiz__count text-body-xs">1 من 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">عند أي درجة حرارة يجب اختبار الأطعمة باستخدام طرق اختبار IDDSI؟</h2><div class="ufs-quiz__options is-checked"><label class="ufs-quiz__option is-wrong"><input type="radio" name="pv7" checked disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>باردة</span></label><label class="ufs-quiz__option"><input type="radio" name="pv7" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>ساخنة</span></label><label class="ufs-quiz__option is-right"><input type="radio" name="pv7" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span>بدرجة الحرارة التي ستُقدَّم بها</span></label></div><button type="button" class="btn btn-primary ufs-quiz__action">السؤال التالي</button></div></div></div></div><div class="signin-panel" dir="rtl"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz"><p class="ufs-quiz__overline text-overline">اختبار IDDSI</p><div class="ufs-quiz__progress"><div class="ufs-quiz__track"><div class="ufs-quiz__fill" style="width:40%"></div></div><p class="ufs-quiz__count text-body-xs">2 من 5</p></div><div class="ufs-quiz__view"><h2 class="ufs-quiz__question text-h6">أي وصفة تنتمي إلى المطبخ الإيطالي؟</h2><div class="ufs-quiz__options"><label class="ufs-quiz__option"><input type="radio" name="pv8" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media"><img class="ufs-quiz__img" src="../images/quiz/recipe-sosaties.jpg" alt=""/><span>أسياخ لحم الضأن والمشمش على الطريقة الجنوب أفريقية</span></span></label><label class="ufs-quiz__option"><input type="radio" name="pv8" disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media"><img class="ufs-quiz__img" src="../images/quiz/recipe-watercress.jpg" alt=""/><span>شوربة الجرجير مع لحم مقدد مقرمش وبيضة بط مسلوقة</span></span></label><label class="ufs-quiz__option"><input type="radio" name="pv8" checked disabled/><span class="ufs-quiz__radio" aria-hidden="true"></span><svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg><svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg><span class="ufs-quiz__media"><img class="ufs-quiz__img" src="../images/quiz/recipe-pea-asparagus.jpg" alt=""/><span>بازلاء وهليون وجبن غرانا بادانو</span></span></label></div><button type="button" class="btn btn-primary ufs-quiz__action">تحقق من الإجابة</button></div></div></div></div><div class="signin-panel" dir="rtl"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><div class="ufs-quiz ufs-quiz__result"><p class="ufs-quiz__overline text-overline">اختبار IDDSI</p><h2 class="ufs-quiz__result-title text-h6">تهانينا!<br/>لقد اجتزت الاختبار</h2><img class="ufs-quiz__result-img" src="../images/quiz/quiz-success.gif" alt=""/><div class="ufs-quiz__result-ctas"><button type="button" class="btn btn-primary">تنزيل الشهادة</button><button type="button" class="btn btn-secondary">متابعة التعلّم</button></div></div></div></div></div></div>
+    </section>
+
+  </main>
+
+<!-- Quiz drawer: v1 side panel shell. One question view, re-rendered per step, plus pass / fail views -->
+<div class="signin-backdrop" id="quiz-backdrop" onclick="closeQuizPanel()"></div>
+<div class="signin-panel" id="quiz-panel" role="dialog" aria-modal="true" aria-label="IDDSI quiz" aria-hidden="true" inert>
+  <div class="signin-panel-hd">
+    <img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+    <button class="signin-close" onclick="closeQuizPanel()" aria-label="Close quiz">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+    </button>
+  </div>
+  <div class="signin-panel-body" id="quiz-panel-body">
+    <span class="sr-only" id="quiz-status" role="status"></span>
+    <div class="ufs-quiz" id="quiz-run">
+      <p class="ufs-quiz__overline text-overline">IDDSI quiz</p>
+      <div class="ufs-quiz__progress">
+        <div class="ufs-quiz__track" role="progressbar" aria-label="Quiz progress" aria-valuemin="1" id="quiz-track"><div class="ufs-quiz__fill" id="quiz-fill"></div></div>
+        <p class="ufs-quiz__count text-body-xs" id="quiz-count"></p>
+      </div>
+      <div class="ufs-quiz__view">
+        <h2 class="ufs-quiz__question text-h6" id="quiz-question" tabindex="-1"></h2>
+        <div class="ufs-quiz__options" id="quiz-options" role="radiogroup" aria-labelledby="quiz-question"></div>
+        <button type="button" class="btn btn-primary ufs-quiz__action" id="quiz-action" onclick="quizAction()" disabled>Check the answer</button>
+      </div>
+    </div>
+    <div class="ufs-quiz ufs-quiz__result" id="quiz-result-fail" hidden>
+      <p class="ufs-quiz__overline text-overline">IDDSI quiz</p>
+      <h2 class="ufs-quiz__result-title text-h6" tabindex="-1">Oh no! You have failed the quiz</h2>
+      <img class="ufs-quiz__result-img" src="../images/quiz/quiz-fail.png" alt=""/>
+      <div class="ufs-quiz__result-ctas">
+        <button type="button" class="btn btn-primary" onclick="quizRewatch()">Re-watch videos</button>
+        <button type="button" class="btn btn-secondary" onclick="startQuiz()">Re-take quiz</button>
+      </div>
+    </div>
+    <div class="ufs-quiz ufs-quiz__result" id="quiz-result-pass" hidden>
+      <p class="ufs-quiz__overline text-overline">IDDSI quiz</p>
+      <h2 class="ufs-quiz__result-title text-h6" tabindex="-1">Congratulations!<br/>You have passed the quiz</h2>
+      <img class="ufs-quiz__result-img" src="../images/quiz/quiz-success.gif" alt=""/>
+      <div class="ufs-quiz__result-ctas">
+        <button type="button" class="btn btn-primary" id="quiz-download" onclick="quizDownload()">Download Certificate</button>
+        <button type="button" class="btn btn-secondary" onclick="closeQuizPanel()">Continue Learning</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+
+// Doc chrome: a table that scrolls sideways gets a keyboard stop + a name, only while it overflows
+function markScrollRegions() {
+  document.querySelectorAll('.spec-table-wrap').forEach(function (w) {
+    if (w.closest('[inert]')) return;
+    if (w.scrollWidth > w.clientWidth + 1) {
+      var t = w.closest('.ds-card') && w.closest('.ds-card').querySelector('.card-title');
+      w.tabIndex = 0; w.setAttribute('role', 'region'); w.setAttribute('aria-label', (t ? t.textContent + ' ' : '') + 'table, scrolls sideways');
+    } else { w.removeAttribute('tabindex'); w.removeAttribute('role'); w.removeAttribute('aria-label'); }
+  });
+}
+window.addEventListener('load', markScrollRegions);
+window.addEventListener('resize', markScrollRegions);
+
+
+/* Doc-only stubs: sign-in, certificate API, course content target */
+var signedIn = true;
+function isSignedIn() { return signedIn; }
+function openSignIn(context, done) { signedIn = true; done(); }
+function requestCertificate() { return new Promise(function (res) { setTimeout(res, 900); }); }
+
+/* ── Quiz ──
+   Questions come from the CMS per training. Three types: 'text', 'image-text',
+   'image' (image only: the option text becomes the image's alt). Pass mark 80%.
+   Every question is "Check the answer" first, then "Next question" ("See results"
+   on the last one). Closing the drawer throws the attempt away. */
+var QUIZ_IMG = '../images/quiz/';
+var QUIZ_PASS = 0.8;
+var QUIZ = [
+  { type: 'text', q: 'At what temperature should foods be tested using IDDSI testing methods?',
+    options: [{ text: 'Cold' }, { text: 'Hot' }, { text: 'At the temperature it will be served' }], answer: 2 },
+  { type: 'image-text', q: 'Which recipe belongs to Italian cuisine?',
+    options: [{ text: 'South African Lamb and Apricot Sosaties', img: 'recipe-sosaties.jpg' },
+              { text: 'Watercress Soup with Crispy Bacon and Poached Duck Egg', img: 'recipe-watercress.jpg' },
+              { text: 'Pea, Asparagus & Grana Padano', img: 'recipe-pea-asparagus.jpg' }], answer: 2 },
+  { type: 'text', q: 'How many levels does the IDDSI framework have?',
+    options: [{ text: '5 levels' }, { text: '8 levels (0 to 7)' }, { text: '10 levels' }], answer: 1 },
+  { type: 'image', q: 'Select the South African Lamb and Apricot recipe:',
+    options: [{ text: 'South African Lamb and Apricot Sosaties', img: 'recipe-sosaties.jpg' },
+              { text: 'Watercress Soup with Crispy Bacon and Poached Duck Egg', img: 'recipe-watercress.jpg' },
+              { text: 'Pea, Asparagus & Grana Padano', img: 'recipe-pea-asparagus.jpg' }], answer: 0 },
+  { type: 'text', q: 'Which IDDSI level is "Liquidised" food?',
+    options: [{ text: 'Level 1' }, { text: 'Level 3' }, { text: 'Level 6' }], answer: 1 }
+];
+var QUIZ_TEXT = {
+  count: '{n} out of {total}', check: 'Check the answer', next: 'Next question', results: 'See results',
+  correct: 'Correct.', incorrect: 'Incorrect. The right answer is {answer}.',
+  download: 'Download Certificate', downloaded: 'Certificate downloaded'
+};
+function qt(key, vars) { return QUIZ_TEXT[key].replace(/\{(\w+)\}/g, function (_, k) { return vars[k]; }); }
+var MARK_WRONG = '<svg class="ufs-quiz__mark ufs-quiz__mark--wrong" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-error)"/><path fill="var(--color-salt)" d="M11.3001 5.43373C11.6035 5.73739 11.6034 6.22937 11.3001 6.53306L9.10002 8.7331L11.3001 10.9331C11.6037 11.2369 11.6031 11.7294 11.2994 12.0332C10.9956 12.3366 10.5037 12.3368 10.2 12.0332L8 9.83312L5.79996 12.0332C5.49629 12.3368 5.00436 12.3367 4.70063 12.0332C4.39691 11.7294 4.39627 11.2369 4.69994 10.9331L6.89998 8.7331L4.69994 6.53306C4.39658 6.22937 4.39653 5.73739 4.69994 5.43373C5.00358 5.13009 5.49619 5.12961 5.79996 5.43304L8 7.63308L10.2 5.43304C10.5038 5.12961 10.9964 5.13009 11.3001 5.43373Z"/></svg>';
+var MARK_RIGHT = '<svg class="ufs-quiz__mark ufs-quiz__mark--right" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="var(--color-success)"/><path fill="var(--color-salt)" d="M12.6159 4.94373C12.8009 4.94983 12.9836 5.02651 13.1201 5.17233C13.248 5.30892 13.3127 5.48194 13.3153 5.65536C13.318 5.82904 13.2585 6.00314 13.1379 6.14139L7.10438 11.7947C6.9591 11.9307 6.7737 11.9947 6.59073 11.9897C6.40731 11.9848 6.22629 11.9106 6.09063 11.7702L3.36477 8.35537C3.24028 8.19917 3.19088 8.0073 3.21166 7.82335C3.23244 7.6394 3.3234 7.46338 3.4796 7.33889C3.62645 7.22185 3.80485 7.17118 3.97854 7.18281C4.15249 7.19446 4.32176 7.26855 4.44987 7.40109L6.68761 10.2031L12.0977 5.13861C12.2436 5.0021 12.4309 4.93762 12.6159 4.94373Z"/></svg>';
+var quiz = { step: 0, score: 0, checked: false, trigger: null };
+
+function quizEsc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function quizShow(view) {
+  document.getElementById('quiz-run').hidden = view !== 'run';
+  document.getElementById('quiz-result-fail').hidden = view !== 'fail';
+  document.getElementById('quiz-result-pass').hidden = view !== 'pass';
+  document.getElementById('quiz-panel-body').scrollTop = 0;
+}
+function renderQuizQuestion() {
+  var item = QUIZ[quiz.step], total = QUIZ.length;
+  quiz.checked = false;
+  document.getElementById('quiz-fill').style.width = ((quiz.step + 1) / total * 100) + '%';
+  var track = document.getElementById('quiz-track');
+  track.setAttribute('aria-valuemax', total);
+  track.setAttribute('aria-valuenow', quiz.step + 1);
+  document.getElementById('quiz-count').textContent = qt('count', { n: quiz.step + 1, total: total });
+  document.getElementById('quiz-question').textContent = item.q;
+  var opts = document.getElementById('quiz-options');
+  opts.classList.remove('is-checked');
+  opts.innerHTML = item.options.map(function (o, i) {
+    var media = item.type === 'text' ? '<span>' + quizEsc(o.text) + '</span>'
+      : '<span class="ufs-quiz__media' + (item.type === 'image' ? ' ufs-quiz__media--image-only' : '') + '">' +
+          '<img class="ufs-quiz__img" src="' + QUIZ_IMG + o.img + '" alt="' + (item.type === 'image' ? quizEsc(o.text) : '') + '"/>' +
+          (item.type === 'image' ? '' : '<span>' + quizEsc(o.text) + '</span>') + '</span>';
+    return '<label class="ufs-quiz__option"><input type="radio" name="quiz-option" value="' + i + '" onchange="quizSelect()"/>' +
+      '<span class="ufs-quiz__radio" aria-hidden="true"></span>' + MARK_WRONG + MARK_RIGHT + media + '</label>';
+  }).join('');
+  var btn = document.getElementById('quiz-action');
+  btn.textContent = qt('check', {});
+  btn.disabled = true;                              // until an option is picked
+}
+function quizSelect() { if (!quiz.checked) document.getElementById('quiz-action').disabled = false; }
+
+// One button, two jobs: check the picked answer, then move on
+function quizAction() {
+  var item = QUIZ[quiz.step], picked = document.querySelector('#quiz-options input:checked');
+  if (!quiz.checked) {
+    if (!picked) return;
+    var pick = +picked.value, labels = document.querySelectorAll('#quiz-options .ufs-quiz__option');
+    quiz.checked = true;
+    if (pick === item.answer) quiz.score++;
+    labels[item.answer].classList.add('is-right');
+    if (pick !== item.answer) labels[pick].classList.add('is-wrong');
+    document.getElementById('quiz-options').classList.add('is-checked');
+    document.querySelectorAll('#quiz-options input').forEach(function (i) { i.disabled = true; });
+    document.getElementById('quiz-status').textContent = pick === item.answer
+      ? qt('correct', {}) : qt('incorrect', { answer: item.options[item.answer].text });
+    document.getElementById('quiz-action').textContent = qt(quiz.step === QUIZ.length - 1 ? 'results' : 'next', {});
+    return;
+  }
+  if (quiz.step < QUIZ.length - 1) {
+    quiz.step++;
+    renderQuizQuestion();
+    document.getElementById('quiz-question').focus({ preventScroll: true });
+    return;
+  }
+  var passed = quiz.score / QUIZ.length >= QUIZ_PASS;
+  quizShow(passed ? 'pass' : 'fail');
+  document.querySelector('#quiz-result-' + (passed ? 'pass' : 'fail') + ' .ufs-quiz__result-title').focus({ preventScroll: true });
+}
+
+function startQuiz() {
+  quiz.step = 0; quiz.score = 0;
+  var dl = document.getElementById('quiz-download');
+  dl.classList.remove('btn-loading'); dl.disabled = false; dl.textContent = qt('download', {});
+  document.getElementById('quiz-status').textContent = '';
+  renderQuizQuestion();
+  quizShow('run');
+  document.getElementById('quiz-question').focus({ preventScroll: true });
+}
+// Signed out: the v1 sign-in drawer opens first with the 'quiz' copy, and the quiz opens straight after sign-in
+function openQuiz(trigger) {
+  if (!isSignedIn()) { openSignIn('quiz', function () { openQuiz(trigger); }); return; }
+  quiz.trigger = trigger || document.activeElement;
+  var panel = document.getElementById('quiz-panel');
+  panel.inert = false; panel.removeAttribute('aria-hidden');
+  document.getElementById('quiz-backdrop').classList.add('is-open');
+  panel.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(startQuiz, 50);
+}
+function closeQuizPanel() {
+  var panel = document.getElementById('quiz-panel');
+  if (!panel.classList.contains('is-open')) return;
+  document.getElementById('quiz-backdrop').classList.remove('is-open');
+  panel.classList.remove('is-open');
+  panel.inert = true; panel.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  if (quiz.trigger && document.contains(quiz.trigger)) quiz.trigger.focus({ preventScroll: true });
+}
+// Keep Tab inside an open modal drawer: wrap from the last tabbable element to the
+// first and back. Radio groups count once; the focused title (tabindex -1) counts as
+// "before the first" so Shift+Tab from it goes to the last.
+function trapTab(e, panel) {
+  var f = [].filter.call(panel.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]'), function (el) {
+    if (el.disabled || !el.offsetParent || el.closest('[hidden], [inert]')) return false;
+    if (el.type === 'radio' && el.name) {
+      var group = panel.querySelectorAll('input[type="radio"][name="' + el.name + '"]');
+      var checked = [].filter.call(group, function (r) { return r.checked; })[0];
+      return el === (checked || group[0]);
+    }
+    return true;
+  });
+  if (!f.length) { e.preventDefault(); return; }
+  var first = f[0], last = f[f.length - 1], a = document.activeElement, inList = f.indexOf(a) > -1;
+  if (e.shiftKey && (a === first || !inList)) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && (a === last || !panel.contains(a))) { e.preventDefault(); first.focus(); }
+}
+document.addEventListener('keydown', function (e) {
+  var panel = document.getElementById('quiz-panel');
+  if (!panel.classList.contains('is-open')) return;
+  if (e.key === 'Escape') closeQuizPanel();
+  else if (e.key === 'Tab') trapTab(e, panel);
+});
+
+// Fail: back to the training's videos (Course Content section)
+function quizRewatch() {
+  closeQuizPanel();
+  document.getElementById('training-course-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// Pass: the button spins while the certificate PDF is generated, then confirms
+function quizDownload() {
+  var btn = document.getElementById('quiz-download');
+  if (btn.disabled) return;
+  btn.classList.add('btn-loading');
+  requestCertificate().then(function () {
+    btn.classList.remove('btn-loading');
+    btn.textContent = qt('downloaded', {});
+    btn.disabled = true;
+  });
+}
+
+  </script>
+</body>
+</html>

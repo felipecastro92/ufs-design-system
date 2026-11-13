@@ -146,6 +146,22 @@
     }
     .sidebar-logo { height: 32px; width: auto; object-fit: contain; margin-bottom: 14px; }
     .sidebar-tagline { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--color-smoke); }
+    /* Version switcher — each option is a separate index (v1 = handover/, v2 = handover/v2/) */
+    .sidebar-version { position: relative; display: inline-flex; align-items: center; }
+    .sidebar-version-select {
+      appearance: none; -webkit-appearance: none;
+      font-family: inherit; font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      color: color-mix(in srgb, var(--color-salt) 70%, transparent);   /* smoke was 4.05:1 */
+      background: color-mix(in srgb, var(--color-salt) 6%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-salt) 12%, transparent);
+      border-radius: var(--radius-sm);
+      padding: 7px 30px 7px 10px; cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .sidebar-version-select:hover { color: var(--color-salt); border-color: color-mix(in srgb, var(--color-salt) 24%, transparent); }
+    .sidebar-version-select:focus-visible { outline: 2px solid var(--color-brand-primary); outline-offset: 2px; }
+    .sidebar-version-select option { color: var(--color-brand-dark); background: var(--color-salt); text-transform: none; letter-spacing: 0; }
+    .sidebar-version-chevron { position: absolute; right: 10px; width: 12px; height: 12px; pointer-events: none; color: var(--color-smoke); }
     .sidebar-nav { padding: 20px 0; flex: 1; }
     .sidebar-group { margin-bottom: 4px; }
     .sidebar-group-label {
@@ -1556,7 +1572,15 @@
           src="images/ufs-logo.png"
           alt="UFS" class="sidebar-logo"
         />
-        <div class="sidebar-tagline">Design System v1.0</div>
+        <label class="sidebar-version">
+          <select class="sidebar-version-select" aria-label="Design System version" onchange="switchVersion(this)">
+            <option value="index.html" selected>Design System v1.0</option>
+            <option value="v2/index.html">Design System v2.0</option>
+          </select>
+          <svg class="sidebar-version-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="4 6 8 10 12 6"/>
+          </svg>
+        </label>
       </div>
       <div class="sidebar-nav">
         <div class="sidebar-group">
@@ -5667,6 +5691,20 @@
     // Active nav link via Intersection Observer
     // -------------------------------------------------------------------------
     const sections = document.querySelectorAll('.doc-section[id]');
+    // -------------------------------------------------------------------------
+    // Version switcher
+    // -------------------------------------------------------------------------
+    function switchVersion(select) {
+      window.location.href = select.value;
+    }
+
+    // Back/forward cache restores the last picked option — reset to this page's version
+    window.addEventListener('pageshow', () => {
+      document.querySelectorAll('.sidebar-version-select').forEach(sel => {
+        sel.value = sel.querySelector('option[selected]').value;
+      });
+    });
+
     // -------------------------------------------------------------------------
     // Collapsible nav groups
     // -------------------------------------------------------------------------

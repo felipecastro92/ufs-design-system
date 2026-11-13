@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pack Size Picker — UFS Spec v2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../tokens.css" />
+  <style>
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       campaign-hero-spec.html. The Overview demo button depends on
+       it; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       v2.0 DOC ADDITIONS (spec-doc only)
+    ═══════════════════════════════════════ */
+    .doc-topbar-version { margin-inline-start: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-brand-primary); background: rgba(255,90,0,0.15); border-radius: 3px; padding: 2px 6px; }
+    .doc-header-meta-val a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    .doc-header-meta-val a:hover { color: var(--color-salt); }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-pad { padding: 32px 24px; }
+    .pv-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    .pv-col { flex: 1 1 320px; min-width: 0; }
+    .spec-table-wrap { overflow-x: auto; margin-top: 10px; }
+    .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; }
+    .spec-table th { text-align: start; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--color-mushroom-900); padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-300); white-space: nowrap; }
+    .spec-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-100); vertical-align: top; color: var(--color-brand-dark); }
+    .spec-table td:first-child { font-weight: 600; }
+    .spec-table td[dir="rtl"] { font-family: 'IBM Plex Arabic', system-ui, sans-serif; font-size: 13px; }
+    kbd { font-family: var(--font-family-mono); font-size: 11px; background: var(--color-mushroom-300); border-radius: 3px; padding: 1px 5px; }
+    /* Doc-only stand-in for the header cart icon: target for the fly-to-cart + badge bump */
+    .pv-cartbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; margin: -32px -24px 24px; background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md) var(--radius-md) 0 0; font-size: 12px; color: var(--color-mushroom-900); }
+    .pv-cartbar .ufs-nav__icon-btn { position: relative; width: 40px; height: 40px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pv-cartbar .ufs-nav__icon-btn img { width: 24px; height: 24px; }
+    .ufs-nav__badge {
+      position: absolute; top: var(--space-1); right: var(--space-1);
+      min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-full);
+      background: var(--color-brand-primary); color: var(--color-salt);
+      font-size: 9px; font-weight: var(--text-btn-w);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ufs-nav__badge[hidden] { display: none; }
+
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+       .pv-static pins a copy of the picker in page flow; .pv-sheet restates
+       the ≤768px bottom-sheet rules so it renders at any window width.
+    ═══════════════════════════════════════ */
+    .pv-static { position: relative !important; z-index: auto !important; left: auto !important; top: auto !important; transform: none !important; visibility: visible !important; display: flex !important; }
+    .pv-desk { width: 296px; margin-top: 10px; }
+    .pv-phone { width: 390px; max-width: 100%; height: 600px; position: relative; overflow: hidden; border-radius: var(--radius-md); border: 1px solid var(--color-mushroom-300); background: var(--color-salt); margin: 0 auto; }
+    .pv-phone__page { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .pv-phone__page span { display: block; height: 14px; border-radius: 4px; background: var(--color-mushroom-100); }
+    .pv-phone__dim { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+    .pv-sheet { position: absolute !important; left: 0 !important; right: 0; bottom: 0; width: 100% !important; border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important; padding: var(--space-3) var(--space-4) var(--space-5) !important; border: none; }
+    .pv-sheet::before { content: ''; align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--color-mushroom-500); }
+    .pv-sheet .ufs-pack-row { grid-template-columns: 48px 1fr auto !important; gap: var(--space-3) !important; }
+    .pv-sheet .ufs-pack-row__img { width: 48px !important; height: 48px !important; }
+    .pv-sheet .ufs-pack-row__name { font-size: var(--text-body-sm-size) !important; }
+    .pv-sheet .ufs-pack-row__meta { font-size: var(--text-body-xs-size) !important; }
+    .pv-sheet .fi-qty-input { width: 40px !important; }
+    .pv-sheet .fi-qty--cart .fi-qty-btn { width: var(--space-10) !important; height: var(--space-10) !important; }
+    .pv-sheet .ufs-cart-toast { position: absolute; left: 16px; right: 16px; }
+    .pv-anchor { width: 296px; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); background: var(--color-salt); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .pv-anchor__img { height: 140px; border-radius: var(--radius-sm); background: #fff center / contain no-repeat; }
+    .pv-anchor__name { font-size: var(--text-h6-size); font-weight: 600; line-height: 1.3; }
+    .pv-anchor .btn { width: 100%; }
+    .pv-anchor .btn img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
+    .pv-toast-static { position: static; transform: none; width: auto; max-width: none; }
+    .pv-toast-static .ufs-cart-toast { width: max-content; max-width: 100%; }
+    .pv-anno { list-style: none; margin: 16px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px 24px; font-size: 13px; line-height: 1.5; color: var(--color-mushroom-900); }
+    .pv-anno b { color: var(--color-brand-dark); }
+
+/* Points pill — the Reward tile's points look (gold ring on a 10% gold tint) */
+.ufs-points {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-gold) 10%, var(--color-salt));
+  border: 1px solid var(--color-gold);
+  font-size: var(--text-body-xs-size); line-height: 1; font-weight: 400; color: var(--color-brand-dark);
+  white-space: nowrap; transform-origin: left center;
+}
+.ufs-points svg { width: 12px; height: 12px; fill: var(--color-gold); flex-shrink: 0; }
+.ufs-points__val { font-variant-numeric: tabular-nums; }
+.ufs-points.is-pulse { animation: ufs-points-pulse 0.7s ease-out; }
+@keyframes ufs-points-pulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-gold) 45%, transparent); }
+  35%  { transform: scale(1.04); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-gold) 0%, transparent); }
+}
+
+/* Quantity Selector — v1 .fi-qty (Design System › Input Fields) plus the
+   cart modifier: typed value, 32px buttons, + as the primary action. */
+.fi-qty {
+  display: inline-flex; align-items: center; justify-content: space-between; width: 100%;
+  padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-mushroom-100);
+}
+.fi-qty-btn {
+  flex-shrink: 0; width: var(--space-12); height: var(--space-12); border-radius: var(--radius-full);
+  background: var(--color-salt); border: none; box-shadow: var(--shadow-xs);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: box-shadow 0.15s, color 0.15s, background 0.15s;
+  color: var(--color-brand-dark);
+}
+.fi-qty-btn:hover:not(:disabled) { box-shadow: var(--shadow-sm); color: var(--color-accessible-orange); }
+.fi-qty-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.fi-qty-btn:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+.fi-qty-btn svg { width: var(--space-5); height: var(--space-5); display: block; fill: currentColor; }
+
+/* ── New in v2.0: .fi-qty--cart ── */
+.fi-qty--cart { width: auto; }
+.fi-qty--cart .fi-qty-btn { width: var(--space-8); height: var(--space-8); }
+/* Increase keeps the "Add to cart" look: dark orange fill, white icon */
+.fi-qty--cart .fi-qty-btn[data-role="inc"] { background: var(--color-accessible-orange); color: var(--color-salt); }
+.fi-qty--cart .fi-qty-btn[data-role="inc"]:hover:not(:disabled) { background: var(--color-orange-900); color: var(--color-salt); }
+/* At quantity 1 (rows that fall back to "Add to cart"), minus becomes a bin */
+.fi-qty-btn--delete:hover:not(:disabled) { color: var(--color-error); }
+/* Typed value replaces .fi-qty-pill: B2B quantities are often typed, not stepped */
+.fi-qty-input {
+  width: 40px; border: none; background: transparent; text-align: center; border-radius: 6px;
+  font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: 600; color: var(--color-brand-dark);
+  -moz-appearance: textfield;
+}
+.fi-qty-input::-webkit-outer-spin-button, .fi-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.fi-qty-input:focus-visible { outline: 2px solid var(--color-brand-dark); }
+
+/* Pack row — one per pack type (Single item / Pack of N) */
+.ufs-pack-row {
+  display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) 0; border-top: 1px solid var(--color-mushroom-300);
+}
+.ufs-pack-row__img {
+  position: relative; width: 56px; height: 56px;
+  border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
+  background: var(--color-salt) center / contain no-repeat;
+}
+/* "×6" on the multi-pack thumbnail */
+.ufs-pack-row__count {
+  position: absolute; inset-inline-end: -6px; bottom: -6px; padding: 1px 6px; border-radius: 9px;
+  background: var(--color-brand-dark); color: var(--color-salt);
+  font-size: 10px; font-weight: 700; line-height: 1.5;
+  direction: ltr; unicode-bidi: isolate;   /* stays "×6" inside RTL text */
+}
+.ufs-pack-row__txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ufs-pack-row__name {
+  margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2);
+  font-size: var(--text-body-size); line-height: 1.3; font-weight: 600; color: var(--color-brand-dark);
+}
+.ufs-pack-row__meta { margin: 0; font-size: var(--text-body-sm-size); line-height: 1.4; color: var(--color-mushroom-900); }
+.ufs-pack-row__meta b { font-weight: 600; color: var(--color-brand-dark); }
+.ufs-pack-row__ctl { display: flex; justify-content: flex-end; }
+@media (max-width: 768px) {
+  .ufs-pack-row { grid-template-columns: 48px 1fr auto; }
+  .ufs-pack-row__img { width: 48px; height: 48px; }
+  .ufs-pack-row__name { font-size: var(--text-body-sm-size); }
+  .ufs-pack-row__meta { font-size: var(--text-body-xs-size); }
+}
+
+/* Pack summary — "N items in cart" + total, live points underneath */
+.ufs-pack-summary { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; }
+.ufs-pack-summary[hidden] { display: none; }
+.ufs-pack-summary__row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3);
+  font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900);
+}
+.ufs-pack-summary__row b { font-size: var(--text-h6-size); line-height: 1.2; color: var(--color-brand-dark); font-variant-numeric: tabular-nums; }
+.ufs-pack-summary__points { display: flex; justify-content: flex-end; }
+.ufs-pack-summary__points .ufs-points { transform-origin: right center; }
+
+/* Pack Size Picker — popover on desktop, bottom sheet ≤768px */
+.ufs-pack-picker-backdrop {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(0,0,0,0); pointer-events: none; transition: background 0.2s;
+}
+.ufs-pack-picker-backdrop.is-open { pointer-events: auto; }
+.ufs-pack-picker {
+  position: fixed; z-index: 100; width: 380px; padding: var(--space-3);
+  display: none; flex-direction: column; gap: var(--space-4);
+  background: var(--color-salt); border: 1px solid var(--color-mushroom-300);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+}
+.ufs-pack-picker.is-open { display: flex; }
+.ufs-pack-picker:focus { outline: none; }
+.ufs-pack-picker__hd { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.ufs-pack-picker__title { margin: 0; font-size: var(--text-body-size); line-height: var(--text-body-lh); font-weight: 600; color: var(--color-brand-dark); }
+.ufs-pack-picker__sub { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); }
+.ufs-pack-picker__close {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+  background: var(--color-mushroom-100); color: var(--color-brand-dark); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.ufs-pack-picker__close:focus-visible { outline: 2px solid var(--color-brand-dark); }
+.ufs-pack-picker__close svg { width: 12px; height: 12px; }
+/* Arrow: always on the bottom edge, pointing down at the trigger (left is set in JS).
+   A rotated square whose two bordered edges draw the notch. */
+.ufs-pack-picker__arrow {
+  position: absolute; bottom: -8px; width: 14px; height: 14px; background: var(--color-salt);
+  border-left: 1px solid var(--color-mushroom-300); border-top: 1px solid var(--color-mushroom-300);
+  transform: rotate(225deg);
+}
+.ufs-pack-picker .ufs-pack-summary { padding-top: var(--space-3); border-top: 1px solid var(--color-mushroom-300); }
+/* Desktop: the popover is tile-width (~296px), so rows tighten to keep each stepper on one line */
+@media (min-width: 769px) {
+  .ufs-pack-picker .ufs-pack-row { grid-template-columns: 40px 1fr auto; gap: var(--space-2); }
+  .ufs-pack-picker .ufs-pack-row__img { width: 40px; height: 40px; }
+  .ufs-pack-picker .ufs-pack-row__name { font-size: var(--text-body-sm-size); }
+  .ufs-pack-picker .fi-qty-input { width: 32px; }
+}
+@media (max-width: 768px) {
+  .ufs-pack-picker-backdrop.is-open { background: rgba(0,0,0,0.5); }
+  .ufs-pack-picker {
+    left: 0 !important; right: 0; top: auto !important; bottom: 0; width: 100% !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: var(--space-3) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+    display: flex; visibility: hidden; transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), visibility 0s 0.25s;
+  }
+  .ufs-pack-picker.is-open { transform: translateY(0); visibility: visible; transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+  /* Grab handle */
+  .ufs-pack-picker::before { content: ''; align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--color-mushroom-500); }
+  .ufs-pack-picker__arrow { display: none; }
+  .ufs-pack-picker .fi-qty--cart .fi-qty-btn { width: var(--space-10); height: var(--space-10); }
+}
+
+/* Cart feedback — shared by every add-to-cart surface */
+/* Toasts: one per cart change, newest at the bottom, max 2 on screen */
+.ufs-cart-toasts {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 960;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  width: max-content; max-width: calc(100vw - 32px); pointer-events: none;
+}
+.ufs-cart-toast {
+  pointer-events: auto; display: flex; align-items: center; gap: var(--space-3); max-width: 100%;
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+  background: var(--color-brand-dark); color: var(--color-salt); font-size: var(--text-body-sm-size);
+}
+.ufs-cart-toast button {
+  border: none; background: none; cursor: pointer; white-space: nowrap; text-decoration: underline;
+  color: var(--color-brand-primary); font-family: inherit; font-size: var(--text-body-sm-size); font-weight: 700;
+}
+@media (max-width: 768px) {
+  /* Spans the gutters (long product names) */
+  .ufs-cart-toasts { left: var(--space-4); right: var(--space-4); transform: none; width: auto; max-width: none; align-items: stretch; }
+  .ufs-cart-toast { justify-content: space-between; }
+}
+
+/* Fly-to-cart: a copy of the product photo arcs into the header cart icon */
+.ufs-cart-fly {
+  position: fixed; z-index: 1000; pointer-events: none; will-change: transform, opacity;
+  border-radius: var(--radius-sm); background: var(--color-salt) center / contain no-repeat; box-shadow: var(--shadow-lg);
+}
+/* Header cart badge bump when the photo lands */
+.ufs-nav__badge.is-bump { animation: ufs-badge-bump 0.35s ease; }
+@keyframes ufs-badge-bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+
+/* Rolling quantity: old number slides out, new one slides in (up = more, down = less) */
+.fi-qty:has(> .ufs-qty-roll) { position: relative; }
+.ufs-qty-roll { position: absolute; overflow: hidden; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.ufs-qty-roll span { position: absolute; animation: 0.26s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.ufs-qty-roll .is-out-up   { animation-name: ufs-roll-out-up; }
+.ufs-qty-roll .is-in-up    { animation-name: ufs-roll-in-up; }
+.ufs-qty-roll .is-out-down { animation-name: ufs-roll-out-down; }
+.ufs-qty-roll .is-in-down  { animation-name: ufs-roll-in-down; }
+@keyframes ufs-roll-out-up   { to   { transform: translateY(-100%); opacity: 0; } }
+@keyframes ufs-roll-in-up    { from { transform: translateY(100%);  opacity: 0; } }
+@keyframes ufs-roll-out-down { to   { transform: translateY(100%);  opacity: 0; } }
+@keyframes ufs-roll-in-down  { from { transform: translateY(-100%); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ufs-points.is-pulse, .ufs-nav__badge.is-bump { animation: none; }
+  .ufs-pack-picker { transition: none !important; }
+}
+
+/* RTL — logical properties (inset-inline-*, padding-inline-*) cover most of the
+   mirroring; these are the physical leftovers */
+[dir="rtl"] .ufs-points { transform-origin: right center; }
+[dir="rtl"] .ufs-pack-summary__points .ufs-points { transform-origin: left center; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+
+    /* ═══════════════════════════════════════
+       DOC CHROME ≤768px (spec-doc only): 16px gutters, stacked header,
+       previews never wider than the screen (they scroll inside their card)
+    ═══════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .doc-topbar { padding: 0 16px 0 64px; height: 66px; overflow: hidden; white-space: nowrap; }
+      .doc-topbar-current { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .doc-topbar-version { display: none; }
+      .doc-header-inner { flex-direction: column; gap: 16px; padding: 28px 16px 24px; }
+      .doc-header-vdiv { display: none; }
+      .doc-header-meta { align-items: flex-start; padding-top: 0; }
+      .content { padding: 32px 16px 96px; }
+      .ds-card { padding: 20px 16px 24px; }
+      .ds-card > * { max-width: 100%; }
+      .ds-card > [class*="pv-"]:not(.pv-label) { overflow-x: auto; position: relative; }
+      .pv-pad { padding: 24px 16px; }
+      .pv-cartbar { margin: -24px -16px 24px; }
+      .pv-grid, .pv-states { grid-template-columns: minmax(0, 296px); }
+      .pv-grid-m { grid-template-columns: minmax(0, 1fr); }
+      .pv-anchor { width: auto; max-width: 296px; }
+      .pv-row, .pv-drawer { flex-wrap: wrap; }
+      .pv-drawer { padding: 24px 12px; }
+      .pv-col { flex-basis: 100%; }
+      .token-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+      .token-var { overflow-wrap: anywhere; }
+      .token-note { text-align: start; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="../images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System v2.0
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#pack-row" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Pack Row &amp; Summary</a>
+      <a href="#quantity" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Quantity Selector: cart</a>
+      <a href="#points" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Points Pill</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#open" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Opening &amp; Placement</a>
+      <a href="#editing" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Live Editing</a>
+      <a href="#dismiss" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Dismiss, Focus &amp; Keyboard</a>
+      <a href="#feedback" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Cart Feedback</a>
+      <a href="#animation" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Animation</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New in v2.0.<br/>Used by Product Tile + Add to cart and (as inline rows) Product Hero + Add to cart.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <nav class="doc-topbar" aria-label="Breadcrumb">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System v2.0
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Pack Size Picker</span>
+    <span class="doc-topbar-version">New in v2.0</span>
+  </nav>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="../images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec · v2.0</div>
+        <h1 class="doc-header-title">Pack Size <span>Picker</span></h1>
+        <p class="doc-header-desc">Popover (desktop) / bottom sheet (mobile) for choosing how many single items and multi-packs of one product to put in the cart. Edits the cart live, with points and a running total.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val"><a href="template-products-catalog-webshop.html">handover/v2/<br/>template-products-catalog-webshop.html</a></span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content" id="main">
+
+    <!-- ═══════════════════════════════════════ FULL COMPONENT PREVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">Lets a buyer set quantities for every pack type of one product in one place: <strong>Single item</strong> and <strong>Pack of N</strong>. It opens from the Product Tile's Add to cart (and its <em>Edit</em> link) as a popover on desktop and a bottom sheet on mobile. Changes go straight into the cart, so there is no confirm button. The Product Hero uses the same pack rows inline instead of in a popover. See <a href="product-hero-add-to-cart-spec.html"><code>product-hero-add-to-cart-spec.html</code></a>.</p>
+      <div class="notice notice--tip"><span class="notice-icon">💡</span><div>This page runs the real component. Step the quantities: the cart badge, the toast, the rolling numbers, the points count-up and the fly-to-cart below are all live.</div></div><div class="ds-card"><div class="card-title">Live picker</div><div class="card-desc">Desktop popover, anchored to a tile-width card. Below 769px it opens as a bottom sheet instead.</div><div class="pv-light pv-pad"><div class="pv-cartbar"><span>Header cart icon (doc stand-in: the photo flies here, the badge bumps)</span>
+  <button type="button" class="ufs-nav__icon-btn" data-cart-button onclick="openCartPanel()"><img src="../icons/cart.svg" alt="Cart"/><span class="ufs-nav__badge" hidden>0</span></button></div><div class="pv-anchor" data-picker-anchor><div class="pv-anchor__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div><div class="pv-anchor__name">Knorr Professional Tomato Pronto 2 kg</div><button type="button" class="btn btn-primary" onclick="openPicker('tomato', this)"><img src="../icons/cart.svg" alt=""/>Open the picker</button></div></div></div><div class="ds-card"><div class="card-title">Static copies</div><div class="card-desc">Pinned in the page so both layouts can be read side by side.</div><div aria-hidden="true" inert class="pv-row"><div><div class="pv-label">Desktop popover (tile-width, 296px): 1 single + 1 pack in cart</div><div class="pv-light pv-pad"><div class="ufs-pack-picker is-open pv-static pv-desk"><span class="ufs-pack-picker__arrow" style="left:140px"></span><div class="ufs-pack-picker__hd"><div><h2 class="ufs-pack-picker__title">Knorr Professional Tomato Pronto 2 kg</h2><p class="ufs-pack-picker__sub">Choose pack size and quantity</p></div><button type="button" class="ufs-pack-picker__close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Single item</p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Pack of 6</p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>7 items in cart (1 single + 1 × 6)</span><b><bdi>€132.30</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.450</span><span class="sr-only"> points</span></span></div></div></div></div></div><div><div class="pv-label">Mobile bottom sheet (≤768px)</div><div class="pv-phone"><div class="pv-phone__page"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="pv-phone__dim"></div><div class="ufs-pack-picker is-open pv-static pv-sheet"><div class="ufs-pack-picker__hd"><div><h2 class="ufs-pack-picker__title">Knorr Professional Tomato Pronto 2 kg</h2><p class="ufs-pack-picker__sub">Choose pack size and quantity</p></div><button type="button" class="ufs-pack-picker__close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Single item</p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="2" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Pack of 6</p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease" disabled><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="0" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>2 items in cart</span><b><bdi>€37.80</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">700</span><span class="sr-only"> points</span></span></div></div></div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">One dialog per page (<code>#pack-picker</code>), refilled for whichever product opened it. It contains a header, two pack rows and a summary. The arrow only exists on desktop. On mobile the sheet gets a grab handle instead (a <code>::before</code>, purely visual).</p>
+      <div class="ds-card"><div class="card-title">Parts</div><ol class="pv-anno"><li><b>1 · Arrow</b>: <code>__arrow</code>, points at the trigger (desktop only)</li><li><b>2 · Title</b>: <code>__title</code>, the product name (Body, 600)</li><li><b>3 · Subtitle</b>: <code>__sub</code>, "Choose pack size and quantity"</li><li><b>4 · Close</b>: <code>__close</code>, 36px round button</li><li><b>5 · Pack rows</b>: <code>.ufs-pack-row</code> ×2, Single item then Pack of N</li><li><b>6 · Summary</b>: <code>.ufs-pack-summary</code>, items in cart + total price</li><li><b>7 · Points</b>: <code>.ufs-points</code>, the live points total for this product</li></ol></div><div class="ds-card"><div class="card-title">Reference markup</div><div class="card-desc">The rows and summary values are rendered by <code>renderPicker()</code> (see Behavior). The shell is static.</div><div class="code-block-wrap"><div class="code-tabs"><div class="code-tab active" onclick="switchTab(this,'cb1-0')">HTML</div><div class="code-tab" onclick="switchTab(this,'cb1-1')">CSS</div></div><div class="code-panel active" data-tab="cb1-0"><div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">&lt;!-- Pack Size Picker: one instance per page, filled per product --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-picker-backdrop"</span> <span class="t-at">id</span>=<span class="t-str">"pack-picker-backdrop"</span> <span class="t-at">onclick</span>=<span class="t-str">"closePicker()"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-picker"</span> <span class="t-at">id</span>=<span class="t-str">"pack-picker"</span> <span class="t-at">role</span>=<span class="t-str">"dialog"</span> <span class="t-at">aria-modal</span>=<span class="t-str">"true"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"pack-picker-title"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-picker__arrow"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-picker__hd"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-picker__title"</span> <span class="t-at">id</span>=<span class="t-str">"pack-picker-title"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-picker__sub"</span><span class="t-tag">&gt;</span>Choose pack size and quantity<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-picker__close"</span> <span class="t-at">onclick</span>=<span class="t-str">"closePicker()"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Close"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 12 12"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"2"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"10"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"2"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">id</span>=<span class="t-str">"pack-picker-rows"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-summary"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-summary__row"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">id</span>=<span class="t-str">"pack-picker-count"</span><span class="t-tag">&gt;</span>0 items in cart<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;b</span> <span class="t-at">id</span>=<span class="t-str">"pack-picker-total"</span><span class="t-tag">&gt;</span>€0.00<span class="t-tag">&lt;/b</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-pack-summary__points"</span> <span class="t-at">id</span>=<span class="t-str">"pack-picker-points"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+
+<span class="t-cm">&lt;!-- Cart toasts (one per page) + a screen-reader live region --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-cart-toasts"</span> <span class="t-at">id</span>=<span class="t-str">"cart-toasts"</span> <span class="t-at">role</span>=<span class="t-str">"status"</span> <span class="t-at">aria-live</span>=<span class="t-str">"polite"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre></div><div class="code-panel" data-tab="cb1-1"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Pack Size Picker — popover on desktop, bottom sheet ≤768px */</span>
+<span class="t-pr">.ufs-pack-picker-backdrop</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">fixed</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">z-index</span>: <span class="t-vl">90</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0)</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; <span class="t-pr">transition</span>: <span class="t-vl">background</span> <span class="t-vl">0.2s</span>;
+}
+<span class="t-pr">.ufs-pack-picker-backdrop.is-open</span> { <span class="t-pr">pointer-events</span>: <span class="t-vl">auto</span>; }
+<span class="t-pr">.ufs-pack-picker</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">fixed</span>; <span class="t-pr">z-index</span>: <span class="t-vl">100</span>; <span class="t-pr">width</span>: <span class="t-vl">380px</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-3)</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">none</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>;
+  <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span>; <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-lg)</span>;
+}
+<span class="t-pr">.ufs-pack-picker.is-open</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; }
+<span class="t-pr">.ufs-pack-picker:focus</span> { <span class="t-pr">outline</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-pack-picker__hd</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">flex-start</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; }
+<span class="t-pr">.ufs-pack-picker__title</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-lh)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-pack-picker__sub</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-pack-picker__close</span> {
+  <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">36px</span>; <span class="t-pr">height</span>: <span class="t-vl">36px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>;
+}
+<span class="t-pr">.ufs-pack-picker__close:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-pack-picker__close svg</span> { <span class="t-pr">width</span>: <span class="t-vl">12px</span>; <span class="t-pr">height</span>: <span class="t-vl">12px</span>; }
+<span class="t-cm">/* Arrow: always on the bottom edge, pointing down at the trigger (left is set in JS).</span>
+   <span class="t-cm">A rotated square whose two bordered edges draw the notch. */</span>
+<span class="t-pr">.ufs-pack-picker__arrow</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">bottom</span>: <span class="t-vl">-8px</span>; <span class="t-pr">width</span>: <span class="t-vl">14px</span>; <span class="t-pr">height</span>: <span class="t-vl">14px</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>;
+  <span class="t-pr">border-left</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-top</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>;
+  <span class="t-pr">transform</span>: <span class="t-vl">rotate(225deg)</span>;
+}
+<span class="t-pr">.ufs-pack-picker .ufs-pack-summary</span> { <span class="t-pr">padding-top</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">border-top</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>; }
+<span class="t-cm">/* Desktop: the popover is tile-width (~296px), so rows tighten to keep each stepper on one line */</span>
+<span class="t-kw">@media</span> (<span class="t-pr">min-width</span>: <span class="t-vl">769px</span>) {
+  <span class="t-pr">.ufs-pack-picker .ufs-pack-row</span> { <span class="t-pr">grid-template-columns</span>: <span class="t-vl">40px</span> <span class="t-vl">1fr</span> <span class="t-vl">auto</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; }
+  <span class="t-pr">.ufs-pack-picker .ufs-pack-row__img</span> { <span class="t-pr">width</span>: <span class="t-vl">40px</span>; <span class="t-pr">height</span>: <span class="t-vl">40px</span>; }
+  <span class="t-pr">.ufs-pack-picker .ufs-pack-row__name</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; }
+  <span class="t-pr">.ufs-pack-picker .fi-qty-input</span> { <span class="t-pr">width</span>: <span class="t-vl">32px</span>; }
+}
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-pr">.ufs-pack-picker-backdrop.is-open</span> { <span class="t-pr">background</span>: <span class="t-vl">rgba(0,0,0,0.5)</span>; }
+  <span class="t-pr">.ufs-pack-picker</span> {
+    <span class="t-pr">left</span>: <span class="t-vl">0</span> <span class="t-vl">!important</span>; <span class="t-pr">right</span>: <span class="t-vl">0</span>; <span class="t-pr">top</span>: <span class="t-vl">auto</span> <span class="t-vl">!important</span>; <span class="t-pr">bottom</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span> <span class="t-vl">!important</span>;
+    <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-lg)</span> <span class="t-va">var(--radius-lg)</span> <span class="t-vl">0</span> <span class="t-vl">0</span>;
+    <span class="t-pr">padding</span>: <span class="t-va">var(--space-3)</span> <span class="t-va">var(--space-4)</span> <span class="t-vl">calc(var(--space-5)</span> <span class="t-vl">+</span> <span class="t-vl">env(safe-area-inset-bottom,</span> <span class="t-vl">0px))</span>;
+    <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">visibility</span>: <span class="t-vl">hidden</span>; <span class="t-pr">transform</span>: <span class="t-vl">translateY(100%)</span>;
+    <span class="t-pr">transition</span>: <span class="t-vl">transform</span> <span class="t-vl">0.25s</span> <span class="t-vl">cubic-bezier(0.4,0,0.2,1),</span> <span class="t-vl">visibility</span> <span class="t-vl">0s</span> <span class="t-vl">0.25s</span>;
+  }
+  <span class="t-pr">.ufs-pack-picker.is-open</span> { <span class="t-pr">transform</span>: <span class="t-vl">translateY(0)</span>; <span class="t-pr">visibility</span>: <span class="t-vl">visible</span>; <span class="t-pr">transition</span>: <span class="t-vl">transform</span> <span class="t-vl">0.25s</span> <span class="t-vl">cubic-bezier(0.4,0,0.2,1)</span>; }
+  <span class="t-cm">/* Grab handle */</span>
+  <span class="t-pr">.ufs-pack-picker::before</span> { <span class="t-pr">content</span>: <span class="t-vl">''</span>; <span class="t-pr">align-self</span>: <span class="t-vl">center</span>; <span class="t-pr">width</span>: <span class="t-vl">40px</span>; <span class="t-pr">height</span>: <span class="t-vl">4px</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">2px</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-500)</span>; }
+  <span class="t-pr">.ufs-pack-picker__arrow</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+  <span class="t-pr">.ufs-pack-picker .fi-qty--cart .fi-qty-btn</span> { <span class="t-pr">width</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-10)</span>; }
+}</pre></div></div><div class="card-subtitle">Key Tokens</div><div class="token-list"><div class="token-row"><span class="token-prop">Popover width</span><span class="token-var">= tile width (380px fallback)</span><span class="token-note">set from the anchoring tile in JS; 296px in a 4-up grid</span></div><div class="token-row"><span class="token-prop">Padding / gap</span><span class="token-var">--space-3 / --space-4</span><span class="token-note">12px inside, 16px between header, rows and summary</span></div><div class="token-row"><span class="token-prop">Surface</span><span class="token-var">--color-salt · --radius-lg · --shadow-lg</span><span class="token-note">1px --color-mushroom-300 border</span></div><div class="token-row"><span class="token-prop">Offset from trigger</span><span class="token-var">12px, always above</span><span class="token-note">never below: if there's no room, the page scrolls until the picker sits 16px below the sticky header ([data-sticky-header]) or viewport top</span></div><div class="token-row"><span class="token-prop">Arrow</span><span class="token-var">14 × 14, rotate(225deg) · bottom: −8px</span><span class="token-note">always on the bottom edge, centred on the trigger; never on top</span></div><div class="token-row"><span class="token-prop">Close</span><span class="token-var">36px · --color-mushroom-100</span><span class="token-note">12px X icon</span></div><div class="token-row"><span class="token-prop">Sheet (≤768px)</span><span class="token-var">--radius-lg top corners · 100% width</span><span class="token-note">padding 12 16 (20 + safe-area); 40 × 4 grab handle</span></div><div class="token-row"><span class="token-prop">Backdrop</span><span class="token-var">transparent → rgba(0,0,0,0.5) ≤768px</span><span class="token-note">desktop backdrop is invisible: it only catches the outside click</span></div><div class="token-row"><span class="token-prop">z-index</span><span class="token-var">backdrop 90 · picker 100</span><span class="token-note">below the header (200) and drawers (900+)</span></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ PACK ROW &AMP; SUMMARY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="pack-row">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Pack Row &amp; Summary</h2>
+      <p class="section-desc">A pack row is the shared building block of the picker and the Product Hero. It holds a thumbnail (with a <code>×N</code> count on the multi-pack), the pack name, a price line and a control. Each product has exactly two rows. If a product is sold as single items only, it never opens the picker: its tile adds directly (see the tile spec).</p>
+      <div class="ds-card"><div class="card-title">Values</div><div class="card-desc">All amounts are derived from three product fields: <code>price</code> (one single item), <code>multi</code> (items per pack, or null) and <code>pts</code> (points per single item).</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Value</th><th>Formula</th><th>Example (Tomato Pronto: €18.90, multi 6, 350 pts)</th></tr></thead><tbody><tr><td>Single item price</td><td><code>price</code></td><td>€18.90</td></tr><tr><td>Pack price</td><td><code>price × multi</code></td><td>€113.40</td></tr><tr><td>Items in cart</td><td><code>single + multi × N</code></td><td>1 single + 1 pack → 7 items</td></tr><tr><td>Total</td><td><code>single × price + multi × price × N</code></td><td>€132.30</td></tr><tr><td>Points</td><td><code>items × pts</code></td><td>7 × 350 = 2.450</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">Control modes</div><div class="card-desc">The row's right-hand control depends on where the row lives.</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Mode</th><th>Used in</th><th>At 0</th><th>At 1</th><th>Width</th></tr></thead><tbody><tr><td>Stepper only</td><td>Picker</td><td>Stepper showing 0, minus disabled</td><td>Minus</td><td>auto (content)</td></tr><tr><td>Add, then stepper</td><td>Product Hero</td><td>"Add to cart" button</td><td>Minus becomes a bin (<code>--delete</code>); next press returns to the button</td><td>160px (144px ≤768px)</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">CSS</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Pack row — one per pack type (Single item / Pack of N) */</span>
+<span class="t-pr">.ufs-pack-row</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">grid</span>; <span class="t-pr">grid-template-columns</span>: <span class="t-vl">56px</span> <span class="t-vl">1fr</span> <span class="t-vl">auto</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-3)</span> <span class="t-vl">0</span>; <span class="t-pr">border-top</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>;
+}
+<span class="t-pr">.ufs-pack-row__img</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">width</span>: <span class="t-vl">56px</span>; <span class="t-pr">height</span>: <span class="t-vl">56px</span>;
+  <span class="t-pr">border</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span> <span class="t-vl">center</span> <span class="t-vl">/</span> <span class="t-vl">contain</span> <span class="t-vl">no-repeat</span>;
+}
+<span class="t-cm">/* "×6" on the multi-pack thumbnail */</span>
+<span class="t-pr">.ufs-pack-row__count</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset-inline-end</span>: <span class="t-vl">-6px</span>; <span class="t-pr">bottom</span>: <span class="t-vl">-6px</span>; <span class="t-pr">padding</span>: <span class="t-vl">1px</span> <span class="t-vl">6px</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">9px</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>;
+  <span class="t-pr">font-size</span>: <span class="t-vl">10px</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">700</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.5</span>;
+  <span class="t-pr">direction</span>: <span class="t-vl">ltr</span>; <span class="t-pr">unicode-bidi</span>: <span class="t-vl">isolate</span>;   <span class="t-cm">/* stays "×6" inside RTL text */</span>
+}
+<span class="t-pr">.ufs-pack-row__txt</span> { <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-vl">2px</span>; }
+<span class="t-pr">.ufs-pack-row__name</span> {
+  <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-wrap</span>: <span class="t-vl">wrap</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span> <span class="t-va">var(--space-2)</span>;
+  <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.3</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+}
+<span class="t-pr">.ufs-pack-row__meta</span> { <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.4</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-pack-row__meta b</span> { <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-pack-row__ctl</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">flex-end</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-pr">.ufs-pack-row</span> { <span class="t-pr">grid-template-columns</span>: <span class="t-vl">48px</span> <span class="t-vl">1fr</span> <span class="t-vl">auto</span>; }
+  <span class="t-pr">.ufs-pack-row__img</span> { <span class="t-pr">width</span>: <span class="t-vl">48px</span>; <span class="t-pr">height</span>: <span class="t-vl">48px</span>; }
+  <span class="t-pr">.ufs-pack-row__name</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; }
+  <span class="t-pr">.ufs-pack-row__meta</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; }
+}
+
+<span class="t-cm">/* Pack summary — "N items in cart" + total, live points underneath */</span>
+<span class="t-pr">.ufs-pack-summary</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>; }
+<span class="t-pr">.ufs-pack-summary[hidden]</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-pack-summary__row</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">baseline</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>;
+  <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>;
+}
+<span class="t-pr">.ufs-pack-summary__row b</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h6-size)</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.2</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">font-variant-numeric</span>: <span class="t-vl">tabular-nums</span>; }
+<span class="t-pr">.ufs-pack-summary__points</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">flex-end</span>; }
+<span class="t-pr">.ufs-pack-summary__points .ufs-points</span> { <span class="t-pr">transform-origin</span>: <span class="t-vl">right</span> <span class="t-vl">center</span>; }</pre></div><div class="card-subtitle">Key Tokens</div><div class="token-list"><div class="token-row"><span class="token-prop">Grid</span><span class="token-var">56px · 1fr · auto</span><span class="token-note">48px thumbnail ≤768px; 40px inside the desktop popover</span></div><div class="token-row"><span class="token-prop">Row</span><span class="token-var">--space-3 padding · border-top --color-mushroom-300</span><span class="token-note">gap 12px (16px in the hero)</span></div><div class="token-row"><span class="token-prop">Thumbnail</span><span class="token-var">--radius-sm · 1px --color-mushroom-300</span><span class="token-note">contain, white background</span></div><div class="token-row"><span class="token-prop">×N count</span><span class="token-var">10px / 700 · --color-brand-dark</span><span class="token-note">offset −6px on the inline-end + bottom corner</span></div><div class="token-row"><span class="token-prop">Name</span><span class="token-var">--text-body-size, 600</span><span class="token-note">14px ≤768px and in the popover</span></div><div class="token-row"><span class="token-prop">Price line</span><span class="token-var">--text-body-sm-size · price in 600 --color-brand-dark</span><span class="token-note">12px ≤768px</span></div><div class="token-row"><span class="token-prop">Summary</span><span class="token-var">--text-body-sm-size --color-mushroom-900 · total --text-h6-size</span><span class="token-note">points pill aligned to the end, 4px below</span></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ QUANTITY SELECTOR: CART MODIFIER ═══════════════════════════════════════ -->
+    <section class="doc-section" id="quantity">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Quantity Selector: cart modifier</h2>
+      <p class="section-desc">The v1 Quantity Selector (<code>.fi-qty</code>, Design System › Input Fields) is reused as is. <code>.fi-qty--cart</code> is a new modifier that adds three things for ordering, without changing the base component.</p>
+      <div class="ds-card"><div class="card-title">What the modifier adds</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Change</th><th>Why</th></tr></thead><tbody><tr><td>Typed value: <code>&lt;input class="fi-qty-input" type="number"&gt;</code> replaces <code>.fi-qty-pill</code></td><td>B2B quantities are often large (24, 120…). Typing beats 100 taps. Clamped to 0–999, and the field selects on focus.</td></tr><tr><td>32px buttons (40px in the mobile sheet), 20px icons</td><td>Fits two steppers in a 296px popover and in a 160px hero control</td></tr><tr><td>Increase button filled <code>--color-accessible-orange</code></td><td>Keeps the "Add to cart" look once the button turns into a stepper</td></tr><tr><td><code>.fi-qty-btn--delete</code>: bin icon at quantity 1</td><td>Only in "Add, then stepper" rows: the next minus removes the line, so the icon says so</td></tr></tbody></table></div></div><div class="ds-card"><div aria-hidden="true" inert class="pv-row" style="align-items:center;gap:32px"><div><div class="pv-label">Stepper at 0</div><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease" disabled><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="0" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div><div><div class="pv-label">Stepper at 3</div><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="3" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div><div><div class="pv-label">At 1 with --delete</div><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn fi-qty-btn--delete" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" d="M29.17 12.6v-1.65C29.17 8.22 26.93 6 24.17 6h-3.34c-2.76 0-5 2.22-5 4.95v1.65H9.17a1.66 1.66 0 1 0 0 3.3h1.66v18.15c0 2.73 2.24 4.95 5 4.95h13.34c2.76 0 5-2.22 5-4.95V15.9h1.66a1.66 1.66 0 1 0 0-3.3zm-8.34-3.3h3.34c.92 0 1.66.74 1.66 1.65v1.65h-6.66v-1.65c0-.91.74-1.65 1.66-1.65zm8.34 26.4H15.83c-.92 0-1.66-.74-1.66-1.65V15.9h16.66v18.15c0 .91-.74 1.65-1.66 1.65z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Quantity Selector — v1 .fi-qty (Design System › Input Fields) plus the</span>
+   <span class="t-cm">cart modifier: typed value, 32px buttons, + as the primary action. */</span>
+<span class="t-pr">.fi-qty</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">inline-flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">width</span>: <span class="t-vl">100%</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>;
+}
+<span class="t-pr">.fi-qty-btn</span> {
+  <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-va">var(--space-12)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-12)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-xs)</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>;
+  <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">transition</span>: <span class="t-vl">box-shadow</span> <span class="t-vl">0.15s,</span> <span class="t-vl">color</span> <span class="t-vl">0.15s,</span> <span class="t-vl">background</span> <span class="t-vl">0.15s</span>;
+  <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+}
+<span class="t-pr">.fi-qty-btn:hover:not(:disabled)</span> { <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-sm)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-accessible-orange)</span>; }
+<span class="t-pr">.fi-qty-btn:disabled</span> { <span class="t-pr">opacity</span>: <span class="t-vl">0.38</span>; <span class="t-pr">cursor</span>: <span class="t-vl">not-allowed</span>; }
+<span class="t-pr">.fi-qty-btn:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">outline-offset</span>: <span class="t-vl">2px</span>; }
+<span class="t-pr">.fi-qty-btn svg</span> { <span class="t-pr">width</span>: <span class="t-va">var(--space-5)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-5)</span>; <span class="t-pr">display</span>: <span class="t-vl">block</span>; <span class="t-pr">fill</span>: <span class="t-vl">currentColor</span>; }
+
+<span class="t-cm">/* ── New in v2.0: .fi-qty--cart ── */</span>
+<span class="t-pr">.fi-qty--cart</span> { <span class="t-pr">width</span>: <span class="t-vl">auto</span>; }
+<span class="t-pr">.fi-qty--cart .fi-qty-btn</span> { <span class="t-pr">width</span>: <span class="t-va">var(--space-8)</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-8)</span>; }
+<span class="t-cm">/* Increase keeps the "Add to cart" look: dark orange fill, white icon */</span>
+<span class="t-pr">.fi-qty--cart .fi-qty-btn[data-role="inc"]</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-pr">.fi-qty--cart .fi-qty-btn[data-role="inc"]:hover:not(:disabled)</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-orange-900)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; }
+<span class="t-cm">/* At quantity 1 (rows that fall back to "Add to cart"), minus becomes a bin */</span>
+<span class="t-pr">.fi-qty-btn--delete:hover:not(:disabled)</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-error)</span>; }
+<span class="t-cm">/* Typed value replaces .fi-qty-pill: B2B quantities are often typed, not stepped */</span>
+<span class="t-pr">.fi-qty-input</span> {
+  <span class="t-pr">width</span>: <span class="t-vl">40px</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">background</span>: <span class="t-vl">transparent</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">6px</span>;
+  <span class="t-pr">font-family</span>: <span class="t-va">var(--font-family)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+  <span class="t-pr">-moz-appearance</span>: <span class="t-vl">textfield</span>;
+}
+<span class="t-pr">.fi-qty-input::-webkit-outer-spin-button, .fi-qty-input::-webkit-inner-spin-button</span> { <span class="t-pr">-webkit-appearance</span>: <span class="t-vl">none</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.fi-qty-input:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-brand-dark)</span>; }</pre></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ POINTS PILL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="points">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Points Pill</h2>
+      <p class="section-desc">Shows the loyalty points the buyer earns. It reuses the Reward tile's points look: a gold ring on a 10% gold tint with a coin icon. In the picker and the hero summary it is the <em>live</em> total, which counts up or down on every change. In pack rows and on tiles it is a fixed value per pack.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-row" style="gap:16px;align-items:center"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.450</span><span class="sr-only"> points</span></span></div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Points pill — the Reward tile's points look (gold ring on a 10% gold tint) */</span>
+<span class="t-pr">.ufs-points</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">inline-flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-1)</span> <span class="t-va">var(--space-2)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">color-mix(in</span> <span class="t-vl">srgb,</span> <span class="t-va">var(--color-gold)</span> <span class="t-vl">10%,</span> <span class="t-va">var(--color-salt)</span><span class="t-vl">)</span>;
+  <span class="t-pr">border</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-gold)</span>;
+  <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">400</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+  <span class="t-pr">white-space</span>: <span class="t-vl">nowrap</span>; <span class="t-pr">transform-origin</span>: <span class="t-vl">left</span> <span class="t-vl">center</span>;
+}
+<span class="t-pr">.ufs-points svg</span> { <span class="t-pr">width</span>: <span class="t-vl">12px</span>; <span class="t-pr">height</span>: <span class="t-vl">12px</span>; <span class="t-pr">fill</span>: <span class="t-va">var(--color-gold)</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-points__val</span> { <span class="t-pr">font-variant-numeric</span>: <span class="t-vl">tabular-nums</span>; }
+<span class="t-pr">.ufs-points.is-pulse</span> { <span class="t-pr">animation</span>: <span class="t-vl">ufs-points-pulse</span> <span class="t-vl">0.7s</span> <span class="t-vl">ease-out</span>; }
+<span class="t-kw">@keyframes</span> ufs-points-pulse {
+  <span class="t-pr">0%</span>   { <span class="t-pr">transform</span>: <span class="t-vl">scale(1)</span>;    <span class="t-pr">box-shadow</span>: <span class="t-vl">0</span> <span class="t-vl">0</span> <span class="t-vl">0</span> <span class="t-vl">0</span> <span class="t-vl">color-mix(in</span> <span class="t-vl">srgb,</span> <span class="t-va">var(--color-gold)</span> <span class="t-vl">45%,</span> <span class="t-vl">transparent)</span>; }
+  <span class="t-pr">35%</span>  { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.04)</span>; }
+  <span class="t-pr">100%</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1)</span>;    <span class="t-pr">box-shadow</span>: <span class="t-vl">0</span> <span class="t-vl">0</span> <span class="t-vl">0</span> <span class="t-vl">8px</span> <span class="t-vl">color-mix(in</span> <span class="t-vl">srgb,</span> <span class="t-va">var(--color-gold)</span> <span class="t-vl">0%,</span> <span class="t-vl">transparent)</span>; }
+}</pre></div><div class="card-subtitle">Key Tokens</div><div class="token-list"><div class="token-row"><span class="token-prop">Ring / tint</span><span class="token-var">--color-gold · color-mix(gold 10%, salt)</span><span class="token-note">same as the Reward tile points</span></div><div class="token-row"><span class="token-prop">Type</span><span class="token-var">--text-body-xs-size, tabular numbers</span><span class="token-note">12px; 14px on Product Tiles</span></div><div class="token-row"><span class="token-prop">Format</span><span class="token-var">de-DE grouping: 2.450</span><span class="token-note">matches the cart panel design; use the market locale in production</span></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ OPENING &AMP; PLACEMENT ═══════════════════════════════════════ -->
+    <section class="doc-section" id="open">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Opening &amp; Placement</h2>
+      <p class="section-desc">The picker opens in two situations. (1) A tile's <strong>Add to cart</strong> is pressed on a product that has a multi-pack: 1 single item goes straight into the cart, then the picker opens so the buyer can adjust. (2) The tile's <strong>Edit</strong> link is pressed. Only one picker is open at a time, and opening the cart panel closes it.</p>
+      <div class="ds-card"><div class="card-title">Placement</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Viewport</th><th>Behaviour</th></tr></thead><tbody><tr><td>≥769px</td><td>Popover, <strong>always above the trigger</strong> (12px gap), with the arrow on its bottom edge centred on the trigger. It never opens below. If there isn't room above, the page first smooth-scrolls by just enough for the picker to sit 16px below the sticky site header, with the picker moving along with the tile (instant with reduced motion) (mark it with <code>data-sticky-header</code>; falls back to the viewport top). Width and left edge match the anchoring element (<code>[data-picker-anchor]</code>, the tile). It repositions on resize and closes when the user scrolls (its own scroll-to-fit doesn't count).</td></tr><tr><td>≤768px</td><td>Bottom sheet, full width, slides up over a 50% black backdrop. The width and position from JS are ignored. Focus moves into the sheet after the 250ms slide.</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">JS: open / position / close</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* ── Pack Size Picker ──────────────────────────────────────
+   One instance per page, filled per product. Edits the cart live:
+   every stepper change is applied immediately (no submit button). */</span>
+<span class="t-kw">var</span> picker = { id: <span class="t-kw">null</span>, trigger: <span class="t-kw">null</span> };
+
+<span class="t-kw">function</span> openPicker(id, trigger) {
+  picker.id = id; picker.trigger = trigger;
+  <span class="t-kw">var</span> el = document.getElementById(<span class="t-str">'pack-picker'</span>);
+  document.getElementById(<span class="t-str">'pack-picker-title'</span>).textContent = PRODUCTS[id].name;
+  renderPicker(<span class="t-kw">false</span>);
+  el.classList.add(<span class="t-str">'is-open'</span>);
+  document.getElementById(<span class="t-str">'pack-picker-backdrop'</span>).classList.add(<span class="t-str">'is-open'</span>);
+  positionPicker(trigger);
+  positionToasts();
+  <span class="t-cm">// Focus the dialog itself (no ring, nothing pre-selected); Tab moves to its first control.</span>
+  <span class="t-cm">// On mobile wait for the sheet to finish sliding in.</span>
+  setTimeout(<span class="t-kw">function</span> () { el.focus({ preventScroll: <span class="t-kw">true</span> }); }, isMobile() ? 260 : 0);
+}
+
+<span class="t-kw">function</span> renderPicker(animate) {
+  <span class="t-kw">var</span> p = PRODUCTS[picker.id], l = lineOf(picker.id);
+  document.getElementById(<span class="t-str">'pack-picker-rows'</span>).innerHTML = [<span class="t-str">'single'</span>, <span class="t-str">'multi'</span>].map(<span class="t-kw">function</span> (pack) {
+    <span class="t-kw">return</span> packRowHTML(p, pack, { points: <span class="t-str">''</span>, price: <span class="t-str">'&lt;b&gt;'</span> + money(packPrice(p, pack)) + <span class="t-str">'&lt;/b&gt;'</span> },
+      stepperHTML({ p: p, pack: pack, value: l[pack] || 0, scope: <span class="t-str">'picker'</span> }));
+  }).join(<span class="t-str">''</span>);
+  <span class="t-kw">var</span> units = lineUnits(p, l);
+  document.getElementById(<span class="t-str">'pack-picker-count'</span>).textContent =
+    (units === 1 ? t(<span class="t-str">'itemInCart'</span>) : t(<span class="t-str">'itemsInCart'</span>, { n: units })) +
+    (l.multi ? <span class="t-str">' ('</span> + (l.single || 0) + <span class="t-str">' single + '</span> + l.multi + <span class="t-str">' × '</span> + p.multi + <span class="t-str">')'</span> : <span class="t-str">''</span>);
+  document.getElementById(<span class="t-str">'pack-picker-total'</span>).textContent = money(lineTotal(p, l));
+  <span class="t-kw">var</span> pill = document.querySelector(<span class="t-str">'#pack-picker-points .ufs-points'</span>);
+  (animate ? animatePoints : setPoints)(pill, units * p.pts);
+}
+
+<span class="t-kw">function</span> pickerStep(pack, d) { pickerSet(pack, (lineOf(picker.id)[pack] || 0) + d, <span class="t-kw">true</span>); }
+<span class="t-kw">function</span> pickerSet(pack, value, fromStep) {
+  <span class="t-kw">var</span> before = setLine(picker.id, pack, value), q = lineOf(picker.id)[pack] || 0;   <span class="t-cm">// setLine re-renders the picker</span>
+  <span class="t-kw">if</span> (q === before) { renderPicker(<span class="t-kw">false</span>); <span class="t-kw">return</span>; }                                 <span class="t-cm">// e.g. "abc" typed: restore the field</span>
+  <span class="t-kw">var</span> row = document.querySelector(<span class="t-str">'#pack-picker-rows [data-row="'</span> + pack + <span class="t-str">'"]'</span>);
+  rollQty(row.querySelector(<span class="t-str">'.fi-qty'</span>), before, q &gt; before);
+  <span class="t-kw">if</span> (q &gt; before) flyToCart(row.querySelector(<span class="t-str">'.ufs-pack-row__img'</span>), IMG + PRODUCTS[picker.id].img);
+  <span class="t-kw">else</span> bumpBadge();
+  <span class="t-kw">if</span> (fromStep) {                                     <span class="t-cm">// focus stays on the pressed button…</span>
+    <span class="t-kw">var</span> btn = row.querySelector(q &lt; before ? <span class="t-str">'[data-role="dec"]'</span> : <span class="t-str">'[data-role="inc"]'</span>);
+    <span class="t-kw">if</span> (btn.disabled) btn = row.querySelector(<span class="t-str">'[data-role="inc"]'</span>);   <span class="t-cm">// …unless minus just disabled at 0</span>
+    btn.focus({ preventScroll: <span class="t-kw">true</span> });
+  }
+}
+
+<span class="t-kw">function</span> closePicker(skipFocus) {
+  <span class="t-kw">if</span> (!picker.id) <span class="t-kw">return</span>;
+  document.getElementById(<span class="t-str">'pack-picker'</span>).classList.remove(<span class="t-str">'is-open'</span>);
+  document.getElementById(<span class="t-str">'pack-picker-backdrop'</span>).classList.remove(<span class="t-str">'is-open'</span>);
+  <span class="t-kw">var</span> back = pickerTrigger();
+  <span class="t-kw">if</span> (!skipFocus &amp;&amp; back) back.focus({ preventScroll: <span class="t-kw">true</span> });
+  picker.id = <span class="t-kw">null</span>;
+  positionToasts();
+}
+
+<span class="t-cm">// While the mobile sheet is open, toasts sit 12px above it instead of behind it</span>
+<span class="t-kw">function</span> positionToasts() {
+  <span class="t-kw">var</span> stack = document.getElementById(<span class="t-str">'cart-toasts'</span>), el = document.getElementById(<span class="t-str">'pack-picker'</span>);
+  <span class="t-kw">if</span> (picker.id &amp;&amp; isMobile()) stack.style.bottom = <span class="t-str">'calc('</span> + el.offsetHeight + <span class="t-str">'px + var(--space-3))'</span>;
+  <span class="t-kw">else</span> stack.style.bottom = <span class="t-str">''</span>;
+}
+
+<span class="t-cm">// The trigger may have been re-rendered while the picker was open (the tile behind it</span>
+<span class="t-cm">// updates live), so fall back to the product's current Edit / Add to cart control.</span>
+<span class="t-kw">function</span> pickerTrigger() {
+  <span class="t-kw">if</span> (picker.trigger &amp;&amp; document.contains(picker.trigger)) <span class="t-kw">return</span> picker.trigger;
+  <span class="t-kw">return</span> document.querySelector(<span class="t-str">'[data-picker-return="'</span> + picker.id + <span class="t-str">'"]'</span>);
+}
+
+<span class="t-kw">function</span> isMobile() { <span class="t-kw">return</span> window.matchMedia(<span class="t-str">'(max-width: 768px)'</span>).matches; }
+
+<span class="t-cm">// Desktop: always ABOVE the trigger, 12px gap, same width as the tile and flush with</span>
+<span class="t-cm">// its edges; the arrow (bottom edge) points at the trigger's centre. If there isn't</span>
+<span class="t-cm">// room above, the page first smooth-scrolls just enough to fit it, 16px below the sticky</span>
+<span class="t-cm">// header, with the picker riding along with the tile.</span>
+<span class="t-kw">function</span> pickerSafeTop() {
+  <span class="t-kw">var</span> header = document.querySelector(<span class="t-str">'[data-sticky-header]'</span>);   <span class="t-cm">// the site header, while it's on screen</span>
+  <span class="t-kw">return</span> Math.max(0, header ? header.getBoundingClientRect().bottom : 0) + 16;
+}
+<span class="t-kw">function</span> positionPicker(trigger) {
+  <span class="t-kw">var</span> el = document.getElementById(<span class="t-str">'pack-picker'</span>), arrow = el.querySelector(<span class="t-str">'.ufs-pack-picker__arrow'</span>);
+  <span class="t-kw">if</span> (isMobile()) { el.style.width = <span class="t-str">''</span>; <span class="t-kw">return</span>; }
+  <span class="t-kw">var</span> tile = trigger.closest(<span class="t-str">'[data-picker-anchor]'</span>), box = tile &amp;&amp; tile.getBoundingClientRect();
+  <span class="t-kw">if</span> (box) el.style.width = box.width + <span class="t-str">'px'</span>;
+  <span class="t-kw">var</span> h = el.offsetHeight, need = h + 12 + pickerSafeTop(), r = trigger.getBoundingClientRect();
+  <span class="t-kw">if</span> (r.top &lt; need - 1 &amp;&amp; scrollY &gt; 0 &amp;&amp; !picker.autoScroll) startPickerScroll(need - r.top);
+  <span class="t-kw">var</span> w = el.offsetWidth;
+  <span class="t-kw">var</span> left = box ? box.left : Math.min(Math.max(16, r.left + r.width / 2 - w / 2), innerWidth - w - 16);
+  el.style.left = left + <span class="t-str">'px'</span>;
+  <span class="t-cm">// While scrolling-to-fit it follows the tile; afterwards the floor only applies when</span>
+  <span class="t-cm">// the page can't scroll further</span>
+  el.style.top = (picker.autoScroll ? r.top - 12 - h : Math.max(pickerSafeTop(), r.top - 12 - h)) + <span class="t-str">'px'</span>;
+  arrow.style.left = (r.left + r.width / 2 - left - 7) + <span class="t-str">'px'</span>;
+}
+
+window.addEventListener(<span class="t-str">'resize'</span>, <span class="t-kw">function</span> () { <span class="t-kw">if</span> (picker.id &amp;&amp; pickerTrigger()) positionPicker(pickerTrigger()); });
+<span class="t-cm">// Desktop popover is anchored to the page: it closes on scroll instead of drifting</span>
+window.addEventListener(<span class="t-str">'scroll'</span>, <span class="t-kw">function</span> () {
+  <span class="t-kw">if</span> (picker.autoScroll) { <span class="t-kw">if</span> (picker.id &amp;&amp; pickerTrigger()) positionPicker(pickerTrigger()); <span class="t-kw">return</span>; }   <span class="t-cm">// ride along</span>
+  <span class="t-kw">if</span> (picker.id &amp;&amp; !isMobile()) closePicker();
+}, { passive: <span class="t-kw">true</span> });
+<span class="t-cm">// Scroll-to-fit: smooth (instant with reduced motion). Our own scroll must not close</span>
+<span class="t-cm">// the picker; it repositions on every frame instead, then once more when it settles.</span>
+<span class="t-kw">function</span> startPickerScroll(gap) {
+  picker.autoScroll = <span class="t-kw">true</span>;
+  <span class="t-kw">var</span> done = <span class="t-kw">function</span> () {
+    <span class="t-kw">if</span> (!picker.autoScroll) <span class="t-kw">return</span>;
+    picker.autoScroll = <span class="t-kw">false</span>; clearTimeout(fallback);
+    <span class="t-kw">if</span> (picker.id &amp;&amp; pickerTrigger()) positionPicker(pickerTrigger());
+  };
+  <span class="t-kw">var</span> fallback = setTimeout(done, 1000);   <span class="t-cm">// no scrollend event (older Safari)</span>
+  window.addEventListener(<span class="t-str">'scrollend'</span>, done, { once: <span class="t-kw">true</span> });
+  window.scrollBy({ top: -gap, behavior: reduceMotion.matches ? <span class="t-str">'instant'</span> : <span class="t-str">'smooth'</span> });
+}
+document.addEventListener(<span class="t-str">'keydown'</span>, <span class="t-kw">function</span> (e) {
+  <span class="t-kw">if</span> (!picker.id) <span class="t-kw">return</span>;
+  <span class="t-kw">if</span> (e.key === <span class="t-str">'Escape'</span>) { closePicker(); <span class="t-kw">return</span>; }
+  <span class="t-kw">if</span> (e.key !== <span class="t-str">'Tab'</span>) <span class="t-kw">return</span>;                       <span class="t-cm">// keep Tab inside the open picker</span>
+  <span class="t-kw">var</span> f = [].slice.call(document.querySelectorAll(<span class="t-str">'#pack-picker button:not(:disabled), #pack-picker input'</span>));
+  <span class="t-kw">if</span> (e.shiftKey &amp;&amp; (document.activeElement === f[0] || document.activeElement.id === <span class="t-str">'pack-picker'</span>)) { e.preventDefault(); f[f.length - 1].focus(); }
+  <span class="t-kw">else</span> <span class="t-kw">if</span> (!e.shiftKey &amp;&amp; document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+});
+cartViews.push(<span class="t-kw">function</span> (id) { <span class="t-kw">if</span> (picker.id === id) renderPicker(<span class="t-kw">true</span>); });</pre></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ LIVE EDITING ═══════════════════════════════════════ -->
+    <section class="doc-section" id="editing">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Live Editing</h2>
+      <p class="section-desc">There is no submit step. Every stepper press or typed value calls <code>setLine()</code> immediately. The cart, the header badge, the tile behind the picker and the cart panel all re-render from the same state. Setting both packs to 0 empties the line, and the tile goes back to "Add to cart". The picker stays open so the buyer can add again.</p>
+      <div class="ds-card"><div class="card-title">JS: cart state (shared by every add-to-cart surface)</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Demo catalogue. price = one single item; multi = items in the multi-pack
+   (null = sold as single items only); pts = loyalty points per single item. */</span>
+<span class="t-kw">var</span> IMG = <span class="t-str">'../images/'</span>;
+<span class="t-kw">var</span> PRODUCTS = {
+  tomato:  { id: <span class="t-str">'tomato'</span>,  name: <span class="t-str">'Knorr Professional Tomato Pronto 2 kg'</span>, cat: <span class="t-str">'Sauces'</span>, unit: <span class="t-str">'2 kg'</span>, img: <span class="t-str">'catalog/knorr/tomato-pronto-2kg.jpg'</span>, price: 18.90, multi: 6, pts: 350, badge: <span class="t-str">'New'</span> },
+  mash:    { id: <span class="t-str">'mash'</span>,    name: <span class="t-str">'Knorr Professional Mash Flakes 2 kg'</span>, cat: <span class="t-str">'Sides'</span>, unit: <span class="t-str">'2 kg'</span>, img: <span class="t-str">'catalog/knorr/mash-flakes-2kg.jpg'</span>, price: 24.90, multi: 6, pts: 450 },
+  pouch:   { id: <span class="t-str">'pouch'</span>,   name: <span class="t-str">'Knorr Aromat Original (Pouch) 1 kg'</span>, cat: <span class="t-str">'Seasonings'</span>, unit: <span class="t-str">'1 kg'</span>, img: <span class="t-str">'catalog/knorr/aromat-pouch-1kg.jpg'</span>, price: 21.75, multi: <span class="t-kw">null</span>, pts: 380 },
+  granules:{ id: <span class="t-str">'granules'</span>,name: <span class="t-str">'Knorr Chicken Stock Granules 1 kg'</span>, cat: <span class="t-str">'Stocks'</span>, unit: <span class="t-str">'1 kg'</span>, img: <span class="t-str">'catalog/knorr/chicken-stock-granules-1kg.jpg'</span>, price: 18.90, multi: 6, pts: 350 }
+};
+
+<span class="t-kw">var</span> ICON = {
+  minus: <span class="t-str">'&lt;svg viewBox="0 0 45 45" aria-hidden="true"&gt;&lt;path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/&gt;&lt;/svg&gt;'</span>,
+  plus:  <span class="t-str">'&lt;svg viewBox="0 0 45 45" aria-hidden="true"&gt;&lt;path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/&gt;&lt;/svg&gt;'</span>,
+  del:   <span class="t-str">'&lt;svg viewBox="0 0 45 45" aria-hidden="true"&gt;&lt;path fill-rule="evenodd" d="M29.17 12.6v-1.65C29.17 8.22 26.93 6 24.17 6h-3.34c-2.76 0-5 2.22-5 4.95v1.65H9.17a1.66 1.66 0 1 0 0 3.3h1.66v18.15c0 2.73 2.24 4.95 5 4.95h13.34c2.76 0 5-2.22 5-4.95V15.9h1.66a1.66 1.66 0 1 0 0-3.3zm-8.34-3.3h3.34c.92 0 1.66.74 1.66 1.65v1.65h-6.66v-1.65c0-.91.74-1.65 1.66-1.65zm8.34 26.4H15.83c-.92 0-1.66-.74-1.66-1.65V15.9h16.66v18.15c0 .91-.74 1.65-1.66 1.65z"/&gt;&lt;/svg&gt;'</span>,
+  coin:  <span class="t-str">'&lt;svg viewBox="0 0 45 45" aria-hidden="true"&gt;&lt;path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/&gt;&lt;circle cx="22" cy="23" r="8.5"/&gt;&lt;/svg&gt;'</span>,
+  check: <span class="t-str">'&lt;svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"&gt;&lt;polyline points="3 8.5 6.5 12 13 4.5"/&gt;&lt;/svg&gt;'</span>,
+  close: <span class="t-str">'&lt;svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"&gt;&lt;line x1="2" y1="2" x2="10" y2="10"/&gt;&lt;line x1="10" y1="2" x2="2" y2="10"/&gt;&lt;/svg&gt;'</span>
+};
+
+<span class="t-cm">/* UI copy — every string goes through t() so a locale only swaps this table.
+   Arabic values are in the i18n &amp; RTL section of each spec. */</span>
+<span class="t-kw">var</span> TEXT = {
+  add: <span class="t-str">'Add to cart'</span>, single: <span class="t-str">'Single item'</span>, packOf: <span class="t-str">'Pack of {n}'</span>,
+  choose: <span class="t-str">'Choose pack size and quantity'</span>, priceNote: <span class="t-str">'Price indication (excl. VAT)'</span>,
+  inCart: <span class="t-str">'In cart'</span>, edit: <span class="t-str">'Edit'</span>, close: <span class="t-str">'Close'</span>, points: <span class="t-str">'points'</span>, each: <span class="t-str">'each'</span>,
+  itemsInCart: <span class="t-str">'{n} items in cart'</span>, itemInCart: <span class="t-str">'1 item in cart'</span>,
+  added: <span class="t-str">'Added: {what}'</span>, updated: <span class="t-str">'Updated: {what}'</span>, removed: <span class="t-str">'Removed: {what}'</span>, viewCart: <span class="t-str">'View cart'</span>,
+  increase: <span class="t-str">'Increase {what}'</span>, decrease: <span class="t-str">'Decrease {what}'</span>, remove: <span class="t-str">'Remove {what}'</span>, quantity: <span class="t-str">'{what} quantity'</span>
+};
+<span class="t-kw">function</span> t(key, vars) {
+  <span class="t-kw">return</span> TEXT[key].replace(/\{(\w+)\}/g, <span class="t-kw">function</span> (_, k) { <span class="t-kw">return</span> vars[k]; });
+}
+
+<span class="t-cm">/* ── Cart state ──────────────────────────────────────────────
+   One line per product, one quantity per pack type:
+   cart = { tomato: { single: 2, multi: 1 } }
+   Every change (tile, picker, hero, cart panel) goes through setLine(),
+   and every view re-renders from this one state. Persist it however the
+   platform stores the cart; the prototype keeps it in localStorage. */</span>
+<span class="t-kw">var</span> cart = {};
+<span class="t-kw">var</span> cartViews = [];                       <span class="t-cm">// render functions called after each change</span>
+<span class="t-kw">var</span> reduceMotion = window.matchMedia(<span class="t-str">'(prefers-reduced-motion: reduce)'</span>);
+
+<span class="t-kw">function</span> lineOf(id) { <span class="t-kw">return</span> cart[id] || { single: 0, multi: 0 }; }
+<span class="t-kw">function</span> clampQty(v) { v = parseInt(v, 10); <span class="t-kw">return</span> isNaN(v) || v &lt; 0 ? 0 : Math.min(v, 999); }
+<span class="t-kw">function</span> packLabel(p, pack) { <span class="t-kw">return</span> pack === <span class="t-str">'single'</span> ? t(<span class="t-str">'single'</span>) : t(<span class="t-str">'packOf'</span>, { n: p.multi }); }
+<span class="t-kw">function</span> packPrice(p, pack) { <span class="t-kw">return</span> pack === <span class="t-str">'single'</span> ? p.price : p.price * p.multi; }
+<span class="t-kw">function</span> lineUnits(p, l) { <span class="t-kw">return</span> (l.single || 0) + (l.multi || 0) * (p.multi || 1); }
+<span class="t-kw">function</span> lineTotal(p, l) { <span class="t-kw">return</span> (l.single || 0) * p.price + (p.multi ? (l.multi || 0) * packPrice(p, <span class="t-str">'multi'</span>) : 0); }
+<span class="t-kw">function</span> money(n) { <span class="t-kw">return</span> <span class="t-str">'€'</span> + n.toFixed(2); }        <span class="t-cm">// use Intl.NumberFormat(locale, { style: 'currency' }) in production</span>
+<span class="t-kw">function</span> fmtPoints(n) { <span class="t-kw">return</span> n.toLocaleString(<span class="t-str">'de-DE'</span>); }
+<span class="t-kw">function</span> escHTML(s) { <span class="t-kw">return</span> String(s).replace(/&amp;/g, <span class="t-str">'&amp;amp;'</span>).replace(/&lt;/g, <span class="t-str">'&amp;lt;'</span>).replace(/"/g, <span class="t-str">'&amp;quot;'</span>); }
+
+<span class="t-cm">// Returns the previous quantity, so callers can animate old → new</span>
+<span class="t-kw">function</span> setLine(id, pack, qty, quiet) {
+  <span class="t-kw">var</span> l = lineOf(id), before = l[pack] || 0, q = clampQty(qty);
+  <span class="t-kw">if</span> (q === before) <span class="t-kw">return</span> before;
+  l = { single: l.single || 0, multi: l.multi || 0 };
+  l[pack] = q;
+  <span class="t-kw">if</span> (l.single + l.multi) cart[id] = l; <span class="t-kw">else</span> delete cart[id];
+  renderCartBadge();
+  <span class="t-kw">if</span> (!quiet) cartToast(PRODUCTS[id], pack, before, q);
+  cartViews.forEach(<span class="t-kw">function</span> (render) { render(id); });
+  <span class="t-kw">return</span> before;
+}
+
+<span class="t-kw">function</span> cartCount() {
+  <span class="t-kw">return</span> Object.keys(cart).reduce(<span class="t-kw">function</span> (n, id) { <span class="t-kw">return</span> n + cart[id].single + cart[id].multi; }, 0);
+}
+<span class="t-kw">function</span> renderCartBadge() {
+  <span class="t-kw">var</span> n = cartCount();
+  document.querySelectorAll(<span class="t-str">'[data-cart-button]'</span>).forEach(<span class="t-kw">function</span> (btn) {
+    <span class="t-kw">var</span> badge = btn.querySelector(<span class="t-str">'.ufs-nav__badge'</span>);
+    badge.textContent = n; badge.hidden = n === 0;
+    btn.setAttribute(<span class="t-str">'aria-label'</span>, <span class="t-str">'Cart, '</span> + n + <span class="t-str">' item'</span> + (n === 1 ? <span class="t-str">''</span> : <span class="t-str">'s'</span>));
+  });
+}
+
+<span class="t-cm">/* ── Pack rows (shared by the picker and the Product Hero) ── */</span>
+<span class="t-cm">// o: { p, pack, value, scope, args, deleteAtOne, min }  (min: minus disables at this value, default 0)</span>
+<span class="t-cm">// Buttons call {scope}Step(args, ±1), the field calls {scope}Set(args, value).</span>
+<span class="t-cm">// args defaults to the pack: "'single'"; tiles pass "'tomato','single'".</span>
+<span class="t-kw">function</span> stepperHTML(o) {
+  <span class="t-kw">var</span> args = o.args || <span class="t-str">"'"</span> + o.pack + <span class="t-str">"'"</span>;
+  <span class="t-kw">var</span> what = packLabel(o.p, o.pack), del = o.deleteAtOne &amp;&amp; o.value === 1;
+  <span class="t-kw">return</span> <span class="t-str">'&lt;div class="fi-qty fi-qty--cart" data-pack="'</span> + o.pack + <span class="t-str">'"&gt;'</span> +
+    <span class="t-str">'&lt;button type="button" class="fi-qty-btn'</span> + (del ? <span class="t-str">' fi-qty-btn--delete'</span> : <span class="t-str">''</span>) + <span class="t-str">'" data-role="dec"'</span> +
+      <span class="t-str">' aria-label="'</span> + escHTML(t(del ? <span class="t-str">'remove'</span> : <span class="t-str">'decrease'</span>, { what: what })) + <span class="t-str">'"'</span> +
+      <span class="t-str">' onclick="'</span> + o.scope + <span class="t-str">'Step('</span> + args + <span class="t-str">',-1)"'</span> + (o.value &lt;= (o.min || 0) ? <span class="t-str">' disabled'</span> : <span class="t-str">''</span>) + <span class="t-str">'&gt;'</span> + (del ? ICON.del : ICON.minus) + <span class="t-str">'&lt;/button&gt;'</span> +
+    <span class="t-str">'&lt;input class="fi-qty-input" type="number" inputmode="numeric" min="0" max="999" value="'</span> + o.value + <span class="t-str">'"'</span> +
+      <span class="t-str">' aria-label="'</span> + escHTML(t(<span class="t-str">'quantity'</span>, { what: what })) + <span class="t-str">'" onchange="'</span> + o.scope + <span class="t-str">'Set('</span> + args + <span class="t-str">',this.value)" onfocus="this.select()"/&gt;'</span> +
+    <span class="t-str">'&lt;button type="button" class="fi-qty-btn" data-role="inc" aria-label="'</span> + escHTML(t(<span class="t-str">'increase'</span>, { what: what })) + <span class="t-str">'"'</span> +
+      <span class="t-str">' onclick="'</span> + o.scope + <span class="t-str">'Step('</span> + args + <span class="t-str">',1)"&gt;'</span> + ICON.plus + <span class="t-str">'&lt;/button&gt;'</span> +
+  <span class="t-str">'&lt;/div&gt;'</span>;
+}
+<span class="t-cm">// meta: the price line under the name — rows choose how much detail to show</span>
+<span class="t-kw">function</span> packRowHTML(p, pack, meta, control) {
+  <span class="t-kw">return</span> <span class="t-str">'&lt;div class="ufs-pack-row" data-row="'</span> + pack + <span class="t-str">'"&gt;'</span> +
+    <span class="t-str">'&lt;div class="ufs-pack-row__img" style="background-image:url(\''</span> + IMG + p.img + <span class="t-str">'\')"&gt;'</span> +
+      (pack === <span class="t-str">'multi'</span> ? <span class="t-str">'&lt;span class="ufs-pack-row__count" aria-hidden="true"&gt;×'</span> + p.multi + <span class="t-str">'&lt;/span&gt;'</span> : <span class="t-str">''</span>) + <span class="t-str">'&lt;/div&gt;'</span> +
+    <span class="t-str">'&lt;div class="ufs-pack-row__txt"&gt;&lt;p class="ufs-pack-row__name"&gt;'</span> + packLabel(p, pack) + meta.points + <span class="t-str">'&lt;/p&gt;'</span> +
+      <span class="t-str">'&lt;p class="ufs-pack-row__meta"&gt;'</span> + meta.price + <span class="t-str">'&lt;/p&gt;&lt;/div&gt;'</span> +
+    <span class="t-str">'&lt;div class="ufs-pack-row__ctl" data-ctl="'</span> + pack + <span class="t-str">'"&gt;'</span> + control + <span class="t-str">'&lt;/div&gt;'</span> +
+  <span class="t-str">'&lt;/div&gt;'</span>;
+}</pre></div></div><div class="notice notice--info"><span class="notice-icon">ℹ️</span><div><strong>Quantities:</strong> typed values are clamped to whole numbers 0–999. Anything else (empty, "abc", −3) restores the previous value on blur. The cap is a prototype value, so confirm the real per-line maximum with the order backend.</div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ DISMISS, FOCUS &AMP; KEYBOARD ═══════════════════════════════════════ -->
+    <section class="doc-section" id="dismiss">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Dismiss, Focus &amp; Keyboard</h2>
+      <p class="section-desc">The picker is a modal dialog (<code>role="dialog" aria-modal="true"</code>, labelled by the product name). It closes with no confirmation, because everything is already saved.</p>
+      <div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Input</th><th>Result</th></tr></thead><tbody><tr><td>Close button / backdrop click</td><td>Closes; focus returns to the trigger (the tile's Edit link)</td></tr><tr><td><kbd>Esc</kbd></td><td>Closes; focus returns to the trigger</td></tr><tr><td>Page scroll (desktop only)</td><td>Closes without moving focus. A popover anchored to a tile must not drift away from it. The picker's own scroll-to-fit on open is ignored.</td></tr><tr><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Cycles inside the picker: close → single −, field, + → pack −, field, + → back to close</td></tr><tr><td>Stepper press</td><td>Focus stays on the pressed button. If minus just disabled itself at 0, focus moves to plus.</td></tr><tr><td>Open</td><td>Focus lands on the dialog itself (<code>tabindex="-1"</code>, no visible ring), so no quantity is pre-selected</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CART FEEDBACK ═══════════════════════════════════════ -->
+    <section class="doc-section" id="feedback">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Cart Feedback</h2>
+      <p class="section-desc">Every cart change gives the same three cues, whether it comes from a tile, the picker or the hero. The cart panel is the exception: it already shows the change itself, so it skips the toast.</p>
+      <div class="ds-card"><div class="card-title">Toast wording</div><div class="card-desc">One toast per change. Max 2 on screen, the newest at the bottom, the oldest leaves first. Each stays 3.2s. "View cart" opens the cart panel and is hidden while the panel is open.</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Change</th><th>Message</th></tr></thead><tbody><tr><td>0 → n</td><td><code>Added: {product} · {pack}</code> + <code> × n</code> when n &gt; 1</td></tr><tr><td>n → m (m &gt; 0)</td><td><code>Updated: {product} · {pack} × m</code></td></tr><tr><td>n → 0</td><td><code>Removed: {product} · {pack}</code></td></tr><tr><td>Single-item-only product</td><td>Same messages without the <code>· {pack}</code> part</td></tr></tbody></table></div><div class="pv-label" style="margin-top:20px">Static copy</div><div aria-hidden="true" inert class="pv-light pv-pad"><div class="ufs-cart-toasts pv-toast-static"><div class="ufs-cart-toast"><span>Added: Knorr Professional Tomato Pronto 2 kg · Pack of 6</span><button type="button">View cart</button></div></div></div></div><div class="ds-card"><div class="card-title">Fly-to-cart &amp; badge</div><div class="card-desc">On every increase, a copy of the product photo arcs from where the change happened into the header cart icon that is on screen (desktop or mobile header). The badge bumps when it lands. Decreases skip the flight and just bump the badge.</div></div><div class="ds-card"><div class="card-title">CSS + JS</div><div class="code-block-wrap"><div class="code-tabs"><div class="code-tab active" onclick="switchTab(this,'cb2-0')">CSS</div><div class="code-tab" onclick="switchTab(this,'cb2-1')">JS</div></div><div class="code-panel active" data-tab="cb2-0"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Cart feedback — shared by every add-to-cart surface */</span>
+<span class="t-cm">/* Toasts: one per cart change, newest at the bottom, max 2 on screen */</span>
+<span class="t-pr">.ufs-cart-toasts</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">fixed</span>; <span class="t-pr">left</span>: <span class="t-vl">50%</span>; <span class="t-pr">bottom</span>: <span class="t-vl">24px</span>; <span class="t-pr">transform</span>: <span class="t-vl">translateX(-50%)</span>; <span class="t-pr">z-index</span>: <span class="t-vl">960</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>;
+  <span class="t-pr">width</span>: <span class="t-vl">max-content</span>; <span class="t-pr">max-width</span>: <span class="t-vl">calc(100vw</span> <span class="t-vl">-</span> <span class="t-vl">32px)</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>;
+}
+<span class="t-pr">.ufs-cart-toast</span> {
+  <span class="t-pr">pointer-events</span>: <span class="t-vl">auto</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">max-width</span>: <span class="t-vl">100%</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-3)</span> <span class="t-va">var(--space-4)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-lg)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>;
+}
+<span class="t-pr">.ufs-cart-toast button</span> {
+  <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">background</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">white-space</span>: <span class="t-vl">nowrap</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">underline</span>;
+  <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-primary)</span>; <span class="t-pr">font-family</span>: <span class="t-vl">inherit</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">700</span>;
+}
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-cm">/* Spans the gutters (long product names) */</span>
+  <span class="t-pr">.ufs-cart-toasts</span> { <span class="t-pr">left</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">right</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">transform</span>: <span class="t-vl">none</span>; <span class="t-pr">width</span>: <span class="t-vl">auto</span>; <span class="t-pr">max-width</span>: <span class="t-vl">none</span>; <span class="t-pr">align-items</span>: <span class="t-vl">stretch</span>; }
+  <span class="t-pr">.ufs-cart-toast</span> { <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; }
+}
+
+<span class="t-cm">/* Fly-to-cart: a copy of the product photo arcs into the header cart icon */</span>
+<span class="t-pr">.ufs-cart-fly</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">fixed</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1000</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; <span class="t-pr">will-change</span>: <span class="t-vl">transform,</span> <span class="t-vl">opacity</span>;
+  <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span> <span class="t-vl">center</span> <span class="t-vl">/</span> <span class="t-vl">contain</span> <span class="t-vl">no-repeat</span>; <span class="t-pr">box-shadow</span>: <span class="t-va">var(--shadow-lg)</span>;
+}
+<span class="t-cm">/* Header cart badge bump when the photo lands */</span>
+<span class="t-pr">.ufs-nav__badge.is-bump</span> { <span class="t-pr">animation</span>: <span class="t-vl">ufs-badge-bump</span> <span class="t-vl">0.35s</span> <span class="t-vl">ease</span>; }
+<span class="t-kw">@keyframes</span> ufs-badge-bump { <span class="t-pr">0%</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1)</span>; } <span class="t-pr">40%</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1.35)</span>; } <span class="t-pr">100%</span> { <span class="t-pr">transform</span>: <span class="t-vl">scale(1)</span>; } }
+
+<span class="t-cm">/* Rolling quantity: old number slides out, new one slides in (up = more, down = less) */</span>
+<span class="t-pr">.fi-qty:has(&gt; .ufs-qty-roll)</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; }
+<span class="t-pr">.ufs-qty-roll</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-qty-roll span</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">animation</span>: <span class="t-vl">0.26s</span> <span class="t-vl">cubic-bezier(0.2,</span> <span class="t-vl">0.7,</span> <span class="t-vl">0.3,</span> <span class="t-vl">1)</span> <span class="t-vl">both</span>; }
+<span class="t-pr">.ufs-qty-roll .is-out-up</span>   { <span class="t-pr">animation-name</span>: <span class="t-vl">ufs-roll-out-up</span>; }
+<span class="t-pr">.ufs-qty-roll .is-in-up</span>    { <span class="t-pr">animation-name</span>: <span class="t-vl">ufs-roll-in-up</span>; }
+<span class="t-pr">.ufs-qty-roll .is-out-down</span> { <span class="t-pr">animation-name</span>: <span class="t-vl">ufs-roll-out-down</span>; }
+<span class="t-pr">.ufs-qty-roll .is-in-down</span>  { <span class="t-pr">animation-name</span>: <span class="t-vl">ufs-roll-in-down</span>; }
+<span class="t-kw">@keyframes</span> ufs-roll-out-up   { <span class="t-pr">to</span>   { <span class="t-pr">transform</span>: <span class="t-vl">translateY(-100%)</span>; <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; } }
+<span class="t-kw">@keyframes</span> ufs-roll-in-up    { <span class="t-pr">from</span> { <span class="t-pr">transform</span>: <span class="t-vl">translateY(100%)</span>;  <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; } }
+<span class="t-kw">@keyframes</span> ufs-roll-out-down { <span class="t-pr">to</span>   { <span class="t-pr">transform</span>: <span class="t-vl">translateY(100%)</span>;  <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; } }
+<span class="t-kw">@keyframes</span> ufs-roll-in-down  { <span class="t-pr">from</span> { <span class="t-pr">transform</span>: <span class="t-vl">translateY(-100%)</span>; <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; } }
+
+<span class="t-kw">@media</span> (<span class="t-pr">prefers-reduced-motion</span>: <span class="t-vl">reduce</span>) {
+  <span class="t-pr">.ufs-points.is-pulse, .ufs-nav__badge.is-bump</span> { <span class="t-pr">animation</span>: <span class="t-vl">none</span>; }
+  <span class="t-pr">.ufs-pack-picker</span> { <span class="t-pr">transition</span>: <span class="t-vl">none</span> <span class="t-vl">!important</span>; }
+}</pre></div><div class="code-panel" data-tab="cb2-1"><div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* ── Cart feedback ── */</span>
+<span class="t-cm">// One wording for every change: Added / Updated / Removed</span>
+<span class="t-kw">function</span> cartToast(p, pack, before, q) {
+  <span class="t-kw">var</span> what = p.name + (p.multi ? <span class="t-str">' · '</span> + packLabel(p, pack) : <span class="t-str">''</span>);
+  <span class="t-kw">var</span> msg = !q ? t(<span class="t-str">'removed'</span>, { what: what })
+    : !before ? t(<span class="t-str">'added'</span>, { what: what + (q &gt; 1 ? <span class="t-str">' × '</span> + q : <span class="t-str">''</span>) })
+    : t(<span class="t-str">'updated'</span>, { what: what + <span class="t-str">' × '</span> + q });
+  showToast(msg, { label: t(<span class="t-str">'viewCart'</span>), fn: openCartPanel });
+}
+
+<span class="t-kw">var</span> TOAST_MAX = 2, TOAST_MS = 3200;
+<span class="t-kw">function</span> showToast(msg, action) {
+  <span class="t-kw">var</span> stack = document.getElementById(<span class="t-str">'cart-toasts'</span>), el = document.createElement(<span class="t-str">'div'</span>);
+  el.className = <span class="t-str">'ufs-cart-toast'</span>;
+  <span class="t-kw">var</span> text = document.createElement(<span class="t-str">'span'</span>);
+  text.textContent = msg;
+  el.appendChild(text);
+  <span class="t-kw">if</span> (action) {
+    <span class="t-kw">var</span> b = document.createElement(<span class="t-str">'button'</span>);
+    b.type = <span class="t-str">'button'</span>; b.textContent = action.label;
+    b.onclick = <span class="t-kw">function</span> () { action.fn(); dismissToast(el); };
+    el.appendChild(b);
+  }
+  stack.appendChild(el);
+  <span class="t-kw">var</span> live = [].filter.call(stack.children, <span class="t-kw">function</span> (c) { <span class="t-kw">return</span> !c.classList.contains(<span class="t-str">'is-leaving'</span>); });
+  <span class="t-kw">while</span> (live.length &gt; TOAST_MAX) dismissToast(live.shift());      <span class="t-cm">// oldest leaves first</span>
+  <span class="t-kw">if</span> (!reduceMotion.matches) {                                      <span class="t-cm">// grows in, so older toasts glide up</span>
+    <span class="t-kw">var</span> h = el.offsetHeight; el.style.overflow = <span class="t-str">'hidden'</span>;
+    el.animate([{ height: 0, opacity: 0, transform: <span class="t-str">'translateY(8px)'</span> }, { height: h + <span class="t-str">'px'</span>, opacity: 1, transform: <span class="t-str">'none'</span> }],
+      { duration: 220, easing: <span class="t-str">'cubic-bezier(0.2, 0.8, 0.2, 1)'</span> }).onfinish = <span class="t-kw">function</span> () { el.style.overflow = <span class="t-str">''</span>; };
+  }
+  el._timer = setTimeout(<span class="t-kw">function</span> () { dismissToast(el); }, TOAST_MS);
+}
+<span class="t-kw">function</span> dismissToast(el) {
+  <span class="t-kw">if</span> (el.classList.contains(<span class="t-str">'is-leaving'</span>)) <span class="t-kw">return</span>;
+  el.classList.add(<span class="t-str">'is-leaving'</span>); clearTimeout(el._timer);
+  <span class="t-kw">if</span> (reduceMotion.matches) { el.remove(); <span class="t-kw">return</span>; }
+  <span class="t-kw">var</span> h = el.offsetHeight; el.style.overflow = <span class="t-str">'hidden'</span>;
+  el.animate([{ height: h + <span class="t-str">'px'</span>, opacity: 1 }, { height: 0, opacity: 0 }],
+    { duration: 200, easing: <span class="t-str">'ease-in'</span>, fill: <span class="t-str">'forwards'</span> }).onfinish = <span class="t-kw">function</span> () { el.remove(); };
+}
+
+<span class="t-cm">// Product photo arcs from fromEl into whichever cart icon is on screen, then the badge bumps</span>
+<span class="t-kw">function</span> flyToCart(fromEl, imgUrl) {
+  <span class="t-kw">var</span> target = [].filter.call(document.querySelectorAll(<span class="t-str">'[data-cart-button]'</span>), <span class="t-kw">function</span> (b) {
+    <span class="t-kw">var</span> r = b.getBoundingClientRect(); <span class="t-kw">return</span> r.width &amp;&amp; r.bottom &gt; 0 &amp;&amp; r.top &lt; innerHeight;
+  })[0];
+  <span class="t-kw">if</span> (reduceMotion.matches || !fromEl || !target) { bumpBadge(); <span class="t-kw">return</span>; }
+  <span class="t-kw">var</span> a = fromEl.getBoundingClientRect(), c = target.getBoundingClientRect();
+  <span class="t-kw">var</span> size = Math.max(56, Math.min(a.width, a.height, 160));          <span class="t-cm">// tile photo → 160, pack thumbnail → 56</span>
+  <span class="t-kw">var</span> x0 = a.left + (a.width - size) / 2, y0 = a.top + (a.height - size) / 2;
+  <span class="t-kw">var</span> dx = c.left + c.width / 2 - (x0 + size / 2), dy = c.top + c.height / 2 - (y0 + size / 2);
+  <span class="t-kw">var</span> mid = size &gt; 100 ? 0.55 : 0.8, end = 24 / size;                 <span class="t-cm">// lands 24px wide on the icon</span>
+  <span class="t-kw">var</span> fly = document.createElement(<span class="t-str">'div'</span>);
+  fly.className = <span class="t-str">'ufs-cart-fly'</span>;
+  fly.style.cssText = <span class="t-str">'left:'</span> + x0 + <span class="t-str">'px;top:'</span> + y0 + <span class="t-str">'px;width:'</span> + size + <span class="t-str">'px;height:'</span> + size + <span class="t-str">'px;background-image:url(\''</span> + imgUrl + <span class="t-str">'\')'</span>;
+  document.body.appendChild(fly);
+  fly.animate([
+    { transform: <span class="t-str">'translate(0,0) scale(1)'</span>, opacity: 1 },
+    { transform: <span class="t-str">'translate('</span> + dx * 0.45 + <span class="t-str">'px,'</span> + (dy * 0.45 - 60) + <span class="t-str">'px) scale('</span> + mid + <span class="t-str">')'</span>, opacity: 1, offset: 0.45 },
+    { transform: <span class="t-str">'translate('</span> + dx + <span class="t-str">'px,'</span> + dy + <span class="t-str">'px) scale('</span> + end + <span class="t-str">')'</span>, opacity: 0.6 }
+  ], { duration: 700, easing: <span class="t-str">'cubic-bezier(0.45, 0, 0.55, 1)'</span> }).onfinish = <span class="t-kw">function</span> () { fly.remove(); bumpBadge(); };
+}
+<span class="t-kw">function</span> bumpBadge() {
+  document.querySelectorAll(<span class="t-str">'[data-cart-button] .ufs-nav__badge'</span>).forEach(<span class="t-kw">function</span> (badge) {
+    badge.classList.remove(<span class="t-str">'is-bump'</span>); void badge.offsetWidth; badge.classList.add(<span class="t-str">'is-bump'</span>);
+  });
+}
+
+<span class="t-cm">// Number roll over a stepper's input; the input's own text hides until it lands</span>
+<span class="t-kw">function</span> rollQty(qty, from, up) {
+  <span class="t-kw">var</span> input = qty &amp;&amp; qty.querySelector(<span class="t-str">'.fi-qty-input'</span>);
+  <span class="t-kw">if</span> (reduceMotion.matches || !input || String(input.value) === String(from)) <span class="t-kw">return</span>;
+  <span class="t-kw">var</span> cs = getComputedStyle(input), roll = document.createElement(<span class="t-str">'span'</span>);
+  <span class="t-kw">var</span> ir = input.getBoundingClientRect(), qr = qty.getBoundingClientRect();
+  roll.className = <span class="t-str">'ufs-qty-roll'</span>; roll.setAttribute(<span class="t-str">'aria-hidden'</span>, <span class="t-str">'true'</span>);
+  roll.style.cssText = <span class="t-str">'left:'</span> + (ir.left - qr.left) + <span class="t-str">'px;top:'</span> + (ir.top - qr.top) + <span class="t-str">'px;width:'</span> + ir.width + <span class="t-str">'px;height:'</span> + ir.height + <span class="t-str">'px;font:'</span> + cs.font + <span class="t-str">';color:'</span> + cs.color;
+  <span class="t-kw">var</span> dir = up ? <span class="t-str">'up'</span> : <span class="t-str">'down'</span>;
+  roll.innerHTML = <span class="t-str">'&lt;span class="is-out-'</span> + dir + <span class="t-str">'"&gt;'</span> + from + <span class="t-str">'&lt;/span&gt;&lt;span class="is-in-'</span> + dir + <span class="t-str">'"&gt;'</span> + input.value + <span class="t-str">'&lt;/span&gt;'</span>;
+  input.style.color = <span class="t-str">'transparent'</span>;
+  qty.appendChild(roll);
+  setTimeout(<span class="t-kw">function</span> () { roll.remove(); input.style.color = <span class="t-str">''</span>; }, 270);
+}
+
+<span class="t-cm">// Points: count from the old value to the new one (600ms ease-out) + one soft gold pulse</span>
+<span class="t-kw">function</span> animatePoints(pill, to) {
+  <span class="t-kw">var</span> val = pill.querySelector(<span class="t-str">'.ufs-points__val'</span>);
+  <span class="t-kw">var</span> from = parseInt(val.getAttribute(<span class="t-str">'data-value'</span>) || <span class="t-str">'0'</span>, 10);
+  val.setAttribute(<span class="t-str">'data-value'</span>, to);
+  cancelAnimationFrame(pill._raf);
+  <span class="t-kw">if</span> (from === to || reduceMotion.matches) { val.textContent = fmtPoints(to); <span class="t-kw">return</span>; }
+  pill.classList.remove(<span class="t-str">'is-pulse'</span>); void pill.offsetWidth; pill.classList.add(<span class="t-str">'is-pulse'</span>);
+  <span class="t-kw">var</span> start = performance.now();
+  (<span class="t-kw">function</span> tick(now) {
+    <span class="t-kw">var</span> k = Math.min(Math.max((now - start) / 600, 0), 1), e = 1 - Math.pow(1 - k, 3);   <span class="t-cm">// ease-out cubic</span>
+    val.textContent = fmtPoints(Math.round(from + (to - from) * e));
+    <span class="t-kw">if</span> (k &lt; 1) pill._raf = requestAnimationFrame(tick);
+  })(start);
+}
+<span class="t-kw">function</span> setPoints(pill, to) {
+  <span class="t-kw">var</span> val = pill.querySelector(<span class="t-str">'.ufs-points__val'</span>);
+  cancelAnimationFrame(pill._raf);
+  val.setAttribute(<span class="t-str">'data-value'</span>, to); val.textContent = fmtPoints(to);
+}
+<span class="t-kw">function</span> pointsHTML(value) {
+  <span class="t-kw">return</span> <span class="t-str">'&lt;span class="ufs-points"&gt;'</span> + ICON.coin + <span class="t-str">'&lt;span class="ufs-points__val" data-value="'</span> + value + <span class="t-str">'"&gt;'</span> + fmtPoints(value) +
+    <span class="t-str">'&lt;/span&gt;&lt;span class="sr-only"&gt; '</span> + t(<span class="t-str">'points'</span>) + <span class="t-str">'&lt;/span&gt;&lt;/span&gt;'</span>;
+}</pre></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANIMATION ═══════════════════════════════════════ -->
+    <section class="doc-section" id="animation">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Animation</h2>
+      <p class="section-desc">All motion is feedback for a cart change. None of it blocks input: a new press during an animation simply starts the next one. With <code>prefers-reduced-motion: reduce</code>, every animation is skipped and values change instantly.</p>
+      <div class="ds-card"><div class="card-title">Motion specs</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Element</th><th>Trigger</th><th>Animation</th><th>Duration</th><th>Easing</th><th>Reduced motion</th></tr></thead><tbody><tr><td>Bottom sheet (≤768px)</td><td>Open / close</td><td><code>translateY(100%) → 0</code>, backdrop 0 → 50% black</td><td>250ms (backdrop 200ms)</td><td>cubic-bezier(0.4, 0, 0.2, 1)</td><td>Appears instantly</td></tr><tr><td>Desktop popover</td><td>Open / close</td><td>None (display toggle)</td><td>–</td><td>–</td><td>–</td></tr><tr><td>Quantity roll</td><td>Any quantity change</td><td>Old number slides out, new one slides in. Up = more, down = less. 100% travel + fade.</td><td>260ms</td><td>cubic-bezier(0.2, 0.7, 0.3, 1)</td><td>Number swaps</td></tr><tr><td>Points count</td><td>Total points change</td><td>Counts from old to new value</td><td>600ms</td><td>ease-out cubic (rAF)</td><td>Number swaps</td></tr><tr><td>Points pulse</td><td>Same</td><td>Gold ring 0 → 8px fading out, scale 1 → 1.04 → 1</td><td>700ms</td><td>ease-out</td><td>None</td></tr><tr><td>Fly-to-cart</td><td>Any increase</td><td>Photo copy arcs to the cart icon: lifts 60px at 45%, scales to 0.55 (photo) / 0.8 (thumbnail), lands 24px wide at 60% opacity</td><td>700ms</td><td>cubic-bezier(0.45, 0, 0.55, 1)</td><td>Skipped</td></tr><tr><td>Badge bump</td><td>Fly lands, or a decrease</td><td>scale 1 → 1.35 → 1</td><td>350ms</td><td>ease</td><td>None</td></tr><tr><td>Toast in</td><td>Cart change</td><td>Height 0 → auto, translateY 8px → 0, fade in. Older toasts glide up.</td><td>220ms</td><td>cubic-bezier(0.2, 0.8, 0.2, 1)</td><td>Appears</td></tr><tr><td>Toast out</td><td>After 3.2s, or a 3rd toast arrives</td><td>Height → 0, fade out</td><td>200ms</td><td>ease-in</td><td>Removed</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">At ≤768px the picker becomes a bottom sheet. Rows switch back to the 48px thumbnail, and steppers to 40px buttons for touch. Toasts move up so they sit 12px above the sheet while it is open. These previews restate the mobile rules under <code>.pv-sheet</code>, so they render at any window width.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-row"><div><div class="pv-label">Just added (1 single)</div><div class="pv-phone"><div class="pv-phone__page"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="pv-phone__dim"></div><div class="ufs-pack-picker is-open pv-static pv-sheet"><div class="ufs-pack-picker__hd"><div><h2 class="ufs-pack-picker__title">Knorr Professional Mash Flakes 2 kg</h2><p class="ufs-pack-picker__sub">Choose pack size and quantity</p></div><button type="button" class="ufs-pack-picker__close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/mash-flakes-2kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Single item</p><p class="ufs-pack-row__meta"><b><bdi>€24.90</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/mash-flakes-2kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Pack of 6</p><p class="ufs-pack-row__meta"><b><bdi>€149.40</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease" disabled><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="0" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>1 item in cart</span><b><bdi>€24.90</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">450</span><span class="sr-only"> points</span></span></div></div></div></div></div><div><div class="pv-label">Both packs in cart</div><div class="pv-phone"><div class="pv-phone__page"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="pv-phone__dim"></div><div class="ufs-pack-picker is-open pv-static pv-sheet"><div class="ufs-pack-picker__hd"><div><h2 class="ufs-pack-picker__title">Knorr Professional Tomato Pronto 2 kg</h2><p class="ufs-pack-picker__sub">Choose pack size and quantity</p></div><button type="button" class="ufs-pack-picker__close" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Single item</p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="3" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">Pack of 6</p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="2" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>15 items in cart (3 single + 2 × 6)</span><b><bdi>€283.50</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">5.250</span><span class="sr-only"> points</span></span></div></div></div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N &AMP; RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">Every string goes through <code>t(key)</code> (see <code>TEXT</code> in the JS). Prices and quantities are wrapped in <code>&lt;bdi&gt;</code>, so "€18.90" and "× 6" keep their order inside Arabic text. The layout uses logical properties (<code>inset-inline-end</code>, <code>justify-content</code>), so rows, steppers and the summary mirror on their own. The steppers mirror too: minus sits on the right and plus on the left, following the reading direction.</p>
+      <div class="ds-card"><div class="card-title">Strings</div><div class="card-desc">Arabic for the markets that use RTL. <code>{n}</code> / <code>{what}</code> are placeholders.</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Key</th><th>English</th><th>Arabic</th></tr></thead><tbody><tr><td><code>choose</code></td><td>Choose pack size and quantity</td><td><span dir="rtl">اختر حجم العبوة والكمية</span></td></tr><tr><td><code>single</code></td><td>Single item</td><td><span dir="rtl">قطعة واحدة</span></td></tr><tr><td><code>packOf</code></td><td>Pack of {n}</td><td><span dir="rtl">عبوة من {n}</span></td></tr><tr><td><code>itemsInCart</code></td><td>{n} items in cart</td><td><span dir="rtl">{n} منتجات في السلة</span></td></tr><tr><td><code>itemInCart</code></td><td>1 item in cart</td><td><span dir="rtl">منتج واحد في السلة</span></td></tr><tr><td><code>pickerBreakdown</code></td><td>({s} single + {m} × {n})</td><td><span dir="rtl">({s} مفردة + {m} عبوة من {n})</span></td></tr><tr><td><code>close</code></td><td>Close</td><td><span dir="rtl">إغلاق</span></td></tr><tr><td><code>points</code></td><td>points</td><td><span dir="rtl">نقطة</span></td></tr><tr><td><code>added</code></td><td>Added: {what}</td><td><span dir="rtl">تمت الإضافة: {what}</span></td></tr><tr><td><code>viewCart</code></td><td>View cart</td><td><span dir="rtl">عرض السلة</span></td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">RTL previews</div><div aria-hidden="true" inert class="pv-row"><div><div class="pv-label">Desktop popover, dir="rtl"</div><div class="pv-light pv-pad" dir="rtl"><div class="ufs-pack-picker is-open pv-static pv-desk"><span class="ufs-pack-picker__arrow" style="left:140px"></span><div class="ufs-pack-picker__hd"><div><h2 class="ufs-pack-picker__title">كنور بروفيشنال صلصة طماطم برونتو 2 كغ</h2><p class="ufs-pack-picker__sub">اختر حجم العبوة والكمية</p></div><button type="button" class="ufs-pack-picker__close" aria-label="إغلاق"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">قطعة واحدة</p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">عبوة من 6</p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>7 منتجات في السلة (1 مفردة + 1 عبوة من 6)</span><b><bdi>€132.30</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">2.450</span><span class="sr-only"> نقطة</span></span></div></div></div></div></div><div><div class="pv-label">Mobile bottom sheet, dir="rtl"</div><div class="pv-phone" dir="rtl"><div class="pv-phone__page"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div><div class="pv-phone__dim"></div><div class="ufs-pack-picker is-open pv-static pv-sheet"><div class="ufs-pack-picker__hd"><div><h2 class="ufs-pack-picker__title">كنور بروفيشنال صلصة طماطم برونتو 2 كغ</h2><p class="ufs-pack-picker__sub">اختر حجم العبوة والكمية</p></div><button type="button" class="ufs-pack-picker__close" aria-label="إغلاق"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">قطعة واحدة</p><p class="ufs-pack-row__meta"><b><bdi>€18.90</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="2" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div><div class="ufs-pack-row"><div class="ufs-pack-row__img" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"><span class="ufs-pack-row__count" aria-hidden="true">×6</span></div><div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">عبوة من 6</p><p class="ufs-pack-row__meta"><b><bdi>€113.40</bdi></b></p></div><div class="ufs-pack-row__ctl"><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease" disabled><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="0" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div><div class="ufs-pack-summary"><div class="ufs-pack-summary__row"><span>2 منتجات في السلة</span><b><bdi>€37.80</bdi></b></div><div class="ufs-pack-summary__points"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">700</span><span class="sr-only"> نقطة</span></span></div></div></div></div></div></div></div><div class="ds-card"><div class="card-title">RTL rules</div><div class="card-desc">What doesn't mirror on its own:</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Element</th><th>Rule</th></tr></thead><tbody><tr><td>×N count on the thumbnail</td><td><code>inset-inline-end: -6px</code>: moves to the bottom-left corner</td></tr><tr><td>Points pill pulse origin</td><td><code>transform-origin</code> flips to the pill's inline-start edge</td></tr><tr><td>Popover position + arrow</td><td>Computed from the anchor's and trigger's rects, so no override is needed</td></tr><tr><td>Fly-to-cart</td><td>Targets the cart icon's actual position, which is on the left in RTL headers</td></tr><tr><td>Font</td><td><code>[dir="rtl"]</code> switches <code>--font-family</code> to IBM Plex Arabic (tokens.css)</td></tr></tbody></table></div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* RTL — logical properties (inset-inline-*, padding-inline-*) cover most of the</span>
+   <span class="t-cm">mirroring; these are the physical leftovers */</span>
+<span class="t-pr">[dir="rtl"] .ufs-points</span> { <span class="t-pr">transform-origin</span>: <span class="t-vl">right</span> <span class="t-vl">center</span>; }
+<span class="t-pr">[dir="rtl"] .ufs-pack-summary__points .ufs-points</span> { <span class="t-pr">transform-origin</span>: <span class="t-vl">left</span> <span class="t-vl">center</span>; }</pre></div></div>
+    </section>
+
+  </main>
+
+<!-- Pack Size Picker: one instance per page, filled per product -->
+<div class="ufs-pack-picker-backdrop" id="pack-picker-backdrop" onclick="closePicker()"></div>
+<div class="ufs-pack-picker" id="pack-picker" role="dialog" aria-modal="true" aria-labelledby="pack-picker-title" tabindex="-1">
+  <span class="ufs-pack-picker__arrow" aria-hidden="true"></span>
+  <div class="ufs-pack-picker__hd">
+    <div>
+      <h2 class="ufs-pack-picker__title" id="pack-picker-title"></h2>
+      <p class="ufs-pack-picker__sub">Choose pack size and quantity</p>
+    </div>
+    <button type="button" class="ufs-pack-picker__close" onclick="closePicker()" aria-label="Close">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+    </button>
+  </div>
+  <div id="pack-picker-rows"></div>
+  <div class="ufs-pack-summary">
+    <div class="ufs-pack-summary__row"><span id="pack-picker-count">0 items in cart</span><b id="pack-picker-total">€0.00</b></div>
+    <div class="ufs-pack-summary__points" id="pack-picker-points"></div>
+  </div>
+</div>
+
+<!-- Cart toasts (one per page) + a screen-reader live region -->
+<div class="ufs-cart-toasts" id="cart-toasts" role="status" aria-live="polite"></div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+
+// Doc chrome: a table that scrolls sideways gets a keyboard stop + a name, only while it overflows
+function markScrollRegions() {
+  document.querySelectorAll('.spec-table-wrap').forEach(function (w) {
+    if (w.closest('[inert]')) return;
+    if (w.scrollWidth > w.clientWidth + 1) {
+      var t = w.closest('.ds-card') && w.closest('.ds-card').querySelector('.card-title');
+      w.tabIndex = 0; w.setAttribute('role', 'region'); w.setAttribute('aria-label', (t ? t.textContent + ' ' : '') + 'table, scrolls sideways');
+    } else { w.removeAttribute('tabindex'); w.removeAttribute('role'); w.removeAttribute('aria-label'); }
+  });
+}
+window.addEventListener('load', markScrollRegions);
+window.addEventListener('resize', markScrollRegions);
+
+
+/* Demo catalogue. price = one single item; multi = items in the multi-pack
+   (null = sold as single items only); pts = loyalty points per single item. */
+var IMG = '../images/';
+var PRODUCTS = {
+  tomato:  { id: 'tomato',  name: 'Knorr Professional Tomato Pronto 2 kg', cat: 'Sauces', unit: '2 kg', img: 'catalog/knorr/tomato-pronto-2kg.jpg', price: 18.90, multi: 6, pts: 350, badge: 'New' },
+  mash:    { id: 'mash',    name: 'Knorr Professional Mash Flakes 2 kg', cat: 'Sides', unit: '2 kg', img: 'catalog/knorr/mash-flakes-2kg.jpg', price: 24.90, multi: 6, pts: 450 },
+  pouch:   { id: 'pouch',   name: 'Knorr Aromat Original (Pouch) 1 kg', cat: 'Seasonings', unit: '1 kg', img: 'catalog/knorr/aromat-pouch-1kg.jpg', price: 21.75, multi: null, pts: 380 },
+  granules:{ id: 'granules',name: 'Knorr Chicken Stock Granules 1 kg', cat: 'Stocks', unit: '1 kg', img: 'catalog/knorr/chicken-stock-granules-1kg.jpg', price: 18.90, multi: 6, pts: 350 }
+};
+
+var ICON = {
+  minus: '<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg>',
+  plus:  '<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg>',
+  del:   '<svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" d="M29.17 12.6v-1.65C29.17 8.22 26.93 6 24.17 6h-3.34c-2.76 0-5 2.22-5 4.95v1.65H9.17a1.66 1.66 0 1 0 0 3.3h1.66v18.15c0 2.73 2.24 4.95 5 4.95h13.34c2.76 0 5-2.22 5-4.95V15.9h1.66a1.66 1.66 0 1 0 0-3.3zm-8.34-3.3h3.34c.92 0 1.66.74 1.66 1.65v1.65h-6.66v-1.65c0-.91.74-1.65 1.66-1.65zm8.34 26.4H15.83c-.92 0-1.66-.74-1.66-1.65V15.9h16.66v18.15c0 .91-.74 1.65-1.66 1.65z"/></svg>',
+  coin:  '<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg>',
+  check: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 8.5 6.5 12 13 4.5"/></svg>',
+  close: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>'
+};
+
+/* UI copy — every string goes through t() so a locale only swaps this table.
+   Arabic values are in the i18n & RTL section of each spec. */
+var TEXT = {
+  add: 'Add to cart', single: 'Single item', packOf: 'Pack of {n}',
+  choose: 'Choose pack size and quantity', priceNote: 'Price indication (excl. VAT)',
+  inCart: 'In cart', edit: 'Edit', close: 'Close', points: 'points', each: 'each',
+  itemsInCart: '{n} items in cart', itemInCart: '1 item in cart',
+  added: 'Added: {what}', updated: 'Updated: {what}', removed: 'Removed: {what}', viewCart: 'View cart',
+  increase: 'Increase {what}', decrease: 'Decrease {what}', remove: 'Remove {what}', quantity: '{what} quantity'
+};
+function t(key, vars) {
+  return TEXT[key].replace(/\{(\w+)\}/g, function (_, k) { return vars[k]; });
+}
+
+/* ── Cart state ──────────────────────────────────────────────
+   One line per product, one quantity per pack type:
+   cart = { tomato: { single: 2, multi: 1 } }
+   Every change (tile, picker, hero, cart panel) goes through setLine(),
+   and every view re-renders from this one state. Persist it however the
+   platform stores the cart; the prototype keeps it in localStorage. */
+var cart = {};
+var cartViews = [];                       // render functions called after each change
+var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function lineOf(id) { return cart[id] || { single: 0, multi: 0 }; }
+function clampQty(v) { v = parseInt(v, 10); return isNaN(v) || v < 0 ? 0 : Math.min(v, 999); }
+function packLabel(p, pack) { return pack === 'single' ? t('single') : t('packOf', { n: p.multi }); }
+function packPrice(p, pack) { return pack === 'single' ? p.price : p.price * p.multi; }
+function lineUnits(p, l) { return (l.single || 0) + (l.multi || 0) * (p.multi || 1); }
+function lineTotal(p, l) { return (l.single || 0) * p.price + (p.multi ? (l.multi || 0) * packPrice(p, 'multi') : 0); }
+function money(n) { return '€' + n.toFixed(2); }        // use Intl.NumberFormat(locale, { style: 'currency' }) in production
+function fmtPoints(n) { return n.toLocaleString('de-DE'); }
+function escHTML(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+// Returns the previous quantity, so callers can animate old → new
+function setLine(id, pack, qty, quiet) {
+  var l = lineOf(id), before = l[pack] || 0, q = clampQty(qty);
+  if (q === before) return before;
+  l = { single: l.single || 0, multi: l.multi || 0 };
+  l[pack] = q;
+  if (l.single + l.multi) cart[id] = l; else delete cart[id];
+  renderCartBadge();
+  if (!quiet) cartToast(PRODUCTS[id], pack, before, q);
+  cartViews.forEach(function (render) { render(id); });
+  return before;
+}
+
+function cartCount() {
+  return Object.keys(cart).reduce(function (n, id) { return n + cart[id].single + cart[id].multi; }, 0);
+}
+function renderCartBadge() {
+  var n = cartCount();
+  document.querySelectorAll('[data-cart-button]').forEach(function (btn) {
+    var badge = btn.querySelector('.ufs-nav__badge');
+    badge.textContent = n; badge.hidden = n === 0;
+    btn.setAttribute('aria-label', 'Cart, ' + n + ' item' + (n === 1 ? '' : 's'));
+  });
+}
+
+/* ── Cart feedback ── */
+// One wording for every change: Added / Updated / Removed
+function cartToast(p, pack, before, q) {
+  var what = p.name + (p.multi ? ' · ' + packLabel(p, pack) : '');
+  var msg = !q ? t('removed', { what: what })
+    : !before ? t('added', { what: what + (q > 1 ? ' × ' + q : '') })
+    : t('updated', { what: what + ' × ' + q });
+  showToast(msg, { label: t('viewCart'), fn: openCartPanel });
+}
+
+var TOAST_MAX = 2, TOAST_MS = 3200;
+function showToast(msg, action) {
+  var stack = document.getElementById('cart-toasts'), el = document.createElement('div');
+  el.className = 'ufs-cart-toast';
+  var text = document.createElement('span');
+  text.textContent = msg;
+  el.appendChild(text);
+  if (action) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = action.label;
+    b.onclick = function () { action.fn(); dismissToast(el); };
+    el.appendChild(b);
+  }
+  stack.appendChild(el);
+  var live = [].filter.call(stack.children, function (c) { return !c.classList.contains('is-leaving'); });
+  while (live.length > TOAST_MAX) dismissToast(live.shift());      // oldest leaves first
+  if (!reduceMotion.matches) {                                      // grows in, so older toasts glide up
+    var h = el.offsetHeight; el.style.overflow = 'hidden';
+    el.animate([{ height: 0, opacity: 0, transform: 'translateY(8px)' }, { height: h + 'px', opacity: 1, transform: 'none' }],
+      { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }).onfinish = function () { el.style.overflow = ''; };
+  }
+  el._timer = setTimeout(function () { dismissToast(el); }, TOAST_MS);
+}
+function dismissToast(el) {
+  if (el.classList.contains('is-leaving')) return;
+  el.classList.add('is-leaving'); clearTimeout(el._timer);
+  if (reduceMotion.matches) { el.remove(); return; }
+  var h = el.offsetHeight; el.style.overflow = 'hidden';
+  el.animate([{ height: h + 'px', opacity: 1 }, { height: 0, opacity: 0 }],
+    { duration: 200, easing: 'ease-in', fill: 'forwards' }).onfinish = function () { el.remove(); };
+}
+
+// Product photo arcs from fromEl into whichever cart icon is on screen, then the badge bumps
+function flyToCart(fromEl, imgUrl) {
+  var target = [].filter.call(document.querySelectorAll('[data-cart-button]'), function (b) {
+    var r = b.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight;
+  })[0];
+  if (reduceMotion.matches || !fromEl || !target) { bumpBadge(); return; }
+  var a = fromEl.getBoundingClientRect(), c = target.getBoundingClientRect();
+  var size = Math.max(56, Math.min(a.width, a.height, 160));          // tile photo → 160, pack thumbnail → 56
+  var x0 = a.left + (a.width - size) / 2, y0 = a.top + (a.height - size) / 2;
+  var dx = c.left + c.width / 2 - (x0 + size / 2), dy = c.top + c.height / 2 - (y0 + size / 2);
+  var mid = size > 100 ? 0.55 : 0.8, end = 24 / size;                 // lands 24px wide on the icon
+  var fly = document.createElement('div');
+  fly.className = 'ufs-cart-fly';
+  fly.style.cssText = 'left:' + x0 + 'px;top:' + y0 + 'px;width:' + size + 'px;height:' + size + 'px;background-image:url(\'' + imgUrl + '\')';
+  document.body.appendChild(fly);
+  fly.animate([
+    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+    { transform: 'translate(' + dx * 0.45 + 'px,' + (dy * 0.45 - 60) + 'px) scale(' + mid + ')', opacity: 1, offset: 0.45 },
+    { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + end + ')', opacity: 0.6 }
+  ], { duration: 700, easing: 'cubic-bezier(0.45, 0, 0.55, 1)' }).onfinish = function () { fly.remove(); bumpBadge(); };
+}
+function bumpBadge() {
+  document.querySelectorAll('[data-cart-button] .ufs-nav__badge').forEach(function (badge) {
+    badge.classList.remove('is-bump'); void badge.offsetWidth; badge.classList.add('is-bump');
+  });
+}
+
+// Number roll over a stepper's input; the input's own text hides until it lands
+function rollQty(qty, from, up) {
+  var input = qty && qty.querySelector('.fi-qty-input');
+  if (reduceMotion.matches || !input || String(input.value) === String(from)) return;
+  var cs = getComputedStyle(input), roll = document.createElement('span');
+  var ir = input.getBoundingClientRect(), qr = qty.getBoundingClientRect();
+  roll.className = 'ufs-qty-roll'; roll.setAttribute('aria-hidden', 'true');
+  roll.style.cssText = 'left:' + (ir.left - qr.left) + 'px;top:' + (ir.top - qr.top) + 'px;width:' + ir.width + 'px;height:' + ir.height + 'px;font:' + cs.font + ';color:' + cs.color;
+  var dir = up ? 'up' : 'down';
+  roll.innerHTML = '<span class="is-out-' + dir + '">' + from + '</span><span class="is-in-' + dir + '">' + input.value + '</span>';
+  input.style.color = 'transparent';
+  qty.appendChild(roll);
+  setTimeout(function () { roll.remove(); input.style.color = ''; }, 270);
+}
+
+// Points: count from the old value to the new one (600ms ease-out) + one soft gold pulse
+function animatePoints(pill, to) {
+  var val = pill.querySelector('.ufs-points__val');
+  var from = parseInt(val.getAttribute('data-value') || '0', 10);
+  val.setAttribute('data-value', to);
+  cancelAnimationFrame(pill._raf);
+  if (from === to || reduceMotion.matches) { val.textContent = fmtPoints(to); return; }
+  pill.classList.remove('is-pulse'); void pill.offsetWidth; pill.classList.add('is-pulse');
+  var start = performance.now();
+  (function tick(now) {
+    var k = Math.min(Math.max((now - start) / 600, 0), 1), e = 1 - Math.pow(1 - k, 3);   // ease-out cubic
+    val.textContent = fmtPoints(Math.round(from + (to - from) * e));
+    if (k < 1) pill._raf = requestAnimationFrame(tick);
+  })(start);
+}
+function setPoints(pill, to) {
+  var val = pill.querySelector('.ufs-points__val');
+  cancelAnimationFrame(pill._raf);
+  val.setAttribute('data-value', to); val.textContent = fmtPoints(to);
+}
+function pointsHTML(value) {
+  return '<span class="ufs-points">' + ICON.coin + '<span class="ufs-points__val" data-value="' + value + '">' + fmtPoints(value) +
+    '</span><span class="sr-only"> ' + t('points') + '</span></span>';
+}
+
+/* ── Pack rows (shared by the picker and the Product Hero) ── */
+// o: { p, pack, value, scope, args, deleteAtOne, min }  (min: minus disables at this value, default 0)
+// Buttons call {scope}Step(args, ±1), the field calls {scope}Set(args, value).
+// args defaults to the pack: "'single'"; tiles pass "'tomato','single'".
+function stepperHTML(o) {
+  var args = o.args || "'" + o.pack + "'";
+  var what = packLabel(o.p, o.pack), del = o.deleteAtOne && o.value === 1;
+  return '<div class="fi-qty fi-qty--cart" data-pack="' + o.pack + '">' +
+    '<button type="button" class="fi-qty-btn' + (del ? ' fi-qty-btn--delete' : '') + '" data-role="dec"' +
+      ' aria-label="' + escHTML(t(del ? 'remove' : 'decrease', { what: what })) + '"' +
+      ' onclick="' + o.scope + 'Step(' + args + ',-1)"' + (o.value <= (o.min || 0) ? ' disabled' : '') + '>' + (del ? ICON.del : ICON.minus) + '</button>' +
+    '<input class="fi-qty-input" type="number" inputmode="numeric" min="0" max="999" value="' + o.value + '"' +
+      ' aria-label="' + escHTML(t('quantity', { what: what })) + '" onchange="' + o.scope + 'Set(' + args + ',this.value)" onfocus="this.select()"/>' +
+    '<button type="button" class="fi-qty-btn" data-role="inc" aria-label="' + escHTML(t('increase', { what: what })) + '"' +
+      ' onclick="' + o.scope + 'Step(' + args + ',1)">' + ICON.plus + '</button>' +
+  '</div>';
+}
+// meta: the price line under the name — rows choose how much detail to show
+function packRowHTML(p, pack, meta, control) {
+  return '<div class="ufs-pack-row" data-row="' + pack + '">' +
+    '<div class="ufs-pack-row__img" style="background-image:url(\'' + IMG + p.img + '\')">' +
+      (pack === 'multi' ? '<span class="ufs-pack-row__count" aria-hidden="true">×' + p.multi + '</span>' : '') + '</div>' +
+    '<div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">' + packLabel(p, pack) + meta.points + '</p>' +
+      '<p class="ufs-pack-row__meta">' + meta.price + '</p></div>' +
+    '<div class="ufs-pack-row__ctl" data-ctl="' + pack + '">' + control + '</div>' +
+  '</div>';
+}
+
+/* ── Pack Size Picker ──────────────────────────────────────
+   One instance per page, filled per product. Edits the cart live:
+   every stepper change is applied immediately (no submit button). */
+var picker = { id: null, trigger: null };
+
+function openPicker(id, trigger) {
+  picker.id = id; picker.trigger = trigger;
+  var el = document.getElementById('pack-picker');
+  document.getElementById('pack-picker-title').textContent = PRODUCTS[id].name;
+  renderPicker(false);
+  el.classList.add('is-open');
+  document.getElementById('pack-picker-backdrop').classList.add('is-open');
+  positionPicker(trigger);
+  positionToasts();
+  // Focus the dialog itself (no ring, nothing pre-selected); Tab moves to its first control.
+  // On mobile wait for the sheet to finish sliding in.
+  setTimeout(function () { el.focus({ preventScroll: true }); }, isMobile() ? 260 : 0);
+}
+
+function renderPicker(animate) {
+  var p = PRODUCTS[picker.id], l = lineOf(picker.id);
+  document.getElementById('pack-picker-rows').innerHTML = ['single', 'multi'].map(function (pack) {
+    return packRowHTML(p, pack, { points: '', price: '<b>' + money(packPrice(p, pack)) + '</b>' },
+      stepperHTML({ p: p, pack: pack, value: l[pack] || 0, scope: 'picker' }));
+  }).join('');
+  var units = lineUnits(p, l);
+  document.getElementById('pack-picker-count').textContent =
+    (units === 1 ? t('itemInCart') : t('itemsInCart', { n: units })) +
+    (l.multi ? ' (' + (l.single || 0) + ' single + ' + l.multi + ' × ' + p.multi + ')' : '');
+  document.getElementById('pack-picker-total').textContent = money(lineTotal(p, l));
+  var pill = document.querySelector('#pack-picker-points .ufs-points');
+  (animate ? animatePoints : setPoints)(pill, units * p.pts);
+}
+
+function pickerStep(pack, d) { pickerSet(pack, (lineOf(picker.id)[pack] || 0) + d, true); }
+function pickerSet(pack, value, fromStep) {
+  var before = setLine(picker.id, pack, value), q = lineOf(picker.id)[pack] || 0;   // setLine re-renders the picker
+  if (q === before) { renderPicker(false); return; }                                 // e.g. "abc" typed: restore the field
+  var row = document.querySelector('#pack-picker-rows [data-row="' + pack + '"]');
+  rollQty(row.querySelector('.fi-qty'), before, q > before);
+  if (q > before) flyToCart(row.querySelector('.ufs-pack-row__img'), IMG + PRODUCTS[picker.id].img);
+  else bumpBadge();
+  if (fromStep) {                                     // focus stays on the pressed button…
+    var btn = row.querySelector(q < before ? '[data-role="dec"]' : '[data-role="inc"]');
+    if (btn.disabled) btn = row.querySelector('[data-role="inc"]');   // …unless minus just disabled at 0
+    btn.focus({ preventScroll: true });
+  }
+}
+
+function closePicker(skipFocus) {
+  if (!picker.id) return;
+  document.getElementById('pack-picker').classList.remove('is-open');
+  document.getElementById('pack-picker-backdrop').classList.remove('is-open');
+  var back = pickerTrigger();
+  if (!skipFocus && back) back.focus({ preventScroll: true });
+  picker.id = null;
+  positionToasts();
+}
+
+// While the mobile sheet is open, toasts sit 12px above it instead of behind it
+function positionToasts() {
+  var stack = document.getElementById('cart-toasts'), el = document.getElementById('pack-picker');
+  if (picker.id && isMobile()) stack.style.bottom = 'calc(' + el.offsetHeight + 'px + var(--space-3))';
+  else stack.style.bottom = '';
+}
+
+// The trigger may have been re-rendered while the picker was open (the tile behind it
+// updates live), so fall back to the product's current Edit / Add to cart control.
+function pickerTrigger() {
+  if (picker.trigger && document.contains(picker.trigger)) return picker.trigger;
+  return document.querySelector('[data-picker-return="' + picker.id + '"]');
+}
+
+function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
+
+// Desktop: always ABOVE the trigger, 12px gap, same width as the tile and flush with
+// its edges; the arrow (bottom edge) points at the trigger's centre. If there isn't
+// room above, the page first smooth-scrolls just enough to fit it, 16px below the sticky
+// header, with the picker riding along with the tile.
+function pickerSafeTop() {
+  var header = document.querySelector('[data-sticky-header]');   // the site header, while it's on screen
+  return Math.max(0, header ? header.getBoundingClientRect().bottom : 0) + 16;
+}
+function positionPicker(trigger) {
+  var el = document.getElementById('pack-picker'), arrow = el.querySelector('.ufs-pack-picker__arrow');
+  if (isMobile()) { el.style.width = ''; return; }
+  var tile = trigger.closest('[data-picker-anchor]'), box = tile && tile.getBoundingClientRect();
+  if (box) el.style.width = box.width + 'px';
+  var h = el.offsetHeight, need = h + 12 + pickerSafeTop(), r = trigger.getBoundingClientRect();
+  if (r.top < need - 1 && scrollY > 0 && !picker.autoScroll) startPickerScroll(need - r.top);
+  var w = el.offsetWidth;
+  var left = box ? box.left : Math.min(Math.max(16, r.left + r.width / 2 - w / 2), innerWidth - w - 16);
+  el.style.left = left + 'px';
+  // While scrolling-to-fit it follows the tile; afterwards the floor only applies when
+  // the page can't scroll further
+  el.style.top = (picker.autoScroll ? r.top - 12 - h : Math.max(pickerSafeTop(), r.top - 12 - h)) + 'px';
+  arrow.style.left = (r.left + r.width / 2 - left - 7) + 'px';
+}
+
+window.addEventListener('resize', function () { if (picker.id && pickerTrigger()) positionPicker(pickerTrigger()); });
+// Desktop popover is anchored to the page: it closes on scroll instead of drifting
+window.addEventListener('scroll', function () {
+  if (picker.autoScroll) { if (picker.id && pickerTrigger()) positionPicker(pickerTrigger()); return; }   // ride along
+  if (picker.id && !isMobile()) closePicker();
+}, { passive: true });
+// Scroll-to-fit: smooth (instant with reduced motion). Our own scroll must not close
+// the picker; it repositions on every frame instead, then once more when it settles.
+function startPickerScroll(gap) {
+  picker.autoScroll = true;
+  var done = function () {
+    if (!picker.autoScroll) return;
+    picker.autoScroll = false; clearTimeout(fallback);
+    if (picker.id && pickerTrigger()) positionPicker(pickerTrigger());
+  };
+  var fallback = setTimeout(done, 1000);   // no scrollend event (older Safari)
+  window.addEventListener('scrollend', done, { once: true });
+  window.scrollBy({ top: -gap, behavior: reduceMotion.matches ? 'instant' : 'smooth' });
+}
+document.addEventListener('keydown', function (e) {
+  if (!picker.id) return;
+  if (e.key === 'Escape') { closePicker(); return; }
+  if (e.key !== 'Tab') return;                       // keep Tab inside the open picker
+  var f = [].slice.call(document.querySelectorAll('#pack-picker button:not(:disabled), #pack-picker input'));
+  if (e.shiftKey && (document.activeElement === f[0] || document.activeElement.id === 'pack-picker')) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+});
+cartViews.push(function (id) { if (picker.id === id) renderPicker(true); });
+
+/* Doc-only stand-in: the Cart Panel has its own spec. Here "View cart" just bumps the badge. */
+function openCartPanel() { bumpBadge(); }
+document.addEventListener('DOMContentLoaded', function () {
+  var pts = document.getElementById('pack-picker-points');
+  if (pts) pts.innerHTML = pointsHTML(0);
+  renderCartBadge();
+});
+
+  </script>
+</body>
+</html>

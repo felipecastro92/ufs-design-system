@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Product Tile + Add to Cart — UFS Spec v2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../tokens.css" />
+  <style>
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       campaign-hero-spec.html. The Overview demo button depends on
+       it; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       v2.0 DOC ADDITIONS (spec-doc only)
+    ═══════════════════════════════════════ */
+    .doc-topbar-version { margin-inline-start: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-brand-primary); background: rgba(255,90,0,0.15); border-radius: 3px; padding: 2px 6px; }
+    .doc-header-meta-val a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    .doc-header-meta-val a:hover { color: var(--color-salt); }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-pad { padding: 32px 24px; }
+    .pv-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    .pv-col { flex: 1 1 320px; min-width: 0; }
+    .spec-table-wrap { overflow-x: auto; margin-top: 10px; }
+    .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; }
+    .spec-table th { text-align: start; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--color-mushroom-900); padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-300); white-space: nowrap; }
+    .spec-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-100); vertical-align: top; color: var(--color-brand-dark); }
+    .spec-table td:first-child { font-weight: 600; }
+    .spec-table td[dir="rtl"] { font-family: 'IBM Plex Arabic', system-ui, sans-serif; font-size: 13px; }
+    kbd { font-family: var(--font-family-mono); font-size: 11px; background: var(--color-mushroom-300); border-radius: 3px; padding: 1px 5px; }
+    /* Doc-only stand-in for the header cart icon: target for the fly-to-cart + badge bump */
+    .pv-cartbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; margin: -32px -24px 24px; background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md) var(--radius-md) 0 0; font-size: 12px; color: var(--color-mushroom-900); }
+    .pv-cartbar .ufs-nav__icon-btn { position: relative; width: 40px; height: 40px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pv-cartbar .ufs-nav__icon-btn img { width: 24px; height: 24px; }
+    .ufs-nav__badge {
+      position: absolute; top: var(--space-1); right: var(--space-1);
+      min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-full);
+      background: var(--color-brand-primary); color: var(--color-salt);
+      font-size: 9px; font-weight: var(--text-btn-w);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ufs-nav__badge[hidden] { display: none; }
+
+
+    /* ═══════════════════════════════════════
+       PRODUCT TILE BASE — mirrored 1:1 from v1 tiles-spec.html
+       (.ufs-tile, __fav, __image, __badge, __body, __eyebrow, __title, __cta).
+       The previews depend on it; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .ufs-tile { background: var(--color-salt); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); display: flex; flex-direction: column; gap: var(--space-4); padding-bottom: var(--space-4); color: inherit; transition: box-shadow 0.2s, transform 0.2s; min-width: 0; width: 100%; }
+    @media (hover: hover) and (pointer: fine) { .ufs-tile:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); } }
+    @media (hover: hover) and (pointer: fine) and (min-width: 769px) { .ufs-tile:hover .ufs-tile__image-media { transform: scale(1.06); } }
+    .ufs-tile__fav { position: absolute; top: var(--space-3); right: var(--space-3); z-index: 2; width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full); background: rgba(255,255,255,0.8); backdrop-filter: blur(3px); box-shadow: var(--shadow-xs), 1px 1px 0px rgba(255,255,255,0.5) inset, -1px -1px 0px rgba(255,255,255,0.5) inset; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .ufs-tile__fav svg { width: 20px; height: 18px; }
+    .ufs-tile__fav svg path { fill: none; stroke: var(--color-brand-dark); stroke-width: 1.5; transition: fill 0.15s, stroke 0.15s; }
+    .ufs-tile__fav.is-active svg path { fill: var(--color-brand-primary); stroke: var(--color-brand-primary); stroke-width: 1; }
+    [dir="rtl"] .ufs-tile__fav { right: auto; left: var(--space-3); }
+    .ufs-tile__image { position: relative; width: 100%; height: 240px; flex-shrink: 0; background-color: var(--color-mushroom-100); border-radius: var(--radius-md) var(--radius-md) 0 0; overflow: hidden; }
+    .ufs-tile__image-media { display: block; width: 100%; height: 100%; background-size: contain; background-position: center; background-repeat: no-repeat; background-color: #fff; transition: transform 0.35s ease; }
+    .ufs-tile__badge { position: absolute; top: var(--space-4); left: var(--space-4); z-index: 2; background: var(--color-aubergine); border: 1px solid var(--color-brand-primary); border-radius: var(--radius-full); height: var(--space-6); display: inline-flex; align-items: center; padding: 0 var(--space-3); color: var(--color-salt); font-size: var(--text-badge-size); font-weight: var(--text-badge-w); letter-spacing: var(--text-badge-ls); text-transform: uppercase; }
+    .ufs-tile__content { display: contents; }
+    .ufs-tile__body { display: flex; flex-direction: column; gap: var(--space-1); padding: 0 var(--space-4); }
+    .ufs-tile__eyebrow { font-size: var(--text-overline-size); font-weight: var(--text-overline-w); letter-spacing: var(--text-overline-ls); line-height: var(--text-overline-lh); text-transform: uppercase; color: var(--color-mushroom-900); }
+    .ufs-tile__title { font-size: var(--text-h6-size); font-weight: var(--text-h6-w); line-height: var(--text-h6-lh); color: var(--color-brand-dark); margin: 0; }
+    .ufs-tile__cta { padding: 0 var(--space-4); margin-top: auto; }
+    .ufs-tile__cta .btn { width: 100%; }
+    .btn img { width: 20px; height: 20px; filter: brightness(0) invert(1); }
+
+    .pv-grid { display: grid; grid-template-columns: repeat(3, 296px); gap: 24px; align-items: stretch; }
+    .pv-states { display: grid; grid-template-columns: repeat(4, 260px); gap: 20px; align-items: start; }
+    .pv-states .ufs-tile:hover { transform: none; box-shadow: none; }
+    .pv-list { background: var(--color-salt); }
+    /* .pv-list restates v1's .ufs-catalog-grid ≤768px row layout + this spec's mobile rules, so it renders at any width */
+    .pv-list .ufs-tile { display: grid; grid-template-columns: 112px 1fr; grid-template-areas: "image content"; align-items: center; column-gap: var(--space-3); border: none; border-bottom: 1px solid var(--color-mushroom-300); border-radius: 0; padding: var(--space-4); gap: 0 var(--space-3); }
+    .pv-list .ufs-tile:hover { box-shadow: none; transform: none; }
+    .pv-list .ufs-tile:hover .ufs-tile__image-media { transform: none; }
+    .pv-list .ufs-tile__image { grid-area: image; width: 112px; height: 112px; border-radius: var(--radius-md); position: static; }
+    .pv-list .ufs-tile__fav { width: var(--space-8); height: var(--space-8); top: var(--space-4); right: var(--space-4); }
+    .pv-list[dir="rtl"] .ufs-tile__fav { right: auto; left: var(--space-4); }
+    .pv-list .ufs-tile__fav svg { width: 16px; height: 14px; }
+    .pv-list .ufs-tile__badge { height: auto; padding: 2px var(--space-2); }
+    .pv-list .ufs-tile__content { display: flex; flex-direction: column; grid-area: content; min-width: 0; }
+    .pv-list .ufs-tile__body { padding: 0; }
+    .pv-list .ufs-tile__eyebrow { font-size: var(--text-badge-size); padding-inline-end: var(--space-10); }
+    .pv-list .ufs-tile__title { font-size: var(--text-body-sm-size); font-weight: 600; line-height: var(--text-body-sm-lh); padding-inline-end: var(--space-10); }
+    .pv-list .ufs-tile__flags { top: var(--space-4); inset-inline-start: var(--space-4); gap: var(--space-1); }
+    .pv-list .ufs-points { padding: 5px 6px; font-size: var(--text-body-xs-size); }
+    .pv-list .ufs-points svg { width: 10px; height: 10px; }
+    .pv-list .ufs-tile__packs { margin-top: 0; font-size: var(--text-body-xs-size); }
+    .pv-list .ufs-tile__packs b { padding: 0; background: none; color: var(--color-brand-dark); }
+    .pv-list .ufs-tile__cta { padding: 0; margin-top: var(--space-3); }
+    .pv-list .ufs-tile__cta .btn { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); }
+    .pv-list .ufs-tile__incart { min-height: var(--space-10); }
+    .pv-list .fi-qty--cart .fi-qty-btn { width: var(--space-10); height: var(--space-10); }
+
+/* Points pill — the Reward tile's points look (gold ring on a 10% gold tint) */
+.ufs-points {
+  display: inline-flex; align-items: center; gap: var(--space-1);
+  padding: var(--space-1) var(--space-2); border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--color-gold) 10%, var(--color-salt));
+  border: 1px solid var(--color-gold);
+  font-size: var(--text-body-xs-size); line-height: 1; font-weight: 400; color: var(--color-brand-dark);
+  white-space: nowrap; transform-origin: left center;
+}
+.ufs-points svg { width: 12px; height: 12px; fill: var(--color-gold); flex-shrink: 0; }
+.ufs-points__val { font-variant-numeric: tabular-nums; }
+.ufs-points.is-pulse { animation: ufs-points-pulse 0.7s ease-out; }
+@keyframes ufs-points-pulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-gold) 45%, transparent); }
+  35%  { transform: scale(1.04); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 8px color-mix(in srgb, var(--color-gold) 0%, transparent); }
+}
+
+/* Quantity Selector — v1 .fi-qty (Design System › Input Fields) plus the
+   cart modifier: typed value, 32px buttons, + as the primary action. */
+.fi-qty {
+  display: inline-flex; align-items: center; justify-content: space-between; width: 100%;
+  padding: var(--space-1); border-radius: var(--radius-full); background: var(--color-mushroom-100);
+}
+.fi-qty-btn {
+  flex-shrink: 0; width: var(--space-12); height: var(--space-12); border-radius: var(--radius-full);
+  background: var(--color-salt); border: none; box-shadow: var(--shadow-xs);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: box-shadow 0.15s, color 0.15s, background 0.15s;
+  color: var(--color-brand-dark);
+}
+.fi-qty-btn:hover:not(:disabled) { box-shadow: var(--shadow-sm); color: var(--color-accessible-orange); }
+.fi-qty-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.fi-qty-btn:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+.fi-qty-btn svg { width: var(--space-5); height: var(--space-5); display: block; fill: currentColor; }
+
+/* ── New in v2.0: .fi-qty--cart ── */
+.fi-qty--cart { width: auto; }
+.fi-qty--cart .fi-qty-btn { width: var(--space-8); height: var(--space-8); }
+/* Increase keeps the "Add to cart" look: dark orange fill, white icon */
+.fi-qty--cart .fi-qty-btn[data-role="inc"] { background: var(--color-accessible-orange); color: var(--color-salt); }
+.fi-qty--cart .fi-qty-btn[data-role="inc"]:hover:not(:disabled) { background: var(--color-orange-900); color: var(--color-salt); }
+/* At quantity 1 (rows that fall back to "Add to cart"), minus becomes a bin */
+.fi-qty-btn--delete:hover:not(:disabled) { color: var(--color-error); }
+/* Typed value replaces .fi-qty-pill: B2B quantities are often typed, not stepped */
+.fi-qty-input {
+  width: 40px; border: none; background: transparent; text-align: center; border-radius: 6px;
+  font-family: var(--font-family); font-size: var(--text-body-sm-size); font-weight: 600; color: var(--color-brand-dark);
+  -moz-appearance: textfield;
+}
+.fi-qty-input::-webkit-outer-spin-button, .fi-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.fi-qty-input:focus-visible { outline: 2px solid var(--color-brand-dark); }
+
+/* Pack row — one per pack type (Single item / Pack of N) */
+.ufs-pack-row {
+  display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: var(--space-3);
+  padding: var(--space-3) 0; border-top: 1px solid var(--color-mushroom-300);
+}
+.ufs-pack-row__img {
+  position: relative; width: 56px; height: 56px;
+  border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
+  background: var(--color-salt) center / contain no-repeat;
+}
+/* "×6" on the multi-pack thumbnail */
+.ufs-pack-row__count {
+  position: absolute; inset-inline-end: -6px; bottom: -6px; padding: 1px 6px; border-radius: 9px;
+  background: var(--color-brand-dark); color: var(--color-salt);
+  font-size: 10px; font-weight: 700; line-height: 1.5;
+  direction: ltr; unicode-bidi: isolate;   /* stays "×6" inside RTL text */
+}
+.ufs-pack-row__txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ufs-pack-row__name {
+  margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2);
+  font-size: var(--text-body-size); line-height: 1.3; font-weight: 600; color: var(--color-brand-dark);
+}
+.ufs-pack-row__meta { margin: 0; font-size: var(--text-body-sm-size); line-height: 1.4; color: var(--color-mushroom-900); }
+.ufs-pack-row__meta b { font-weight: 600; color: var(--color-brand-dark); }
+.ufs-pack-row__ctl { display: flex; justify-content: flex-end; }
+@media (max-width: 768px) {
+  .ufs-pack-row { grid-template-columns: 48px 1fr auto; }
+  .ufs-pack-row__img { width: 48px; height: 48px; }
+  .ufs-pack-row__name { font-size: var(--text-body-sm-size); }
+  .ufs-pack-row__meta { font-size: var(--text-body-xs-size); }
+}
+
+/* Pack summary — "N items in cart" + total, live points underneath */
+.ufs-pack-summary { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; }
+.ufs-pack-summary[hidden] { display: none; }
+.ufs-pack-summary__row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3);
+  font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900);
+}
+.ufs-pack-summary__row b { font-size: var(--text-h6-size); line-height: 1.2; color: var(--color-brand-dark); font-variant-numeric: tabular-nums; }
+.ufs-pack-summary__points { display: flex; justify-content: flex-end; }
+.ufs-pack-summary__points .ufs-points { transform-origin: right center; }
+
+/* Pack Size Picker — popover on desktop, bottom sheet ≤768px */
+.ufs-pack-picker-backdrop {
+  position: fixed; inset: 0; z-index: 90;
+  background: rgba(0,0,0,0); pointer-events: none; transition: background 0.2s;
+}
+.ufs-pack-picker-backdrop.is-open { pointer-events: auto; }
+.ufs-pack-picker {
+  position: fixed; z-index: 100; width: 380px; padding: var(--space-3);
+  display: none; flex-direction: column; gap: var(--space-4);
+  background: var(--color-salt); border: 1px solid var(--color-mushroom-300);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+}
+.ufs-pack-picker.is-open { display: flex; }
+.ufs-pack-picker:focus { outline: none; }
+.ufs-pack-picker__hd { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.ufs-pack-picker__title { margin: 0; font-size: var(--text-body-size); line-height: var(--text-body-lh); font-weight: 600; color: var(--color-brand-dark); }
+.ufs-pack-picker__sub { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); }
+.ufs-pack-picker__close {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: var(--radius-full); border: none;
+  background: var(--color-mushroom-100); color: var(--color-brand-dark); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.ufs-pack-picker__close:focus-visible { outline: 2px solid var(--color-brand-dark); }
+.ufs-pack-picker__close svg { width: 12px; height: 12px; }
+/* Arrow: always on the bottom edge, pointing down at the trigger (left is set in JS).
+   A rotated square whose two bordered edges draw the notch. */
+.ufs-pack-picker__arrow {
+  position: absolute; bottom: -8px; width: 14px; height: 14px; background: var(--color-salt);
+  border-left: 1px solid var(--color-mushroom-300); border-top: 1px solid var(--color-mushroom-300);
+  transform: rotate(225deg);
+}
+.ufs-pack-picker .ufs-pack-summary { padding-top: var(--space-3); border-top: 1px solid var(--color-mushroom-300); }
+/* Desktop: the popover is tile-width (~296px), so rows tighten to keep each stepper on one line */
+@media (min-width: 769px) {
+  .ufs-pack-picker .ufs-pack-row { grid-template-columns: 40px 1fr auto; gap: var(--space-2); }
+  .ufs-pack-picker .ufs-pack-row__img { width: 40px; height: 40px; }
+  .ufs-pack-picker .ufs-pack-row__name { font-size: var(--text-body-sm-size); }
+  .ufs-pack-picker .fi-qty-input { width: 32px; }
+}
+@media (max-width: 768px) {
+  .ufs-pack-picker-backdrop.is-open { background: rgba(0,0,0,0.5); }
+  .ufs-pack-picker {
+    left: 0 !important; right: 0; top: auto !important; bottom: 0; width: 100% !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: var(--space-3) var(--space-4) calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+    display: flex; visibility: hidden; transform: translateY(100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), visibility 0s 0.25s;
+  }
+  .ufs-pack-picker.is-open { transform: translateY(0); visibility: visible; transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); }
+  /* Grab handle */
+  .ufs-pack-picker::before { content: ''; align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--color-mushroom-500); }
+  .ufs-pack-picker__arrow { display: none; }
+  .ufs-pack-picker .fi-qty--cart .fi-qty-btn { width: var(--space-10); height: var(--space-10); }
+}
+
+/* Cart feedback — shared by every add-to-cart surface */
+/* Toasts: one per cart change, newest at the bottom, max 2 on screen */
+.ufs-cart-toasts {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 960;
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  width: max-content; max-width: calc(100vw - 32px); pointer-events: none;
+}
+.ufs-cart-toast {
+  pointer-events: auto; display: flex; align-items: center; gap: var(--space-3); max-width: 100%;
+  padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+  background: var(--color-brand-dark); color: var(--color-salt); font-size: var(--text-body-sm-size);
+}
+.ufs-cart-toast button {
+  border: none; background: none; cursor: pointer; white-space: nowrap; text-decoration: underline;
+  color: var(--color-brand-primary); font-family: inherit; font-size: var(--text-body-sm-size); font-weight: 700;
+}
+@media (max-width: 768px) {
+  /* Spans the gutters (long product names) */
+  .ufs-cart-toasts { left: var(--space-4); right: var(--space-4); transform: none; width: auto; max-width: none; align-items: stretch; }
+  .ufs-cart-toast { justify-content: space-between; }
+}
+
+/* Fly-to-cart: a copy of the product photo arcs into the header cart icon */
+.ufs-cart-fly {
+  position: fixed; z-index: 1000; pointer-events: none; will-change: transform, opacity;
+  border-radius: var(--radius-sm); background: var(--color-salt) center / contain no-repeat; box-shadow: var(--shadow-lg);
+}
+/* Header cart badge bump when the photo lands */
+.ufs-nav__badge.is-bump { animation: ufs-badge-bump 0.35s ease; }
+@keyframes ufs-badge-bump { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+
+/* Rolling quantity: old number slides out, new one slides in (up = more, down = less) */
+.fi-qty:has(> .ufs-qty-roll) { position: relative; }
+.ufs-qty-roll { position: absolute; overflow: hidden; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+.ufs-qty-roll span { position: absolute; animation: 0.26s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.ufs-qty-roll .is-out-up   { animation-name: ufs-roll-out-up; }
+.ufs-qty-roll .is-in-up    { animation-name: ufs-roll-in-up; }
+.ufs-qty-roll .is-out-down { animation-name: ufs-roll-out-down; }
+.ufs-qty-roll .is-in-down  { animation-name: ufs-roll-in-down; }
+@keyframes ufs-roll-out-up   { to   { transform: translateY(-100%); opacity: 0; } }
+@keyframes ufs-roll-in-up    { from { transform: translateY(100%);  opacity: 0; } }
+@keyframes ufs-roll-out-down { to   { transform: translateY(100%);  opacity: 0; } }
+@keyframes ufs-roll-in-down  { from { transform: translateY(-100%); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ufs-points.is-pulse, .ufs-nav__badge.is-bump { animation: none; }
+  .ufs-pack-picker { transition: none !important; }
+}
+
+/* RTL — logical properties (inset-inline-*, padding-inline-*) cover most of the
+   mirroring; these are the physical leftovers */
+[dir="rtl"] .ufs-points { transform-origin: right center; }
+[dir="rtl"] .ufs-pack-summary__points .ufs-points { transform-origin: left center; }
+
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* Product Tile + Add to cart — .ufs-tile--shop on top of v1 .ufs-tile */
+
+/* The whole tile opens the product page: the title link stretches over it
+   (one real link, so keyboard, screen readers and "open in new tab" work).
+   Controls sit above the stretched link. */
+.ufs-tile--shop { position: relative; }
+.ufs-tile__pdp { color: inherit; text-decoration: none; }
+.ufs-tile__pdp::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.ufs-tile--shop:has(.ufs-tile__pdp:focus-visible) { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+.ufs-tile__pdp:focus-visible { outline: none; }
+.ufs-tile--shop .ufs-tile__cta { position: relative; z-index: 2; }
+
+/* Flags: points pill, then the optional badge, stacked in the top-start corner (fav sits top-end) */
+.ufs-tile__flags {
+  position: absolute; top: var(--space-3); inset-inline-start: var(--space-2); z-index: 2;
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2);
+  pointer-events: none;                       /* labels only: clicks fall through to the product link */
+}
+.ufs-tile__flags .ufs-tile__badge { position: static; }
+.ufs-tile--shop .ufs-points { font-size: var(--text-body-sm-size); }
+
+/* Price line (takes the rating's slot) and pack info */
+.ufs-tile__price { margin: var(--space-1) 0 0; font-size: var(--text-body-sm-size); line-height: 1.4; color: var(--color-mushroom-900); }
+.ufs-tile__price b { font-size: var(--text-body-size); font-weight: 600; color: var(--color-brand-dark); }
+.ufs-tile__price-note { margin-inline-start: var(--space-1); font-size: var(--text-badge-size); }
+.ufs-tile__packs { margin: var(--space-2) 0 0; font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); }
+.ufs-tile__packs b { font-weight: 600; color: #000; padding: var(--space-1) var(--space-2); border-radius: var(--radius-full); background: var(--color-mushroom-100); }
+
+/* CTA states: "Add to cart" → in-cart summary (multi-pack) or inline stepper (single only) */
+.ufs-tile__incart {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-2);
+  min-height: var(--space-12); padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent); font-size: var(--text-body-sm-size);
+}
+.ufs-tile__incart-text { display: flex; align-items: center; gap: var(--space-2); min-width: 0; line-height: 1.35; }
+.ufs-tile__incart-text svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--color-success-text); }
+.ufs-tile__incart-edit {
+  border: none; background: none; cursor: pointer; padding: var(--space-1); white-space: nowrap;
+  font-family: inherit; font-size: var(--text-body-sm-size); font-weight: 600;
+  color: var(--color-accessible-orange); text-decoration: underline;
+  --color-accessible-orange: #B03D00;   /* on the green in-cart tint */
+}
+.ufs-tile__incart-edit:focus-visible { outline: 2px solid var(--color-brand-dark); border-radius: 4px; }
+.ufs-tile__qty { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.ufs-tile__qty-label { font-size: var(--text-body-sm-size); font-weight: 600; line-height: 1.3; }
+
+/* ≤768px: builds on v1's .ufs-catalog-grid list layout (tiles-spec.html), with a 112px photo */
+@media (max-width: 768px) {
+  .ufs-catalog-grid .ufs-tile--shop { grid-template-columns: 112px 1fr; }
+  .ufs-catalog-grid .ufs-tile--shop .ufs-tile__image { width: 112px; height: 112px; }
+  .ufs-catalog-grid .ufs-tile--shop .ufs-tile__fav { top: var(--space-4); right: var(--space-4); }
+  .ufs-catalog-grid .ufs-tile--shop .ufs-tile__eyebrow,
+  .ufs-catalog-grid .ufs-tile--shop .ufs-tile__title { padding-inline-end: var(--space-10); }
+  .ufs-catalog-grid .ufs-tile__flags { top: var(--space-4); inset-inline-start: var(--space-4); gap: var(--space-1); }
+  .ufs-catalog-grid .ufs-tile--shop .ufs-points { padding: 5px 6px; font-size: var(--text-body-xs-size); }
+  .ufs-catalog-grid .ufs-tile--shop .ufs-points svg { width: 10px; height: 10px; }
+  .ufs-catalog-grid .ufs-tile__packs { margin-top: 0; font-size: var(--text-body-xs-size); }
+  .ufs-catalog-grid .ufs-tile__packs b { padding: 0; background: none; color: var(--color-brand-dark); }
+  .ufs-catalog-grid .ufs-tile--shop .ufs-tile__cta { margin-top: var(--space-3); }
+  .ufs-catalog-grid .ufs-tile--shop .ufs-tile__cta .btn { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); }
+  .ufs-tile__incart { min-height: var(--space-10); }
+  [dir="rtl"] .ufs-catalog-grid .ufs-tile--shop .ufs-tile__fav { right: auto; left: var(--space-4); }
+}
+
+
+    /* ═══════════════════════════════════════
+       DOC CHROME ≤768px (spec-doc only): 16px gutters, stacked header,
+       previews never wider than the screen (they scroll inside their card)
+    ═══════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .doc-topbar { padding: 0 16px 0 64px; height: 66px; overflow: hidden; white-space: nowrap; }
+      .doc-topbar-current { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .doc-topbar-version { display: none; }
+      .doc-header-inner { flex-direction: column; gap: 16px; padding: 28px 16px 24px; }
+      .doc-header-vdiv { display: none; }
+      .doc-header-meta { align-items: flex-start; padding-top: 0; }
+      .content { padding: 32px 16px 96px; }
+      .ds-card { padding: 20px 16px 24px; }
+      .ds-card > * { max-width: 100%; }
+      .ds-card > [class*="pv-"]:not(.pv-label) { overflow-x: auto; position: relative; }
+      .pv-pad { padding: 24px 16px; }
+      .pv-cartbar { margin: -24px -16px 24px; }
+      .pv-grid, .pv-states { grid-template-columns: minmax(0, 296px); }
+      .pv-grid-m { grid-template-columns: minmax(0, 1fr); }
+      .pv-anchor { width: auto; max-width: 296px; }
+      .pv-row, .pv-drawer { flex-wrap: wrap; }
+      .pv-drawer { padding: 24px 12px; }
+      .pv-col { flex-basis: 100%; }
+      .token-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+      .token-var { overflow-wrap: anywhere; }
+      .token-note { text-align: start; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="../images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System v2.0
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#states" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> CTA States</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#behavior" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Add to Cart Flow</a>
+      <a href="#animation" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Animation</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New in v2.0.<br/>Extends v1 Product Tile (tiles-spec.html).</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <nav class="doc-topbar" aria-label="Breadcrumb">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System v2.0
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Product Tile + Add to Cart</span>
+    <span class="doc-topbar-version">New in v2.0</span>
+  </nav>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="../images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec · v2.0</div>
+        <h1 class="doc-header-title">Product Tile <span>+ Add to Cart</span></h1>
+        <p class="doc-header-desc">Webshop Product Tile: points, price, pack sizes and an Add to cart that becomes the product's cart state. Multi-pack products open the Pack Size Picker.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val"><a href="template-products-catalog-webshop.html">handover/v2/<br/>template-products-catalog-webshop.html</a></span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content" id="main">
+
+    <!-- ═══════════════════════════════════════ FULL COMPONENT PREVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">The webshop version of the v1 <strong>Product Tile</strong> (<a href="../tiles-spec.html"><code>tiles-spec.html</code></a>). It adds a points pill, a price line, the available pack sizes and an <strong>Add to cart</strong> button that turns into the line's cart state. Everything else (photo, favourite, eyebrow, title, hover, badge) is the v1 tile, unchanged. Products with a multi-pack open the <a href="pack-size-picker-spec.html">Pack Size Picker</a>. Single-item-only products get an inline stepper instead.</p>
+      <div class="notice notice--tip"><span class="notice-icon">💡</span><div>Live: the first two tiles have a Pack of 6 (Add to cart → picker). The third is sold as single items only (Add to cart → inline stepper). The picker, toasts, fly-to-cart and badge are the real shared components.</div></div><div class="ds-card"><div class="card-title">Live tiles (desktop, 296px column)</div><div class="pv-light pv-pad"><div class="pv-cartbar"><span>Header cart icon (doc stand-in: the photo flies here, the badge bumps)</span>
+  <button type="button" class="ufs-nav__icon-btn" data-cart-button onclick="openCartPanel()"><img src="../icons/cart.svg" alt="Cart"/><span class="ufs-nav__badge" hidden>0</span></button></div><div class="pv-grid"><article class="ufs-tile ufs-tile--shop" id="tile-tomato" data-picker-anchor><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites" onclick="favToggle(this)"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span><span class="ufs-tile__badge">New</span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Sauces</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Professional Tomato Pronto 2 kg</a></h3><p class="ufs-tile__price"><b><bdi>€18.90</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 2 kg</b> or <b>Pack of 6</b></p></div><div class="ufs-tile__cta" id="cta-tomato"></div></div></article><article class="ufs-tile ufs-tile--shop" id="tile-mash" data-picker-anchor><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites" onclick="favToggle(this)"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">450</span><span class="sr-only"> points</span></span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/mash-flakes-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Sides</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Professional Mash Flakes 2 kg</a></h3><p class="ufs-tile__price"><b><bdi>€24.90</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 2 kg</b> or <b>Pack of 6</b></p></div><div class="ufs-tile__cta" id="cta-mash"></div></div></article><article class="ufs-tile ufs-tile--shop" id="tile-pouch" data-picker-anchor><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites" onclick="favToggle(this)"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">380</span><span class="sr-only"> points</span></span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/aromat-pouch-1kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Seasonings</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Aromat Original (Pouch) 1 kg</a></h3><p class="ufs-tile__price"><b><bdi>€21.75</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 1 kg</b></p></div><div class="ufs-tile__cta" id="cta-pouch"></div></div></article></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Same anatomy as the v1 Product Tile, plus the modifier <code>.ufs-tile--shop</code>. The rating and the tile-wide CTA link are dropped. The whole tile links to the product page through a stretched title link, and the cart controls sit above it.</p>
+      <div class="ds-card"><div class="card-title">What's new on the tile</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Part</th><th>Element</th><th>Content</th></tr></thead><tbody><tr><td>Points pill</td><td><code>.ufs-tile__flags .ufs-points</code></td><td>Points for one single item. A fixed value: the live total is in the picker.</td></tr><tr><td>Badge</td><td><code>.ufs-tile__badge</code> inside <code>__flags</code></td><td>v1 badge (e.g. "New"), now stacked under the points pill instead of absolutely placed</td></tr><tr><td>Price line</td><td><code>.ufs-tile__price</code></td><td>Single-item price + "Price indication (excl. VAT)". Takes the rating's slot.</td></tr><tr><td>Pack info</td><td><code>.ufs-tile__packs</code></td><td>"Single 2 kg or Pack of 6", or just "Single 1 kg". Grey pills on desktop, plain bold text on mobile.</td></tr><tr><td>Cart control</td><td><code>.ufs-tile__cta</code></td><td>One of three states, rendered by <code>tileCtaHTML()</code> (see CTA States)</td></tr><tr><td>Product link</td><td><code>.ufs-tile__pdp</code></td><td>The title link, stretched over the whole tile with <code>::after</code>. The focus ring is drawn on the tile.</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">Reference markup</div><div class="card-desc">One tile, empty-cart state.</div><div class="code-block-wrap"><div class="code-tabs"><div class="code-tab active" onclick="switchTab(this,'cb1-0')">HTML</div><div class="code-tab" onclick="switchTab(this,'cb1-1')">CSS</div></div><div class="code-panel active" data-tab="cb1-0"><div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-tag">&lt;article</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile ufs-tile--shop"</span> <span class="t-at">id</span>=<span class="t-str">"tile-tomato"</span> <span class="t-at">data-picker-anchor</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__fav"</span> <span class="t-at">aria-pressed</span>=<span class="t-str">"false"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Add to favourites"</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__flags"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-points"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;svg</span><span class="t-tag">&gt;</span>…<span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-points__val"</span><span class="t-tag">&gt;</span>350<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"sr-only"</span><span class="t-tag">&gt;</span> points<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__badge"</span><span class="t-tag">&gt;</span>New<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__image"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__image-media"</span> <span class="t-at">style</span>=<span class="t-str">"background-image:url('…/tomato-pronto-2kg.jpg')"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__content"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__body"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__eyebrow"</span><span class="t-tag">&gt;</span>Sauces<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;h3</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__title"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;a</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__pdp"</span> <span class="t-at">href</span>=<span class="t-str">"/products/knorr-tomato-pronto-2kg"</span><span class="t-tag">&gt;</span>Knorr Professional Tomato Pronto 2 kg<span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/h3</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__price"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;b</span><span class="t-tag">&gt;</span>€18.90<span class="t-tag">&lt;/b</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__price-note"</span><span class="t-tag">&gt;</span>Price indication (excl. VAT)<span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__packs"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;b</span><span class="t-tag">&gt;</span>Single 2 kg<span class="t-tag">&lt;/b</span><span class="t-tag">&gt;</span> or <span class="t-tag">&lt;b</span><span class="t-tag">&gt;</span>Pack of 6<span class="t-tag">&lt;/b</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-cm">&lt;!-- Filled by tileCtaHTML(): Add to cart / in-cart summary / inline stepper --&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-tile__cta"</span> <span class="t-at">id</span>=<span class="t-str">"cta-tomato"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"btn btn-primary"</span> <span class="t-at">data-picker-return</span>=<span class="t-str">"tomato"</span> <span class="t-at">data-add</span> <span class="t-at">onclick</span>=<span class="t-str">"tileAdd('tomato')"</span><span class="t-tag">&gt;</span>
+        <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"icons/cart.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span>Add to cart
+      <span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/article</span><span class="t-tag">&gt;</span></pre></div><div class="code-panel" data-tab="cb1-1"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Product Tile + Add to cart — .ufs-tile--shop on top of v1 .ufs-tile */</span>
+
+<span class="t-cm">/* The whole tile opens the product page: the title link stretches over it</span>
+   <span class="t-cm">(one real link, so keyboard, screen readers and "open in new tab" work).</span>
+   <span class="t-cm">Controls sit above the stretched link. */</span>
+<span class="t-pr">.ufs-tile--shop</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; }
+<span class="t-pr">.ufs-tile__pdp</span> { <span class="t-pr">color</span>: <span class="t-vl">inherit</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-tile__pdp::after</span> { <span class="t-pr">content</span>: <span class="t-vl">""</span>; <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">inset</span>: <span class="t-vl">0</span>; <span class="t-pr">z-index</span>: <span class="t-vl">1</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">inherit</span>; }
+<span class="t-pr">.ufs-tile--shop:has(.ufs-tile__pdp:focus-visible)</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">outline-offset</span>: <span class="t-vl">2px</span>; }
+<span class="t-pr">.ufs-tile__pdp:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-tile--shop .ufs-tile__cta</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">z-index</span>: <span class="t-vl">2</span>; }
+
+<span class="t-cm">/* Flags: points pill, then the optional badge, stacked in the top-start corner (fav sits top-end) */</span>
+<span class="t-pr">.ufs-tile__flags</span> {
+  <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">inset-inline-start</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">z-index</span>: <span class="t-vl">2</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">align-items</span>: <span class="t-vl">flex-start</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>;
+  <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>;                       <span class="t-cm">/* labels only: clicks fall through to the product link */</span>
+}
+<span class="t-pr">.ufs-tile__flags .ufs-tile__badge</span> { <span class="t-pr">position</span>: <span class="t-vl">static</span>; }
+<span class="t-pr">.ufs-tile--shop .ufs-points</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; }
+
+<span class="t-cm">/* Price line (takes the rating's slot) and pack info */</span>
+<span class="t-pr">.ufs-tile__price</span> { <span class="t-pr">margin</span>: <span class="t-va">var(--space-1)</span> <span class="t-vl">0</span> <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.4</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-tile__price b</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+<span class="t-pr">.ufs-tile__price-note</span> { <span class="t-pr">margin-inline-start</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-badge-size)</span>; }
+<span class="t-pr">.ufs-tile__packs</span> { <span class="t-pr">margin</span>: <span class="t-va">var(--space-2)</span> <span class="t-vl">0</span> <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-tile__packs b</span> { <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-vl">#000</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-1)</span> <span class="t-va">var(--space-2)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }
+
+<span class="t-cm">/* CTA states: "Add to cart" → in-cart summary (multi-pack) or inline stepper (single only) */</span>
+<span class="t-pr">.ufs-tile__incart</span> {
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>;
+  <span class="t-pr">min-height</span>: <span class="t-va">var(--space-12)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-2)</span> <span class="t-va">var(--space-3)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>;
+  <span class="t-pr">background</span>: <span class="t-vl">color-mix(in</span> <span class="t-vl">srgb,</span> <span class="t-va">var(--color-success)</span> <span class="t-vl">12%,</span> <span class="t-vl">transparent)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>;
+}
+<span class="t-pr">.ufs-tile__incart-text</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.35</span>; }
+<span class="t-pr">.ufs-tile__incart-text svg</span> { <span class="t-pr">width</span>: <span class="t-vl">16px</span>; <span class="t-pr">height</span>: <span class="t-vl">16px</span>; <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-success-text)</span>; }
+<span class="t-pr">.ufs-tile__incart-edit</span> {
+  <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">background</span>: <span class="t-vl">none</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">white-space</span>: <span class="t-vl">nowrap</span>;
+  <span class="t-pr">font-family</span>: <span class="t-vl">inherit</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>;
+  <span class="t-pr">color</span>: <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">underline</span>;
+  <span class="t-pr">--color-accessible-orange</span>: <span class="t-vl">#B03D00</span>;   <span class="t-cm">/* on the green in-cart tint */</span>
+}
+<span class="t-pr">.ufs-tile__incart-edit:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">border-radius</span>: <span class="t-vl">4px</span>; }
+<span class="t-pr">.ufs-tile__qty</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">space-between</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-2)</span>; }
+<span class="t-pr">.ufs-tile__qty-label</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.3</span>; }
+
+<span class="t-cm">/* ≤768px: builds on v1's .ufs-catalog-grid list layout (tiles-spec.html), with a 112px photo */</span>
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile--shop</span> { <span class="t-pr">grid-template-columns</span>: <span class="t-vl">112px</span> <span class="t-vl">1fr</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile--shop .ufs-tile__image</span> { <span class="t-pr">width</span>: <span class="t-vl">112px</span>; <span class="t-pr">height</span>: <span class="t-vl">112px</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile--shop .ufs-tile__fav</span> { <span class="t-pr">top</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">right</span>: <span class="t-va">var(--space-4)</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile--shop .ufs-tile__eyebrow,</span>
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile--shop .ufs-tile__title</span> { <span class="t-pr">padding-inline-end</span>: <span class="t-va">var(--space-10)</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile__flags</span> { <span class="t-pr">top</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">inset-inline-start</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile--shop .ufs-points</span> { <span class="t-pr">padding</span>: <span class="t-vl">5px</span> <span class="t-vl">6px</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile--shop .ufs-points svg</span> { <span class="t-pr">width</span>: <span class="t-vl">10px</span>; <span class="t-pr">height</span>: <span class="t-vl">10px</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile__packs</span> { <span class="t-pr">margin-top</span>: <span class="t-vl">0</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile__packs b</span> { <span class="t-pr">padding</span>: <span class="t-vl">0</span>; <span class="t-pr">background</span>: <span class="t-vl">none</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile--shop .ufs-tile__cta</span> { <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-3)</span>; }
+  <span class="t-pr">.ufs-catalog-grid .ufs-tile--shop .ufs-tile__cta .btn</span> { <span class="t-pr">height</span>: <span class="t-va">var(--space-10)</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span> <span class="t-va">var(--space-4)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-btn-sm-size)</span>; }
+  <span class="t-pr">.ufs-tile__incart</span> { <span class="t-pr">min-height</span>: <span class="t-va">var(--space-10)</span>; }
+  <span class="t-pr">[dir="rtl"] .ufs-catalog-grid .ufs-tile--shop .ufs-tile__fav</span> { <span class="t-pr">right</span>: <span class="t-vl">auto</span>; <span class="t-pr">left</span>: <span class="t-va">var(--space-4)</span>; }
+}</pre></div></div><div class="card-subtitle">Key Tokens</div><div class="token-list"><div class="token-row"><span class="token-prop">Flags</span><span class="token-var">top --space-3 · inline-start --space-2</span><span class="token-note">gap --space-2; 16px inset on mobile</span></div><div class="token-row"><span class="token-prop">Points (tile)</span><span class="token-var">--text-body-sm-size</span><span class="token-note">14px on the tile, 12px on mobile</span></div><div class="token-row"><span class="token-prop">Price</span><span class="token-var">--text-body-size 600 + --text-badge-size note</span><span class="token-note">note 11px --color-mushroom-900, 4px gap</span></div><div class="token-row"><span class="token-prop">Pack pills</span><span class="token-var">--color-mushroom-100 · --radius-full</span><span class="token-note">4 × 8px padding, black text as in Figma; pills removed ≤768px</span></div><div class="token-row"><span class="token-prop">In-cart bar</span><span class="token-var">color-mix(--color-success 12%) · --radius-sm</span><span class="token-note">min-height 48px (40px ≤768px), check icon --color-success-text</span></div><div class="token-row"><span class="token-prop">Edit link</span><span class="token-var">--color-accessible-orange, 600, underlined</span><span class="token-note">14px</span></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CTA STATES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="states">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">CTA States</h2>
+      <p class="section-desc">The control at the bottom of the tile always reflects the cart. It is re-rendered on every cart change, wherever the change happened (tile, picker or cart panel).</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-light pv-pad"><div class="pv-states"><div><div class="pv-label">1 · Empty: Add to cart</div><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span><span class="ufs-tile__badge">New</span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Sauces</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Professional Tomato Pronto 2 kg</a></h3><p class="ufs-tile__price"><b><bdi>€18.90</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 2 kg</b> or <b>Pack of 6</b></p></div><div class="ufs-tile__cta"><button type="button" class="btn btn-primary"><img src="../icons/cart.svg" alt=""/>Add to cart</button></div></div></article></div><div><div class="pv-label">2 · Multi-pack in cart</div><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span><span class="ufs-tile__badge">New</span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Sauces</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Professional Tomato Pronto 2 kg</a></h3><p class="ufs-tile__price"><b><bdi>€18.90</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 2 kg</b> or <b>Pack of 6</b></p></div><div class="ufs-tile__cta"><div class="ufs-tile__incart"><span class="ufs-tile__incart-text"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 8.5 6.5 12 13 4.5"/></svg><span>In cart: 2 single · 1 × pack of 6</span></span><button type="button" class="ufs-tile__incart-edit">Edit</button></div></div></div></article></div><div><div class="pv-label">3 · Single-only in cart</div><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">380</span><span class="sr-only"> points</span></span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/aromat-pouch-1kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Seasonings</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Aromat Original (Pouch) 1 kg</a></h3><p class="ufs-tile__price"><b><bdi>€21.75</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 1 kg</b></p></div><div class="ufs-tile__cta"><div class="ufs-tile__qty"><span class="ufs-tile__qty-label">In cart</span><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="3" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div></article></div><div><div class="pv-label">4 · Just added: 1 single</div><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">450</span><span class="sr-only"> points</span></span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/mash-flakes-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Sides</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Professional Mash Flakes 2 kg</a></h3><p class="ufs-tile__price"><b><bdi>€24.90</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 2 kg</b> or <b>Pack of 6</b></p></div><div class="ufs-tile__cta"><div class="ufs-tile__incart"><span class="ufs-tile__incart-text"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 8.5 6.5 12 13 4.5"/></svg><span>In cart: 1 single</span></span><button type="button" class="ufs-tile__incart-edit">Edit</button></div></div></div></article></div></div></div></div><div class="ds-card"><div class="card-title">State rules</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>State</th><th>When</th><th>Shows</th></tr></thead><tbody><tr><td>Add to cart</td><td>Nothing of this product in the cart</td><td>Primary button with the cart icon, full width</td></tr><tr><td>In-cart summary</td><td>Product has a multi-pack and ≥1 of either pack is in the cart</td><td>✓ "In cart: 2 single · 1 × pack of 6" + Edit (opens the picker)</td></tr><tr><td>Inline stepper</td><td>Product is single-item only and ≥1 is in the cart</td><td>"In cart" + cart stepper. Minus at 1 removes the line and returns to Add to cart.</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ADD TO CART FLOW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="behavior">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Add to Cart Flow</h2>
+      <p class="section-desc">Pressing Add to cart always puts 1 single item in the cart <em>immediately</em>, so one click is enough for the common case. What happens next depends on the product.</p>
+      <div class="ds-card"><div class="card-title">Flow</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Product</th><th>On "Add to cart"</th><th>Focus</th></tr></thead><tbody><tr><td>Has a multi-pack</td><td>1 single added → photo flies to the cart → the picker opens anchored to this tile (trigger = the new Edit link) to adjust both packs</td><td>Picker dialog; back to Edit on close</td></tr><tr><td>Single items only</td><td>1 single added → photo flies → the CTA becomes the inline stepper</td><td>+ of the stepper (not the field, so no selection ring appears after a mouse click)</td></tr><tr><td>Stepper / Edit later</td><td>Every change is applied immediately and toasted ("Updated: … × 3")</td><td>Stays on the pressed button. At 0, moves to Add to cart.</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">JS</div><div class="card-desc">Needs the shared cart engine and picker from <a href="pack-size-picker-spec.html#editing">pack-size-picker-spec.html</a>.</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* ── Product Tile + Add to cart ──
+   Uses the shared cart engine + Pack Size Picker (pack-size-picker-spec.html). */</span>
+TEXT.packInfo = <span class="t-str">'&lt;b&gt;Single {unit}&lt;/b&gt; or &lt;b&gt;Pack of {n}&lt;/b&gt;'</span>;
+TEXT.packInfoSingle = <span class="t-str">'&lt;b&gt;Single {unit}&lt;/b&gt;'</span>;
+TEXT.inCartParts = <span class="t-str">'In cart: {parts}'</span>;
+TEXT.partSingle = <span class="t-str">'{q} single'</span>;
+TEXT.partMulti = <span class="t-str">'{q} × pack of {n}'</span>;
+
+<span class="t-kw">function</span> tileCtaHTML(p) {
+  <span class="t-kw">var</span> l = lineOf(p.id);
+  <span class="t-cm">// Nothing in the cart: the "Add to cart" button</span>
+  <span class="t-kw">if</span> (!lineUnits(p, l)) {
+    <span class="t-kw">return</span> <span class="t-str">'&lt;button type="button" class="btn btn-primary" data-picker-return="'</span> + p.id + <span class="t-str">'" data-add onclick="tileAdd(\''</span> + p.id + <span class="t-str">'\')"&gt;'</span> +
+      <span class="t-str">'&lt;img src="../icons/cart.svg" alt=""/&gt;'</span> + t(<span class="t-str">'add'</span>) + <span class="t-str">'&lt;/button&gt;'</span>;
+  }
+  <span class="t-cm">// Sold as single items only: an inline stepper, no picker</span>
+  <span class="t-kw">if</span> (!p.multi) {
+    <span class="t-kw">return</span> <span class="t-str">'&lt;div class="ufs-tile__qty"&gt;&lt;span class="ufs-tile__qty-label"&gt;'</span> + t(<span class="t-str">'inCart'</span>) + <span class="t-str">'&lt;/span&gt;'</span> +
+      stepperHTML({ p: p, pack: <span class="t-str">'single'</span>, value: l.single, scope: <span class="t-str">'tile'</span>, args: <span class="t-str">"'"</span> + p.id + <span class="t-str">"','single'"</span> }) + <span class="t-str">'&lt;/div&gt;'</span>;
+  }
+  <span class="t-cm">// Has a multi-pack: what's in the cart + Edit (reopens the picker)</span>
+  <span class="t-kw">var</span> parts = [];
+  <span class="t-kw">if</span> (l.single) parts.push(t(<span class="t-str">'partSingle'</span>, { q: l.single }));
+  <span class="t-kw">if</span> (l.multi) parts.push(t(<span class="t-str">'partMulti'</span>, { q: l.multi, n: p.multi }));
+  <span class="t-kw">return</span> <span class="t-str">'&lt;div class="ufs-tile__incart"&gt;&lt;span class="ufs-tile__incart-text"&gt;'</span> + ICON.check +
+      <span class="t-str">'&lt;span&gt;'</span> + t(<span class="t-str">'inCartParts'</span>, { parts: parts.join(<span class="t-str">' · '</span>) }) + <span class="t-str">'&lt;/span&gt;&lt;/span&gt;'</span> +
+    <span class="t-str">'&lt;button type="button" class="ufs-tile__incart-edit" data-picker-return="'</span> + p.id + <span class="t-str">'"'</span> +
+      <span class="t-str">' onclick="openPicker(\''</span> + p.id + <span class="t-str">'\', this)" aria-label="'</span> + escHTML(t(<span class="t-str">'edit'</span>) + <span class="t-str">' '</span> + p.name) + <span class="t-str">'"&gt;'</span> + t(<span class="t-str">'edit'</span>) + <span class="t-str">'&lt;/button&gt;&lt;/div&gt;'</span>;
+}
+
+<span class="t-kw">function</span> renderTileCta(id) {
+  <span class="t-kw">var</span> cta = document.getElementById(<span class="t-str">'cta-'</span> + id);
+  <span class="t-kw">if</span> (cta) cta.innerHTML = tileCtaHTML(PRODUCTS[id]);
+}
+cartViews.push(renderTileCta);          <span class="t-cm">// picker and cart panel edits keep the tile in sync</span>
+
+<span class="t-kw">function</span> tilePhoto(id) { <span class="t-kw">return</span> document.querySelector(<span class="t-str">'#tile-'</span> + id + <span class="t-str">' .ufs-tile__image-media'</span>); }
+
+<span class="t-cm">// "Add to cart": 1 single item goes in straight away. Multi-pack products then open</span>
+<span class="t-cm">// the picker to adjust; single-only products land on + of the inline stepper.</span>
+<span class="t-kw">function</span> tileAdd(id) {
+  <span class="t-kw">var</span> p = PRODUCTS[id];
+  setLine(id, <span class="t-str">'single'</span>, 1);
+  flyToCart(tilePhoto(id), IMG + p.img);
+  <span class="t-kw">if</span> (p.multi) openPicker(id, document.querySelector(<span class="t-str">'#cta-'</span> + id + <span class="t-str">' .ufs-tile__incart-edit'</span>));
+  <span class="t-kw">else</span> document.querySelector(<span class="t-str">'#cta-'</span> + id + <span class="t-str">' [data-role="inc"]'</span>).focus({ preventScroll: <span class="t-kw">true</span> });
+}
+
+<span class="t-cm">// Inline stepper (single-only products)</span>
+<span class="t-kw">function</span> tileStep(id, pack, d) { tileSet(id, pack, (lineOf(id)[pack] || 0) + d, <span class="t-kw">true</span>); }
+<span class="t-kw">function</span> tileSet(id, pack, value, fromStep) {
+  <span class="t-kw">var</span> before = setLine(id, pack, value), q = lineOf(id)[pack] || 0, cta = document.getElementById(<span class="t-str">'cta-'</span> + id);
+  <span class="t-kw">if</span> (q === before) { renderTileCta(id); <span class="t-kw">return</span>; }
+  <span class="t-kw">if</span> (!q) { bumpBadge(); cta.querySelector(<span class="t-str">'[data-add]'</span>).focus({ preventScroll: <span class="t-kw">true</span> }); <span class="t-kw">return</span>; }   <span class="t-cm">// back to "Add to cart"</span>
+  rollQty(cta.querySelector(<span class="t-str">'.fi-qty'</span>), before, q &gt; before);
+  <span class="t-kw">if</span> (q &gt; before) flyToCart(tilePhoto(id), IMG + PRODUCTS[id].img); <span class="t-kw">else</span> bumpBadge();
+  <span class="t-kw">if</span> (fromStep) cta.querySelector(q &lt; before ? <span class="t-str">'[data-role="dec"]'</span> : <span class="t-str">'[data-role="inc"]'</span>).focus({ preventScroll: <span class="t-kw">true</span> });
+}</pre></div></div><div class="notice notice--info"><span class="notice-icon">ℹ️</span><div>The tile itself is a link to the product page. The cart controls and the favourite button sit above the stretched link (<code>z-index: 2</code>). The points pill and badge let clicks through (<code>pointer-events: none</code>), so tapping them opens the product.</div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANIMATION ═══════════════════════════════════════ -->
+    <section class="doc-section" id="animation">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Animation</h2>
+      <p class="section-desc">The tile reuses the shared cart motion (specs in <a href="pack-size-picker-spec.html#animation">Pack Size Picker › Animation</a>) plus the v1 tile hover. With reduced motion, everything below is skipped.</p>
+      <div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Element</th><th>Trigger</th><th>Animation</th><th>Duration</th><th>Easing</th></tr></thead><tbody><tr><td>Tile lift (v1)</td><td>Hover, fine pointer</td><td>translateY(-2px) + --shadow-md</td><td>200ms</td><td>ease</td></tr><tr><td>Photo zoom (v1)</td><td>Hover, ≥769px</td><td>scale(1.06)</td><td>350ms</td><td>ease</td></tr><tr><td>Fly-to-cart</td><td>Add to cart, or + on the inline stepper</td><td>Photo copy (160px) arcs to the header cart: lifts 60px, scale 0.55 mid-way, lands 24px</td><td>700ms</td><td>cubic-bezier(0.45, 0, 0.55, 1)</td></tr><tr><td>Badge bump</td><td>Photo lands / quantity decreases</td><td>scale 1 → 1.35 → 1</td><td>350ms</td><td>ease</td></tr><tr><td>Quantity roll</td><td>Inline stepper change</td><td>Old number out, new number in (up = more)</td><td>260ms</td><td>cubic-bezier(0.2, 0.7, 0.3, 1)</td></tr><tr><td>CTA state swap</td><td>Add ⇄ in-cart / stepper</td><td>None: an instant swap, so the control is usable on the same frame</td><td>–</td><td>–</td></tr><tr><td>Favourite pop (v1)</td><td>Favourite toggled</td><td>See tiles-spec.html</td><td>320ms</td><td>ease</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">At ≤768px the catalog grid becomes v1's list layout (<code>.ufs-catalog-grid</code>: photo beside content, hairline dividers). Shop tiles use a 112px photo. The flags move to the photo's corner and the pack info loses its pills. The CTA drops to 40px with small button text. This preview restates those rules under <code>.pv-list</code>.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-mobile pv-list"><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> points</span></span><span class="ufs-tile__badge">New</span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Sauces</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Professional Tomato Pronto 2 kg</a></h3><p class="ufs-tile__price"><b><bdi>€18.90</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 2 kg</b> or <b>Pack of 6</b></p></div><div class="ufs-tile__cta"><button type="button" class="btn btn-primary"><img src="../icons/cart.svg" alt=""/>Add to cart</button></div></div></article><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">450</span><span class="sr-only"> points</span></span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/mash-flakes-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Sides</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Professional Mash Flakes 2 kg</a></h3><p class="ufs-tile__price"><b><bdi>€24.90</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 2 kg</b> or <b>Pack of 6</b></p></div><div class="ufs-tile__cta"><div class="ufs-tile__incart"><span class="ufs-tile__incart-text"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 8.5 6.5 12 13 4.5"/></svg><span>In cart: 2 single · 1 × pack of 6</span></span><button type="button" class="ufs-tile__incart-edit">Edit</button></div></div></div></article><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">380</span><span class="sr-only"> points</span></span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/aromat-pouch-1kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">Seasonings</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">Knorr Aromat Original (Pouch) 1 kg</a></h3><p class="ufs-tile__price"><b><bdi>€21.75</bdi></b><span class="ufs-tile__price-note">Price indication (excl. VAT)</span></p><p class="ufs-tile__packs"><b>Single 1 kg</b></p></div><div class="ufs-tile__cta"><div class="ufs-tile__qty"><span class="ufs-tile__qty-label">In cart</span><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div></article></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N &AMP; RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The flags and the fav swap corners. The photo moves to the right in the mobile list, because the grid areas mirror. Text, price line and in-cart bar follow the reading direction. Prices stay in <code>&lt;bdi&gt;</code>. Picker, toast and fly-to-cart RTL behaviour: see the Pack Size Picker spec.</p>
+      <div class="ds-card"><div class="card-title">Strings</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Key</th><th>English</th><th>Arabic</th></tr></thead><tbody><tr><td><code>add</code></td><td>Add to cart</td><td><span dir="rtl">أضف إلى السلة</span></td></tr><tr><td><code>priceNote</code></td><td>Price indication (excl. VAT)</td><td><span dir="rtl">سعر تقديري (غير شامل ضريبة القيمة المضافة)</span></td></tr><tr><td><code>packInfo</code></td><td><b>Single {unit}</b> or <b>Pack of {n}</b></td><td><span dir="rtl"><b>مفردة {unit}</b> أو <b>عبوة من {n}</b></span></td></tr><tr><td><code>inCart</code></td><td>In cart</td><td><span dir="rtl">في السلة</span></td></tr><tr><td><code>incartParts</code></td><td>In cart: {parts}</td><td><span dir="rtl">في السلة: {parts}</span></td></tr><tr><td><code>tileSingle</code></td><td>{q} single</td><td><span dir="rtl">{q} مفردة</span></td></tr><tr><td><code>tileMulti</code></td><td>{q} × pack of {n}</td><td><span dir="rtl">{q} × عبوة من {n}</span></td></tr><tr><td><code>edit</code></td><td>Edit</td><td><span dir="rtl">تعديل</span></td></tr><tr><td><code>new</code></td><td>New</td><td><span dir="rtl">جديد</span></td></tr></tbody></table></div><p style="font-size:12px;color:var(--color-mushroom-900);margin-top:10px"><code>packInfo</code>: both pack names are wrapped in <code>&lt;b&gt;</code>, as shown. Category names and product names come from the product feed (e.g. "Sauces" → "صلصات").</p></div><div class="ds-card"><div class="card-title">RTL previews</div><div aria-hidden="true" inert class="pv-row"><div><div class="pv-label">Desktop, dir="rtl"</div><div class="pv-light pv-pad" dir="rtl"><div class="pv-states" style="grid-template-columns:repeat(2,260px)"><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> نقطة</span></span><span class="ufs-tile__badge">جديد</span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">صلصات</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">كنور بروفيشنال صلصة طماطم برونتو 2 كغ</a></h3><p class="ufs-tile__price"><b><bdi>€18.90</bdi></b><span class="ufs-tile__price-note">سعر تقديري (غير شامل ضريبة القيمة المضافة)</span></p><p class="ufs-tile__packs"><b>مفردة 2 كغ</b> أو <b>عبوة من 6</b></p></div><div class="ufs-tile__cta"><button type="button" class="btn btn-primary"><img src="../icons/cart.svg" alt=""/>أضف إلى السلة</button></div></div></article><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">350</span><span class="sr-only"> نقطة</span></span><span class="ufs-tile__badge">جديد</span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/tomato-pronto-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">صلصات</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">كنور بروفيشنال صلصة طماطم برونتو 2 كغ</a></h3><p class="ufs-tile__price"><b><bdi>€18.90</bdi></b><span class="ufs-tile__price-note">سعر تقديري (غير شامل ضريبة القيمة المضافة)</span></p><p class="ufs-tile__packs"><b>مفردة 2 كغ</b> أو <b>عبوة من 6</b></p></div><div class="ufs-tile__cta"><div class="ufs-tile__incart"><span class="ufs-tile__incart-text"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 8.5 6.5 12 13 4.5"/></svg><span>في السلة: 2 مفردة · 1 × عبوة من 6</span></span><button type="button" class="ufs-tile__incart-edit">تعديل</button></div></div></div></article></div></div></div><div><div class="pv-label">Mobile list, dir="rtl"</div><div class="pv-mobile pv-list" dir="rtl" style="margin:0"><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">450</span><span class="sr-only"> نقطة</span></span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/mash-flakes-2kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">أطباق جانبية</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">كنور بروفيشنال رقائق البطاطس المهروسة 2 كغ</a></h3><p class="ufs-tile__price"><b><bdi>€24.90</bdi></b><span class="ufs-tile__price-note">سعر تقديري (غير شامل ضريبة القيمة المضافة)</span></p><p class="ufs-tile__packs"><b>مفردة 2 كغ</b> أو <b>عبوة من 6</b></p></div><div class="ufs-tile__cta"><button type="button" class="btn btn-primary"><img src="../icons/cart.svg" alt=""/>أضف إلى السلة</button></div></div></article><article class="ufs-tile ufs-tile--shop"><button type="button" class="ufs-tile__fav" aria-pressed="false" aria-label="Add to favourites"><svg width="20" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button><div class="ufs-tile__flags"><span class="ufs-points"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg><span class="ufs-points__val">380</span><span class="sr-only"> نقطة</span></span></div><div class="ufs-tile__image"><div class="ufs-tile__image-media" style="background-image:url('../images/catalog/knorr/aromat-pouch-1kg.jpg')"></div></div><div class="ufs-tile__content"><div class="ufs-tile__body"><div class="ufs-tile__eyebrow">توابل</div><h3 class="ufs-tile__title"><a class="ufs-tile__pdp" href="#" onclick="return false;">كنور أرومات أصلي (كيس) 1 كغ</a></h3><p class="ufs-tile__price"><b><bdi>€21.75</bdi></b><span class="ufs-tile__price-note">سعر تقديري (غير شامل ضريبة القيمة المضافة)</span></p><p class="ufs-tile__packs"><b>مفردة 1 كغ</b></p></div><div class="ufs-tile__cta"><div class="ufs-tile__qty"><span class="ufs-tile__qty-label">في السلة</span><div class="fi-qty fi-qty--cart"><button type="button" class="fi-qty-btn" data-role="dec" aria-label="Decrease"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg></button><input class="fi-qty-input" type="number" value="1" aria-label="Quantity" readonly/><button type="button" class="fi-qty-btn" data-role="inc" aria-label="Increase"><svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg></button></div></div></div></div></article></div></div></div></div><div class="ds-card"><div class="card-title">RTL rules</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Element</th><th>Rule</th></tr></thead><tbody><tr><td>Flags</td><td><code>inset-inline-start</code>: top-right in RTL</td></tr><tr><td>Favourite</td><td>v1 rule <code>[dir="rtl"] .ufs-tile__fav { right: auto; left: … }</code>. The mobile override repeats it at 16px.</td></tr><tr><td>Title / eyebrow clearance for the fav (mobile)</td><td><code>padding-inline-end</code></td></tr><tr><td>Price note gap</td><td><code>margin-inline-start</code></td></tr><tr><td>Mobile list</td><td>Grid areas mirror on their own: the photo sits on the right</td></tr></tbody></table></div></div>
+    </section>
+
+  </main>
+
+<!-- Pack Size Picker: one instance per page, filled per product -->
+<div class="ufs-pack-picker-backdrop" id="pack-picker-backdrop" onclick="closePicker()"></div>
+<div class="ufs-pack-picker" id="pack-picker" role="dialog" aria-modal="true" aria-labelledby="pack-picker-title" tabindex="-1">
+  <span class="ufs-pack-picker__arrow" aria-hidden="true"></span>
+  <div class="ufs-pack-picker__hd">
+    <div>
+      <h2 class="ufs-pack-picker__title" id="pack-picker-title"></h2>
+      <p class="ufs-pack-picker__sub">Choose pack size and quantity</p>
+    </div>
+    <button type="button" class="ufs-pack-picker__close" onclick="closePicker()" aria-label="Close">
+      <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+    </button>
+  </div>
+  <div id="pack-picker-rows"></div>
+  <div class="ufs-pack-summary">
+    <div class="ufs-pack-summary__row"><span id="pack-picker-count">0 items in cart</span><b id="pack-picker-total">€0.00</b></div>
+    <div class="ufs-pack-summary__points" id="pack-picker-points"></div>
+  </div>
+</div>
+
+<!-- Cart toasts (one per page) + a screen-reader live region -->
+<div class="ufs-cart-toasts" id="cart-toasts" role="status" aria-live="polite"></div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+
+// Doc chrome: a table that scrolls sideways gets a keyboard stop + a name, only while it overflows
+function markScrollRegions() {
+  document.querySelectorAll('.spec-table-wrap').forEach(function (w) {
+    if (w.closest('[inert]')) return;
+    if (w.scrollWidth > w.clientWidth + 1) {
+      var t = w.closest('.ds-card') && w.closest('.ds-card').querySelector('.card-title');
+      w.tabIndex = 0; w.setAttribute('role', 'region'); w.setAttribute('aria-label', (t ? t.textContent + ' ' : '') + 'table, scrolls sideways');
+    } else { w.removeAttribute('tabindex'); w.removeAttribute('role'); w.removeAttribute('aria-label'); }
+  });
+}
+window.addEventListener('load', markScrollRegions);
+window.addEventListener('resize', markScrollRegions);
+
+
+/* Demo catalogue. price = one single item; multi = items in the multi-pack
+   (null = sold as single items only); pts = loyalty points per single item. */
+var IMG = '../images/';
+var PRODUCTS = {
+  tomato:  { id: 'tomato',  name: 'Knorr Professional Tomato Pronto 2 kg', cat: 'Sauces', unit: '2 kg', img: 'catalog/knorr/tomato-pronto-2kg.jpg', price: 18.90, multi: 6, pts: 350, badge: 'New' },
+  mash:    { id: 'mash',    name: 'Knorr Professional Mash Flakes 2 kg', cat: 'Sides', unit: '2 kg', img: 'catalog/knorr/mash-flakes-2kg.jpg', price: 24.90, multi: 6, pts: 450 },
+  pouch:   { id: 'pouch',   name: 'Knorr Aromat Original (Pouch) 1 kg', cat: 'Seasonings', unit: '1 kg', img: 'catalog/knorr/aromat-pouch-1kg.jpg', price: 21.75, multi: null, pts: 380 },
+  granules:{ id: 'granules',name: 'Knorr Chicken Stock Granules 1 kg', cat: 'Stocks', unit: '1 kg', img: 'catalog/knorr/chicken-stock-granules-1kg.jpg', price: 18.90, multi: 6, pts: 350 }
+};
+
+var ICON = {
+  minus: '<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M33.75 20.7a2.55 2.55 0 0 1 0 5.1h-22.5a2.55 2.55 0 0 1 0-5.1z"/></svg>',
+  plus:  '<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22.5 9.45a2.55 2.55 0 0 1 2.55 2.55v8.7h8.7a2.55 2.55 0 0 1 0 5.1h-8.7v8.7a2.55 2.55 0 0 1-5.1 0v-8.7h-8.7a2.55 2.55 0 0 1 0-5.1h8.7V12a2.55 2.55 0 0 1 2.55-2.55z"/></svg>',
+  del:   '<svg viewBox="0 0 45 45" aria-hidden="true"><path fill-rule="evenodd" d="M29.17 12.6v-1.65C29.17 8.22 26.93 6 24.17 6h-3.34c-2.76 0-5 2.22-5 4.95v1.65H9.17a1.66 1.66 0 1 0 0 3.3h1.66v18.15c0 2.73 2.24 4.95 5 4.95h13.34c2.76 0 5-2.22 5-4.95V15.9h1.66a1.66 1.66 0 1 0 0-3.3zm-8.34-3.3h3.34c.92 0 1.66.74 1.66 1.65v1.65h-6.66v-1.65c0-.91.74-1.65 1.66-1.65zm8.34 26.4H15.83c-.92 0-1.66-.74-1.66-1.65V15.9h16.66v18.15c0 .91-.74 1.65-1.66 1.65z"/></svg>',
+  coin:  '<svg viewBox="0 0 45 45" aria-hidden="true"><path d="M22 8a15 15 0 1 1 0 30 15 15 0 0 1 0-30zm0 4a11 11 0 1 0 0 22 11 11 0 0 0 0-22z"/><circle cx="22" cy="23" r="8.5"/></svg>',
+  check: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 8.5 6.5 12 13 4.5"/></svg>',
+  close: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>'
+};
+
+/* UI copy — every string goes through t() so a locale only swaps this table.
+   Arabic values are in the i18n & RTL section of each spec. */
+var TEXT = {
+  add: 'Add to cart', single: 'Single item', packOf: 'Pack of {n}',
+  choose: 'Choose pack size and quantity', priceNote: 'Price indication (excl. VAT)',
+  inCart: 'In cart', edit: 'Edit', close: 'Close', points: 'points', each: 'each',
+  itemsInCart: '{n} items in cart', itemInCart: '1 item in cart',
+  added: 'Added: {what}', updated: 'Updated: {what}', removed: 'Removed: {what}', viewCart: 'View cart',
+  increase: 'Increase {what}', decrease: 'Decrease {what}', remove: 'Remove {what}', quantity: '{what} quantity'
+};
+function t(key, vars) {
+  return TEXT[key].replace(/\{(\w+)\}/g, function (_, k) { return vars[k]; });
+}
+
+/* ── Cart state ──────────────────────────────────────────────
+   One line per product, one quantity per pack type:
+   cart = { tomato: { single: 2, multi: 1 } }
+   Every change (tile, picker, hero, cart panel) goes through setLine(),
+   and every view re-renders from this one state. Persist it however the
+   platform stores the cart; the prototype keeps it in localStorage. */
+var cart = {};
+var cartViews = [];                       // render functions called after each change
+var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+function lineOf(id) { return cart[id] || { single: 0, multi: 0 }; }
+function clampQty(v) { v = parseInt(v, 10); return isNaN(v) || v < 0 ? 0 : Math.min(v, 999); }
+function packLabel(p, pack) { return pack === 'single' ? t('single') : t('packOf', { n: p.multi }); }
+function packPrice(p, pack) { return pack === 'single' ? p.price : p.price * p.multi; }
+function lineUnits(p, l) { return (l.single || 0) + (l.multi || 0) * (p.multi || 1); }
+function lineTotal(p, l) { return (l.single || 0) * p.price + (p.multi ? (l.multi || 0) * packPrice(p, 'multi') : 0); }
+function money(n) { return '€' + n.toFixed(2); }        // use Intl.NumberFormat(locale, { style: 'currency' }) in production
+function fmtPoints(n) { return n.toLocaleString('de-DE'); }
+function escHTML(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+// Returns the previous quantity, so callers can animate old → new
+function setLine(id, pack, qty, quiet) {
+  var l = lineOf(id), before = l[pack] || 0, q = clampQty(qty);
+  if (q === before) return before;
+  l = { single: l.single || 0, multi: l.multi || 0 };
+  l[pack] = q;
+  if (l.single + l.multi) cart[id] = l; else delete cart[id];
+  renderCartBadge();
+  if (!quiet) cartToast(PRODUCTS[id], pack, before, q);
+  cartViews.forEach(function (render) { render(id); });
+  return before;
+}
+
+function cartCount() {
+  return Object.keys(cart).reduce(function (n, id) { return n + cart[id].single + cart[id].multi; }, 0);
+}
+function renderCartBadge() {
+  var n = cartCount();
+  document.querySelectorAll('[data-cart-button]').forEach(function (btn) {
+    var badge = btn.querySelector('.ufs-nav__badge');
+    badge.textContent = n; badge.hidden = n === 0;
+    btn.setAttribute('aria-label', 'Cart, ' + n + ' item' + (n === 1 ? '' : 's'));
+  });
+}
+
+/* ── Cart feedback ── */
+// One wording for every change: Added / Updated / Removed
+function cartToast(p, pack, before, q) {
+  var what = p.name + (p.multi ? ' · ' + packLabel(p, pack) : '');
+  var msg = !q ? t('removed', { what: what })
+    : !before ? t('added', { what: what + (q > 1 ? ' × ' + q : '') })
+    : t('updated', { what: what + ' × ' + q });
+  showToast(msg, { label: t('viewCart'), fn: openCartPanel });
+}
+
+var TOAST_MAX = 2, TOAST_MS = 3200;
+function showToast(msg, action) {
+  var stack = document.getElementById('cart-toasts'), el = document.createElement('div');
+  el.className = 'ufs-cart-toast';
+  var text = document.createElement('span');
+  text.textContent = msg;
+  el.appendChild(text);
+  if (action) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = action.label;
+    b.onclick = function () { action.fn(); dismissToast(el); };
+    el.appendChild(b);
+  }
+  stack.appendChild(el);
+  var live = [].filter.call(stack.children, function (c) { return !c.classList.contains('is-leaving'); });
+  while (live.length > TOAST_MAX) dismissToast(live.shift());      // oldest leaves first
+  if (!reduceMotion.matches) {                                      // grows in, so older toasts glide up
+    var h = el.offsetHeight; el.style.overflow = 'hidden';
+    el.animate([{ height: 0, opacity: 0, transform: 'translateY(8px)' }, { height: h + 'px', opacity: 1, transform: 'none' }],
+      { duration: 220, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }).onfinish = function () { el.style.overflow = ''; };
+  }
+  el._timer = setTimeout(function () { dismissToast(el); }, TOAST_MS);
+}
+function dismissToast(el) {
+  if (el.classList.contains('is-leaving')) return;
+  el.classList.add('is-leaving'); clearTimeout(el._timer);
+  if (reduceMotion.matches) { el.remove(); return; }
+  var h = el.offsetHeight; el.style.overflow = 'hidden';
+  el.animate([{ height: h + 'px', opacity: 1 }, { height: 0, opacity: 0 }],
+    { duration: 200, easing: 'ease-in', fill: 'forwards' }).onfinish = function () { el.remove(); };
+}
+
+// Product photo arcs from fromEl into whichever cart icon is on screen, then the badge bumps
+function flyToCart(fromEl, imgUrl) {
+  var target = [].filter.call(document.querySelectorAll('[data-cart-button]'), function (b) {
+    var r = b.getBoundingClientRect(); return r.width && r.bottom > 0 && r.top < innerHeight;
+  })[0];
+  if (reduceMotion.matches || !fromEl || !target) { bumpBadge(); return; }
+  var a = fromEl.getBoundingClientRect(), c = target.getBoundingClientRect();
+  var size = Math.max(56, Math.min(a.width, a.height, 160));          // tile photo → 160, pack thumbnail → 56
+  var x0 = a.left + (a.width - size) / 2, y0 = a.top + (a.height - size) / 2;
+  var dx = c.left + c.width / 2 - (x0 + size / 2), dy = c.top + c.height / 2 - (y0 + size / 2);
+  var mid = size > 100 ? 0.55 : 0.8, end = 24 / size;                 // lands 24px wide on the icon
+  var fly = document.createElement('div');
+  fly.className = 'ufs-cart-fly';
+  fly.style.cssText = 'left:' + x0 + 'px;top:' + y0 + 'px;width:' + size + 'px;height:' + size + 'px;background-image:url(\'' + imgUrl + '\')';
+  document.body.appendChild(fly);
+  fly.animate([
+    { transform: 'translate(0,0) scale(1)', opacity: 1 },
+    { transform: 'translate(' + dx * 0.45 + 'px,' + (dy * 0.45 - 60) + 'px) scale(' + mid + ')', opacity: 1, offset: 0.45 },
+    { transform: 'translate(' + dx + 'px,' + dy + 'px) scale(' + end + ')', opacity: 0.6 }
+  ], { duration: 700, easing: 'cubic-bezier(0.45, 0, 0.55, 1)' }).onfinish = function () { fly.remove(); bumpBadge(); };
+}
+function bumpBadge() {
+  document.querySelectorAll('[data-cart-button] .ufs-nav__badge').forEach(function (badge) {
+    badge.classList.remove('is-bump'); void badge.offsetWidth; badge.classList.add('is-bump');
+  });
+}
+
+// Number roll over a stepper's input; the input's own text hides until it lands
+function rollQty(qty, from, up) {
+  var input = qty && qty.querySelector('.fi-qty-input');
+  if (reduceMotion.matches || !input || String(input.value) === String(from)) return;
+  var cs = getComputedStyle(input), roll = document.createElement('span');
+  var ir = input.getBoundingClientRect(), qr = qty.getBoundingClientRect();
+  roll.className = 'ufs-qty-roll'; roll.setAttribute('aria-hidden', 'true');
+  roll.style.cssText = 'left:' + (ir.left - qr.left) + 'px;top:' + (ir.top - qr.top) + 'px;width:' + ir.width + 'px;height:' + ir.height + 'px;font:' + cs.font + ';color:' + cs.color;
+  var dir = up ? 'up' : 'down';
+  roll.innerHTML = '<span class="is-out-' + dir + '">' + from + '</span><span class="is-in-' + dir + '">' + input.value + '</span>';
+  input.style.color = 'transparent';
+  qty.appendChild(roll);
+  setTimeout(function () { roll.remove(); input.style.color = ''; }, 270);
+}
+
+// Points: count from the old value to the new one (600ms ease-out) + one soft gold pulse
+function animatePoints(pill, to) {
+  var val = pill.querySelector('.ufs-points__val');
+  var from = parseInt(val.getAttribute('data-value') || '0', 10);
+  val.setAttribute('data-value', to);
+  cancelAnimationFrame(pill._raf);
+  if (from === to || reduceMotion.matches) { val.textContent = fmtPoints(to); return; }
+  pill.classList.remove('is-pulse'); void pill.offsetWidth; pill.classList.add('is-pulse');
+  var start = performance.now();
+  (function tick(now) {
+    var k = Math.min(Math.max((now - start) / 600, 0), 1), e = 1 - Math.pow(1 - k, 3);   // ease-out cubic
+    val.textContent = fmtPoints(Math.round(from + (to - from) * e));
+    if (k < 1) pill._raf = requestAnimationFrame(tick);
+  })(start);
+}
+function setPoints(pill, to) {
+  var val = pill.querySelector('.ufs-points__val');
+  cancelAnimationFrame(pill._raf);
+  val.setAttribute('data-value', to); val.textContent = fmtPoints(to);
+}
+function pointsHTML(value) {
+  return '<span class="ufs-points">' + ICON.coin + '<span class="ufs-points__val" data-value="' + value + '">' + fmtPoints(value) +
+    '</span><span class="sr-only"> ' + t('points') + '</span></span>';
+}
+
+/* ── Pack rows (shared by the picker and the Product Hero) ── */
+// o: { p, pack, value, scope, args, deleteAtOne, min }  (min: minus disables at this value, default 0)
+// Buttons call {scope}Step(args, ±1), the field calls {scope}Set(args, value).
+// args defaults to the pack: "'single'"; tiles pass "'tomato','single'".
+function stepperHTML(o) {
+  var args = o.args || "'" + o.pack + "'";
+  var what = packLabel(o.p, o.pack), del = o.deleteAtOne && o.value === 1;
+  return '<div class="fi-qty fi-qty--cart" data-pack="' + o.pack + '">' +
+    '<button type="button" class="fi-qty-btn' + (del ? ' fi-qty-btn--delete' : '') + '" data-role="dec"' +
+      ' aria-label="' + escHTML(t(del ? 'remove' : 'decrease', { what: what })) + '"' +
+      ' onclick="' + o.scope + 'Step(' + args + ',-1)"' + (o.value <= (o.min || 0) ? ' disabled' : '') + '>' + (del ? ICON.del : ICON.minus) + '</button>' +
+    '<input class="fi-qty-input" type="number" inputmode="numeric" min="0" max="999" value="' + o.value + '"' +
+      ' aria-label="' + escHTML(t('quantity', { what: what })) + '" onchange="' + o.scope + 'Set(' + args + ',this.value)" onfocus="this.select()"/>' +
+    '<button type="button" class="fi-qty-btn" data-role="inc" aria-label="' + escHTML(t('increase', { what: what })) + '"' +
+      ' onclick="' + o.scope + 'Step(' + args + ',1)">' + ICON.plus + '</button>' +
+  '</div>';
+}
+// meta: the price line under the name — rows choose how much detail to show
+function packRowHTML(p, pack, meta, control) {
+  return '<div class="ufs-pack-row" data-row="' + pack + '">' +
+    '<div class="ufs-pack-row__img" style="background-image:url(\'' + IMG + p.img + '\')">' +
+      (pack === 'multi' ? '<span class="ufs-pack-row__count" aria-hidden="true">×' + p.multi + '</span>' : '') + '</div>' +
+    '<div class="ufs-pack-row__txt"><p class="ufs-pack-row__name">' + packLabel(p, pack) + meta.points + '</p>' +
+      '<p class="ufs-pack-row__meta">' + meta.price + '</p></div>' +
+    '<div class="ufs-pack-row__ctl" data-ctl="' + pack + '">' + control + '</div>' +
+  '</div>';
+}
+
+/* ── Pack Size Picker ──────────────────────────────────────
+   One instance per page, filled per product. Edits the cart live:
+   every stepper change is applied immediately (no submit button). */
+var picker = { id: null, trigger: null };
+
+function openPicker(id, trigger) {
+  picker.id = id; picker.trigger = trigger;
+  var el = document.getElementById('pack-picker');
+  document.getElementById('pack-picker-title').textContent = PRODUCTS[id].name;
+  renderPicker(false);
+  el.classList.add('is-open');
+  document.getElementById('pack-picker-backdrop').classList.add('is-open');
+  positionPicker(trigger);
+  positionToasts();
+  // Focus the dialog itself (no ring, nothing pre-selected); Tab moves to its first control.
+  // On mobile wait for the sheet to finish sliding in.
+  setTimeout(function () { el.focus({ preventScroll: true }); }, isMobile() ? 260 : 0);
+}
+
+function renderPicker(animate) {
+  var p = PRODUCTS[picker.id], l = lineOf(picker.id);
+  document.getElementById('pack-picker-rows').innerHTML = ['single', 'multi'].map(function (pack) {
+    return packRowHTML(p, pack, { points: '', price: '<b>' + money(packPrice(p, pack)) + '</b>' },
+      stepperHTML({ p: p, pack: pack, value: l[pack] || 0, scope: 'picker' }));
+  }).join('');
+  var units = lineUnits(p, l);
+  document.getElementById('pack-picker-count').textContent =
+    (units === 1 ? t('itemInCart') : t('itemsInCart', { n: units })) +
+    (l.multi ? ' (' + (l.single || 0) + ' single + ' + l.multi + ' × ' + p.multi + ')' : '');
+  document.getElementById('pack-picker-total').textContent = money(lineTotal(p, l));
+  var pill = document.querySelector('#pack-picker-points .ufs-points');
+  (animate ? animatePoints : setPoints)(pill, units * p.pts);
+}
+
+function pickerStep(pack, d) { pickerSet(pack, (lineOf(picker.id)[pack] || 0) + d, true); }
+function pickerSet(pack, value, fromStep) {
+  var before = setLine(picker.id, pack, value), q = lineOf(picker.id)[pack] || 0;   // setLine re-renders the picker
+  if (q === before) { renderPicker(false); return; }                                 // e.g. "abc" typed: restore the field
+  var row = document.querySelector('#pack-picker-rows [data-row="' + pack + '"]');
+  rollQty(row.querySelector('.fi-qty'), before, q > before);
+  if (q > before) flyToCart(row.querySelector('.ufs-pack-row__img'), IMG + PRODUCTS[picker.id].img);
+  else bumpBadge();
+  if (fromStep) {                                     // focus stays on the pressed button…
+    var btn = row.querySelector(q < before ? '[data-role="dec"]' : '[data-role="inc"]');
+    if (btn.disabled) btn = row.querySelector('[data-role="inc"]');   // …unless minus just disabled at 0
+    btn.focus({ preventScroll: true });
+  }
+}
+
+function closePicker(skipFocus) {
+  if (!picker.id) return;
+  document.getElementById('pack-picker').classList.remove('is-open');
+  document.getElementById('pack-picker-backdrop').classList.remove('is-open');
+  var back = pickerTrigger();
+  if (!skipFocus && back) back.focus({ preventScroll: true });
+  picker.id = null;
+  positionToasts();
+}
+
+// While the mobile sheet is open, toasts sit 12px above it instead of behind it
+function positionToasts() {
+  var stack = document.getElementById('cart-toasts'), el = document.getElementById('pack-picker');
+  if (picker.id && isMobile()) stack.style.bottom = 'calc(' + el.offsetHeight + 'px + var(--space-3))';
+  else stack.style.bottom = '';
+}
+
+// The trigger may have been re-rendered while the picker was open (the tile behind it
+// updates live), so fall back to the product's current Edit / Add to cart control.
+function pickerTrigger() {
+  if (picker.trigger && document.contains(picker.trigger)) return picker.trigger;
+  return document.querySelector('[data-picker-return="' + picker.id + '"]');
+}
+
+function isMobile() { return window.matchMedia('(max-width: 768px)').matches; }
+
+// Desktop: always ABOVE the trigger, 12px gap, same width as the tile and flush with
+// its edges; the arrow (bottom edge) points at the trigger's centre. If there isn't
+// room above, the page first smooth-scrolls just enough to fit it, 16px below the sticky
+// header, with the picker riding along with the tile.
+function pickerSafeTop() {
+  var header = document.querySelector('[data-sticky-header]');   // the site header, while it's on screen
+  return Math.max(0, header ? header.getBoundingClientRect().bottom : 0) + 16;
+}
+function positionPicker(trigger) {
+  var el = document.getElementById('pack-picker'), arrow = el.querySelector('.ufs-pack-picker__arrow');
+  if (isMobile()) { el.style.width = ''; return; }
+  var tile = trigger.closest('[data-picker-anchor]'), box = tile && tile.getBoundingClientRect();
+  if (box) el.style.width = box.width + 'px';
+  var h = el.offsetHeight, need = h + 12 + pickerSafeTop(), r = trigger.getBoundingClientRect();
+  if (r.top < need - 1 && scrollY > 0 && !picker.autoScroll) startPickerScroll(need - r.top);
+  var w = el.offsetWidth;
+  var left = box ? box.left : Math.min(Math.max(16, r.left + r.width / 2 - w / 2), innerWidth - w - 16);
+  el.style.left = left + 'px';
+  // While scrolling-to-fit it follows the tile; afterwards the floor only applies when
+  // the page can't scroll further
+  el.style.top = (picker.autoScroll ? r.top - 12 - h : Math.max(pickerSafeTop(), r.top - 12 - h)) + 'px';
+  arrow.style.left = (r.left + r.width / 2 - left - 7) + 'px';
+}
+
+window.addEventListener('resize', function () { if (picker.id && pickerTrigger()) positionPicker(pickerTrigger()); });
+// Desktop popover is anchored to the page: it closes on scroll instead of drifting
+window.addEventListener('scroll', function () {
+  if (picker.autoScroll) { if (picker.id && pickerTrigger()) positionPicker(pickerTrigger()); return; }   // ride along
+  if (picker.id && !isMobile()) closePicker();
+}, { passive: true });
+// Scroll-to-fit: smooth (instant with reduced motion). Our own scroll must not close
+// the picker; it repositions on every frame instead, then once more when it settles.
+function startPickerScroll(gap) {
+  picker.autoScroll = true;
+  var done = function () {
+    if (!picker.autoScroll) return;
+    picker.autoScroll = false; clearTimeout(fallback);
+    if (picker.id && pickerTrigger()) positionPicker(pickerTrigger());
+  };
+  var fallback = setTimeout(done, 1000);   // no scrollend event (older Safari)
+  window.addEventListener('scrollend', done, { once: true });
+  window.scrollBy({ top: -gap, behavior: reduceMotion.matches ? 'instant' : 'smooth' });
+}
+document.addEventListener('keydown', function (e) {
+  if (!picker.id) return;
+  if (e.key === 'Escape') { closePicker(); return; }
+  if (e.key !== 'Tab') return;                       // keep Tab inside the open picker
+  var f = [].slice.call(document.querySelectorAll('#pack-picker button:not(:disabled), #pack-picker input'));
+  if (e.shiftKey && (document.activeElement === f[0] || document.activeElement.id === 'pack-picker')) { e.preventDefault(); f[f.length - 1].focus(); }
+  else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+});
+cartViews.push(function (id) { if (picker.id === id) renderPicker(true); });
+
+/* Doc-only stand-in: the Cart Panel has its own spec. Here "View cart" just bumps the badge. */
+function openCartPanel() { bumpBadge(); }
+document.addEventListener('DOMContentLoaded', function () {
+  var pts = document.getElementById('pack-picker-points');
+  if (pts) pts.innerHTML = pointsHTML(0);
+  renderCartBadge();
+});
+
+/* ── Product Tile + Add to cart ──
+   Uses the shared cart engine + Pack Size Picker (pack-size-picker-spec.html). */
+TEXT.packInfo = '<b>Single {unit}</b> or <b>Pack of {n}</b>';
+TEXT.packInfoSingle = '<b>Single {unit}</b>';
+TEXT.inCartParts = 'In cart: {parts}';
+TEXT.partSingle = '{q} single';
+TEXT.partMulti = '{q} × pack of {n}';
+
+function tileCtaHTML(p) {
+  var l = lineOf(p.id);
+  // Nothing in the cart: the "Add to cart" button
+  if (!lineUnits(p, l)) {
+    return '<button type="button" class="btn btn-primary" data-picker-return="' + p.id + '" data-add onclick="tileAdd(\'' + p.id + '\')">' +
+      '<img src="../icons/cart.svg" alt=""/>' + t('add') + '</button>';
+  }
+  // Sold as single items only: an inline stepper, no picker
+  if (!p.multi) {
+    return '<div class="ufs-tile__qty"><span class="ufs-tile__qty-label">' + t('inCart') + '</span>' +
+      stepperHTML({ p: p, pack: 'single', value: l.single, scope: 'tile', args: "'" + p.id + "','single'" }) + '</div>';
+  }
+  // Has a multi-pack: what's in the cart + Edit (reopens the picker)
+  var parts = [];
+  if (l.single) parts.push(t('partSingle', { q: l.single }));
+  if (l.multi) parts.push(t('partMulti', { q: l.multi, n: p.multi }));
+  return '<div class="ufs-tile__incart"><span class="ufs-tile__incart-text">' + ICON.check +
+      '<span>' + t('inCartParts', { parts: parts.join(' · ') }) + '</span></span>' +
+    '<button type="button" class="ufs-tile__incart-edit" data-picker-return="' + p.id + '"' +
+      ' onclick="openPicker(\'' + p.id + '\', this)" aria-label="' + escHTML(t('edit') + ' ' + p.name) + '">' + t('edit') + '</button></div>';
+}
+
+function renderTileCta(id) {
+  var cta = document.getElementById('cta-' + id);
+  if (cta) cta.innerHTML = tileCtaHTML(PRODUCTS[id]);
+}
+cartViews.push(renderTileCta);          // picker and cart panel edits keep the tile in sync
+
+function tilePhoto(id) { return document.querySelector('#tile-' + id + ' .ufs-tile__image-media'); }
+
+// "Add to cart": 1 single item goes in straight away. Multi-pack products then open
+// the picker to adjust; single-only products land on + of the inline stepper.
+function tileAdd(id) {
+  var p = PRODUCTS[id];
+  setLine(id, 'single', 1);
+  flyToCart(tilePhoto(id), IMG + p.img);
+  if (p.multi) openPicker(id, document.querySelector('#cta-' + id + ' .ufs-tile__incart-edit'));
+  else document.querySelector('#cta-' + id + ' [data-role="inc"]').focus({ preventScroll: true });
+}
+
+// Inline stepper (single-only products)
+function tileStep(id, pack, d) { tileSet(id, pack, (lineOf(id)[pack] || 0) + d, true); }
+function tileSet(id, pack, value, fromStep) {
+  var before = setLine(id, pack, value), q = lineOf(id)[pack] || 0, cta = document.getElementById('cta-' + id);
+  if (q === before) { renderTileCta(id); return; }
+  if (!q) { bumpBadge(); cta.querySelector('[data-add]').focus({ preventScroll: true }); return; }   // back to "Add to cart"
+  rollQty(cta.querySelector('.fi-qty'), before, q > before);
+  if (q > before) flyToCart(tilePhoto(id), IMG + PRODUCTS[id].img); else bumpBadge();
+  if (fromStep) cta.querySelector(q < before ? '[data-role="dec"]' : '[data-role="inc"]').focus({ preventScroll: true });
+}
+
+/* Doc-only: render the live grid */
+function favToggle(btn) { var on = btn.classList.toggle('is-active'); btn.setAttribute('aria-pressed', on); }
+document.addEventListener('DOMContentLoaded', function () {
+  ['tomato', 'mash', 'pouch'].forEach(renderTileCta);
+});
+
+  </script>
+</body>
+</html>

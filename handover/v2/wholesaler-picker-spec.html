@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wholesaler Picker — UFS Spec v2.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=IBM+Plex+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../tokens.css" />
+  <style>
+    /* ═══════════════════════════════════════
+       RESET & BASE
+    ═══════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: var(--font-family); font-size: var(--text-body-size); line-height: var(--text-body-lh); color: var(--color-brand-dark); background: var(--color-mushroom-100); -webkit-font-smoothing: antialiased; }
+    a { color: inherit; text-decoration: none; }
+    code { font-family: var(--font-family-mono); font-size: 11.5px; background: var(--color-mushroom-300); padding: 1px 5px; border-radius: 3px; color: var(--color-brand-dark); }
+
+    /* ═══════════════════════════════════════
+       DOC HEADER (compact branded band)
+    ═══════════════════════════════════════ */
+    .doc-topbar { background: var(--color-squid-900); border-bottom: 1px solid rgba(255,255,255,0.06); padding: 0 80px; height: 36px; display: flex; align-items: center; }
+    .doc-topbar-back { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,0.45); text-decoration: none; letter-spacing: 0.2px; transition: color 0.15s; }
+    .doc-topbar-back:hover { color: var(--color-brand-primary); }
+    .doc-topbar-back svg { flex-shrink: 0; transition: transform 0.15s; }
+    .doc-topbar-back:hover svg { transform: translateX(-2px); }
+    .doc-topbar-sep { margin: 0 10px; color: rgba(255,255,255,0.15); }
+    .doc-topbar-current { font-size: 11.5px; color: rgba(255,255,255,0.6); }
+
+    .doc-header { background: var(--color-brand-dark); border-bottom: 3px solid var(--color-brand-primary); }
+    .doc-header-inner { display: flex; align-items: flex-start; gap: 28px; padding: 36px 64px 32px; }
+    .doc-header-logo { height: 30px; width: auto; flex-shrink: 0; margin-top: 6px; }
+    .doc-header-vdiv { width: 1px; background: rgba(255,255,255,0.12); align-self: stretch; flex-shrink: 0; margin: 2px 0; }
+    .doc-header-body { flex: 1; }
+    .doc-header-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--color-brand-primary); margin-bottom: 8px; }
+    .doc-header-title { font-size: clamp(26px, 2.8vw, 38px); font-weight: 900; letter-spacing: -1.5px; line-height: 1; color: var(--color-salt); margin-bottom: 10px; }
+    .doc-header-title span { color: var(--color-brand-primary); }
+    .doc-header-desc { font-size: 13px; line-height: 21px; color: rgba(255,255,255,0.5); max-width: 460px; }
+    .doc-header-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; flex-shrink: 0; padding-top: 6px; }
+    .doc-header-meta-row { display: flex; align-items: center; gap: 8px; }
+    .doc-header-meta-label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.65); letter-spacing: 0.5px; text-transform: uppercase; }
+    .doc-header-meta-val { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.6); }
+    .doc-header-meta-sep { color: rgba(255,255,255,0.2); }
+
+    /* ═══════════════════════════════════════
+       SIDEBAR (hidden by default, overlay drawer)
+    ═══════════════════════════════════════ */
+    .sidebar-backdrop { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .sidebar-backdrop.is-open { opacity: 1; pointer-events: all; }
+
+    .sidebar { width: 260px; background: var(--color-brand-dark); position: fixed; top: 0; left: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 201; transform: translateX(-100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1); }
+    .sidebar.is-open { transform: translateX(0); box-shadow: 4px 0 32px rgba(0,0,0,0.4); }
+    .sidebar::-webkit-scrollbar { width: 3px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+    .sidebar-header { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-logo { height: 28px; width: auto; }
+    .sidebar-close { width: 32px; height: 32px; border-radius: 6px; background: rgba(255,255,255,0.06); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); transition: background 0.15s; }
+    .sidebar-close:hover { background: rgba(255,255,255,0.12); }
+    .sidebar-nav { padding: 16px 0; flex: 1; }
+    .sidebar-group-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: rgba(255,255,255,0.3); padding: 10px 20px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 8px; padding: 8px 20px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); transition: color 0.15s, background 0.15s, border-color 0.15s; border-left: 2px solid transparent; cursor: pointer; }
+    .sidebar-link:hover { color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.04); }
+    .sidebar-link.active { color: var(--color-brand-primary); border-left-color: var(--color-brand-primary); background: rgba(255,165,0,0.07); font-weight: 600; }
+    .nav-dot { width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.4; flex-shrink: 0; }
+    .sidebar-footer { padding: 12px 20px; border-top: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-footer-text { font-size: 10px; color: rgba(255,255,255,0.25); line-height: 1.6; }
+    .sidebar-back { display: flex; align-items: center; gap: 7px; padding: 10px 20px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: color 0.15s; border-bottom: 1px solid rgba(255,255,255,0.06); margin-bottom: 4px; }
+    .sidebar-back:hover { color: var(--color-brand-primary); }
+
+    .sidebar-toggle { position: fixed; top: 14px; left: 14px; z-index: 199; width: 38px; height: 38px; border-radius: 8px; background: var(--color-brand-dark); border: 1px solid rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; box-shadow: 0 2px 8px rgba(0,0,0,0.25); }
+    .sidebar-toggle:hover { background: var(--color-squid-700); }
+
+    /* ═══════════════════════════════════════
+       LAYOUT
+    ═══════════════════════════════════════ */
+    .content { padding: 64px 80px 128px; max-width: 1600px; margin: 0 auto; }
+    .doc-section { margin: 0 0 88px; scroll-margin-top: 32px; }
+    .section-breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; margin-bottom: 8px; max-width: 720px; }
+    .section-title { font-size: var(--text-h2-size); font-weight: var(--text-h2-w); line-height: var(--text-h2-lh); letter-spacing: var(--text-h2-ls); color: var(--color-brand-dark); margin-bottom: 10px; max-width: 720px; }
+    .section-desc { font-size: 15px; line-height: 25px; color: var(--color-mushroom-900); max-width: 640px; margin-bottom: 36px; }
+    .section-rule { height: 1px; background: var(--color-mushroom-300); margin: 56px 0 0; max-width: 1600px; }
+
+    /* ═══════════════════════════════════════
+       CARDS
+    ═══════════════════════════════════════ */
+    .ds-card { background: var(--color-salt); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); padding: 28px 32px 32px; margin-bottom: 16px; max-width: 1600px; }
+    .card-title { font-size: 16px; font-weight: 700; color: var(--color-brand-dark); margin-bottom: 4px; }
+    .card-desc { font-size: 13px; line-height: 20px; color: var(--color-mushroom-900); font-style: italic; margin-bottom: 24px; }
+    .card-subtitle { font-size: 10px; font-weight: 700; color: var(--color-mushroom-900); margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 1px; }
+
+    .pv-label { font-size: 11px; font-weight: 600; color: var(--color-mushroom-900); letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+    .pv-label + .pv-label { margin-top: 20px; }
+
+    /* ═══════════════════════════════════════
+       CODE BLOCKS (tabbed HTML / CSS / JS)
+    ═══════════════════════════════════════ */
+    .code-block-wrap { border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); margin-top: 10px; }
+    .code-tabs { display: flex; background: var(--color-code-surface); border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .code-tab { padding: 9px 18px; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.65); cursor: pointer; border-bottom: 2px solid transparent; user-select: none; transition: color 0.15s, border-color 0.15s; }
+    .code-tab.active { color: var(--color-brand-primary); border-bottom-color: var(--color-brand-primary); }
+    .code-panel { display: none; }
+    .code-panel.active { display: block; }
+    .code-header { display: flex; align-items: center; justify-content: space-between; background: var(--color-code-surface); padding: 9px 14px; }
+    .code-lang { font-family: var(--font-family-mono); font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 1px; }
+    .copy-btn { font-family: var(--font-family); font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 3px 10px; cursor: pointer; transition: background 0.15s; }
+    .copy-btn:hover { background: rgba(255,255,255,0.14); }
+    pre.code-body { background: var(--color-code-bg); padding: 18px 20px; overflow-x: auto; margin: 0; font-family: var(--font-family-mono); font-size: 12px; line-height: 1.85; color: var(--color-code-text); tab-size: 2; }
+    .t-tag { color: #7ee787; }
+    .t-at  { color: #79c0ff; }
+    .t-str { color: #a5d6ff; }
+    .t-cm  { color: #8b949e; font-style: italic; }
+    .t-kw  { color: #ff7b72; }
+    .t-pr  { color: #93c5fd; }
+    .t-vl  { color: #a3e635; }
+    .t-va  { color: #c084fc; }
+
+    /* ═══════════════════════════════════════
+       TOKEN LIST
+    ═══════════════════════════════════════ */
+    .token-list { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
+    .token-row { display: grid; grid-template-columns: 220px 1fr auto; gap: 8px 14px; align-items: center; padding: 7px 10px; border-radius: var(--radius-xs); background: var(--color-mushroom-100); font-size: 12px; }
+    .token-prop { font-family: var(--font-family-mono); color: var(--color-mushroom-900); font-size: 11px; }
+    .token-var  { font-family: var(--font-family-mono); color: var(--color-accessible-orange); --color-accessible-orange: #B03D00; font-size: 11px; }
+    .token-note { color: var(--color-mushroom-900); font-size: 10.5px; text-align: right; }
+
+    /* ═══════════════════════════════════════
+       NOTICES
+    ═══════════════════════════════════════ */
+    .notice { display: flex; gap: 12px; padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 18px; font-size: 13px; line-height: 1.6; max-width: 860px; }
+    .notice--info { background: color-mix(in srgb, var(--color-info) 8%, transparent); border-left: 3px solid var(--color-info); }
+    .notice--warn { background: color-mix(in srgb, var(--color-gold) 10%, transparent); border-left: 3px solid var(--color-gold); }
+    .notice--tip  { background: color-mix(in srgb, var(--color-brand-primary) 8%, transparent); border-left: 3px solid var(--color-brand-primary); }
+    .notice-icon { font-size: 15px; flex-shrink: 0; line-height: 1.6; }
+
+    /* ═══════════════════════════════════════
+       PREVIEW WRAPPERS (spec-doc only — not production classes)
+    ═══════════════════════════════════════ */
+    .pv-dark { background: var(--color-squid-900); border-radius: var(--radius-md); overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+    .pv-mobile { max-width: 390px; margin: 0 auto; overflow: hidden; border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-mobile.pv-dark { padding: 24px 16px; }
+
+    /* ═══════════════════════════════════════
+       BUTTON — mirrored 1:1 from full-page-preview-v0.2.html /
+       campaign-hero-spec.html. The Overview demo button depends on
+       it; not itself part of this spec.
+    ═══════════════════════════════════════ */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: var(--space-2); height: var(--space-12); padding: 0 var(--space-6);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-family); font-size: var(--text-btn-size); font-weight: var(--text-btn-w);
+      white-space: nowrap; line-height: 1;
+      cursor: pointer; border: 1px solid var(--color-brand-primary);
+      transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      text-decoration: none; position: relative; flex-shrink: 0;
+      user-select: none; vertical-align: middle;
+    }
+    .btn:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: 3px; }
+    .btn:active:not(:disabled) { transform: translateY(1px); }
+    .btn-primary { background: var(--color-accessible-orange); color: var(--color-salt); border-color: var(--color-accessible-orange); }
+    .btn-primary:hover:not(:disabled) { background: var(--color-orange-900); border-color: var(--color-orange-900); }
+    .btn-secondary { background: transparent; color: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .btn-secondary:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn-on-dark .btn-secondary { background: transparent; color: var(--color-salt); border-color: var(--color-salt); }
+
+    /* ═══════════════════════════════════════
+       v2.0 DOC ADDITIONS (spec-doc only)
+    ═══════════════════════════════════════ */
+    .doc-topbar-version { margin-inline-start: 12px; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--color-brand-primary); background: rgba(255,90,0,0.15); border-radius: 3px; padding: 2px 6px; }
+    .doc-header-meta-val a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+    .doc-header-meta-val a:hover { color: var(--color-salt); }
+    .pv-light { background: var(--color-mushroom-100); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .pv-pad { padding: 32px 24px; }
+    .pv-row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+    .pv-col { flex: 1 1 320px; min-width: 0; }
+    .spec-table-wrap { overflow-x: auto; margin-top: 10px; }
+    .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; line-height: 1.5; }
+    .spec-table th { text-align: start; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--color-mushroom-900); padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-300); white-space: nowrap; }
+    .spec-table td { padding: 8px 10px; border-bottom: 1px solid var(--color-mushroom-100); vertical-align: top; color: var(--color-brand-dark); }
+    .spec-table td:first-child { font-weight: 600; }
+    .spec-table td[dir="rtl"] { font-family: 'IBM Plex Arabic', system-ui, sans-serif; font-size: 13px; }
+    kbd { font-family: var(--font-family-mono); font-size: 11px; background: var(--color-mushroom-300); border-radius: 3px; padding: 1px 5px; }
+    /* Doc-only stand-in for the header cart icon: target for the fly-to-cart + badge bump */
+    .pv-cartbar { display: flex; align-items: center; justify-content: space-between; padding: 8px 16px; margin: -32px -24px 24px; background: var(--color-salt); border-bottom: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md) var(--radius-md) 0 0; font-size: 12px; color: var(--color-mushroom-900); }
+    .pv-cartbar .ufs-nav__icon-btn { position: relative; width: 40px; height: 40px; border: none; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .pv-cartbar .ufs-nav__icon-btn img { width: 24px; height: 24px; }
+    .ufs-nav__badge {
+      position: absolute; top: var(--space-1); right: var(--space-1);
+      min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-full);
+      background: var(--color-brand-primary); color: var(--color-salt);
+      font-size: 9px; font-weight: var(--text-btn-w);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ufs-nav__badge[hidden] { display: none; }
+
+
+    /* ═══════════════════════════════════════
+       DRAWER SHELL — mirrored 1:1 from v1 full-page-preview-v0.2.html
+       (.signin-backdrop / .signin-panel / -hd / -close / -body / -title / -ft).
+       Shared by Sign-in, Filters, Wholesaler Picker…; not part of this spec.
+    ═══════════════════════════════════════ */
+    :root { --mnav-h: 56px; }
+    .signin-backdrop { position: fixed; inset: 0; z-index: 900; background: rgba(0,0,0,0.75); backdrop-filter: blur(2px); opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .signin-backdrop.is-open { opacity: 1; pointer-events: all; }
+    .signin-panel { position: fixed; top: 0; right: 0; bottom: 0; z-index: 901; width: 420px; background: var(--color-salt); transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), box-shadow 0.35s; box-shadow: none; display: flex; flex-direction: column; }
+    .signin-panel.is-open { transform: translateX(0); box-shadow: -8px 0 40px rgba(0,0,0,0.18); }
+    @media (max-width: 1024px) { .signin-panel { width: calc(100% - 16px); } }
+    .signin-panel-hd { height: var(--mnav-h); padding: 0 var(--space-4); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-mushroom-300); flex-shrink: 0; }
+    .signin-panel-logo { height: var(--space-6); }
+    .signin-close { width: var(--space-10); height: var(--space-10); border-radius: var(--radius-full); background: var(--color-mushroom-100); border: none; cursor: pointer; color: var(--color-brand-dark); display: flex; align-items: center; justify-content: center; transition: background 0.15s; flex-shrink: 0; }
+    .signin-close:hover { background: var(--color-mushroom-300); }
+    .signin-close svg { width: 12px; height: 12px; }
+    .signin-panel-body { flex: 1; overflow-y: auto; padding: var(--space-7); }
+    .signin-panel-title { font-size: var(--text-h5-size); font-weight: var(--text-h5-w); line-height: var(--text-h5-lh); color: var(--color-brand-dark); margin: 0 0 var(--space-3); }
+    .signin-panel-ft { display: flex; gap: var(--space-3); padding: var(--space-4) var(--space-7); border-top: 1px solid var(--color-mushroom-300); }
+    .signin-panel-ft .btn { flex: 1; }
+    [dir="rtl"] .signin-panel { right: auto; left: 0; transform: translateX(-100%); box-shadow: none; }
+    [dir="rtl"] .signin-panel.is-open { transform: translateX(0); box-shadow: 8px 0 40px rgba(0,0,0,0.18); }
+
+    /* ═══════════════════════════════════════
+       FORM CONTROLS + BUTTON SIZES — mirrored 1:1 from v1 form-journeys.html /
+       index.html (Input Fields, Checkbox, Radio, Buttons). Not part of this spec.
+    ═══════════════════════════════════════ */
+    .fi-wrap { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; }
+    .fi-field { width: 100%; height: var(--space-12); border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); font-size: var(--text-body-sm-size); font-family: var(--font-family); font-weight: 400; color: var(--color-brand-dark); background: var(--color-mushroom-100); outline: none; box-sizing: border-box; transition: border-color 0.15s; display: block; }
+    .fi-field:focus { border-color: var(--color-brand-dark); }
+    .fi-field:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 2px; }
+    .fi-label { font-size: var(--text-btn-size); line-height: 22px; font-weight: var(--text-btn-w); color: var(--color-brand-dark); }
+    .fi-wrap.is-error .fi-field { border-color: var(--color-error); }
+    .fi-error-msg { margin: var(--space-1) 0 0; font-size: 12px; line-height: 16px; color: var(--color-error); }
+    .fi-error-msg[hidden] { display: none; }
+    .fi-helper { margin: var(--space-1) 0 0; font-size: 12px; line-height: 16px; color: var(--color-mushroom-900); }
+    .fi-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23989495' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; background-size: 16px; padding-right: 40px; cursor: pointer; line-height: 1; }
+    [dir="rtl"] .fi-select { background-position: left 14px center; padding-right: var(--space-4); padding-left: 40px; }
+    .fi-textarea { height: var(--space-24); resize: none; padding-top: var(--space-3); line-height: var(--space-6); }
+    .fi-counter { margin: var(--space-1) 0 0; font-size: 12px; line-height: 16px; color: var(--color-mushroom-900); text-align: end; }
+    .fi-checkbox { display: flex; align-items: center; gap: var(--space-2); cursor: pointer; }
+    .fi-checkbox-box { flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-xs); background: var(--color-mushroom-100); display: flex; align-items: center; justify-content: center; }
+    .fi-checkbox-box.is-checked { background: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .fi-checkbox-box svg { display: none; }
+    .fi-checkbox-box.is-checked svg { display: block; }
+    .fi-checkbox-label { font-size: 14px; line-height: 22px; font-weight: 400; color: var(--color-brand-dark); }
+    .fi-radio-circle { flex-shrink: 0; width: 16px; height: 16px; border: 1px solid var(--color-mushroom-700); border-radius: var(--radius-full); background: var(--color-mushroom-100); display: flex; align-items: center; justify-content: center; }
+    .fi-radio-circle.is-checked { background: var(--color-accessible-orange); border-color: var(--color-accessible-orange); }
+    .fi-radio-circle.is-checked::after { content: ''; width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--color-salt); }
+    .btn-sm { height: var(--space-10); padding: 0 var(--space-4); font-size: var(--text-btn-sm-size); font-weight: var(--text-btn-sm-w); gap: var(--space-1); }
+    .btn-ghost { background: transparent; color: var(--color-accessible-orange); border-color: transparent; }
+    .btn-ghost:hover:not(:disabled) { background: var(--color-mushroom-100); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+    /* ═══════════════════════════════════════
+       ACCORDION — mirrored 1:1 from v1 (FAQ accordion: .ufs-accordion__panel / __item /
+       __trigger / __chev / __content). Not part of this spec; the picker reuses its
+       expand/collapse for multi-option wholesalers.
+    ═══════════════════════════════════════ */
+    .ufs-accordion__panel { display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--color-salt); box-shadow: var(--shadow-xs); overflow: hidden; }
+    .ufs-accordion__item { border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-accordion__item:last-child { border-bottom: none; }
+    .ufs-accordion__trigger { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-8); width: 100%; padding: var(--space-6); background: var(--color-salt); border: none; cursor: pointer; text-align: start; font-family: var(--font-family); color: var(--color-brand-dark); transition: background 0.15s ease; }
+    .ufs-accordion__trigger:hover { background: var(--color-mushroom-100); }
+    .ufs-accordion__chev { flex-shrink: 0; width: var(--space-5); height: var(--space-5); margin-top: var(--space-1); color: var(--color-brand-dark); opacity: 0.5; transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), color 0.2s ease, opacity 0.2s ease; }
+    .ufs-accordion__item.is-open .ufs-accordion__chev { transform: rotate(180deg); color: var(--color-accessible-orange); opacity: 1; }
+    .ufs-accordion__content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s cubic-bezier(0.4,0,0.2,1); }
+    .ufs-accordion__item.is-open .ufs-accordion__content { grid-template-rows: 1fr; }
+    .ufs-accordion__content-inner { overflow: hidden; min-height: 0; }
+
+    .pv-drawer { background: var(--color-squid-900); border-radius: var(--radius-md); padding: 32px 24px; display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+    .pv-drawer .signin-panel { position: relative; inset: auto; z-index: auto; transform: none; transition: none; width: 420px; max-width: 100%; height: auto; border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-lg); }
+    .pv-drawer.pv-m .signin-panel { width: 374px; }
+    .pv-drawer .signin-panel-body { overflow: visible; }
+    .pv-drawer .signin-panel-desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); margin: 0 0 var(--space-3); }
+    .pv-hover { background: var(--color-mushroom-100); }
+    .pv-hover .ufs-wholesaler-go { opacity: 1; }
+    .pv-cap { font-size: 11px; color: rgba(255,255,255,0.7); margin: 0 0 8px; }
+    .pv-tile { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .pv-tile p { margin: 0; font-size: 12px; color: var(--color-mushroom-900); }
+
+/* Wholesaler Picker — content of the v1 side panel (.signin-panel). "Buy it now" on a
+   product tile opens it. One bordered card per wholesaler; a wholesaler with several
+   ordering options is an accordion item (v1 .ufs-accordion__item) holding sub-option rows. */
+#wholesaler-panel .signin-panel-desc { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-mushroom-900); margin: 0 0 var(--space-3); }
+
+/* Search */
+.ufs-wholesaler-search { position: relative; margin-bottom: var(--space-6); }
+.ufs-wholesaler-search input {
+  width: 100%; height: var(--space-12); box-sizing: border-box;
+  padding-block: 0; padding-inline: var(--space-4) var(--space-12);
+  border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-sm);
+  font-family: var(--font-family); font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark);
+  background: var(--color-salt); outline: none; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.ufs-wholesaler-search input::placeholder { color: var(--color-mushroom-900); }
+.ufs-wholesaler-search input:hover { border-color: var(--color-mushroom-900); }
+.ufs-wholesaler-search input:focus { border-color: var(--color-brand-primary); box-shadow: 0 0 0 3px rgba(255,90,0,0.12); }
+.ufs-wholesaler-search img { position: absolute; top: 50%; inset-inline-end: var(--space-4); transform: translateY(-50%); width: 16px; height: 16px; pointer-events: none; }
+
+/* List — also carries .ufs-accordion__panel so the v1 toggle finds its group;
+   that class's card chrome is neutralised here (each wholesaler is its own card) */
+.ufs-wholesaler-list { display: flex; flex-direction: column; gap: var(--space-4); }
+.ufs-wholesaler-list.ufs-accordion__panel { border-radius: 0; box-shadow: none; overflow: visible; background: transparent; }
+.ufs-wholesaler-empty { display: none; padding: var(--space-8) var(--space-4); text-align: center; font-size: var(--text-body-sm-size); color: var(--color-mushroom-900); }
+.ufs-wholesaler-list.is-empty .ufs-wholesaler-empty { display: block; }
+
+/* Card + row */
+.ufs-wholesaler-item { border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); overflow: hidden; background: var(--color-salt); transition: background 0.15s; }
+.ufs-wholesaler-row { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-2); cursor: pointer; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+a.ufs-wholesaler-row:hover { background: var(--color-mushroom-100); }
+a.ufs-wholesaler-row:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: -2px; }
+.ufs-wholesaler-logo {
+  flex-shrink: 0; width: 64px; height: 64px; border-radius: var(--radius-sm);
+  border: 1px solid var(--color-mushroom-300); background: var(--color-salt);
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  padding: var(--space-2); box-sizing: border-box;
+}
+.ufs-wholesaler-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.ufs-wholesaler-body { flex: 1; min-width: 0; }
+.ufs-wholesaler-name { font-size: var(--text-body-size); font-weight: 600; color: var(--color-brand-dark); line-height: 1.4; }
+.ufs-wholesaler-price { font-size: var(--text-body-sm-size); font-weight: 600; color: var(--color-brand-dark); margin-top: var(--space-1); }
+.ufs-wholesaler-caption { font-size: var(--text-fine-print-size); line-height: var(--text-fine-print-lh); color: var(--color-mushroom-900); margin-top: var(--space-1); }
+/* Optional per-wholesaler stock line. --color-success is 2.29:1 on white, so the text uses
+   the same hue darkened to #59821D (4.53:1); the decorative dot keeps the token. */
+.ufs-wholesaler-stock { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: #59821D; margin-top: var(--space-1); }
+.ufs-wholesaler-stock-dot { flex-shrink: 0; width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--color-success); }
+/* External-link icon: appears on hover (always visible on touch) */
+.ufs-wholesaler-go { flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: var(--color-brand-dark); opacity: 0; transition: opacity 0.15s; }
+a.ufs-wholesaler-row:hover .ufs-wholesaler-go, a.ufs-wholesaler-row:focus-visible .ufs-wholesaler-go { opacity: 1; }
+.ufs-wholesaler-go svg { width: 16px; height: 16px; }
+[dir="rtl"] .ufs-wholesaler-go svg { transform: scaleX(-1); }     /* the arrow points up-left in RTL */
+
+/* Multi-option wholesaler: accordion header + sub-option rows. The chevron is centred
+   on the row (the FAQ accordion top-aligns it for multi-line questions). */
+.ufs-wholesaler-item .ufs-accordion__trigger { width: 100%; padding: 0; background: transparent; border: none; text-align: start; cursor: pointer; align-items: center; }
+.ufs-wholesaler-item .ufs-accordion__trigger:hover { background: var(--color-mushroom-100); }
+.ufs-wholesaler-item .ufs-accordion__trigger:focus-visible { outline: 2px solid var(--color-accessible-orange); outline-offset: -2px; }
+.ufs-wholesaler-item .ufs-accordion__trigger .ufs-wholesaler-row { pointer-events: none; }
+.ufs-wholesaler-item .ufs-accordion__chev { flex-shrink: 0; width: 24px; height: 24px; margin: 0; margin-inline-end: var(--space-3); color: var(--color-brand-dark); opacity: 1; }
+.ufs-wholesaler-suboptions { background: var(--color-mushroom-100); }
+.ufs-wholesaler-suboptions .ufs-wholesaler-row { padding-block: var(--space-3); padding-inline: calc(var(--space-4) + var(--space-3)) var(--space-4); }
+.ufs-wholesaler-suboptions .ufs-wholesaler-logo { width: 44px; height: 44px; }
+.ufs-wholesaler-suboptions .ufs-wholesaler-name { font-size: var(--text-body-sm-size); font-weight: 600; }
+.ufs-wholesaler-suboptions a.ufs-wholesaler-row:hover { background: var(--color-mushroom-300); }
+@media (max-width: 768px) {
+#wholesaler-panel .signin-panel-title { font-size: var(--text-h5-mob-size); }
+.ufs-wholesaler-search input, .ufs-wholesaler-name { font-size: var(--text-body-sm-size); }
+.ufs-wholesaler-logo { width: 54px; height: 54px; }
+.ufs-wholesaler-suboptions .ufs-wholesaler-logo { width: 40px; height: 40px; }
+.ufs-wholesaler-go { opacity: 1; }      /* no hover on touch */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ufs-wholesaler-item .ufs-accordion__content, .ufs-wholesaler-item .ufs-accordion__chev, .ufs-wholesaler-go { transition: none; }
+}
+    .pv-mob #wholesaler-panel .signin-panel-title { font-size: var(--text-h5-mob-size); }
+    .pv-mob .ufs-wholesaler-search input, .pv-mob .ufs-wholesaler-name { font-size: var(--text-body-sm-size); }
+    .pv-mob .ufs-wholesaler-logo { width: 54px; height: 54px; }
+    .pv-mob .ufs-wholesaler-suboptions .ufs-wholesaler-logo { width: 40px; height: 40px; }
+    .pv-mob .ufs-wholesaler-go { opacity: 1; }
+    .pv-mob .signin-panel-title { font-size: var(--text-h5-mob-size); }
+
+
+    /* ═══════════════════════════════════════
+       DOC CHROME ≤768px (spec-doc only): 16px gutters, stacked header,
+       previews never wider than the screen (they scroll inside their card)
+    ═══════════════════════════════════════ */
+    @media (max-width: 768px) {
+      .doc-topbar { padding: 0 16px 0 64px; height: 66px; overflow: hidden; white-space: nowrap; }
+      .doc-topbar-current { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .doc-topbar-version { display: none; }
+      .doc-header-inner { flex-direction: column; gap: 16px; padding: 28px 16px 24px; }
+      .doc-header-vdiv { display: none; }
+      .doc-header-meta { align-items: flex-start; padding-top: 0; }
+      .content { padding: 32px 16px 96px; }
+      .ds-card { padding: 20px 16px 24px; }
+      .ds-card > * { max-width: 100%; }
+      .ds-card > [class*="pv-"]:not(.pv-label) { overflow-x: auto; position: relative; }
+      .pv-pad { padding: 24px 16px; }
+      .pv-cartbar { margin: -24px -16px 24px; }
+      .pv-grid, .pv-states { grid-template-columns: minmax(0, 296px); }
+      .pv-grid-m { grid-template-columns: minmax(0, 1fr); }
+      .pv-anchor { width: auto; max-width: 296px; }
+      .pv-row, .pv-drawer { flex-wrap: wrap; }
+      .pv-drawer { padding: 24px 12px; }
+      .pv-col { flex-basis: 100%; }
+      .token-row { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+      .token-var { overflow-wrap: anywhere; }
+      .token-note { text-align: start; }
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar backdrop -->
+  <div class="sidebar-backdrop" id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="../images/ufs-logo.png" alt="UFS" class="sidebar-logo" />
+      <button class="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:14px;height:14px"><line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/></svg>
+      </button>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="index.html" class="sidebar-back">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+        Design System v2.0
+      </a>
+      <div class="sidebar-group-label">Overview</div>
+      <a href="#overview" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Full Component Preview</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Structure</div>
+      <a href="#anatomy" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Anatomy</a>
+      <a href="#search" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Search States</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Behavior</div>
+      <a href="#behavior" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Choosing a Wholesaler</a>
+      <a href="#animation" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Animation</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Responsive</div>
+      <a href="#mobile" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> Mobile Examples</a>
+      <div class="sidebar-group-label" style="margin-top:8px">Internationalisation</div>
+      <a href="#rtl" class="sidebar-link" onclick="closeSidebar()"><span class="nav-dot"></span> i18n &amp; RTL</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">New in v2.0.<br/>Figma: Rosana 2.0, 2972:4613 · 2972:4545 · 3028:4710.</div>
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" onclick="openSidebar()" aria-label="Open menu">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="4" x2="14" y2="4"/><line x1="2" y1="8" x2="14" y2="8"/><line x1="2" y1="12" x2="14" y2="12"/></svg>
+  </button>
+
+  <!-- Doc topbar -->
+  <nav class="doc-topbar" aria-label="Breadcrumb">
+    <a href="index.html" class="doc-topbar-back">
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 4 6 8 10 12"/></svg>
+      Design System v2.0
+    </a>
+    <span class="doc-topbar-sep">/</span>
+    <span class="doc-topbar-current">Wholesaler Picker</span>
+    <span class="doc-topbar-version">New in v2.0</span>
+  </nav>
+
+  <!-- Doc header -->
+  <header class="doc-header">
+    <div class="doc-header-inner">
+      <img src="../images/ufs-logo.png" alt="UFS" class="doc-header-logo" />
+      <div class="doc-header-vdiv"></div>
+      <div class="doc-header-body">
+        <div class="doc-header-eyebrow">Handover Spec · v2.0</div>
+        <h1 class="doc-header-title"><span>Wholesaler</span> Picker</h1>
+        <p class="doc-header-desc">Side drawer opened by "Buy it now" on a product tile (non-webshop markets): searchable list of wholesalers, each linking to its site, with expandable multi-option wholesalers.</p>
+      </div>
+      <div class="doc-header-meta">
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Source</span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-val"><a href="../template-products-catalog.html">handover/<br/>template-products-catalog.html</a></span></div>
+        <div class="doc-header-meta-row"><span class="doc-header-meta-label">Format</span><span class="doc-header-meta-sep">·</span><span class="doc-header-meta-val">HTML + CSS + JS</span></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content" id="main">
+
+    <!-- ═══════════════════════════════════════ FULL COMPONENT PREVIEW ═══════════════════════════════════════ -->
+    <section class="doc-section" id="overview">
+      <div class="section-breadcrumb">Overview</div>
+      <h2 class="section-title">Full Component Preview</h2>
+      <p class="section-desc">Outside the webshop, "Buy it now" on a product tile opens the Wholesaler Picker: a side drawer listing the wholesalers that stock the product in this market. Each row sends the chef to that wholesaler's site. A wholesaler with several ordering options (Bidfood in the example) expands to show them. A search field filters the list. In webshop markets this flow is replaced by the <a href="trade-partner-selector-spec.html">Trade Partner Selector</a> and the cart.</p>
+      <div class="notice notice--tip"><span class="notice-icon">💡</span><div>Live example in context: <a href="../template-products-catalog.html">v1 Products Catalog template</a> → "Buy it now" on any tile.</div></div><div class="ds-card"><div class="card-title">Live</div><div class="pv-light pv-pad pv-tile"><button type="button" class="btn btn-primary" onclick="openWholesalerPanel(this)">Buy it now</button><p>Doc stand-in for the v1 Product Tile CTA (<code>.ufs-tile__cta</code>). Try searching "direct" or "xyz".</p></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANATOMY ═══════════════════════════════════════ -->
+    <section class="doc-section" id="anatomy">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Anatomy</h2>
+      <p class="section-desc">Inside the v1 drawer shell: title, description, search, then <code>.ufs-wholesaler-list</code>. Every wholesaler is its own bordered card. A single-option wholesaler is one link (<code>a.ufs-wholesaler-item.ufs-wholesaler-row</code>); a multi-option one is a v1 accordion item whose content holds the sub-option links.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-drawer"><div><p class="pv-cap">Collapsed</p><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">Choose your wholesaler</h2><p class="signin-panel-desc">You will be redirected to the wholesaler’s site</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="Search for your wholesaler" value=""/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel">
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Amazon Business" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/amazon.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Amazon Business</div><div class="ufs-wholesaler-price"><bdi>€29.50</bdi></div><div class="ufs-wholesaler-caption">Price indication (excl. VAT)</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-item ufs-accordion__item" data-wholesaler-name="Bidfood Bidfood Direct Bidfood Wholesaler"><button type="button" class="ufs-accordion__trigger" aria-expanded="false" tabindex="-1"><div class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood</div><div class="ufs-wholesaler-caption">2 options available</div></div></div><svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ufs-accordion__content"><div class="ufs-accordion__content-inner"><div class="ufs-wholesaler-suboptions"><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Direct</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Wholesaler</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a></div></div></div></div>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Unitas" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/unitas.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Unitas</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Brakes" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/brakes.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Brakes</div><div class="ufs-wholesaler-stock"><span class="ufs-wholesaler-stock-dot" aria-hidden="true"></span>In stock</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Country Range" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/country-range.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Country Range</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-empty">No wholesalers found</div>
+  </div></div></div></div><div><p class="pv-cap">Bidfood expanded · hover on Amazon</p><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">Choose your wholesaler</h2><p class="signin-panel-desc">You will be redirected to the wholesaler’s site</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="Search for your wholesaler" value=""/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel">
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row pv-hover" data-wholesaler-name="Amazon Business" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/amazon.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Amazon Business</div><div class="ufs-wholesaler-price"><bdi>€29.50</bdi></div><div class="ufs-wholesaler-caption">Price indication (excl. VAT)</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-item ufs-accordion__item is-open" data-wholesaler-name="Bidfood Bidfood Direct Bidfood Wholesaler"><button type="button" class="ufs-accordion__trigger" aria-expanded="true" tabindex="-1"><div class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood</div><div class="ufs-wholesaler-caption">2 options available</div></div></div><svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ufs-accordion__content"><div class="ufs-accordion__content-inner"><div class="ufs-wholesaler-suboptions"><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Direct</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Wholesaler</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a></div></div></div></div>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Unitas" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/unitas.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Unitas</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Brakes" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/brakes.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Brakes</div><div class="ufs-wholesaler-stock"><span class="ufs-wholesaler-stock-dot" aria-hidden="true"></span>In stock</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Country Range" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/country-range.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Country Range</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-empty">No wholesalers found</div>
+  </div></div></div></div></div></div><div class="ds-card"><div class="card-title">Parts</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Part</th><th>Element</th><th>Spec</th></tr></thead><tbody><tr><td>Title / description</td><td><code>.signin-panel-title</code>, <code>.signin-panel-desc</code></td><td>H5; Body-Small in --color-mushroom-900, 12px under it</td></tr><tr><td>Search</td><td><code>.ufs-wholesaler-search</code></td><td>48px, 1px --color-mushroom-300, --radius-sm, 16px search icon at inline-end. Hover: mushroom-900 border. Focus: brand-primary border + 3px 12% orange ring. 24px under it.</td></tr><tr><td>Card</td><td><code>.ufs-wholesaler-item</code></td><td>1px --color-mushroom-300, --radius-md, 16px between cards</td></tr><tr><td>Row</td><td><code>.ufs-wholesaler-row</code></td><td>8px padding, 16px gap: logo, body, external-link icon. Hover: --color-mushroom-100.</td></tr><tr><td>Logo</td><td><code>.ufs-wholesaler-logo</code></td><td>64px (54px mobile) bordered tile, --radius-sm, 8px inset, image contained</td></tr><tr><td>Name</td><td><code>.ufs-wholesaler-name</code></td><td>Body / 600 (Body-Small on mobile)</td></tr><tr><td>Optional lines</td><td><code>__price</code>, <code>__caption</code>, <code>__stock</code></td><td>Price Body-Small/600 + caption fine print ("Price indication (excl. VAT)"); "2 options available" caption; In stock: green dot + Body-XS #59821D. Each is per wholesaler, from the CMS.</td></tr><tr><td>Go icon</td><td><code>.ufs-wholesaler-go</code></td><td>16px external-link in 24px box. Hidden until hover / keyboard focus on desktop, always shown ≤768px.</td></tr><tr><td>Multi-option</td><td><code>.ufs-accordion__item</code> › <code>__trigger</code> + <code>.ufs-wholesaler-suboptions</code></td><td>Chevron 24px, 12px from the inline-end, centred, rotates 180° and turns orange when open. Sub-options on --color-mushroom-100, 44px logos, Body-Small/600, 28px inline-start indent, hover mushroom-300.</td></tr><tr><td>Empty</td><td><code>.ufs-wholesaler-empty</code></td><td>"No wholesalers found", centred Body-Small mushroom-900, 32px block padding</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">Reference markup</div><div class="code-block-wrap"><div class="code-tabs"><div class="code-tab active" onclick="switchTab(this,'cb3-0')">HTML</div><div class="code-tab" onclick="switchTab(this,'cb3-1')">CSS</div></div><div class="code-panel active" data-tab="cb3-0"><div class="code-header"><span class="code-lang">HTML</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">&lt;!-- Wholesaler Picker: v1 side panel shell. Opened by "Buy it now" on a product tile.</span>
+     <span class="t-cm">Rows link to the wholesaler's product page; the list is per market from the CMS. --&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-backdrop"</span> <span class="t-at">id</span>=<span class="t-str">"wholesaler-backdrop"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeWholesalerPanel()"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel"</span> <span class="t-at">id</span>=<span class="t-str">"wholesaler-panel"</span> <span class="t-at">role</span>=<span class="t-str">"dialog"</span> <span class="t-at">aria-modal</span>=<span class="t-str">"true"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"wholesaler-panel-title"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span> <span class="t-at">inert</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-hd"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/ufs-logo.png"</span> <span class="t-at">alt</span>=<span class="t-str">"UFS"</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-logo"</span><span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;button</span> <span class="t-at">class</span>=<span class="t-str">"signin-close"</span> <span class="t-at">onclick</span>=<span class="t-str">"closeWholesalerPanel()"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Close"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 12 12"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"2"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"10"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"2"</span> <span class="t-at">x2</span>=<span class="t-str">"2"</span> <span class="t-at">y2</span>=<span class="t-str">"10"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-body"</span> <span class="t-at">id</span>=<span class="t-str">"wholesaler-panel-body"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;h2</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-title"</span> <span class="t-at">id</span>=<span class="t-str">"wholesaler-panel-title"</span> <span class="t-at">tabindex</span>=<span class="t-str">"-1"</span><span class="t-tag">&gt;</span>Choose your wholesaler<span class="t-tag">&lt;/h2</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;p</span> <span class="t-at">class</span>=<span class="t-str">"signin-panel-desc"</span><span class="t-tag">&gt;</span>You will be redirected to the wholesaler’s site<span class="t-tag">&lt;/p</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-search"</span><span class="t-tag">&gt;</span>
+      <span class="t-tag">&lt;input</span> <span class="t-at">type</span>=<span class="t-str">"search"</span> <span class="t-at">id</span>=<span class="t-str">"wholesaler-search"</span> <span class="t-at">placeholder</span>=<span class="t-str">"Search for your wholesaler"</span> <span class="t-at">aria-label</span>=<span class="t-str">"Search for your wholesaler"</span> <span class="t-at">aria-controls</span>=<span class="t-str">"wholesaler-list"</span> <span class="t-at">autocomplete</span>=<span class="t-str">"off"</span> <span class="t-at">oninput</span>=<span class="t-str">"filterWholesalers(this.value)"</span><span class="t-tag">/&gt;</span>
+      <span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../icons/Search.svg"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span>
+    <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-list ufs-accordion__panel"</span> <span class="t-at">id</span>=<span class="t-str">"wholesaler-list"</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-item ufs-wholesaler-row"</span> <span class="t-at">data-wholesaler-name</span>=<span class="t-str">"Amazon Business"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-logo"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/wholesalers/amazon.png"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-body"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-name"</span><span class="t-tag">&gt;</span>Amazon Business<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-price"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;bdi</span><span class="t-tag">&gt;</span>€29.50<span class="t-tag">&lt;/bdi</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-caption"</span><span class="t-tag">&gt;</span>Price indication (excl. VAT)<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-go"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 24 24"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"15 3 21 3 21 9"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"14"</span> <span class="t-at">x2</span>=<span class="t-str">"21"</span> <span class="t-at">y2</span>=<span class="t-str">"3"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-item ufs-accordion__item"</span> <span class="t-at">data-wholesaler-name</span>=<span class="t-str">"Bidfood Bidfood Direct Bidfood Wholesaler"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;button</span> <span class="t-at">type</span>=<span class="t-str">"button"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-accordion__trigger"</span> <span class="t-at">onclick</span>=<span class="t-str">"toggleAccordionItem(this)"</span> <span class="t-at">aria-expanded</span>=<span class="t-str">"false"</span> <span class="t-at">aria-controls</span>=<span class="t-str">"wholesaler-bidfood-content"</span> <span class="t-at">id</span>=<span class="t-str">"wholesaler-bidfood-trigger"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-row"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-logo"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/wholesalers/bidfood.png"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-body"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-name"</span><span class="t-tag">&gt;</span>Bidfood<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-caption"</span><span class="t-tag">&gt;</span>2 options available<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;svg</span> <span class="t-at">class</span>=<span class="t-str">"ufs-accordion__chev"</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 24 24"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"6 9 12 15 18 9"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/button</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-accordion__content"</span> <span class="t-at">id</span>=<span class="t-str">"wholesaler-bidfood-content"</span> <span class="t-at">role</span>=<span class="t-str">"region"</span> <span class="t-at">aria-labelledby</span>=<span class="t-str">"wholesaler-bidfood-trigger"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-accordion__content-inner"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-suboptions"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-row"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-logo"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/wholesalers/bidfood.png"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-body"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-name"</span><span class="t-tag">&gt;</span>Bidfood Direct<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-go"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 24 24"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"15 3 21 3 21 9"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"14"</span> <span class="t-at">x2</span>=<span class="t-str">"21"</span> <span class="t-at">y2</span>=<span class="t-str">"3"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-row"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-logo"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/wholesalers/bidfood.png"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-body"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-name"</span><span class="t-tag">&gt;</span>Bidfood Wholesaler<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-go"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 24 24"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"15 3 21 3 21 9"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"14"</span> <span class="t-at">x2</span>=<span class="t-str">"21"</span> <span class="t-at">y2</span>=<span class="t-str">"3"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-item ufs-wholesaler-row"</span> <span class="t-at">data-wholesaler-name</span>=<span class="t-str">"Unitas"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-logo"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/wholesalers/unitas.png"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-body"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-name"</span><span class="t-tag">&gt;</span>Unitas<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-go"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 24 24"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"15 3 21 3 21 9"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"14"</span> <span class="t-at">x2</span>=<span class="t-str">"21"</span> <span class="t-at">y2</span>=<span class="t-str">"3"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-item ufs-wholesaler-row"</span> <span class="t-at">data-wholesaler-name</span>=<span class="t-str">"Brakes"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-logo"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/wholesalers/brakes.png"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-body"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-name"</span><span class="t-tag">&gt;</span>Brakes<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-stock"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-stock-dot"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span>In stock<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-go"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 24 24"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"15 3 21 3 21 9"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"14"</span> <span class="t-at">x2</span>=<span class="t-str">"21"</span> <span class="t-at">y2</span>=<span class="t-str">"3"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;a</span> <span class="t-at">href</span>=<span class="t-str">"#"</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-item ufs-wholesaler-row"</span> <span class="t-at">data-wholesaler-name</span>=<span class="t-str">"Country Range"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-logo"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;img</span> <span class="t-at">src</span>=<span class="t-str">"../images/wholesalers/country-range.png"</span> <span class="t-at">alt</span>=<span class="t-str">""</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-body"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-name"</span><span class="t-tag">&gt;</span>Country Range<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;span</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-go"</span> <span class="t-at">aria-hidden</span>=<span class="t-str">"true"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;svg</span> <span class="t-at">viewBox</span>=<span class="t-str">"0 0 24 24"</span> <span class="t-at">fill</span>=<span class="t-str">"none"</span> <span class="t-at">stroke</span>=<span class="t-str">"currentColor"</span> <span class="t-at">stroke-width</span>=<span class="t-str">"2"</span> <span class="t-at">stroke-linecap</span>=<span class="t-str">"round"</span> <span class="t-at">stroke-linejoin</span>=<span class="t-str">"round"</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;path</span> <span class="t-at">d</span>=<span class="t-str">"M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;polyline</span> <span class="t-at">points</span>=<span class="t-str">"15 3 21 3 21 9"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;line</span> <span class="t-at">x1</span>=<span class="t-str">"10"</span> <span class="t-at">y1</span>=<span class="t-str">"14"</span> <span class="t-at">x2</span>=<span class="t-str">"21"</span> <span class="t-at">y2</span>=<span class="t-str">"3"</span><span class="t-tag">/&gt;</span><span class="t-tag">&lt;/svg</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/span</span><span class="t-tag">&gt;</span><span class="t-tag">&lt;/a</span><span class="t-tag">&gt;</span>
+    <span class="t-tag">&lt;div</span> <span class="t-at">class</span>=<span class="t-str">"ufs-wholesaler-empty"</span> <span class="t-at">role</span>=<span class="t-str">"status"</span><span class="t-tag">&gt;</span>No wholesalers found<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+  <span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span>
+<span class="t-tag">&lt;/div</span><span class="t-tag">&gt;</span></pre></div><div class="code-panel" data-tab="cb3-1"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* Wholesaler Picker — content of the v1 side panel (.signin-panel). "Buy it now" on a</span>
+   <span class="t-cm">product tile opens it. One bordered card per wholesaler; a wholesaler with several</span>
+   <span class="t-cm">ordering options is an accordion item (v1 .ufs-accordion__item) holding sub-option rows. */</span>
+<span class="t-pr">#wholesaler-panel .signin-panel-desc</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span> <span class="t-vl">0</span> <span class="t-va">var(--space-3)</span>; }
+
+<span class="t-cm">/* Search */</span>
+<span class="t-pr">.ufs-wholesaler-search</span> { <span class="t-pr">position</span>: <span class="t-vl">relative</span>; <span class="t-pr">margin-bottom</span>: <span class="t-va">var(--space-6)</span>; }
+<span class="t-pr">.ufs-wholesaler-search input</span> {
+  <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-va">var(--space-12)</span>; <span class="t-pr">box-sizing</span>: <span class="t-vl">border-box</span>;
+  <span class="t-pr">padding-block</span>: <span class="t-vl">0</span>; <span class="t-pr">padding-inline</span>: <span class="t-va">var(--space-4)</span> <span class="t-va">var(--space-12)</span>;
+  <span class="t-pr">border</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>;
+  <span class="t-pr">font-family</span>: <span class="t-va">var(--font-family)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-sm-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>;
+  <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">outline</span>: <span class="t-vl">none</span>; <span class="t-pr">transition</span>: <span class="t-vl">border-color</span> <span class="t-vl">0.15s,</span> <span class="t-vl">box-shadow</span> <span class="t-vl">0.15s</span>;
+}
+<span class="t-pr">.ufs-wholesaler-search input::placeholder</span> { <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-wholesaler-search input:hover</span> { <span class="t-pr">border-color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-wholesaler-search input:focus</span> { <span class="t-pr">border-color</span>: <span class="t-va">var(--color-brand-primary)</span>; <span class="t-pr">box-shadow</span>: <span class="t-vl">0</span> <span class="t-vl">0</span> <span class="t-vl">0</span> <span class="t-vl">3px</span> <span class="t-vl">rgba(255,90,0,0.12)</span>; }
+<span class="t-pr">.ufs-wholesaler-search img</span> { <span class="t-pr">position</span>: <span class="t-vl">absolute</span>; <span class="t-pr">top</span>: <span class="t-vl">50%</span>; <span class="t-pr">inset-inline-end</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">transform</span>: <span class="t-vl">translateY(-50%)</span>; <span class="t-pr">width</span>: <span class="t-vl">16px</span>; <span class="t-pr">height</span>: <span class="t-vl">16px</span>; <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; }
+
+<span class="t-cm">/* List — also carries .ufs-accordion__panel so the v1 toggle finds its group;</span>
+   <span class="t-cm">that class's card chrome is neutralised here (each wholesaler is its own card) */</span>
+<span class="t-pr">.ufs-wholesaler-list</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">flex-direction</span>: <span class="t-vl">column</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-wholesaler-list.ufs-accordion__panel</span> { <span class="t-pr">border-radius</span>: <span class="t-vl">0</span>; <span class="t-pr">box-shadow</span>: <span class="t-vl">none</span>; <span class="t-pr">overflow</span>: <span class="t-vl">visible</span>; <span class="t-pr">background</span>: <span class="t-vl">transparent</span>; }
+<span class="t-pr">.ufs-wholesaler-empty</span> { <span class="t-pr">display</span>: <span class="t-vl">none</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-8)</span> <span class="t-va">var(--space-4)</span>; <span class="t-pr">text-align</span>: <span class="t-vl">center</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; }
+<span class="t-pr">.ufs-wholesaler-list.is-empty .ufs-wholesaler-empty</span> { <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+
+<span class="t-cm">/* Card + row */</span>
+<span class="t-pr">.ufs-wholesaler-item</span> { <span class="t-pr">border</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-md)</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>; <span class="t-pr">transition</span>: <span class="t-vl">background</span> <span class="t-vl">0.15s</span>; }
+<span class="t-pr">.ufs-wholesaler-row</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-4)</span>; <span class="t-pr">padding</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">text-decoration</span>: <span class="t-vl">none</span>; <span class="t-pr">-webkit-tap-highlight-color</span>: <span class="t-vl">transparent</span>; }
+<span class="t-pr">a.ufs-wholesaler-row:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }
+<span class="t-pr">a.ufs-wholesaler-row:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">outline-offset</span>: <span class="t-vl">-2px</span>; }
+<span class="t-pr">.ufs-wholesaler-logo</span> {
+  <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">64px</span>; <span class="t-pr">height</span>: <span class="t-vl">64px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-sm)</span>;
+  <span class="t-pr">border</span>: <span class="t-vl">1px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-mushroom-300)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-salt)</span>;
+  <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">overflow</span>: <span class="t-vl">hidden</span>;
+  <span class="t-pr">padding</span>: <span class="t-va">var(--space-2)</span>; <span class="t-pr">box-sizing</span>: <span class="t-vl">border-box</span>;
+}
+<span class="t-pr">.ufs-wholesaler-logo img</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">height</span>: <span class="t-vl">100%</span>; <span class="t-pr">object-fit</span>: <span class="t-vl">contain</span>; <span class="t-pr">display</span>: <span class="t-vl">block</span>; }
+<span class="t-pr">.ufs-wholesaler-body</span> { <span class="t-pr">flex</span>: <span class="t-vl">1</span>; <span class="t-pr">min-width</span>: <span class="t-vl">0</span>; }
+<span class="t-pr">.ufs-wholesaler-name</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">line-height</span>: <span class="t-vl">1.4</span>; }
+<span class="t-pr">.ufs-wholesaler-price</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-1)</span>; }
+<span class="t-pr">.ufs-wholesaler-caption</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-fine-print-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-fine-print-lh)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-mushroom-900)</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-1)</span>; }
+<span class="t-cm">/* Optional per-wholesaler stock line. --color-success is 2.29:1 on white, so the text uses</span>
+   <span class="t-cm">the same hue darkened to #59821D (4.53:1); the decorative dot keeps the token. */</span>
+<span class="t-pr">.ufs-wholesaler-stock</span> { <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">gap</span>: <span class="t-va">var(--space-1)</span>; <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-xs-size)</span>; <span class="t-pr">line-height</span>: <span class="t-va">var(--text-body-xs-lh)</span>; <span class="t-pr">color</span>: <span class="t-vl">#59821D</span>; <span class="t-pr">margin-top</span>: <span class="t-va">var(--space-1)</span>; }
+<span class="t-pr">.ufs-wholesaler-stock-dot</span> { <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">8px</span>; <span class="t-pr">height</span>: <span class="t-vl">8px</span>; <span class="t-pr">border-radius</span>: <span class="t-va">var(--radius-full)</span>; <span class="t-pr">background</span>: <span class="t-va">var(--color-success)</span>; }
+<span class="t-cm">/* External-link icon: appears on hover (always visible on touch) */</span>
+<span class="t-pr">.ufs-wholesaler-go</span> { <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">24px</span>; <span class="t-pr">height</span>: <span class="t-vl">24px</span>; <span class="t-pr">display</span>: <span class="t-vl">flex</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; <span class="t-pr">justify-content</span>: <span class="t-vl">center</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">opacity</span>: <span class="t-vl">0</span>; <span class="t-pr">transition</span>: <span class="t-vl">opacity</span> <span class="t-vl">0.15s</span>; }
+<span class="t-pr">a.ufs-wholesaler-row:hover .ufs-wholesaler-go, a.ufs-wholesaler-row:focus-visible .ufs-wholesaler-go</span> { <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; }
+<span class="t-pr">.ufs-wholesaler-go svg</span> { <span class="t-pr">width</span>: <span class="t-vl">16px</span>; <span class="t-pr">height</span>: <span class="t-vl">16px</span>; }
+<span class="t-pr">[dir="rtl"] .ufs-wholesaler-go svg</span> { <span class="t-pr">transform</span>: <span class="t-vl">scaleX(-1)</span>; }     <span class="t-cm">/* the arrow points up-left in RTL */</span>
+
+<span class="t-cm">/* Multi-option wholesaler: accordion header + sub-option rows. The chevron is centred</span>
+   <span class="t-cm">on the row (the FAQ accordion top-aligns it for multi-line questions). */</span>
+<span class="t-pr">.ufs-wholesaler-item .ufs-accordion__trigger</span> { <span class="t-pr">width</span>: <span class="t-vl">100%</span>; <span class="t-pr">padding</span>: <span class="t-vl">0</span>; <span class="t-pr">background</span>: <span class="t-vl">transparent</span>; <span class="t-pr">border</span>: <span class="t-vl">none</span>; <span class="t-pr">text-align</span>: <span class="t-vl">start</span>; <span class="t-pr">cursor</span>: <span class="t-vl">pointer</span>; <span class="t-pr">align-items</span>: <span class="t-vl">center</span>; }
+<span class="t-pr">.ufs-wholesaler-item .ufs-accordion__trigger:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }
+<span class="t-pr">.ufs-wholesaler-item .ufs-accordion__trigger:focus-visible</span> { <span class="t-pr">outline</span>: <span class="t-vl">2px</span> <span class="t-vl">solid</span> <span class="t-va">var(--color-accessible-orange)</span>; <span class="t-pr">outline-offset</span>: <span class="t-vl">-2px</span>; }
+<span class="t-pr">.ufs-wholesaler-item .ufs-accordion__trigger .ufs-wholesaler-row</span> { <span class="t-pr">pointer-events</span>: <span class="t-vl">none</span>; }
+<span class="t-pr">.ufs-wholesaler-item .ufs-accordion__chev</span> { <span class="t-pr">flex-shrink</span>: <span class="t-vl">0</span>; <span class="t-pr">width</span>: <span class="t-vl">24px</span>; <span class="t-pr">height</span>: <span class="t-vl">24px</span>; <span class="t-pr">margin</span>: <span class="t-vl">0</span>; <span class="t-pr">margin-inline-end</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">color</span>: <span class="t-va">var(--color-brand-dark)</span>; <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; }
+<span class="t-pr">.ufs-wholesaler-suboptions</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-100)</span>; }
+<span class="t-pr">.ufs-wholesaler-suboptions .ufs-wholesaler-row</span> { <span class="t-pr">padding-block</span>: <span class="t-va">var(--space-3)</span>; <span class="t-pr">padding-inline</span>: <span class="t-vl">calc(var(--space-4)</span> <span class="t-vl">+</span> <span class="t-va">var(--space-3)</span><span class="t-vl">)</span> <span class="t-va">var(--space-4)</span>; }
+<span class="t-pr">.ufs-wholesaler-suboptions .ufs-wholesaler-logo</span> { <span class="t-pr">width</span>: <span class="t-vl">44px</span>; <span class="t-pr">height</span>: <span class="t-vl">44px</span>; }
+<span class="t-pr">.ufs-wholesaler-suboptions .ufs-wholesaler-name</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; <span class="t-pr">font-weight</span>: <span class="t-vl">600</span>; }
+<span class="t-pr">.ufs-wholesaler-suboptions a.ufs-wholesaler-row:hover</span> { <span class="t-pr">background</span>: <span class="t-va">var(--color-mushroom-300)</span>; }
+<span class="t-kw">@media</span> (<span class="t-pr">max-width</span>: <span class="t-vl">768px</span>) {
+<span class="t-pr">#wholesaler-panel .signin-panel-title</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-h5-mob-size)</span>; }
+<span class="t-pr">.ufs-wholesaler-search input, .ufs-wholesaler-name</span> { <span class="t-pr">font-size</span>: <span class="t-va">var(--text-body-sm-size)</span>; }
+<span class="t-pr">.ufs-wholesaler-logo</span> { <span class="t-pr">width</span>: <span class="t-vl">54px</span>; <span class="t-pr">height</span>: <span class="t-vl">54px</span>; }
+<span class="t-pr">.ufs-wholesaler-suboptions .ufs-wholesaler-logo</span> { <span class="t-pr">width</span>: <span class="t-vl">40px</span>; <span class="t-pr">height</span>: <span class="t-vl">40px</span>; }
+<span class="t-pr">.ufs-wholesaler-go</span> { <span class="t-pr">opacity</span>: <span class="t-vl">1</span>; }      <span class="t-cm">/* no hover on touch */</span>
+}
+
+<span class="t-kw">@media</span> (<span class="t-pr">prefers-reduced-motion</span>: <span class="t-vl">reduce</span>) {
+  <span class="t-pr">.ufs-wholesaler-item .ufs-accordion__content, .ufs-wholesaler-item .ufs-accordion__chev, .ufs-wholesaler-go</span> { <span class="t-pr">transition</span>: <span class="t-vl">none</span>; }
+}</pre></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ SEARCH STATES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="search">
+      <div class="section-breadcrumb">Structure</div>
+      <h2 class="section-title">Search States</h2>
+      <p class="section-desc">Search matches a card's own name and its sub-option names. When only a sub-option matches, its parent stays visible and expands.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-drawer"><div><p class="pv-cap">“bid”: name match, stays collapsed</p><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">Choose your wholesaler</h2><p class="signin-panel-desc">You will be redirected to the wholesaler’s site</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="Search for your wholesaler" value="bid"/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel">
+    <div class="ufs-wholesaler-item ufs-accordion__item" data-wholesaler-name="Bidfood Bidfood Direct Bidfood Wholesaler"><button type="button" class="ufs-accordion__trigger" aria-expanded="false" tabindex="-1"><div class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood</div><div class="ufs-wholesaler-caption">2 options available</div></div></div><svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ufs-accordion__content"><div class="ufs-accordion__content-inner"><div class="ufs-wholesaler-suboptions"><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Direct</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Wholesaler</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a></div></div></div></div>
+    <div class="ufs-wholesaler-empty">No wholesalers found</div>
+  </div></div></div></div><div><p class="pv-cap">“direct”: sub-option match, parent expands</p><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">Choose your wholesaler</h2><p class="signin-panel-desc">You will be redirected to the wholesaler’s site</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="Search for your wholesaler" value="direct"/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel">
+    <div class="ufs-wholesaler-item ufs-accordion__item is-open" data-wholesaler-name="Bidfood Bidfood Direct Bidfood Wholesaler"><button type="button" class="ufs-accordion__trigger" aria-expanded="true" tabindex="-1"><div class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood</div><div class="ufs-wholesaler-caption">2 options available</div></div></div><svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ufs-accordion__content"><div class="ufs-accordion__content-inner"><div class="ufs-wholesaler-suboptions"><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Direct</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Wholesaler</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a></div></div></div></div>
+    <div class="ufs-wholesaler-empty">No wholesalers found</div>
+  </div></div></div></div><div><p class="pv-cap">No result</p><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">Choose your wholesaler</h2><p class="signin-panel-desc">You will be redirected to the wholesaler’s site</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="Search for your wholesaler" value="xyz"/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel is-empty">
+    
+    <div class="ufs-wholesaler-empty">No wholesalers found</div>
+  </div></div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ CHOOSING A WHOLESALER ═══════════════════════════════════════ -->
+    <section class="doc-section" id="behavior">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Choosing a Wholesaler</h2>
+      <p class="section-desc">The list, logos, prices and options come from the CMS per market and per product. There is no fixed count: the example has five.</p>
+      <div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Moment</th><th>What happens</th></tr></thead><tbody><tr><td>Buy it now</td><td>The drawer opens with the search cleared and the list scrolled to the top. Focus moves to the title (not the search, which would open the keyboard on mobile).</td></tr><tr><td>Type in search</td><td>Filters on every keystroke (case-insensitive "contains"). Sub-option matches expand their parent. Nothing left shows "No wholesalers found".</td></tr><tr><td>Multi-option card</td><td>Click / <kbd>Enter</kbd> / <kbd>Space</kbd> toggles it. Only one is open at a time (v1 accordion).</td></tr><tr><td>Pick a row</td><td>Follows the link to the wholesaler's product page, same tab ("You will be redirected").</td></tr><tr><td>Close</td><td>X, backdrop or <kbd>Esc</kbd>. Focus returns to the Buy it now button.</td></tr><tr><td>Keyboard</td><td><kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> stay inside the open drawer (wrap from last to first and back).</td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">JS</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">JS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-cm">/* ── Wholesaler Picker ── */</span>
+<span class="t-kw">var</span> wholesaler = { trigger: <span class="t-kw">null</span> };
+<span class="t-kw">function</span> openWholesalerPanel(trigger) {
+  wholesaler.trigger = trigger || document.activeElement;
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'wholesaler-panel'</span>);
+  document.getElementById(<span class="t-str">'wholesaler-search'</span>).value = <span class="t-str">''</span>;
+  filterWholesalers(<span class="t-str">''</span>);
+  panel.inert = <span class="t-kw">false</span>; panel.removeAttribute(<span class="t-str">'aria-hidden'</span>);
+  document.getElementById(<span class="t-str">'wholesaler-backdrop'</span>).classList.add(<span class="t-str">'is-open'</span>);
+  panel.classList.add(<span class="t-str">'is-open'</span>);
+  document.body.style.overflow = <span class="t-str">'hidden'</span>;
+  document.getElementById(<span class="t-str">'wholesaler-panel-body'</span>).scrollTop = 0;
+  <span class="t-cm">// The title, not the search: focusing the search would pop the keyboard on mobile</span>
+  setTimeout(<span class="t-kw">function</span> () { document.getElementById(<span class="t-str">'wholesaler-panel-title'</span>).focus({ preventScroll: <span class="t-kw">true</span> }); }, 50);
+}
+<span class="t-kw">function</span> closeWholesalerPanel() {
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'wholesaler-panel'</span>);
+  <span class="t-kw">if</span> (!panel.classList.contains(<span class="t-str">'is-open'</span>)) <span class="t-kw">return</span>;
+  document.getElementById(<span class="t-str">'wholesaler-backdrop'</span>).classList.remove(<span class="t-str">'is-open'</span>);
+  panel.classList.remove(<span class="t-str">'is-open'</span>);
+  panel.inert = <span class="t-kw">true</span>; panel.setAttribute(<span class="t-str">'aria-hidden'</span>, <span class="t-str">'true'</span>);
+  document.body.style.overflow = <span class="t-str">''</span>;
+  <span class="t-kw">if</span> (wholesaler.trigger &amp;&amp; wholesaler.trigger.offsetParent) wholesaler.trigger.focus({ preventScroll: <span class="t-kw">true</span> });
+}
+<span class="t-cm">// Keep Tab inside an open modal drawer: wrap from the last tabbable element to the</span>
+<span class="t-cm">// first and back. Radio groups count once; the focused title (tabindex -1) counts as</span>
+<span class="t-cm">// "before the first" so Shift+Tab from it goes to the last.</span>
+<span class="t-kw">function</span> trapTab(e, panel) {
+  <span class="t-kw">var</span> f = [].filter.call(panel.querySelectorAll(<span class="t-str">'button, input, select, textarea, a[href], [tabindex="0"]'</span>), <span class="t-kw">function</span> (el) {
+    <span class="t-kw">if</span> (el.disabled || !el.offsetParent || el.closest(<span class="t-str">'[hidden], [inert]'</span>)) <span class="t-kw">return</span> <span class="t-kw">false</span>;
+    <span class="t-kw">if</span> (el.type === <span class="t-str">'radio'</span> &amp;&amp; el.name) {
+      <span class="t-kw">var</span> group = panel.querySelectorAll(<span class="t-str">'input[type="radio"][name="'</span> + el.name + <span class="t-str">'"]'</span>);
+      <span class="t-kw">var</span> checked = [].filter.call(group, <span class="t-kw">function</span> (r) { <span class="t-kw">return</span> r.checked; })[0];
+      <span class="t-kw">return</span> el === (checked || group[0]);
+    }
+    <span class="t-kw">return</span> <span class="t-kw">true</span>;
+  });
+  <span class="t-kw">if</span> (!f.length) { e.preventDefault(); <span class="t-kw">return</span>; }
+  <span class="t-kw">var</span> first = f[0], last = f[f.length - 1], a = document.activeElement, inList = f.indexOf(a) &gt; -1;
+  <span class="t-kw">if</span> (e.shiftKey &amp;&amp; (a === first || !inList)) { e.preventDefault(); last.focus(); }
+  <span class="t-kw">else</span> <span class="t-kw">if</span> (!e.shiftKey &amp;&amp; (a === last || !panel.contains(a))) { e.preventDefault(); first.focus(); }
+}
+document.addEventListener(<span class="t-str">'keydown'</span>, <span class="t-kw">function</span> (e) {
+  <span class="t-kw">var</span> panel = document.getElementById(<span class="t-str">'wholesaler-panel'</span>);
+  <span class="t-kw">if</span> (!panel.classList.contains(<span class="t-str">'is-open'</span>)) <span class="t-kw">return</span>;
+  <span class="t-kw">if</span> (e.key === <span class="t-str">'Escape'</span>) closeWholesalerPanel();
+  <span class="t-kw">else</span> <span class="t-kw">if</span> (e.key === <span class="t-str">'Tab'</span>) trapTab(e, panel);
+});
+
+<span class="t-cm">/* Matches each card's data-wholesaler-name (its own name plus any sub-option names,
+   e.g. "Bidfood Bidfood Direct Bidfood Wholesaler") against the query. A sub-option
+   match keeps its parent visible and expands it, so "direct" surfaces Bidfood. */</span>
+<span class="t-kw">function</span> filterWholesalers(query) {
+  <span class="t-kw">var</span> q = query.trim().toLowerCase();
+  <span class="t-kw">var</span> list = document.getElementById(<span class="t-str">'wholesaler-list'</span>);
+  <span class="t-kw">var</span> anyVisible = <span class="t-kw">false</span>;
+  list.querySelectorAll(<span class="t-str">'.ufs-wholesaler-item'</span>).forEach(<span class="t-kw">function</span> (item) {
+    <span class="t-kw">var</span> matches = !q || (item.dataset.wholesalerName || <span class="t-str">''</span>).toLowerCase().indexOf(q) !== -1;
+    item.style.display = matches ? <span class="t-str">''</span> : <span class="t-str">'none'</span>;
+    <span class="t-kw">if</span> (matches) anyVisible = <span class="t-kw">true</span>;
+    <span class="t-kw">var</span> trigger = item.querySelector(<span class="t-str">'.ufs-accordion__trigger'</span>);
+    <span class="t-kw">if</span> (matches &amp;&amp; trigger &amp;&amp; q) {
+      <span class="t-kw">var</span> nameOnly = item.querySelector(<span class="t-str">'.ufs-wholesaler-name'</span>).textContent.toLowerCase();
+      <span class="t-kw">if</span> (nameOnly.indexOf(q) === -1 &amp;&amp; !item.classList.contains(<span class="t-str">'is-open'</span>)) toggleAccordionItem(trigger);
+    }
+  });
+  list.classList.toggle(<span class="t-str">'is-empty'</span>, !anyVisible);
+}
+
+<span class="t-cm">/* v1 accordion toggle (shared with the FAQ): one item open per group */</span>
+<span class="t-kw">function</span> toggleAccordionItem(trigger) {
+  <span class="t-kw">var</span> item = trigger.closest(<span class="t-str">'.ufs-accordion__item'</span>), panel = trigger.closest(<span class="t-str">'.ufs-accordion__panel'</span>);
+  <span class="t-kw">var</span> isOpen = item.classList.contains(<span class="t-str">'is-open'</span>);
+  panel.querySelectorAll(<span class="t-str">'.ufs-accordion__item.is-open'</span>).forEach(<span class="t-kw">function</span> (i) {
+    i.classList.remove(<span class="t-str">'is-open'</span>);
+    i.querySelector(<span class="t-str">'.ufs-accordion__trigger'</span>).setAttribute(<span class="t-str">'aria-expanded'</span>, <span class="t-str">'false'</span>);
+  });
+  <span class="t-kw">if</span> (!isOpen) { item.classList.add(<span class="t-str">'is-open'</span>); trigger.setAttribute(<span class="t-str">'aria-expanded'</span>, <span class="t-str">'true'</span>); }
+}</pre></div></div><div class="notice notice--info"><span class="notice-icon">ℹ️</span><div><strong>Added in this spec, not in the v1 template:</strong> <code>role="dialog"</code> + <code>aria-modal</code> + <code>aria-labelledby</code> on the drawer, <code>inert</code> while closed, focus to the title on open and back to the trigger on close, <kbd>Tab</kbd> kept inside it while open, an <code>aria-label</code> on the search (it only had a placeholder), <code>role="status"</code> on the empty message, decorative logos with empty <code>alt</code> (the name is next to them), the go icon on keyboard focus, and visible focus rings on rows. Visuals and timings are unchanged.</div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ ANIMATION ═══════════════════════════════════════ -->
+    <section class="doc-section" id="animation">
+      <div class="section-breadcrumb">Behavior</div>
+      <h2 class="section-title">Animation</h2>
+      <p class="section-desc">With reduced motion, the accordion opens instantly and the go icon appears without fading.</p>
+      <div class="ds-card"><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>Element</th><th>Trigger</th><th>Animation</th><th>Duration</th><th>Easing</th></tr></thead><tbody><tr><td>Drawer (v1 shell)</td><td>Open / close</td><td>translateX(100%) → 0 (−100% in RTL); backdrop fade</td><td>350 / 300ms</td><td>cubic-bezier(0.4, 0, 0.2, 1)</td></tr><tr><td>Row / card</td><td>Hover</td><td>background → --color-mushroom-100</td><td>150ms</td><td>ease</td></tr><tr><td>Go icon</td><td>Row hover / focus (desktop)</td><td>opacity 0 → 1</td><td>150ms</td><td>ease</td></tr><tr><td>Search</td><td>Focus</td><td>border → brand-primary, 3px ring fades in</td><td>150ms</td><td>ease</td></tr><tr><td>Multi-option card</td><td>Toggle / search match</td><td>grid-template-rows 0fr ⇄ 1fr; chevron rotates 180° and turns orange</td><td>300ms</td><td>cubic-bezier(0.4, 0, 0.2, 1)</td></tr><tr><td>Filtering</td><td>Typing</td><td>Cards hide / show instantly</td><td>–</td><td>–</td></tr></tbody></table></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ MOBILE EXAMPLES ═══════════════════════════════════════ -->
+    <section class="doc-section" id="mobile">
+      <div class="section-breadcrumb">Responsive</div>
+      <h2 class="section-title">Mobile Examples</h2>
+      <p class="section-desc">At ≤768px the drawer goes full width minus 16px (v1 shell), the title steps down to the H5 mobile size, the search and names drop to Body-Small, logos shrink to 54px (sub-options 40px), and the go icon is always visible. Restated under <code>.pv-mob</code>.</p>
+      <div class="ds-card"><div aria-hidden="true" inert class="pv-drawer pv-m pv-mob"><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">Choose your wholesaler</h2><p class="signin-panel-desc">You will be redirected to the wholesaler’s site</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="Search for your wholesaler" value=""/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel">
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Amazon Business" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/amazon.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Amazon Business</div><div class="ufs-wholesaler-price"><bdi>€29.50</bdi></div><div class="ufs-wholesaler-caption">Price indication (excl. VAT)</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-item ufs-accordion__item" data-wholesaler-name="Bidfood Bidfood Direct Bidfood Wholesaler"><button type="button" class="ufs-accordion__trigger" aria-expanded="false" tabindex="-1"><div class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood</div><div class="ufs-wholesaler-caption">2 options available</div></div></div><svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ufs-accordion__content"><div class="ufs-accordion__content-inner"><div class="ufs-wholesaler-suboptions"><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Direct</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Wholesaler</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a></div></div></div></div>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Unitas" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/unitas.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Unitas</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Brakes" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/brakes.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Brakes</div><div class="ufs-wholesaler-stock"><span class="ufs-wholesaler-stock-dot" aria-hidden="true"></span>In stock</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Country Range" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/country-range.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Country Range</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-empty">No wholesalers found</div>
+  </div></div></div><div class="signin-panel"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="Close" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">Choose your wholesaler</h2><p class="signin-panel-desc">You will be redirected to the wholesaler’s site</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="Search for your wholesaler" value=""/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel">
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Amazon Business" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/amazon.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Amazon Business</div><div class="ufs-wholesaler-price"><bdi>€29.50</bdi></div><div class="ufs-wholesaler-caption">Price indication (excl. VAT)</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-item ufs-accordion__item is-open" data-wholesaler-name="Bidfood Bidfood Direct Bidfood Wholesaler"><button type="button" class="ufs-accordion__trigger" aria-expanded="true" tabindex="-1"><div class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood</div><div class="ufs-wholesaler-caption">2 options available</div></div></div><svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ufs-accordion__content"><div class="ufs-accordion__content-inner"><div class="ufs-wholesaler-suboptions"><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Direct</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Wholesaler</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a></div></div></div></div>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Unitas" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/unitas.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Unitas</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Brakes" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/brakes.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Brakes</div><div class="ufs-wholesaler-stock"><span class="ufs-wholesaler-stock-dot" aria-hidden="true"></span>In stock</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Country Range" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/country-range.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Country Range</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-empty">No wholesalers found</div>
+  </div></div></div></div></div>
+    </section>
+
+    <!-- ═══════════════════════════════════════ I18N &AMP; RTL ═══════════════════════════════════════ -->
+    <section class="doc-section" id="rtl">
+      <div class="section-breadcrumb">Internationalisation</div>
+      <h2 class="section-title">i18n &amp; RTL</h2>
+      <p class="section-desc">The drawer slides in from the left (v1 shell). Rows mirror through flex: logo on the right, go icon and chevron on the left. The search icon, row padding, sub-option indent and chevron spacing use logical properties. One explicit rule: the external-link arrow flips to point up-left. Wholesaler names and prices stay as delivered by the CMS; wrap prices in <code>&lt;bdi&gt;</code>.</p>
+      <div class="ds-card"><div class="card-title">Strings</div><div class="spec-table-wrap"><table class="spec-table"><thead><tr><th>English</th><th>Arabic</th></tr></thead><tbody><tr><td>Buy it now (tile CTA)</td><td><span dir="rtl">اشترِ الآن</span></td></tr><tr><td>Choose your wholesaler</td><td><span dir="rtl">اختر تاجر الجملة</span></td></tr><tr><td>You will be redirected to the wholesaler’s site</td><td><span dir="rtl">ستتم إعادة توجيهك إلى موقع تاجر الجملة</span></td></tr><tr><td>Search for your wholesaler</td><td><span dir="rtl">ابحث عن تاجر الجملة</span></td></tr><tr><td>Price indication (excl. VAT)</td><td><span dir="rtl">سعر استرشادي (غير شامل ضريبة القيمة المضافة)</span></td></tr><tr><td>{n} options available (pick the Arabic plural form with Intl.PluralRules; 2 uses the dual)</td><td><span dir="rtl">{n} خيارات متاحة</span></td></tr><tr><td>2 options available</td><td><span dir="rtl">خياران متاحان</span></td></tr><tr><td>In stock</td><td><span dir="rtl">متوفر</span></td></tr><tr><td>No wholesalers found</td><td><span dir="rtl">لم يتم العثور على تجار جملة</span></td></tr><tr><td>Close</td><td><span dir="rtl">إغلاق</span></td></tr></tbody></table></div></div><div class="ds-card"><div class="card-title">RTL previews</div><div aria-hidden="true" inert class="pv-drawer"><div class="signin-panel" dir="rtl"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="إغلاق" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">اختر تاجر الجملة</h2><p class="signin-panel-desc">ستتم إعادة توجيهك إلى موقع تاجر الجملة</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="ابحث عن تاجر الجملة" value=""/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel">
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row pv-hover" data-wholesaler-name="Amazon Business" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/amazon.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Amazon Business</div><div class="ufs-wholesaler-price"><bdi>€29.50</bdi></div><div class="ufs-wholesaler-caption">سعر استرشادي (غير شامل ضريبة القيمة المضافة)</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-item ufs-accordion__item is-open" data-wholesaler-name="Bidfood Bidfood Direct Bidfood Wholesaler"><button type="button" class="ufs-accordion__trigger" aria-expanded="true" tabindex="-1"><div class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood</div><div class="ufs-wholesaler-caption">خياران متاحان</div></div></div><svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ufs-accordion__content"><div class="ufs-accordion__content-inner"><div class="ufs-wholesaler-suboptions"><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Direct</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Wholesaler</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a></div></div></div></div>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Unitas" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/unitas.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Unitas</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Brakes" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/brakes.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Brakes</div><div class="ufs-wholesaler-stock"><span class="ufs-wholesaler-stock-dot" aria-hidden="true"></span>متوفر</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Country Range" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/country-range.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Country Range</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-empty">لم يتم العثور على تجار جملة</div>
+  </div></div></div><div class="signin-panel" dir="rtl"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="إغلاق" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">اختر تاجر الجملة</h2><p class="signin-panel-desc">ستتم إعادة توجيهك إلى موقع تاجر الجملة</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="ابحث عن تاجر الجملة" value="xyz"/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel is-empty">
+    
+    <div class="ufs-wholesaler-empty">لم يتم العثور على تجار جملة</div>
+  </div></div></div></div></div><div class="ds-card"><div class="card-title">RTL previews: mobile</div><div aria-hidden="true" inert class="pv-drawer pv-m pv-mob"><div class="signin-panel" dir="rtl"><div class="signin-panel-hd"><img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/><button class="signin-close" aria-label="إغلاق" tabindex="-1"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button></div><div class="signin-panel-body"><h2 class="signin-panel-title">اختر تاجر الجملة</h2><p class="signin-panel-desc">ستتم إعادة توجيهك إلى موقع تاجر الجملة</p><div class="ufs-wholesaler-search"><input type="search" tabindex="-1" placeholder="ابحث عن تاجر الجملة" value=""/><img src="../icons/Search.svg" alt=""/></div><div class="ufs-wholesaler-list ufs-accordion__panel">
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Amazon Business" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/amazon.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Amazon Business</div><div class="ufs-wholesaler-price"><bdi>€29.50</bdi></div><div class="ufs-wholesaler-caption">سعر استرشادي (غير شامل ضريبة القيمة المضافة)</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-item ufs-accordion__item" data-wholesaler-name="Bidfood Bidfood Direct Bidfood Wholesaler"><button type="button" class="ufs-accordion__trigger" aria-expanded="false" tabindex="-1"><div class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood</div><div class="ufs-wholesaler-caption">خياران متاحان</div></div></div><svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ufs-accordion__content"><div class="ufs-accordion__content-inner"><div class="ufs-wholesaler-suboptions"><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Direct</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a><a href="#" class="ufs-wholesaler-row" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Wholesaler</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a></div></div></div></div>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Unitas" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/unitas.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Unitas</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Brakes" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/brakes.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Brakes</div><div class="ufs-wholesaler-stock"><span class="ufs-wholesaler-stock-dot" aria-hidden="true"></span>متوفر</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Country Range" tabindex="-1"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/country-range.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Country Range</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-empty">لم يتم العثور على تجار جملة</div>
+  </div></div></div></div></div><div class="ds-card"><div class="card-title">RTL rules</div><div class="code-block-wrap"><div class="code-header"><span class="code-lang">CSS</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div><pre class="code-body" tabindex="0"><span class="t-pr">[dir="rtl"] .ufs-wholesaler-go svg</span> { <span class="t-pr">transform</span>: <span class="t-vl">scaleX(-1)</span>; }
+<span class="t-cm">/* Everything else is logical: search padding-inline + icon inset-inline-end,</span>
+   <span class="t-cm">sub-option padding-inline, chevron margin-inline-end, trigger text-align: start. */</span></pre></div></div>
+    </section>
+
+  </main>
+
+<!-- Wholesaler Picker: v1 side panel shell. Opened by "Buy it now" on a product tile.
+     Rows link to the wholesaler's product page; the list is per market from the CMS. -->
+<div class="signin-backdrop" id="wholesaler-backdrop" onclick="closeWholesalerPanel()"></div>
+<div class="signin-panel" id="wholesaler-panel" role="dialog" aria-modal="true" aria-labelledby="wholesaler-panel-title" aria-hidden="true" inert>
+  <div class="signin-panel-hd">
+    <img src="../images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+    <button class="signin-close" onclick="closeWholesalerPanel()" aria-label="Close"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg></button>
+  </div>
+  <div class="signin-panel-body" id="wholesaler-panel-body">
+    <h2 class="signin-panel-title" id="wholesaler-panel-title" tabindex="-1">Choose your wholesaler</h2>
+    <p class="signin-panel-desc">You will be redirected to the wholesaler’s site</p>
+    <div class="ufs-wholesaler-search">
+      <input type="search" id="wholesaler-search" placeholder="Search for your wholesaler" aria-label="Search for your wholesaler" aria-controls="wholesaler-list" autocomplete="off" oninput="filterWholesalers(this.value)"/>
+      <img src="../icons/Search.svg" alt=""/>
+    </div>
+  <div class="ufs-wholesaler-list ufs-accordion__panel" id="wholesaler-list">
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Amazon Business"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/amazon.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Amazon Business</div><div class="ufs-wholesaler-price"><bdi>€29.50</bdi></div><div class="ufs-wholesaler-caption">Price indication (excl. VAT)</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-item ufs-accordion__item" data-wholesaler-name="Bidfood Bidfood Direct Bidfood Wholesaler"><button type="button" class="ufs-accordion__trigger" onclick="toggleAccordionItem(this)" aria-expanded="false" aria-controls="wholesaler-bidfood-content" id="wholesaler-bidfood-trigger"><div class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood</div><div class="ufs-wholesaler-caption">2 options available</div></div></div><svg class="ufs-accordion__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ufs-accordion__content" id="wholesaler-bidfood-content" role="region" aria-labelledby="wholesaler-bidfood-trigger"><div class="ufs-accordion__content-inner"><div class="ufs-wholesaler-suboptions"><a href="#" class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Direct</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a><a href="#" class="ufs-wholesaler-row"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/bidfood.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Bidfood Wholesaler</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a></div></div></div></div>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Unitas"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/unitas.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Unitas</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Brakes"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/brakes.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Brakes</div><div class="ufs-wholesaler-stock"><span class="ufs-wholesaler-stock-dot" aria-hidden="true"></span>In stock</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <a href="#" class="ufs-wholesaler-item ufs-wholesaler-row" data-wholesaler-name="Country Range"><div class="ufs-wholesaler-logo"><img src="../images/wholesalers/country-range.png" alt=""/></div><div class="ufs-wholesaler-body"><div class="ufs-wholesaler-name">Country Range</div></div><span class="ufs-wholesaler-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></span></a>
+    <div class="ufs-wholesaler-empty" role="status">No wholesalers found</div>
+  </div>
+  </div>
+</div>
+
+  <script>
+    function openSidebar() {
+      document.getElementById('sidebar').classList.add('is-open');
+      document.getElementById('sidebar-backdrop').classList.add('is-open');
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.remove('is-open');
+      document.getElementById('sidebar-backdrop').classList.remove('is-open');
+    }
+
+    var sections = document.querySelectorAll('.doc-section[id]');
+    var links    = document.querySelectorAll('.sidebar-link[href]');
+    window.addEventListener('scroll', function() {
+      var scrollY = window.scrollY;
+      sections.forEach(function(sec) {
+        var top = sec.offsetTop - 80;
+        var bot = top + sec.offsetHeight;
+        if (scrollY >= top && scrollY < bot) {
+          var id = sec.getAttribute('id');
+          links.forEach(function(l) {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+          });
+        }
+      });
+    }, { passive: true });
+
+    function switchTab(clickedTab, tabName) {
+      var wrap = clickedTab.closest('.code-block-wrap');
+      wrap.querySelectorAll('.code-tab').forEach(function(t) { t.classList.remove('active'); });
+      wrap.querySelectorAll('.code-panel').forEach(function(p) { p.classList.remove('active'); });
+      clickedTab.classList.add('active');
+      wrap.querySelector('.code-panel[data-tab="' + tabName + '"]').classList.add('active');
+    }
+
+    function copyCode(btn) {
+      var scope = btn.closest('.code-panel') || btn.closest('.code-block-wrap');
+      var pre = scope.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(function() {
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+
+
+// Doc chrome: a table that scrolls sideways gets a keyboard stop + a name, only while it overflows
+function markScrollRegions() {
+  document.querySelectorAll('.spec-table-wrap').forEach(function (w) {
+    if (w.closest('[inert]')) return;
+    if (w.scrollWidth > w.clientWidth + 1) {
+      var t = w.closest('.ds-card') && w.closest('.ds-card').querySelector('.card-title');
+      w.tabIndex = 0; w.setAttribute('role', 'region'); w.setAttribute('aria-label', (t ? t.textContent + ' ' : '') + 'table, scrolls sideways');
+    } else { w.removeAttribute('tabindex'); w.removeAttribute('role'); w.removeAttribute('aria-label'); }
+  });
+}
+window.addEventListener('load', markScrollRegions);
+window.addEventListener('resize', markScrollRegions);
+
+
+/* ── Wholesaler Picker ── */
+var wholesaler = { trigger: null };
+function openWholesalerPanel(trigger) {
+  wholesaler.trigger = trigger || document.activeElement;
+  var panel = document.getElementById('wholesaler-panel');
+  document.getElementById('wholesaler-search').value = '';
+  filterWholesalers('');
+  panel.inert = false; panel.removeAttribute('aria-hidden');
+  document.getElementById('wholesaler-backdrop').classList.add('is-open');
+  panel.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('wholesaler-panel-body').scrollTop = 0;
+  // The title, not the search: focusing the search would pop the keyboard on mobile
+  setTimeout(function () { document.getElementById('wholesaler-panel-title').focus({ preventScroll: true }); }, 50);
+}
+function closeWholesalerPanel() {
+  var panel = document.getElementById('wholesaler-panel');
+  if (!panel.classList.contains('is-open')) return;
+  document.getElementById('wholesaler-backdrop').classList.remove('is-open');
+  panel.classList.remove('is-open');
+  panel.inert = true; panel.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  if (wholesaler.trigger && wholesaler.trigger.offsetParent) wholesaler.trigger.focus({ preventScroll: true });
+}
+// Keep Tab inside an open modal drawer: wrap from the last tabbable element to the
+// first and back. Radio groups count once; the focused title (tabindex -1) counts as
+// "before the first" so Shift+Tab from it goes to the last.
+function trapTab(e, panel) {
+  var f = [].filter.call(panel.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]'), function (el) {
+    if (el.disabled || !el.offsetParent || el.closest('[hidden], [inert]')) return false;
+    if (el.type === 'radio' && el.name) {
+      var group = panel.querySelectorAll('input[type="radio"][name="' + el.name + '"]');
+      var checked = [].filter.call(group, function (r) { return r.checked; })[0];
+      return el === (checked || group[0]);
+    }
+    return true;
+  });
+  if (!f.length) { e.preventDefault(); return; }
+  var first = f[0], last = f[f.length - 1], a = document.activeElement, inList = f.indexOf(a) > -1;
+  if (e.shiftKey && (a === first || !inList)) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && (a === last || !panel.contains(a))) { e.preventDefault(); first.focus(); }
+}
+document.addEventListener('keydown', function (e) {
+  var panel = document.getElementById('wholesaler-panel');
+  if (!panel.classList.contains('is-open')) return;
+  if (e.key === 'Escape') closeWholesalerPanel();
+  else if (e.key === 'Tab') trapTab(e, panel);
+});
+
+/* Matches each card's data-wholesaler-name (its own name plus any sub-option names,
+   e.g. "Bidfood Bidfood Direct Bidfood Wholesaler") against the query. A sub-option
+   match keeps its parent visible and expands it, so "direct" surfaces Bidfood. */
+function filterWholesalers(query) {
+  var q = query.trim().toLowerCase();
+  var list = document.getElementById('wholesaler-list');
+  var anyVisible = false;
+  list.querySelectorAll('.ufs-wholesaler-item').forEach(function (item) {
+    var matches = !q || (item.dataset.wholesalerName || '').toLowerCase().indexOf(q) !== -1;
+    item.style.display = matches ? '' : 'none';
+    if (matches) anyVisible = true;
+    var trigger = item.querySelector('.ufs-accordion__trigger');
+    if (matches && trigger && q) {
+      var nameOnly = item.querySelector('.ufs-wholesaler-name').textContent.toLowerCase();
+      if (nameOnly.indexOf(q) === -1 && !item.classList.contains('is-open')) toggleAccordionItem(trigger);
+    }
+  });
+  list.classList.toggle('is-empty', !anyVisible);
+}
+
+/* v1 accordion toggle (shared with the FAQ): one item open per group */
+function toggleAccordionItem(trigger) {
+  var item = trigger.closest('.ufs-accordion__item'), panel = trigger.closest('.ufs-accordion__panel');
+  var isOpen = item.classList.contains('is-open');
+  panel.querySelectorAll('.ufs-accordion__item.is-open').forEach(function (i) {
+    i.classList.remove('is-open');
+    i.querySelector('.ufs-accordion__trigger').setAttribute('aria-expanded', 'false');
+  });
+  if (!isOpen) { item.classList.add('is-open'); trigger.setAttribute('aria-expanded', 'true'); }
+}
+
+// Doc: rows don't navigate
+document.querySelectorAll('#wholesaler-list a').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); }); });
+
+  </script>
+</body>
+</html>
