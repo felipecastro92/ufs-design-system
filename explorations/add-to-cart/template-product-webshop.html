@@ -12618,11 +12618,16 @@
     }
 
     /* Toast stack: max 2, oldest leaves first; "View cart" opens the panel */
-    function wsToast(msg, noLink) {
+    function wsToast(msg, noLink, action) {
       var st = document.getElementById('ws-toast-stack'), el = document.createElement('div');
       el.className = 'x-toast-item';
-      el.innerHTML = '<span></span>' + (noLink || cartOpen() ? '' : '<button type="button" onclick="openCartPanel()">View cart</button>');
+      el.innerHTML = '<span></span>' + (action ? '<button type="button"></button>' : noLink || cartOpen() ? '' : '<button type="button" onclick="openCartPanel()">View cart</button>');
       el.firstChild.textContent = msg;
+      // Optional action (e.g. Add again) replaces "View cart"
+      if (action) {
+        el.lastChild.textContent = action.label;
+        el.lastChild.onclick = function () { action.fn(); wsDismiss(el); };
+      }
       st.appendChild(el);
       var live = [].filter.call(st.children, function (c) { return !c.classList.contains('is-leaving'); });
       while (live.length > 2) wsDismiss(live.shift());
@@ -12754,6 +12759,11 @@
     }
     function cartRemove(id, k) {
       var row = document.querySelector('#cart-list [data-row="' + id + '|' + k + '"]');
+      var p = wsP(id), before = wsLine(id)[k];
+      // "Add again" puts the same pack back at its previous quantity
+      wsToast(p.name + (p.multi ? ', ' + wsLabel(p, k) : '') + ' has been removed from your cart.', true, {
+        label: 'Add again', fn: function () { cartSet(id, k, wsLine(id)[k] + before); }
+      });
       if (!row || wsReduce.matches) { cartSet(id, k, 0); return; }
       row.classList.add('is-removing');
       setTimeout(function () { cartSet(id, k, 0); }, 180);
@@ -13058,7 +13068,8 @@
       tpsSelection = null;
       webshopStore(WEBSHOP_TP_KEY, null);
       document.getElementById('tps-status').textContent = '';
-      tpsSelectCity('');
+      // Back to the select step, keeping the city — only the partner is cleared
+      tpsDropSetValue('partner', '');
       tpsSetState('select');
     }
     function tpsSetState(state) {
