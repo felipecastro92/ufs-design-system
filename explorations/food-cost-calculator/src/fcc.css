@@ -1,0 +1,114 @@
+
+    /* ==========================================================================
+       FOOD COST CALCULATOR (v3) — two parts:
+       1. .ufs-fcc-banner: entry card in the Ingredients column, between the
+          title and the Servings stepper (Figma 4764:4648).
+       2. .ufs-fcc: side panel on the DS .signin-panel shell (Figma 4764:4566,
+          redesigned). Header and footer are fixed; only the ingredient list
+          scrolls, so the totals are always visible.
+       DS tokens only. Status colours: --color-success-text is the scoped v2
+       green (5.2:1 on salt), --color-error is 5.6:1 on salt.
+    ========================================================================== */
+    .ufs-fcc-banner { display: flex; align-items: flex-start; gap: var(--space-4); padding: var(--space-6) var(--space-5); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); background: var(--color-salt); }
+    .ufs-fcc-banner__icon { flex-shrink: 0; width: var(--space-10); height: var(--space-10); }
+    .ufs-fcc-banner__body { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+    .ufs-fcc-banner__title { margin: 0; font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); color: var(--color-brand-dark); }
+    .ufs-fcc-banner__desc { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); color: var(--color-brand-dark); }
+
+    /* ── Panel ── */
+    .ufs-fcc { --color-success-text: #527719; }
+    .ufs-fcc__hd { flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding-block: var(--space-4); padding-inline: var(--space-6) var(--space-4); border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-fcc__hd-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; padding-top: var(--space-1); }
+    .ufs-fcc__title { margin: 0; font-size: var(--text-h5-size); line-height: var(--text-h5-lh); font-weight: var(--text-h5-w); color: var(--color-brand-dark); }
+    .ufs-fcc__title:focus { outline: none; }
+    .ufs-fcc__sub { margin: 0; display: flex; align-items: center; gap: var(--space-2); min-width: 0; font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-900); }
+    .ufs-fcc__recipe { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .ufs-fcc__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--space-4) var(--space-6) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+
+    /* Setup: servings + menu price side by side */
+    .ufs-fcc__setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-orange-100) 30%, transparent); border: 1px solid var(--color-orange-300); }
+    .ufs-fcc__field { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+    .ufs-fcc__label { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); font-weight: 600; color: var(--color-brand-dark); }
+    .ufs-fcc__qty { background: var(--color-salt); }
+    .ufs-fcc__qty .fi-qty-btn { width: var(--space-10); height: var(--space-10); }
+    .ufs-fcc__qty .fi-qty-btn svg { width: var(--space-5); height: var(--space-5); }
+    .ufs-fcc__money { position: relative; display: block; }
+    .ufs-fcc__input.fi-field { height: var(--space-12); padding-block: 0; padding-inline: var(--space-3) var(--space-12); background: var(--color-salt); font-variant-numeric: tabular-nums; text-align: end; }
+    .ufs-fcc__input--menu.fi-field { padding-inline-end: var(--fcc-menu-unit-w, 80px); }   /* room for the unit label: "€ excl. VAT" */
+    .ufs-fcc:lang(ar) { --fcc-menu-unit-w: 108px; }                                       /* "€ قبل الضريبة" */
+    .ufs-fcc__unit { position: absolute; inset-block: 0; inset-inline-end: var(--space-3); display: flex; align-items: center; font-size: var(--text-body-xs-size); color: var(--color-mushroom-900); pointer-events: none; }
+
+    /* Ingredient list: two compact lines per row */
+    .ufs-fcc__list-hd { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+    .ufs-fcc__h { margin: 0; font-size: var(--text-h6-size); line-height: var(--text-h6-lh); font-weight: var(--text-h6-w); color: var(--color-brand-dark); }
+    .ufs-fcc__hint { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-900); }
+    .ufs-fcc__list { list-style: none; margin: calc(-1 * var(--space-2)) 0 0; padding: 0; }
+    .ufs-fcc__row { display: grid; grid-template-columns: minmax(0, 1fr) 128px 76px; grid-template-areas: "name name remove" "meta price value"; align-items: center; column-gap: var(--space-3); row-gap: var(--space-1); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-mushroom-300); }
+    .ufs-fcc__name { grid-area: name; display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-2); font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600; color: var(--color-brand-dark); }
+    .ufs-fcc__name.is-ufs { color: var(--color-accessible-orange); }
+    .ufs-fcc__remove { grid-area: remove; justify-self: end; width: var(--space-8); height: var(--space-8); margin-block: calc(-1 * var(--space-2)); margin-inline: 0 calc(-1 * var(--space-2)); display: flex; align-items: center; justify-content: center; border: none; border-radius: var(--radius-full); background: none; color: var(--color-mushroom-900); cursor: pointer; }
+    .ufs-fcc__remove:hover { background: var(--color-mushroom-100); color: var(--color-brand-dark); }
+    .ufs-fcc__remove:focus-visible { outline: 2px solid var(--color-brand-dark); outline-offset: 0; }
+    .ufs-fcc__remove svg { width: 10px; height: 10px; }
+    .ufs-fcc__meta { grid-area: meta; font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-900); font-variant-numeric: tabular-nums; }
+    .ufs-fcc__price { grid-area: price; }
+    .ufs-fcc__row .ufs-fcc__input.fi-field { height: var(--space-9); }
+    .ufs-fcc__value { grid-area: value; text-align: end; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); font-weight: 600; color: var(--color-brand-dark); font-variant-numeric: tabular-nums; }
+    .ufs-fcc__value.is-empty { font-weight: 400; color: var(--color-mushroom-900); }
+    .ufs-fcc__row.is-removed { grid-template-areas: "name name remove"; }
+    .ufs-fcc__row.is-removed .ufs-fcc__name { color: var(--color-mushroom-900); font-weight: 400; text-decoration: line-through; }
+    .ufs-fcc__row.is-removed .ufs-fcc__meta, .ufs-fcc__row.is-removed .ufs-fcc__price, .ufs-fcc__row.is-removed .ufs-fcc__value { display: none; }
+    .ufs-fcc__restore { grid-area: remove; justify-self: end; border: none; background: none; padding: 0; cursor: pointer; font-family: var(--font-family); font-size: var(--text-body-xs-size); font-weight: 600; color: var(--color-accessible-orange); text-decoration: underline; }
+
+    /* Add an ingredient (collapsed by default) */
+    .ufs-fcc__add-toggle { align-self: flex-start; }
+    .ufs-fcc__add-toggle[hidden] { display: none; }
+    .ufs-fcc__add { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-mushroom-300); border-radius: var(--radius-md); }
+    .ufs-fcc__add[hidden] { display: none; }
+    .ufs-fcc__add-row { display: grid; grid-template-columns: minmax(0, 1fr) 88px minmax(0, 1fr); gap: var(--space-3); }
+    .ufs-fcc__add .fi-field { height: var(--space-10); padding-block: 0; }
+    .ufs-fcc__add .ufs-fcc__name-input.fi-field { background: var(--color-salt); }
+    .ufs-fcc__add select.fi-field { background-color: var(--color-salt); padding-inline: var(--space-3) var(--space-7); background-position: right var(--space-3) center; }
+    [dir="rtl"] .ufs-fcc__add select.fi-field { background-position: left var(--space-3) center; }
+    .ufs-fcc__add-actions { display: flex; justify-content: flex-end; gap: var(--space-3); }
+    .ufs-fcc__disclaimer { margin: 0; font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-900); }
+    /* Reset (left) + Save as PDF (right) on one line */
+    .ufs-fcc__actions { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+    .ufs-fcc__actions .btn[aria-disabled="true"] { opacity: 0.6; cursor: progress; }
+    .ufs-fcc__pdf-error { margin: calc(-1 * var(--space-2)) 0 0; text-align: end; font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-error); }
+    .ufs-fcc__pdf-error:empty { display: none; }
+    .ufs-fcc__reset { border: none; background: none; padding: 0; cursor: pointer; font-family: var(--font-family); font-size: var(--text-body-xs-size); font-weight: 600; color: var(--color-accessible-orange); text-decoration: underline; }
+
+    /* Footer: always visible */
+    .ufs-fcc__ft { flex-shrink: 0; padding: var(--space-4) var(--space-6) calc(var(--space-4) + env(safe-area-inset-bottom, 0px)); background: var(--color-salt); box-shadow: var(--shadow-lg); border-top: 1px solid var(--color-mushroom-300); }
+    .ufs-fcc__totals { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+    .ufs-fcc__totals > div { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .ufs-fcc__totals > div + div { padding-inline-start: var(--space-3); border-inline-start: 1px solid var(--color-mushroom-300); }
+    .ufs-fcc__totals dt { font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-900); }
+    .ufs-fcc__totals dd { margin: 0; font-size: var(--text-price-size); line-height: var(--text-price-lh); letter-spacing: var(--text-price-ls); font-weight: var(--text-price-w); color: var(--color-brand-dark); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .ufs-fcc__status { display: flex; align-items: center; gap: var(--space-1); margin-top: 2px; font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); font-weight: 600; letter-spacing: 0; }
+    .ufs-fcc__status[hidden] { display: none; }
+    .ufs-fcc__status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+    .ufs-fcc__status--ok { color: var(--color-success-text); }
+    .ufs-fcc__status--high { color: var(--color-error); }
+    .ufs-fcc__status--low { color: var(--color-mushroom-900); }
+    .ufs-fcc__ft-note { margin: var(--space-2) 0 0; font-size: var(--text-body-xs-size); line-height: var(--text-body-xs-lh); color: var(--color-mushroom-900); }
+    .ufs-fcc__ft-note[hidden] { display: none; }
+
+    @media (max-width: 768px) {
+      .ufs-fcc-banner { padding: var(--space-5) var(--space-4); gap: var(--space-3); }
+      .ufs-fcc-banner__icon { width: var(--space-8); height: var(--space-8); }
+      .ufs-fcc-banner__title { font-size: var(--text-h6-mob-size); }
+      .ufs-fcc-banner .btn { width: 100%; }
+      .ufs-fcc__hd { padding-inline-start: var(--space-4); }
+      .ufs-fcc__title { font-size: var(--text-h5-mob-size); }
+      .ufs-fcc__h { font-size: var(--text-h6-mob-size); }
+      .ufs-fcc__body { padding: var(--space-4); gap: var(--space-4); }
+      .ufs-fcc__row { grid-template-columns: minmax(0, 1fr) 112px 68px; column-gap: var(--space-2); }
+      .ufs-fcc__ft { padding-inline: var(--space-4); }
+      .ufs-fcc__totals { gap: var(--space-2); }
+      .ufs-fcc__totals > div + div { padding-inline-start: var(--space-2); }
+      .ufs-fcc__totals dd { font-size: var(--text-price-mob-size); }
+      .ufs-fcc__add-row { grid-template-columns: minmax(0, 1fr) 80px; }
+      .ufs-fcc__add-row .ufs-fcc__money { grid-column: 1 / -1; }
+    }
