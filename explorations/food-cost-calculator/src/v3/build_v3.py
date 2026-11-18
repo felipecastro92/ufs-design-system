@@ -1,9 +1,11 @@
-"""Handover v3.0 — ships the Food Cost Calculator.
+"""Handover v3.0 — ships the Food Cost Calculator and Favourite Lists → Order Lists.
 
 Run from anywhere after `python3 ../build.py` (which writes ../out.html):
 
   1. handover/v3/template-recipe-detail.html = ../out.html (v2 Recipe Detail + FCC;
      its relative paths are ../, the same depth as v2, so it is copied unchanged).
+     handover/v3/template-products-catalog-webshop.html + template-profile-favourites.html
+     = explorations/favourite-lists/src/out-*.html (run that folder's build.py first).
   2. handover/v3/index.html = the v2 index, cumulative: every v2-local link points
      at ../v2/, a "New in v3.0" sidebar group + What's new section come first, the
      v2 group/section stay (collapsed / renamed #whats-new-v2), Recipe Detail
@@ -56,16 +58,20 @@ for folder in ('', 'v2'):
 
 # 1 ── Template ───────────────────────────────────────────────────────────────
 shutil.copyfile(os.path.join(HERE, '..', 'out.html'), os.path.join(V3, 'template-recipe-detail.html'))
+FL = os.path.join(REPO, 'explorations', 'favourite-lists', 'src')
+shutil.copyfile(os.path.join(FL, 'out-catalog.html'), os.path.join(V3, 'template-products-catalog-webshop.html'))
+shutil.copyfile(os.path.join(FL, 'out-favourites.html'), os.path.join(V3, 'template-profile-favourites.html'))
+V3_LOCAL = ('template-recipe-detail.html', 'template-products-catalog-webshop.html')   # v2 names that have a v3 copy
 
 # 2 ── Index ──────────────────────────────────────────────────────────────────
 s = rd(os.path.join(H, 'v2', 'index.html'))
 s = rep(s, '<title>UFS Design System v2.0 — Developer Handover</title>',
            '<title>UFS Design System v3.0 — Developer Handover</title>')
 
-# v2-local links → ../v2/ (the Recipe Detail template is the v3 copy)
+# v2-local links → ../v2/ (templates with a v3 copy keep pointing here)
 def relink(m):
     attr, url = m.group(1), m.group(2)
-    if url == 'template-recipe-detail.html' or url.startswith(('../', '#', 'http', 'mailto:', 'data:', 'javascript:')):
+    if url in V3_LOCAL or url.startswith(('../', '#', 'http', 'mailto:', 'data:', 'javascript:')):
         return m.group(0)
     return '%s="../v2/%s"' % (attr, url)
 s = re.sub(r'(href|src)="([^"]+)"', relink, s)
@@ -96,6 +102,14 @@ s = rep(s, '''        <div class="sidebar-group" id="nav-group-new">
               <span style="display:flex;align-items:center;gap:10px;"><span class="nav-dot"></span> Food Cost Calculator</span>
               <span class="new-badge">Spec</span>
             </a>
+            <a href="favourite-lists-spec.html" class="sidebar-link" style="justify-content:space-between;">
+              <span style="display:flex;align-items:center;gap:10px;"><span class="nav-dot"></span> Favourite Lists</span>
+              <span class="new-badge">Spec</span>
+            </a>
+            <a href="pwa-popup-spec.html" class="sidebar-link" style="justify-content:space-between;">
+              <span style="display:flex;align-items:center;gap:10px;"><span class="nav-dot"></span> PWA Popup</span>
+              <span class="new-badge">Spec</span>
+            </a>
           </div>
         </div>
         <div class="sidebar-group collapsed" id="nav-group-new">
@@ -108,6 +122,18 @@ s = rep(s, '''            <a href="#whats-new" class="sidebar-link" data-s="what
               <span class="nav-dot"></span> What's new in v2.0
             </a>
             <a href="../v2/pack-size-picker-spec.html"''')
+
+# Templates list: Products Catalog (Webshop) → v3 badge; Profile Favourites added (v3) after Profile Overview
+TPL_BADGE = '<span style="font-size:9px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;background:rgba(255,90,0,0.15);color:var(--color-orange-300);border-radius:3px;padding:2px 5px;flex-shrink:0;">Template</span>'
+s = rep(s, '''<span class="nav-dot"></span> Products Catalog (Webshop)</span>
+              <span style="display:flex;gap:4px;flex-shrink:0;"><span class="new-badge">v2</span>''', '''<span class="nav-dot"></span> Products Catalog (Webshop)</span>
+              <span style="display:flex;gap:4px;flex-shrink:0;"><span class="new-badge">v3</span>''')
+i = s.index('<span class="nav-dot"></span> Profile Overview</span>'); i = s.index('</a>\n', i) + 5
+s = s[:i] + '''            <a href="template-profile-favourites.html" class="sidebar-link" style="justify-content:space-between;">
+              <span style="display:flex;align-items:center;gap:10px;"><span class="nav-dot"></span> Profile Favourites</span>
+              <span style="display:flex;gap:4px;flex-shrink:0;"><span class="new-badge">v3</span>''' + TPL_BADGE + '''</span>
+            </a>
+''' + s[i:]
 
 # Templates list: Recipe Detail → v3 badge
 s = rep(s, '''<span class="nav-dot"></span> Recipe Detail</span>
@@ -125,8 +151,8 @@ s = rep(s, '''      <section class="doc-section" id="whats-new">
           v3.0 adds new features on top of v2.0. Nothing from v1.0 or v2.0 has changed:
           every page in this navigation is the same page as in its own version, so
           anything already built from v1.0 or v2.0 stays valid. Templates tagged
-          <span class="new-badge" style="vertical-align:1px">v3</span> are v2.0 templates
-          with the new features below built in.
+          <span class="new-badge" style="vertical-align:1px">v3</span> are v1.0 or v2.0
+          templates with the new features below built in.
         </p>
         <div class="section-rule"></div>
         <div class="intro-grid whats-new-grid">
@@ -135,6 +161,18 @@ s = rep(s, '''      <section class="doc-section" id="whats-new">
             <div class="intro-card-title" style="margin-top:14px;">Food Cost Calculator</div>
             <p class="intro-card-text">A side panel on the Recipe Detail template that works out what a recipe costs: prices per ingredient, servings, the cost per serving and the food cost % against the menu price. It downloads as a PDF.</p>
             <div class="whats-new-files"><a href="template-recipe-detail.html">Recipe Detail template →</a><br><a href="food-cost-calculator-spec.html">Food Cost Calculator spec →</a></div>
+          </div>
+          <div class="intro-card whats-new-card">
+            <span class="new-badge">Spec + 2 templates</span>
+            <div class="intro-card-title" style="margin-top:14px;">Favourite Lists</div>
+            <p class="intro-card-text">The heart in the webshop catalog saves a product to a list and opens the Favourite Lists panel; Go to Shopping List opens that list in My Favourites → Order Lists. Both pages share the lists, and Order Lists shows the chef's own lists, with empty states and Undo.</p>
+            <div class="whats-new-files"><a href="template-products-catalog-webshop.html">Products Catalog (Webshop) template →</a><br><a href="template-profile-favourites.html#order-lists">Profile Favourites template →</a><br><a href="favourite-lists-spec.html">Favourite Lists spec →</a></div>
+          </div>
+          <div class="intro-card whats-new-card">
+            <span class="new-badge">Spec</span>
+            <div class="intro-card-title" style="margin-top:14px;">PWA Popup</div>
+            <p class="intro-card-text">A bottom sheet for Safari on iPhone that shows how to add the site to the Home Screen, with a GIF and a pointer to Safari's ⋯ button. It appears a few seconds after the page loads, never once installed, and closing it snoozes it for 30 days.</p>
+            <div class="whats-new-files"><a href="pwa-popup-spec.html">PWA Popup spec →</a></div>
           </div>
         </div>
       </section>

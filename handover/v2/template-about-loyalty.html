@@ -3447,6 +3447,30 @@
     .al-code { display: flex; gap: var(--space-3); width: 100%; }
     .al-code__input { flex: 1 1 auto; min-width: 0; }
     .al-code .btn { flex-shrink: 0; }
+    .al-code__scan { display: none; }
+    .al-code__submit-icon { display: none; }
+
+    /* ── Code scanner overlay (mobile): live rear camera + scan frame ── */
+    .al-scanner { position: fixed; inset: 0; z-index: 1000; background: #000; color: var(--color-salt); display: flex; flex-direction: column; }
+    .al-scanner[hidden] { display: none; }
+    .al-scanner__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .al-scanner__bar { position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-4); padding-top: max(var(--space-4), env(safe-area-inset-top)); background: linear-gradient(rgba(0,0,0,.6), transparent); }
+    .al-scanner__title { margin: 0; color: var(--color-salt); font-size: var(--text-h5-mob-size); font-weight: var(--text-h5-w); }
+    .al-scanner__close { width: var(--space-12); height: var(--space-12); display: grid; place-items: center; border: 0; border-radius: var(--radius-full); background: rgba(0,0,0,.45); color: var(--color-salt); cursor: pointer; }
+    .al-scanner__close:focus-visible { outline: 2px solid var(--color-salt); outline-offset: 2px; }
+    .al-scanner__stage { position: relative; flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-6); padding: var(--space-4); }
+    .al-scanner__frame { position: relative; width: min(72vw, 280px); aspect-ratio: 1; border-radius: var(--radius-md); box-shadow: 0 0 0 100vmax rgba(0,0,0,.55); overflow: hidden; }
+    .al-scanner__frame::before { content: ''; position: absolute; inset: 0; border-radius: inherit; border: 3px solid var(--color-salt); transition: border-color .2s; }
+    .al-scanner__line { position: absolute; inset-inline: var(--space-4); top: 10%; height: 2px; border-radius: var(--radius-full); background: var(--color-brand-primary); box-shadow: 0 0 12px var(--color-brand-primary); animation: al-scan-line 2s ease-in-out infinite alternate; }
+    @keyframes al-scan-line { to { top: 90%; } }
+    .al-scanner__hint { position: relative; margin: 0; max-width: 300px; text-align: center; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+    .al-scanner__error { position: relative; display: flex; flex-direction: column; align-items: center; gap: var(--space-4); max-width: 300px; text-align: center; }
+    .al-scanner__error[hidden] { display: none; }
+    .al-scanner__error p { margin: 0; font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+    .al-scanner.is-found .al-scanner__frame::before { border-color: var(--color-brand-primary); }
+    .al-scanner.is-found .al-scanner__line, .al-scanner.is-error .al-scanner__frame { display: none; }
+    @media (prefers-reduced-motion: reduce) { .al-scanner__line { animation: none; top: 50%; } }
+    [dir="rtl"] .al-code__submit-icon { transform: scaleX(-1); }
 
     /* Saving goal: product image | name, progress, copy, CTAs */
     .al-goal { display: flex; align-items: flex-start; gap: var(--space-3); }
@@ -3493,13 +3517,16 @@
       .al-card__title { font-size: var(--text-h5-mob-size); }
       .al-card__actions { flex-direction: column; align-items: stretch; width: 100%; }
       .al-card__state > .al-card__actions { align-self: stretch; }
+      .al-code__scan { display: inline-flex; align-self: stretch; }
+      .al-code__submit { width: var(--space-12); padding: 0; }
+      .al-code__submit-label { display: none; }
+      .al-code__submit-icon { display: block; }
       .al-goal__image { flex-basis: 88px; padding: 0; }
       .al-title { padding-left: var(--space-4); padding-right: var(--space-4); }
       .ufs-accordion__title { margin-bottom: var(--space-6); }
       .pg-accordion-section { padding-left: var(--space-4); padding-right: var(--space-4); }
     }
     @media (max-width: 420px) {
-      .al-code { flex-direction: column; }
       .al-goal { flex-direction: column; }
       .al-goal__image { flex-basis: auto; width: 120px; }
     }
@@ -4350,8 +4377,16 @@
           <label class="al-card__desc" for="al-code">Redeem your Cook &amp; Save codes</label>
           <div class="al-code">
             <input class="fi-field al-code__input" type="text" id="al-code" placeholder="Enter code" autocomplete="off" spellcheck="false" />
-            <button type="submit" class="btn btn-primary">Confirm</button>
+            <!-- Desktop: text button. Mobile: square icon-only button on the input's row -->
+            <button type="submit" class="btn btn-primary al-code__submit" aria-label="Confirm" disabled>
+              <span class="al-code__submit-label">Confirm</span>
+              <svg class="al-code__submit-icon" width="24" height="24" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path d="M17.6214 9.49108C18.1294 9.42769 18.6277 9.53396 19.0577 9.79119L30.3572 20.8504C30.7807 21.2684 31.0104 21.8053 31.0453 22.3524C31.0753 22.8224 30.9617 23.2997 30.7046 23.7149L19.502 34.8638C19.0382 35.3216 18.4302 35.55 17.8224 35.55C17.2146 35.55 16.6066 35.3216 16.1428 34.8638C15.7193 34.4459 15.4896 33.9089 15.4547 33.3619C15.4247 32.8918 15.5383 32.4145 15.7955 31.9994L25.326 22.4998L16.1428 13.4352C15.7193 13.0173 15.4896 12.4803 15.4547 11.9333C15.4201 11.391 15.5766 10.839 15.9243 10.3841C16.4582 9.85219 17.0437 9.56315 17.6214 9.49108Z" fill="currentColor"/></svg>
+            </button>
           </div>
+          <!-- Mobile only: opens the in-page code scanner (live rear camera, mocked detection) -->
+          <button type="button" class="btn btn-secondary btn-icon-left al-code__scan" aria-haspopup="dialog" aria-controls="al-scanner" onclick="alScanOpen()">
+            <svg class="ufs-icon ufs-icon--20" width="20" height="20" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M31.938 13.4868L31.41 11.9912C30.7084 10.1925 28.8287 8.99265 26.724 9H18.276C16.1496 9.00361 14.2633 10.2378 13.59 12.066L13.062 13.5616H10.95C8.21619 13.5616 6 15.5704 6 18.0484V30.0132C6 32.4912 8.21619 34.5 10.95 34.5H34.0499C36.7838 34.5 38.9999 32.4912 38.9999 30.0132V18.0484C39.0221 16.8455 38.5103 15.685 37.5796 14.8273C36.6489 13.9696 35.3772 13.4866 34.0499 13.4868H31.938ZM34.0499 31.6337H10.95C10.0387 31.6337 9.29999 30.9621 9.29999 30.1337V18.1337C9.29999 17.3053 10.0387 16.6337 10.95 16.6337H14.25C14.9894 16.6688 15.664 16.2518 15.9 15.6137L16.791 13.1537C17.018 12.5427 17.6491 12.132 18.3585 12.1337H26.8065C27.5158 12.132 28.147 12.5427 28.374 13.1537L29.265 15.6137C29.4817 16.1993 30.0711 16.6042 30.75 16.6337H34.0499C34.9612 16.6337 35.6999 17.3053 35.6999 18.1337V30.1337C35.6999 30.9621 34.9612 31.6337 34.0499 31.6337ZM15.9 23.1014C15.9 26.5627 18.8549 29.3687 22.5 29.3687C26.145 29.3687 29.1 26.5627 29.1 23.1014C29.1 21.4392 28.4046 19.8451 27.1669 18.6698C25.9291 17.4944 24.2504 16.8341 22.5 16.8341C18.8549 16.8341 15.9 19.6401 15.9 23.1014ZM19.2 23.1014C19.2 21.3707 20.6774 19.9677 22.5 19.9677C24.3225 19.9677 25.8 21.3707 25.8 23.1014C25.8 24.832 24.3225 26.235 22.5 26.235C20.6774 26.235 19.2 24.832 19.2 23.1014Z" fill="currentColor"/></svg>Scan codes
+          </button>
         </form>
       </div>
 
@@ -4378,6 +4413,26 @@
         </div>
       </div>
     </section>
+
+    <!-- Code scanner (opened from "Scan codes", mobile). Detection is mocked: after a
+         moment it "finds" a demo code, fills the field and closes. -->
+    <div class="al-scanner" id="al-scanner" role="dialog" aria-modal="true" aria-labelledby="al-scanner-title" hidden>
+      <video class="al-scanner__video" id="al-scanner-video" playsinline muted autoplay></video>
+      <div class="al-scanner__bar">
+        <h2 class="al-scanner__title" id="al-scanner-title">Scan codes</h2>
+        <button type="button" class="al-scanner__close" aria-label="Close scanner" onclick="alScanClose()">
+          <svg width="24" height="24" viewBox="0 0 45 45" fill="none" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M33.8137 15.4718C34.3995 14.886 34.3995 13.9363 33.8137 13.3505L32.3995 11.9363C31.8137 11.3505 30.864 11.3505 30.2782 11.9363L22.5 19.7145L14.7218 11.9363C14.136 11.3505 13.1863 11.3505 12.6005 11.9363L11.1863 13.3505C10.6005 13.9363 10.6005 14.886 11.1863 15.4718L18.9645 23.25L11.1863 31.0282C10.6005 31.614 10.6005 32.5637 11.1863 33.1495L12.6005 34.5637C13.1863 35.1495 14.136 35.1495 14.7218 34.5637L22.5 26.7855L30.2782 34.5637C30.864 35.1495 31.8137 35.1495 32.3995 34.5637L33.8137 33.1495C34.3995 32.5637 34.3995 31.614 33.8137 31.0282L26.0355 23.25L33.8137 15.4718Z" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div class="al-scanner__stage">
+        <div class="al-scanner__frame"><span class="al-scanner__line"></span></div>
+        <p class="al-scanner__hint" id="al-scanner-hint" aria-live="polite">Point your camera at the Cook &amp; Save code on the pack</p>
+        <div class="al-scanner__error" id="al-scanner-error" hidden>
+          <p id="al-scanner-error-text"></p>
+          <button type="button" class="btn btn-primary" onclick="alScanClose(true)">Enter code manually</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ================================================================
          LOYALTY WHEEL — daily spin (new v2 component, .ufs-loyalty-wheel).
@@ -8802,6 +8857,73 @@
       document.getElementById('al-goal-actions').innerHTML = (left ? '' : '<button type="button" class="btn btn-primary">Add reward</button>') +
         '<a class="btn btn-secondary" href="template-rewards-catalog.html">Change goal</a>';
     }
+
+    // Code entry: Confirm stays disabled until the field has a code (whitespace doesn't count)
+    (function () {
+      var input = document.getElementById('al-code');
+      var submit = document.querySelector('.al-code__submit');
+      if (!input || !submit) return;
+      function sync() { submit.disabled = !input.value.trim(); }
+      input.addEventListener('input', sync);
+      sync();
+    })();
+
+    // Code scanner: live rear camera; detection is mocked for the prototype
+    var alScan = { stream: null, timer: null, opener: null };
+    function alScanOpen() {
+      var ov = document.getElementById('al-scanner');
+      alScan.opener = document.activeElement;
+      ov.classList.remove('is-found', 'is-error');
+      document.getElementById('al-scanner-error').hidden = true;
+      document.getElementById('al-scanner-hint').hidden = false;
+      document.getElementById('al-scanner-hint').textContent = 'Point your camera at the Cook & Save code on the pack';
+      ov.hidden = false;
+      document.body.style.overflow = 'hidden';
+      ov.querySelector('.al-scanner__close').focus();
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return alScanError(window.isSecureContext ? 'Your browser can\'t open the camera.' : 'The camera only works on a secure (https) page.');
+      }
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+        .then(function (stream) {
+          if (ov.hidden) { stream.getTracks().forEach(function (t) { t.stop(); }); return; }
+          alScan.stream = stream;
+          document.getElementById('al-scanner-video').srcObject = stream;
+          alScan.timer = setTimeout(alScanFound, 3000); // mock detection
+        })
+        .catch(function (err) {
+          alScanError(err && err.name === 'NotAllowedError'
+            ? 'Camera access was blocked. Allow it in your browser settings, or enter the code manually.'
+            : 'We couldn\'t start the camera. You can enter the code manually.');
+        });
+    }
+    function alScanError(msg) {
+      document.getElementById('al-scanner').classList.add('is-error');
+      document.getElementById('al-scanner-hint').hidden = true;
+      document.getElementById('al-scanner-error-text').textContent = msg;
+      document.getElementById('al-scanner-error').hidden = false;
+    }
+    function alScanFound() {
+      document.getElementById('al-scanner').classList.add('is-found');
+      document.getElementById('al-scanner-hint').textContent = 'Code found';
+      alScan.timer = setTimeout(function () {
+        var input = document.getElementById('al-code');
+        input.value = 'CS-7K4Q-29XM';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        alScanClose(true);
+      }, 700);
+    }
+    function alScanClose(focusInput) {
+      clearTimeout(alScan.timer);
+      if (alScan.stream) { alScan.stream.getTracks().forEach(function (t) { t.stop(); }); alScan.stream = null; }
+      document.getElementById('al-scanner-video').srcObject = null;
+      document.getElementById('al-scanner').hidden = true;
+      document.body.style.overflow = '';
+      var target = focusInput ? document.getElementById('al-code') : alScan.opener;
+      if (target && target.focus) target.focus();
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !document.getElementById('al-scanner').hidden) alScanClose();
+    });
 
     function alAuthUI() {
       document.getElementById('al-guest-actions').hidden = S.auth;
