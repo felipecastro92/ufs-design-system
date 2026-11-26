@@ -1,0 +1,223 @@
+  <!-- ================================================================
+       DOWNLOAD FORM: handover/form-journeys.html → Opt-In journey →
+       04 Download. Ported from handover/forms-examples.html #rs-panel in
+       its 'download' mode (handleRsDownloadClick → openRs('download')),
+       cut down to that mode only.
+       Step 1 Details form (shared Opt-In field set, marketing consent
+       required, Job title + Mobile number author setting = optional,
+       single-country domain so no Country select) → Success (file
+       download + guest account invite). Signed-in users open straight
+       on Success. Once downloaded, the banner CTA re-downloads without
+       the form for the rest of the session. Logic: form-panel.js.
+  ================================================================ -->
+  <div class="signin-backdrop" id="dl-backdrop" onclick="dlClose()"></div>
+  <div class="signin-panel" id="dl-panel" role="dialog" aria-modal="true" aria-labelledby="dl-form-title">
+    <div class="signin-panel-hd">
+      <img src="../../handover/images/ufs-logo.png" alt="UFS" class="signin-panel-logo"/>
+      <button class="signin-close" onclick="dlClose()" aria-label="Close download the recipe book">
+        <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>
+      </button>
+    </div>
+    <div class="signin-panel-body" id="dl-panel-body">
+
+      <!-- ── Step 1: Details form ── -->
+      <div id="dl-step-form">
+        <h2 class="signin-panel-title" id="dl-form-title">Download the recipe book</h2>
+        <p class="reg-success-sub" style="margin-bottom:var(--space-6)">Tell us a bit about yourself and we&rsquo;ll get your recipe book ready.</p>
+        <div class="signin-form-fields">
+          <div class="fi-wrap"><label class="fi-label" for="dl-email">Email</label><input class="fi-field" type="email" id="dl-email" placeholder="you@example.com" dir="ltr" autocomplete="email" oninput="dlValidate()" onkeydown="regStepEnter(event,'dl-continue-btn')"/></div>
+          <div class="fi-wrap"><label class="fi-label" for="dl-name">Name</label><input class="fi-field" type="text" id="dl-name" placeholder="Please enter your name(s)" autocomplete="given-name" oninput="dlValidate()" onkeydown="regStepEnter(event,'dl-continue-btn')"/></div>
+          <div class="fi-wrap"><label class="fi-label" for="dl-lastname">Lastname</label><input class="fi-field" type="text" id="dl-lastname" placeholder="Please enter your last name(s)" autocomplete="family-name" oninput="dlValidate()" onkeydown="regStepEnter(event,'dl-continue-btn')"/></div>
+          <div class="fi-wrap">
+            <label class="fi-label" for="dl-business-type">Business type</label>
+            <select class="fi-field fi-select" id="dl-business-type" onchange="dlBusinessTypeChange()">
+              <option value="" disabled selected>Select business type</option>
+              <option value="hotel">Hotel</option>
+              <option value="restaurant">Restaurant</option>
+              <option value="school-canteen">School canteen</option>
+              <option value="catering">Catering</option>
+              <option value="other">Other</option>
+              <option value="none">I don't have/work in a business</option>
+            </select>
+          </div>
+
+          <!-- Business name typeahead (shared pattern) + its card /
+               Address / City / Postal / phone chain. Shown by the
+               Business type display rule; name required while shown,
+               Address too whenever it's revealed. -->
+          <div class="fi-wrap reg-conditional-field" id="dl-business-wrap" style="position:relative">
+            <label class="fi-label" for="dl-business">Business name</label>
+            <input class="fi-field" type="text" id="dl-business" placeholder="Please enter your business name" autocomplete="off" oninput="dlBusinessNameInput(this.value); dlValidate()" onfocus="dlBusinessNameInput(this.value)" onblur="dlBusinessNameBlur()" onkeydown="dlBusinessNameEnter(event)"/>
+            <div class="reg-biz-suggest" id="dl-biz-suggest"></div>
+          </div>
+          <div class="reg-biz-card" id="dl-biz-card">
+            <svg class="reg-biz-card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <polyline class="reg-biz-card-check" points="5 13 10 18 19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="reg-biz-card-body">
+              <div class="reg-biz-card-name" id="dl-biz-card-name"></div>
+              <div class="reg-biz-card-address" id="dl-biz-card-address"></div>
+              <div class="reg-biz-card-phone" id="dl-biz-card-phone"></div>
+            </div>
+          </div>
+          <div class="fi-wrap reg-conditional-field" id="dl-address-wrap"><label class="fi-label" for="dl-address">Business Address</label><input class="fi-field" type="text" id="dl-address" placeholder="Please enter your address" autocomplete="address-line1" oninput="this.classList.remove('is-invalid'); dlValidate()" onkeydown="regStepEnter(event,'dl-continue-btn')"/></div>
+          <div class="reg-extra-fields" id="dl-extra-fields">
+            <div class="fi-row">
+              <div class="fi-wrap"><label class="fi-label" for="dl-city">City</label><input class="fi-field" type="text" id="dl-city" placeholder="Enter your city" autocomplete="address-level2" oninput="this.classList.remove('is-invalid')" onkeydown="regStepEnter(event,'dl-continue-btn')"/></div>
+              <div class="fi-wrap"><label class="fi-label" for="dl-postal">Postal code</label><input class="fi-field" type="text" id="dl-postal" placeholder="e.g. 20121" autocomplete="postal-code" oninput="this.classList.remove('is-invalid')" onkeydown="regStepEnter(event,'dl-continue-btn')"/></div>
+            </div>
+            <div class="fi-wrap">
+              <label class="fi-label" for="dl-phone">Business phone number</label>
+              <div class="fi-phone-row">
+                <div class="reg-phone-code-wrap">
+                  <button type="button" class="fi-field fi-phone-code-trigger" id="dl-phone-code-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code" onclick="regPhoneCodeToggle('dl-phone-code')">
+                    <span id="dl-phone-code-label">+39</span>
+                    <svg class="fi-phone-code-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg>
+                  </button>
+                  <div class="reg-phone-code-panel" id="dl-phone-code-panel" hidden>
+                    <div class="reg-phone-code-search-wrap">
+                      <input type="text" class="reg-phone-code-search" id="dl-phone-code-search" placeholder="Search country or code" aria-label="Search country or code" oninput="regPhoneCodeFilter('dl-phone-code', this.value)" onkeydown="regPhoneCodeSearchKeydown(event,'dl-phone-code')"/>
+                    </div>
+                    <ul class="reg-phone-code-list" id="dl-phone-code-list" role="listbox" aria-label="Country code"></ul>
+                  </div>
+                  <input type="hidden" id="dl-phone-code" value="+39"/>
+                </div>
+                <input class="fi-field fi-phone-number" type="tel" id="dl-phone" placeholder="e.g. 345 678 9012" autocomplete="tel-national" oninput="this.classList.remove('is-invalid')" onkeydown="regStepEnter(event,'dl-continue-btn')"/>
+              </div>
+            </div>
+          </div>
+
+          <!-- Author setting: Job title = optional -->
+          <div class="fi-wrap reg-conditional-field" id="dl-job-title-wrap">
+            <label class="fi-label" for="dl-job-title">Job title <span class="fi-label-optional">(optional)</span></label>
+            <select class="fi-field fi-select" id="dl-job-title" onchange="dlValidate()">
+              <option value="" disabled selected>Select job title</option>
+              <option value="chef">Chef</option>
+              <option value="owner-manager">Owner/Manager</option>
+              <option value="purchasing-manager">Purchasing Manager</option>
+              <option value="fb-director">F&amp;B Director</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <!-- Author setting: Mobile number = optional (a malformed
+               number still blocks Continue) -->
+          <div class="fi-wrap reg-conditional-field" id="dl-mobile-wrap">
+            <label class="fi-label" for="dl-mobile">Mobile number <span class="fi-label-optional">(optional)</span></label>
+            <div class="fi-phone-row">
+              <div class="reg-phone-code-wrap">
+                <button type="button" class="fi-field fi-phone-code-trigger" id="dl-mobile-code-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code" onclick="regPhoneCodeToggle('dl-mobile-code')">
+                  <span id="dl-mobile-code-label">+212</span>
+                  <svg class="fi-phone-code-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg>
+                </button>
+                <div class="reg-phone-code-panel" id="dl-mobile-code-panel" hidden>
+                  <div class="reg-phone-code-search-wrap">
+                    <input type="text" class="reg-phone-code-search" id="dl-mobile-code-search" placeholder="Search country or code" aria-label="Search country or code" oninput="regPhoneCodeFilter('dl-mobile-code', this.value)" onkeydown="regPhoneCodeSearchKeydown(event,'dl-mobile-code')"/>
+                  </div>
+                  <ul class="reg-phone-code-list" id="dl-mobile-code-list" role="listbox" aria-label="Country code"></ul>
+                </div>
+                <input type="hidden" id="dl-mobile-code" value="+212"/>
+              </div>
+              <input class="fi-field fi-phone-number" type="tel" id="dl-mobile" placeholder="e.g. 612 345 678" autocomplete="tel-national" oninput="dlClearMobileError(); dlValidate()" onblur="dlValidateMobileFormat()" onkeydown="regStepEnter(event,'dl-continue-btn')"/>
+            </div>
+            <div class="fi-contact-hint" id="dl-mobile-hint" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <div class="fi-checkbox-row">
+          <div class="reg-consent-group">
+            <label class="fi-checkbox">
+              <input type="checkbox" id="dl-consent" onchange="dlConsentToggle()"/>
+              <span class="fi-checkbox-box"><img src="../../handover/icons/check.svg" alt=""/></span>
+              <span class="fi-checkbox-label">I want to receive offers and updates related to my profession from trusted Unilever brands including culinary inspirations, promotions and other relevant industry information.*</span>
+            </label>
+            <button type="button" class="reg-consent-toggle" id="dl-consent-toggle" onclick="dlToggleConsentChannels()" aria-expanded="false" aria-controls="dl-consent-channels">
+              Choose channel
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 6 8 10 12 6"/></svg>
+            </button>
+            <div class="reg-consent-channels" id="dl-consent-channels" hidden>
+              <label class="fi-checkbox">
+                <input type="checkbox" class="dl-consent-channel" id="dl-consent-email" onchange="dlConsentChannelChange()"/>
+                <span class="fi-checkbox-box"><img src="../../handover/icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Email</span>
+              </label>
+              <label class="fi-checkbox">
+                <input type="checkbox" class="dl-consent-channel" id="dl-consent-mobile" onchange="dlConsentChannelChange()"/>
+                <span class="fi-checkbox-box"><img src="../../handover/icons/check.svg" alt=""/></span>
+                <span class="fi-checkbox-label">Mobile</span>
+              </label>
+            </div>
+          </div>
+          <label class="fi-checkbox">
+            <input type="checkbox" id="dl-age" onchange="dlValidate()"/>
+            <span class="fi-checkbox-box"><img src="../../handover/icons/check.svg" alt=""/></span>
+            <span class="fi-checkbox-label">I confirm that I am 18 years or older*</span>
+          </label>
+        </div>
+        <p class="reg-legal-links">I read <a href="#" class="reg-legal-link">Terms and Conditions</a> and <a href="#" class="reg-legal-link">Privacy Policy</a></p>
+        <button class="btn btn-primary reg-submit-btn" style="width:100%" id="dl-continue-btn" disabled onclick="dlSubmit()">
+          <span class="reg-submit-btn-label">Continue</span>
+          <span class="reg-submit-btn-bar" id="dl-continue-btn-bar"></span>
+        </button>
+      </div>
+
+      <!-- ── Success: file download (+ account invite for guests) ── -->
+      <div id="dl-step-success" style="display:none">
+        <div class="reg-success">
+          <div class="reg-success-icon">
+            <div class="av av--xl">
+              <div class="av-circle"><img class="av-icon-mail" src="../../handover/icons/email.svg" alt=""/></div>
+              <span class="av-check-badge"><img src="../../handover/icons/check.svg" alt=""/></span>
+            </div>
+          </div>
+          <h2 class="signin-panel-title" id="dl-success-title">Thank you!</h2>
+          <div style="margin-bottom:var(--space-7)">
+            <p class="reg-success-sub">You can download your recipe book now.</p>
+            <button type="button" class="btn btn-primary btn-icon-left reg-submit-btn" style="width:100%" id="dl-download-btn" onclick="dlDownloadFile()">
+              <img class="ufs-icon ufs-icon--20" src="../../handover/icons/dowload.svg" alt="" style="filter:brightness(0) invert(1)"/>
+              <span class="reg-submit-btn-label" id="dl-download-btn-label">Download &ldquo;13 ultimate burger recipes&rdquo;</span>
+              <span class="reg-submit-btn-bar" id="dl-download-btn-bar"></span>
+            </button>
+          </div>
+          <!-- Account invite: guests only. "Continue account creation" is
+               a stub in this exploration (closes the panel); in the full
+               system it hands over to Account Creation (rsFinishAccount). -->
+          <div id="dl-success-invite">
+            <p class="reg-success-sub">Unlock the best inspiration, loyalty rewards and professional training by finalising your account.</p>
+            <div class="signin-usps">
+              <button class="btn btn-primary" style="width:100%; margin-bottom:var(--space-5)" onclick="dlFinishAccount()">Continue account creation</button>
+              <div class="signin-usps-title">Why create an account?</div>
+              <div class="signin-usp-item">
+                <div class="signin-usp-item-icon"><img src="../../handover/icons/products.svg" alt=""/></div>
+                <div class="signin-usp-item-text">
+                  <div class="signin-usp-item-title">Professional pricing</div>
+                  <div class="signin-usp-item-desc">Access exclusive B2B prices and bulk discounts on all UFS products.</div>
+                </div>
+              </div>
+              <div class="signin-usp-item">
+                <div class="signin-usp-item-icon"><img src="../../handover/icons/recipes.svg" alt=""/></div>
+                <div class="signin-usp-item-text">
+                  <div class="signin-usp-item-title">500+ chef recipes</div>
+                  <div class="signin-usp-item-desc">Save and organise your favourites from our full recipe library.</div>
+                </div>
+              </div>
+              <div class="signin-usp-item">
+                <div class="signin-usp-item-icon"><img src="../../handover/icons/track.svg" alt=""/></div>
+                <div class="signin-usp-item-text">
+                  <div class="signin-usp-item-title">Order tracking</div>
+                  <div class="signin-usp-item-desc">View order history and track deliveries in real time.</div>
+                </div>
+              </div>
+              <div class="signin-usp-item">
+                <div class="signin-usp-item-icon"><img src="../../handover/icons/chef.svg" alt=""/></div>
+                <div class="signin-usp-item-text">
+                  <div class="signin-usp-item-title">UFS Academy</div>
+                  <div class="signin-usp-item-desc">Free culinary training modules and certifications.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
