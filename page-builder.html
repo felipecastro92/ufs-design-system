@@ -856,6 +856,11 @@
     .pb-img-overlay-label {
       font-size: 12px; font-weight: 700; color: white; letter-spacing: 0.3px;
     }
+    /* Logo slots — wrap a logo <img> without changing its layout: shrink
+       to the logo's own box so the hover chrome hugs it, and keep it in
+       the same flex/text flow position the bare <img> had. */
+    .pb-logo-slot { display: inline-flex; width: fit-content; max-width: 100%; line-height: 0; align-self: inherit; border-radius: var(--radius-xs); overflow: hidden; }
+    .pb-logo-slot .pb-img-overlay { gap: 0; }
 
     /* Editable icon slot (Pathways) — same click-affordance family as
        .pb-img-slot above, sized for a small glyph rather than a photo:
@@ -2738,6 +2743,18 @@
 
 .ufs-recipe-ingredients__cta { width: 100%; justify-content: center; }
 
+/* Builder fix (audit 2026-11): at narrow widths a long ingredient name
+   squeezed the quantity until "40 g" broke onto two lines inside the
+   fixed 40px row. Quantity never wraps, name takes the remaining space
+   and may wrap, row grows instead of clipping. Same latent issue exists
+   in handover/ingredients-panel-spec.html. */
+.ufs-ingredient-row__main { min-height: 40px; height: auto; gap: var(--space-4); }
+.ufs-ingredient-row__qty { white-space: nowrap; flex-shrink: 0; }
+.ufs-ingredient-row__name, .ufs-ingredient-row__trigger { min-width: 0; text-align: start; }
+.pb-canvas-inner.is-mobile .ufs-ingredient-row__name,
+.pb-canvas-inner.is-mobile .ufs-ingredient-row__qty,
+.pb-canvas-inner.is-mobile .ufs-ingredient-row__trigger { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
+
 @media (max-width: 768px) {
   .ufs-recipe-ingredients__title { font-size: var(--text-h4-mob-size); }
   .ufs-ingredient-row__name, .ufs-ingredient-row__qty, .ufs-ingredient-row__trigger { font-size: var(--text-body-sm-size); line-height: var(--text-body-sm-lh); }
@@ -2907,6 +2924,19 @@
   .ufs-popular-filters { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--space-2); padding: 0 var(--space-4); }
   .ufs-popular-filters__pills { align-self: stretch; margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); }
 }
+/* Builder fix (audit 2026-11): the two @media rules above only fire on a
+   narrow *window*; the builder's Mobile toggle is a 390px .is-mobile
+   frame on a wide window, where the quick-filter dropdowns stayed visible
+   and crushed the search field to zero width. Mirror both breakpoints
+   onto .is-mobile, same technique every other ported component uses. */
+.pb-canvas-inner.is-mobile .ufs-filters-dropdown { display: none; }
+.pb-canvas-inner.is-mobile .ufs-filters-bar { margin: var(--space-2) 0 0; padding: var(--space-3); gap: var(--space-3); border-radius: 0; }
+.pb-canvas-inner.is-mobile .ufs-filters-allbtn { width: var(--space-12); padding: 0; flex-shrink: 0; position: relative; }
+.pb-canvas-inner.is-mobile .ufs-filters-allbtn__label { display: none; }
+.pb-canvas-inner.is-mobile .ufs-filters-allbtn__badge { display: flex; }
+.pb-canvas-inner.is-mobile .ufs-catalog-toolbar { padding: 0 var(--space-4); }
+.pb-canvas-inner.is-mobile .ufs-popular-filters { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: var(--space-2); padding: 0 var(--space-4); }
+.pb-canvas-inner.is-mobile .ufs-popular-filters__pills { align-self: stretch; margin-left: calc(-1 * var(--space-4)); margin-right: calc(-1 * var(--space-4)); padding-left: var(--space-4); padding-right: var(--space-4); }
 
     /* ================================================================
        CHEF TIP — ported from handover/chef-tip-spec.html
@@ -4314,7 +4344,26 @@
         const n = this.sections.length;
         badge.innerHTML = `<span>${n}</span> section${n !== 1 ? 's' : ''}`;
 
+        // Carousel tracks are native scrollers — remember where each one
+        // was (keyed by section + track index) so an inline edit or image
+        // swap on card 4 doesn't snap the track back to card 1.
+        const trackScroll = {};
+        canvas.querySelectorAll('.ufs-carousel-track').forEach(t => {
+          const host = t.closest('[id^="pbs-"]');
+          if (!host) return;
+          const list = trackScroll[host.id] = trackScroll[host.id] || [];
+          list.push(t.scrollLeft);
+        });
+
         canvas.innerHTML = this.sections.map(sec => this._sectionHTML(sec)).join('');
+
+        Object.keys(trackScroll).forEach(hostId => {
+          const host = document.getElementById(hostId);
+          if (!host) return;
+          host.querySelectorAll('.ufs-carousel-track').forEach((t, i) => {
+            if (trackScroll[hostId][i]) t.scrollLeft = trackScroll[hostId][i];
+          });
+        });
 
         // Attach drag/drop events after render
         this.sections.forEach(sec => this._bindSection(sec.id));
@@ -4364,7 +4413,16 @@
       _startInlineEdit(el, sec) {
         if (el.classList.contains('pb-editing')) return;
         const field = el.getAttribute('data-pb-edit');
-        const isMultiline = field === 'desc';
+        // Long-copy fields get a textarea: 'desc' itself plus any
+        // per-item variant of it ('s1_desc', 'teaser-0_desc') and the
+        // body/intro paragraphs some components use instead.
+        const isMultiline = /(^|_)(desc|body|intro)$/.test(field);
+        // Split Row renders sub-components inside [data-pb-scope="left|right"]
+        // (see PB._splitRow) — their fields live one level down, in
+        // sec.overrides[side], so two slots of the same type don't share
+        // copy.
+        const scopeEl = el.closest('[data-pb-scope]');
+        const scope = scopeEl ? scopeEl.getAttribute('data-pb-scope') : null;
         const original = this._inlineEditText(el);
         const cs = getComputedStyle(el);
 
@@ -4387,10 +4445,15 @@
         editor.select();
 
         const commit = () => {
-          const val = editor.value.trim();
+          // Stored HTML-escaped: every renderer injects overrides straight
+          // into its markup, so a typed "<" or "&" must not become markup.
+          // Round-trips cleanly — the editor reads textContent (decoded).
+          const val = PB._esc(editor.value.trim());
           el.classList.remove('pb-editing');
           sec.overrides = sec.overrides || {};
-          if (val) sec.overrides[field] = val; else delete sec.overrides[field];
+          let target = sec.overrides;
+          if (scope) target = sec.overrides[scope] = sec.overrides[scope] || {};
+          if (val) target[field] = val; else delete target[field];
           this.render();
         };
         const cancel = () => {
@@ -4613,8 +4676,8 @@
       _renderContent(sec) {
         switch (sec.type) {
           case 'split-row':                   return this._splitRow(sec.variant, sec);
-          case 'nav':                         return this._nav(sec.variant);
-          case 'footer':                      return this._footer();
+          case 'nav':                         return this._nav(sec.variant, sec);
+          case 'footer':                      return this._footer(sec);
           case 'utility-bar':                 return this._utilityBar(sec.variant, sec);
           case 'breadcrumb':                  return this._breadcrumb(sec.variant, sec);
           case 'campaign-hero':               return this._campaignHero(sec.variant, sec);
@@ -4648,7 +4711,10 @@
         </div>`;
       },
 
-      _nav(variant) {
+      _nav(variant, sec) {
+        // Text stays fixed (global chrome); only the logo is replaceable.
+        const logoSrc = (sec && sec.images && sec.images.logo) || 'images/ufs-logo.png';
+        const logoSlot = (cls) => `<div class="pb-img-slot pb-logo-slot" data-pb-rerender onclick="event.preventDefault();event.stopPropagation();PB.replaceImage('${sec.id}','logo',this)"><img src="${logoSrc}" alt="UFS"${cls ? ` class="${cls}"` : ''}>${PB._imgOverlaySm}</div>`;
         // Ported from handover/nav-header-spec.html. Renders the
         // "guest, non-webshop (default)" state the spec itself documents
         // as the baseline — see the CSS block's header comment for what's
@@ -4699,7 +4765,7 @@
             </div>
           </div>
           <nav class="ufs-nav ufs-nav--${variant}">
-            <div class="ufs-nav__logo"><img src="images/ufs-logo.png" alt="UFS"></div>
+            <div class="ufs-nav__logo">${logoSlot('')}</div>
             <div class="ufs-nav__links">
               <div class="ufs-nav__link">Products ${chev}</div>
               <div class="ufs-nav__link">Recipes ${chev}</div>
@@ -4713,7 +4779,7 @@
           </nav>
           <div class="ufs-mnav ufs-mnav--${variant}">
             <button type="button" class="ufs-mnav__btn"><img class="ufs-icon ufs-icon--24" src="icons/menu.svg" alt="Menu"></button>
-            <img src="images/ufs-logo.png" alt="UFS" class="ufs-mnav__logo">
+            ${logoSlot('ufs-mnav__logo')}
             <div class="ufs-mnav__right">
               <button type="button" class="ufs-mnav__btn"><img class="ufs-icon ufs-icon--24" src="icons/fav.svg" alt="Favourites"></button>
               <button type="button" class="ufs-mnav__btn" style="position:relative"><img class="ufs-icon ufs-icon--24" src="icons/cart.svg" alt="Cart"><span class="ufs-nav__badge">3</span></button>
@@ -4776,10 +4842,17 @@
                 sec.images[imgKey] = dataUrl;
               }
             }
+            // Slots whose image is mirrored elsewhere in the component
+            // (e.g. Product Hero's first thumbnail = its main image) opt
+            // into a full re-render so every copy updates together.
+            if (slotEl.hasAttribute('data-pb-rerender')) { this.render(); return; }
             // Update DOM directly without full re-render
             const img = slotEl.querySelector('img');
             const placeholder = slotEl.querySelector('.pb-hero-img-placeholder');
-            if (img) {
+            if (slotEl.hasAttribute('data-pb-bg')) {
+              // CSS background-image slot (e.g. Recipe Hero author avatar)
+              slotEl.style.backgroundImage = `url("${dataUrl}")`;
+            } else if (img) {
               img.src = dataUrl;
             } else if (placeholder) {
               const newImg = document.createElement('img');
@@ -4793,7 +4866,9 @@
         input.click();
       },
 
-      _footer() {
+      _footer(sec) {
+        // Text stays fixed (global chrome); only the logo is replaceable.
+        const footerLogo = (sec && sec.images && sec.images.logo) || 'images/ufs-logo.png';
         // Ported from handover/footer-spec.html: newsletter band, brand
         // + 3 link columns, bottom bar. Real ufs-footer__* BEM, replacing
         // the page-builder-only placeholder this tool launched with.
@@ -4812,7 +4887,7 @@
           <div class="ufs-footer__main">
             <div class="ufs-footer__cols">
               <div class="ufs-footer__col">
-                <img src="images/ufs-logo.png" class="ufs-footer__brand-logo" alt="UFS">
+                <div class="pb-img-slot pb-logo-slot" onclick="PB.replaceImage('${sec.id}','logo',this)"><img src="${footerLogo}" class="ufs-footer__brand-logo" alt="UFS">${PB._imgOverlaySm}</div>
                 <p class="ufs-footer__brand-tagline">Products and services created <span style="display:block">by chefs for chefs</span></p>
               </div>
               <div class="ufs-footer__col">
@@ -4909,6 +4984,29 @@
 Object.assign(PB.VARIANTS, { 'split-row': ['50-50', '33-67'] });
 Object.assign(PB.DEFAULT_VARIANT, { 'split-row': '50-50' });
 
+/* ── Shared editing helpers ─────────────────────────────────────
+   PB._esc      — HTML-escape a typed value (used when committing an
+                  inline edit, see PB._startInlineEdit).
+   PB._ov       — an override if one was typed, else the default copy.
+                  Defaults are trusted markup (may hold &amp; entities);
+                  overrides are already escaped at commit time.
+   PB._imgOverlay / PB._imgOverlaySm — the hover chrome every
+                  .pb-img-slot carries (full label vs. icon-only for
+                  avatars, thumbnails and logos too small for a label). */
+PB._esc = function (s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+};
+PB._ov = function (sec, field, def) {
+  var o = sec && sec.overrides;
+  return o && o[field] ? o[field] : def;
+};
+PB._UPLOAD_ICON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+PB._imgOverlay = function (label) {
+  return '<div class="pb-img-overlay"><div class="pb-img-overlay-icon">' + PB._UPLOAD_ICON + '</div>'
+    + '<span class="pb-img-overlay-label">' + (label || 'Replace image') + '</span></div>';
+};
+PB._imgOverlaySm = '<div class="pb-img-overlay"><div class="pb-img-overlay-icon" style="width:24px;height:24px;">' + PB._UPLOAD_ICON + '</div></div>';
+
 PB._splitRow = function (ratio, sec) {
   // Left/right content-type pickers live in the section toolbar now,
   // next to the ratio pills (see PB._sectionHTML's splitRowHTML) —
@@ -4922,9 +5020,12 @@ PB._splitRow = function (ratio, sec) {
       type,
       variant: PB.DEFAULT_VARIANT[type],
       images: (sec.images && sec.images[side]) || {},
+      // Text overrides are namespaced per side the same way images are;
+      // data-pb-scope tells PB._startInlineEdit where to write them.
+      overrides: (sec.overrides && sec.overrides[side]) || {},
     };
     return `<div class="pb-split-slot">
-      <div class="pb-split-slot-body">${PB._renderContent(subSec)}</div>
+      <div class="pb-split-slot-body" data-pb-scope="${side}">${PB._renderContent(subSec)}</div>
     </div>`;
   }
 
@@ -4945,10 +5046,11 @@ Object.assign(PB.VARIANTS, { 'utility-bar': [] });
 Object.assign(PB.DEFAULT_VARIANT, { 'utility-bar': 'default' });
 
 PB._utilityBar = function(variant, sec) {
+  // Action labels are editable (CTA-level copy); icons stay fixed.
   return `<div class="ufs-utility-bar">
-    <button type="button" class="ufs-utility-bar__btn"><span class="ufs-utility-bar__icon"><img src="icons/dowload.svg" alt=""></span> Download</button>
-    <button type="button" class="ufs-utility-bar__btn"><span class="ufs-utility-bar__icon"><img src="icons/print.svg" alt=""></span> Print</button>
-    <button type="button" class="ufs-utility-bar__btn"><span class="ufs-utility-bar__icon"><img src="icons/email.svg" alt=""></span> Email</button>
+    <button type="button" class="ufs-utility-bar__btn"><span class="ufs-utility-bar__icon"><img src="icons/dowload.svg" alt=""></span> <span data-pb-edit="download">${PB._ov(sec, 'download', 'Download')}</span></button>
+    <button type="button" class="ufs-utility-bar__btn"><span class="ufs-utility-bar__icon"><img src="icons/print.svg" alt=""></span> <span data-pb-edit="print">${PB._ov(sec, 'print', 'Print')}</span></button>
+    <button type="button" class="ufs-utility-bar__btn"><span class="ufs-utility-bar__icon"><img src="icons/email.svg" alt=""></span> <span data-pb-edit="email">${PB._ov(sec, 'email', 'Email')}</span></button>
   </div>`;
 };
 
@@ -4964,26 +5066,34 @@ PB._breadcrumb = function(variant, sec) {
   const chevron = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>`;
   const homeIcon = `<svg class="ufs-breadcrumb__home-icon" viewBox="0 0 45 45" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M35.6281 15.9671L25.7007 7.26398C23.8164 5.57867 20.9666 5.57867 19.0823 7.26398L9.15489 15.9671C8.09173 16.9179 7.48897 18.2801 7.50015 19.7064V34.1674C7.50015 36.9088 9.72265 39.1311 12.464 39.1311H32.319C35.0603 39.1311 37.2827 36.9088 37.2827 34.1674V19.6899C37.2893 18.2693 36.6869 16.9141 35.6281 15.9671ZM19.0823 35.822V27.5491C19.0823 26.6353 19.8231 25.8945 20.7369 25.8945H24.046C24.9598 25.8945 25.7006 26.6353 25.7006 27.5491V35.822H19.0823ZM32.3189 35.822H29.0097V27.5491C29.0097 24.8077 26.7874 22.5854 24.046 22.5854H20.7369C17.9955 22.5854 15.7731 24.8077 15.7731 27.5491V35.822H12.464C11.5502 35.822 10.8094 35.0812 10.8094 34.1674V19.6899C10.81 19.2146 11.0149 18.7626 11.372 18.4489L21.2994 9.76241C21.924 9.21368 22.8588 9.21368 23.4835 9.76241L33.4109 18.4489C33.768 18.7626 33.9729 19.2146 33.9735 19.6899V34.1674C33.9735 35.0812 33.2327 35.822 32.3189 35.822Z"/></svg>`;
 
+  // Every level label is editable — the trail is per-page copy. The
+  // mobile collapsed dropdown mirrors the two middle levels (not
+  // separately editable; it re-renders from the same overrides).
+  const home = PB._ov(sec, 'home', 'Home');
+  const crumb1 = PB._ov(sec, 'crumb1', 'Products');
+  const crumb2 = PB._ov(sec, 'crumb2', 'Sauces &amp; Condiments');
+  const current = PB._ov(sec, 'current', 'Ketchup &amp; Tomato Sauces');
+
   return `<nav class="ufs-breadcrumb" aria-label="Breadcrumb">
     <ol class="ufs-breadcrumb__list">
-      <li class="ufs-breadcrumb__item"><a href="#" class="ufs-breadcrumb__link" aria-label="Home">${homeIcon}<span class="ufs-breadcrumb__home-text">Home</span></a></li>
+      <li class="ufs-breadcrumb__item"><a href="#" class="ufs-breadcrumb__link" aria-label="Home" onclick="return false;">${homeIcon}<span class="ufs-breadcrumb__home-text" data-pb-edit="home">${home}</span></a></li>
       <li class="ufs-breadcrumb__sep" aria-hidden="true">${chevron}</li>
 
-      <li class="ufs-breadcrumb__item ufs-breadcrumb__mid"><a href="#" class="ufs-breadcrumb__link">Products</a></li>
+      <li class="ufs-breadcrumb__item ufs-breadcrumb__mid"><a href="#" class="ufs-breadcrumb__link" data-pb-edit="crumb1" onclick="return false;">${crumb1}</a></li>
       <li class="ufs-breadcrumb__sep ufs-breadcrumb__mid" aria-hidden="true">${chevron}</li>
-      <li class="ufs-breadcrumb__item ufs-breadcrumb__mid"><a href="#" class="ufs-breadcrumb__link">Sauces &amp; Condiments</a></li>
+      <li class="ufs-breadcrumb__item ufs-breadcrumb__mid"><a href="#" class="ufs-breadcrumb__link" data-pb-edit="crumb2" onclick="return false;">${crumb2}</a></li>
       <li class="ufs-breadcrumb__sep ufs-breadcrumb__mid" aria-hidden="true">${chevron}</li>
 
       <li class="ufs-breadcrumb__item ufs-breadcrumb__collapsed">
         <button type="button" class="ufs-breadcrumb__ellipsis" aria-haspopup="true" aria-expanded="false" aria-label="Show hidden breadcrumb levels">&hellip;</button>
         <div class="ufs-breadcrumb__drop">
-          <a href="#" class="ufs-breadcrumb__drop-item">Products</a>
-          <a href="#" class="ufs-breadcrumb__drop-item">Sauces &amp; Condiments</a>
+          <a href="#" class="ufs-breadcrumb__drop-item">${crumb1}</a>
+          <a href="#" class="ufs-breadcrumb__drop-item">${crumb2}</a>
         </div>
       </li>
       <li class="ufs-breadcrumb__sep ufs-breadcrumb__collapsed" aria-hidden="true">${chevron}</li>
 
-      <li class="ufs-breadcrumb__item is-current"><span class="ufs-breadcrumb__current" aria-current="page">Ketchup &amp; Tomato Sauces</span></li>
+      <li class="ufs-breadcrumb__item is-current"><span class="ufs-breadcrumb__current" aria-current="page" data-pb-edit="current">${current}</span></li>
     </ol>
   </nav>`;
 };
@@ -5025,26 +5135,29 @@ PB._campaignHero = function(variant, sec) {
       <div class="ufs-campaign-hero__overlay"></div>
     </div>
     <div class="ufs-campaign-hero__content">
-      <img class="ufs-campaign-hero__logo" src="handover/images/academy/ufs-academy-logo-reversed.svg" alt="UFS Academy" />
+      <div class="pb-img-slot pb-logo-slot" onclick="PB.replaceImage('${sec.id}','logo',this)">
+        <img class="ufs-campaign-hero__logo" src="${(sec.images && sec.images.logo) || 'handover/images/academy/ufs-academy-logo-reversed.svg'}" alt="UFS Academy" />
+        ${PB._imgOverlaySm}
+      </div>
       <div class="ufs-campaign-hero__heading">
         <h2 class="ufs-campaign-hero__title" data-pb-edit="title">${title}</h2>
         <p class="ufs-campaign-hero__desc" data-pb-edit="desc">${desc}</p>
       </div>
       <div class="ufs-campaign-hero__countdown" role="group" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
         <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
-          <p class="ufs-campaign-hero__countdown-value text-price-xl">18</p>
+          <p class="ufs-campaign-hero__countdown-value text-price-xl" data-pb-edit="cd0">${PB._ov(sec, 'cd0', '18')}</p>
           <p class="ufs-campaign-hero__countdown-label text-body-sm">Days</p>
         </div>
         <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
-          <p class="ufs-campaign-hero__countdown-value text-price-xl">23</p>
+          <p class="ufs-campaign-hero__countdown-value text-price-xl" data-pb-edit="cd1">${PB._ov(sec, 'cd1', '23')}</p>
           <p class="ufs-campaign-hero__countdown-label text-body-sm">Hours</p>
         </div>
         <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
-          <p class="ufs-campaign-hero__countdown-value text-price-xl">58</p>
+          <p class="ufs-campaign-hero__countdown-value text-price-xl" data-pb-edit="cd2">${PB._ov(sec, 'cd2', '58')}</p>
           <p class="ufs-campaign-hero__countdown-label text-body-sm">Minutes</p>
         </div>
         <div class="ufs-campaign-hero__countdown-item" aria-hidden="true">
-          <p class="ufs-campaign-hero__countdown-value text-price-xl">16</p>
+          <p class="ufs-campaign-hero__countdown-value text-price-xl" data-pb-edit="cd3">${PB._ov(sec, 'cd3', '16')}</p>
           <p class="ufs-campaign-hero__countdown-label text-body-sm">Seconds</p>
         </div>
       </div>
@@ -5077,6 +5190,16 @@ Object.assign(PB.VAR_LABELS, { dual: 'Dual CTA' });
 
 PB._productHero = function(variant, sec) {
   const mainImg = (sec.images && sec.images['main']) || 'handover/images/hero/packshot.jpg';
+  // Gallery images 2–5: replaced from their thumbnails (the main track
+  // only ever shows frame 1 here — no gallery JS in the builder), and
+  // mirrored into the hidden track frames so export/markup stay in sync.
+  const img = function (k, def) { return (sec.images && sec.images[k]) || def; };
+  const gal = {
+    g1: img('g1', 'images/K_GPP_3996.jpg'),
+    g2: img('g2', 'handover/images/academy/K_GPP_5120.jpg'),
+    g3: img('g3', 'images/M_GPP_6074.jpg'),
+    g4: img('g4', 'handover/images/tiles/recipe.jpg'),
+  };
   const uploadIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`;
   const chevron = `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 2 8 6 4 10"/></svg>`;
 
@@ -5110,20 +5233,20 @@ PB._productHero = function(variant, sec) {
               </div>
             </div>
           </div>
-          <div class="ufs-product-hero__main-frame"><img src="images/K_GPP_3996.jpg" alt="Knorr Professional Chicken Stock Granules 1 Kg — in use"/></div>
-          <div class="ufs-product-hero__main-frame"><img src="handover/images/academy/K_GPP_5120.jpg" alt="Knorr Professional Chicken Stock Granules 1 Kg — preparation"/></div>
-          <div class="ufs-product-hero__main-frame"><img src="images/M_GPP_6074.jpg" alt="Knorr Professional Chicken Stock Granules 1 Kg — plated"/></div>
-          <div class="ufs-product-hero__main-frame"><img src="handover/images/tiles/recipe.jpg" alt="Knorr Professional Chicken Stock Granules 1 Kg — serving suggestion"/></div>
+          <div class="ufs-product-hero__main-frame"><img src="${gal.g1}" alt="Knorr Professional Chicken Stock Granules 1 Kg — in use"/></div>
+          <div class="ufs-product-hero__main-frame"><img src="${gal.g2}" alt="Knorr Professional Chicken Stock Granules 1 Kg — preparation"/></div>
+          <div class="ufs-product-hero__main-frame"><img src="${gal.g3}" alt="Knorr Professional Chicken Stock Granules 1 Kg — plated"/></div>
+          <div class="ufs-product-hero__main-frame"><img src="${gal.g4}" alt="Knorr Professional Chicken Stock Granules 1 Kg — serving suggestion"/></div>
         </div>
         <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--prev" aria-label="Previous image">${chevron}</button>
         <button type="button" class="ufs-carousel-arrow ufs-carousel-arrow--next" aria-label="Next image">${chevron}</button>
       </div>
       <div class="ufs-product-hero__thumbs">
-        <button type="button" class="ufs-product-hero__thumb is-active" aria-label="View image 1" aria-current="true"><img src="${mainImg}" alt=""/></button>
-        <button type="button" class="ufs-product-hero__thumb" aria-label="View image 2" aria-current="false"><img src="images/K_GPP_3996.jpg" alt=""/></button>
-        <button type="button" class="ufs-product-hero__thumb" aria-label="View image 3" aria-current="false"><img src="handover/images/academy/K_GPP_5120.jpg" alt=""/></button>
-        <button type="button" class="ufs-product-hero__thumb" aria-label="View image 4" aria-current="false"><img src="images/M_GPP_6074.jpg" alt=""/></button>
-        <button type="button" class="ufs-product-hero__thumb" aria-label="View image 5" aria-current="false"><img src="handover/images/tiles/recipe.jpg" alt=""/></button>
+        <button type="button" class="ufs-product-hero__thumb is-active pb-img-slot" data-pb-rerender aria-label="View image 1" aria-current="true" onclick="PB.replaceImage('${sec.id}','main',this)"><img src="${mainImg}" alt=""/>${PB._imgOverlaySm}</button>
+        <button type="button" class="ufs-product-hero__thumb pb-img-slot" data-pb-rerender aria-label="View image 2" aria-current="false" onclick="PB.replaceImage('${sec.id}','g1',this)"><img src="${gal.g1}" alt=""/>${PB._imgOverlaySm}</button>
+        <button type="button" class="ufs-product-hero__thumb pb-img-slot" data-pb-rerender aria-label="View image 3" aria-current="false" onclick="PB.replaceImage('${sec.id}','g2',this)"><img src="${gal.g2}" alt=""/>${PB._imgOverlaySm}</button>
+        <button type="button" class="ufs-product-hero__thumb pb-img-slot" data-pb-rerender aria-label="View image 4" aria-current="false" onclick="PB.replaceImage('${sec.id}','g3',this)"><img src="${gal.g3}" alt=""/>${PB._imgOverlaySm}</button>
+        <button type="button" class="ufs-product-hero__thumb pb-img-slot" data-pb-rerender aria-label="View image 5" aria-current="false" onclick="PB.replaceImage('${sec.id}','g4',this)"><img src="${gal.g4}" alt=""/>${PB._imgOverlaySm}</button>
       </div>
     </div>
     <div class="ufs-product-hero__info">
@@ -5145,14 +5268,14 @@ PB._productHero = function(variant, sec) {
             <li>Diverse applications for sandwiches, burgers, salads and dips.</li>
           </ul>
         </div>
-        <a href="#" class="ufs-product-hero__link">+ More product and allergy information</a>
+        <a href="#" class="ufs-product-hero__link" data-pb-edit="link" onclick="return false;">${PB._ov(sec, 'link', '+ More product and allergy information')}</a>
       </div>
       ${ctas}
-      <p class="ufs-product-hero__sku">SKU: 94000640</p>
+      <p class="ufs-product-hero__sku">SKU: <span data-pb-edit="sku">${PB._ov(sec, 'sku', '94000640')}</span></p>
       <div class="ufs-product-hero__utility">
-        <button type="button" class="ufs-product-hero__utility-btn"><img src="icons/pdf.svg" alt=""/> Download</button>
-        <button type="button" class="ufs-product-hero__utility-btn"><img src="icons/print.svg" alt=""/> Print</button>
-        <button type="button" class="ufs-product-hero__utility-btn"><img src="icons/email.svg" alt=""/> Email</button>
+        <button type="button" class="ufs-product-hero__utility-btn"><img src="icons/pdf.svg" alt=""/> <span data-pb-edit="download">${PB._ov(sec, 'download', 'Download')}</span></button>
+        <button type="button" class="ufs-product-hero__utility-btn"><img src="icons/print.svg" alt=""/> <span data-pb-edit="print">${PB._ov(sec, 'print', 'Print')}</span></button>
+        <button type="button" class="ufs-product-hero__utility-btn"><img src="icons/email.svg" alt=""/> <span data-pb-edit="email">${PB._ov(sec, 'email', 'Email')}</span></button>
       </div>
     </div>
   </section>`;
@@ -5190,7 +5313,7 @@ PB._recipeHero = function(variant, sec) {
     ? `<div class="ufs-recipe-hero__overlay"></div>
        <button type="button" class="ufs-recipe-hero__watch" aria-label="Watch preparation">
          <span class="ufs-recipe-hero__watch-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
-         <span class="ufs-recipe-hero__watch-label">Watch preparation</span>
+         <span class="ufs-recipe-hero__watch-label" data-pb-edit="watch">${PB._ov(sec, 'watch', 'Watch preparation')}</span>
        </button>`
     : '';
 
@@ -5202,7 +5325,7 @@ PB._recipeHero = function(variant, sec) {
           <h1 class="ufs-recipe-hero__title" data-pb-edit="title">${title}</h1>
           <div class="ufs-recipe-hero__rating">
             <span class="ufs-tile__stars">${star}${star}${star}${star}${star}</span>
-            <span>(332)</span>
+            <span>(<span data-pb-edit="rating">${PB._ov(sec, 'rating', '332')}</span>)</span>
           </div>
           <div class="ufs-recipe-hero__tags">
             <span class="ufs-recipe-hero__tag">Side dish</span>
@@ -5213,7 +5336,7 @@ PB._recipeHero = function(variant, sec) {
         <div class="ufs-recipe-hero__author">
           <p class="ufs-recipe-hero__author-label">Created by:</p>
           <div class="ufs-recipe-hero__author-row">
-            <div class="ufs-recipe-hero__author-avatar" style="background-image:url('handover/images/chef-profiles/philip-li.png')"></div>
+            <div class="ufs-recipe-hero__author-avatar pb-img-slot" data-pb-bg style="background-image:url('${(sec.images && sec.images.avatar) || 'handover/images/chef-profiles/philip-li.png'}');overflow:hidden;" onclick="PB.replaceImage('${sec.id}','avatar',this)">${PB._imgOverlaySm}</div>
             <div>
               <p class="ufs-recipe-hero__author-name">Chef Philip Li</p>
               <p class="ufs-recipe-hero__author-role">Plating &amp; Presentation Specialist</p>
@@ -5306,7 +5429,7 @@ PB._trainingHero = function (variant, sec) {
       </button>
       <button type="button" class="ufs-training-hero__trailer" onclick="event.stopPropagation();PB.openTrailerLB('${videoUrl}')" aria-label="Watch trailer">
         <span class="ufs-training-hero__trailer-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
-        <span class="ufs-training-hero__trailer-label">Watch trailer</span>
+        <span class="ufs-training-hero__trailer-label" data-pb-edit="trailer">${PB._ov(sec, 'trailer', 'Watch trailer')}</span>
       </button>
     </div>
   </section>`;
@@ -5358,22 +5481,25 @@ PB._promoBanner = function (variant, sec) {
     || (isDark ? 'handover/images/academy/K_GPP_5120.jpg' : 'handover/images/academy/promo-banner-courses.jpg');
   const uploadIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
 
-  const logo = isDark ? '' : `<img class="ufs-promo-banner__logo" src="handover/images/academy/ufs-academy-logo.svg" alt="UFS Academy" />`;
+  const logo = isDark ? '' : `<div class="pb-img-slot pb-logo-slot" onclick="PB.replaceImage('${sec.id}','logo',this)">
+          <img class="ufs-promo-banner__logo" src="${(sec.images && sec.images.logo) || 'handover/images/academy/ufs-academy-logo.svg'}" alt="UFS Academy" />
+          ${PB._imgOverlaySm}
+        </div>`;
   const countdown = isDark ? '' : `<div class="ufs-promo-banner__countdown" role="group" aria-label="Offer ends in 18 days, 23 hours, 58 minutes, 16 seconds">
           <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
-            <p class="ufs-promo-banner__countdown-value text-price-xl">18</p>
+            <p class="ufs-promo-banner__countdown-value text-price-xl" data-pb-edit="cd0">${PB._ov(sec, 'cd0', '18')}</p>
             <p class="ufs-promo-banner__countdown-label text-body-sm">Days</p>
           </div>
           <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
-            <p class="ufs-promo-banner__countdown-value text-price-xl">23</p>
+            <p class="ufs-promo-banner__countdown-value text-price-xl" data-pb-edit="cd1">${PB._ov(sec, 'cd1', '23')}</p>
             <p class="ufs-promo-banner__countdown-label text-body-sm">Hours</p>
           </div>
           <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
-            <p class="ufs-promo-banner__countdown-value text-price-xl">58</p>
+            <p class="ufs-promo-banner__countdown-value text-price-xl" data-pb-edit="cd2">${PB._ov(sec, 'cd2', '58')}</p>
             <p class="ufs-promo-banner__countdown-label text-body-sm">Minutes</p>
           </div>
           <div class="ufs-promo-banner__countdown-item" aria-hidden="true">
-            <p class="ufs-promo-banner__countdown-value text-price-xl">16</p>
+            <p class="ufs-promo-banner__countdown-value text-price-xl" data-pb-edit="cd3">${PB._ov(sec, 'cd3', '16')}</p>
             <p class="ufs-promo-banner__countdown-label text-body-sm">Seconds</p>
           </div>
         </div>`;
@@ -5456,10 +5582,10 @@ PB._announcementBanner = function (variant, sec) {
   const ctaLabel = o.ctaPrimary || "Let's Do It";
   return `<div class="ufs-ann-banner ufs-ann-banner--warm">
       <div class="ufs-ann-banner__countdown">
-        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value">07</span><span class="ufs-ann-banner__unit-label">Days</span></div>
-        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value">14</span><span class="ufs-ann-banner__unit-label">Hours</span></div>
-        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value">32</span><span class="ufs-ann-banner__unit-label">Minutes</span></div>
-        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value">09</span><span class="ufs-ann-banner__unit-label">Seconds</span></div>
+        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-pb-edit="cd0">${PB._ov(sec, 'cd0', '07')}</span><span class="ufs-ann-banner__unit-label">Days</span></div>
+        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-pb-edit="cd1">${PB._ov(sec, 'cd1', '14')}</span><span class="ufs-ann-banner__unit-label">Hours</span></div>
+        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-pb-edit="cd2">${PB._ov(sec, 'cd2', '32')}</span><span class="ufs-ann-banner__unit-label">Minutes</span></div>
+        <div class="ufs-ann-banner__unit"><span class="ufs-ann-banner__unit-value" data-pb-edit="cd3">${PB._ov(sec, 'cd3', '09')}</span><span class="ufs-ann-banner__unit-label">Seconds</span></div>
       </div>
       <p class="ufs-ann-banner__content">
         <span class="ufs-ann-banner__title" data-pb-edit="title">${warmTitle}</span><span class="ufs-ann-banner__text" data-pb-edit="text">${warmText}</span><a href="#" class="ufs-ann-banner__link" data-pb-edit="ctaPrimary" onclick="return false;">${ctaLabel}</a>
@@ -5510,15 +5636,21 @@ PB._carouselFullWidthBanner = function (variant, sec) {
     { mod: 'mushroom', badge: 'Free Training', title: 'Master Umami, on us', desc: 'A free online module built for working chefs — practical techniques you can use on shift tonight.', cta: 'Start Learning', img: 'handover/images/carousel/slide3.jpg' }
   ];
 
+  // Active slide survives re-renders (inline edits, image swaps) —
+  // PB.fwNav records it on the section, so editing slide 2's title
+  // doesn't snap the carousel back to slide 1.
+  const active = sec.fwActive > 0 && sec.fwActive < slidesData.length ? sec.fwActive : 0;
+
   const slidesHTML = slidesData.map(function (slide, i) {
     const imgSrc = (sec.images && sec.images['slide' + i]) || slide.img;
     const modClass = slide.mod ? ' ufs-fw-banner__slide--' + slide.mod : '';
-    return `<div class="ufs-fw-banner__slide${modClass}${i === 0 ? ' is-active' : ''}" data-fw-slide="${i}">
+    const f = function (k) { return 's' + i + '_' + k; };
+    return `<div class="ufs-fw-banner__slide${modClass}${i === active ? ' is-active' : ''}" data-fw-slide="${i}">
           <div class="ufs-fw-banner__panel">
-            <span class="ufs-fw-banner__badge">${slide.badge}</span>
-            <h3 class="ufs-fw-banner__title text-h2">${slide.title}</h3>
-            <p class="ufs-fw-banner__desc text-body-sm">${slide.desc}</p>
-            <a href="#" class="btn btn-primary" onclick="return false;">${slide.cta}</a>
+            <span class="ufs-fw-banner__badge" data-pb-edit="${f('badge')}">${PB._ov(sec, f('badge'), slide.badge)}</span>
+            <h3 class="ufs-fw-banner__title text-h2" data-pb-edit="${f('title')}">${PB._ov(sec, f('title'), slide.title)}</h3>
+            <p class="ufs-fw-banner__desc text-body-sm" data-pb-edit="${f('desc')}">${PB._ov(sec, f('desc'), slide.desc)}</p>
+            <a href="#" class="btn btn-primary" data-pb-edit="${f('cta')}" onclick="return false;">${PB._ov(sec, f('cta'), slide.cta)}</a>
           </div>
           <div class="ufs-fw-banner__image pb-img-slot" onclick="PB.replaceImage('${sec.id}','slide${i}',this)">
             <div class="ufs-fw-banner__image-media"><img src="${imgSrc}" alt="" /></div>
@@ -5531,7 +5663,7 @@ PB._carouselFullWidthBanner = function (variant, sec) {
   }).join('');
 
   const dotsHTML = slidesData.map(function (_, i) {
-    return `<button type="button" class="ufs-carousel-dot${i === 0 ? ' is-active' : ''}" aria-label="Go to slide ${i + 1}" onclick="event.stopPropagation();PB.fwNav(this,${i})"></button>`;
+    return `<button type="button" class="ufs-carousel-dot${i === active ? ' is-active' : ''}" aria-label="Go to slide ${i + 1}" onclick="event.stopPropagation();PB.fwNav(this,${i})"></button>`;
   }).join('');
 
   return `<section class="ufs-fw-banner" aria-roledescription="carousel" aria-label="Featured promotions">
@@ -5563,6 +5695,10 @@ PB.fwNav = function (ctrl, target) {
   if (isNaN(nextIdx) || nextIdx < 0 || nextIdx >= slides.length || nextIdx === activeIdx) return;
   slides[activeIdx].classList.remove('is-active');
   slides[nextIdx].classList.add('is-active');
+  // Remember it on the section so PB.render() restores this slide.
+  const host = root.closest('[id^="pbs-"]');
+  const sec = host && PB.sections.find(function (s) { return 'pbs-' + s.id === host.id; });
+  if (sec) sec.fwActive = nextIdx;
   const dots = root.querySelectorAll('.ufs-carousel-dot');
   dots.forEach(function (d, i) { d.classList.toggle('is-active', i === nextIdx); });
 };
@@ -5667,7 +5803,7 @@ PB._flexCarousel = function (variant, sec) {
       return `<div class="ufs-carousel-card pb-img-slot" onclick="PB.replaceImage('${sec.id}','card${i}',this)">
               <img src="${imgSrc}" alt="" />
               <div class="ufs-carousel-card__scrim"></div>
-              <p class="ufs-carousel-card__label">${card.label}</p>
+              <p class="ufs-carousel-card__label" data-pb-edit="card${i}_label">${PB._ov(sec, 'card' + i + '_label', card.label)}</p>
               <div class="pb-img-overlay">
                 <div class="pb-img-overlay-icon">${uploadIcon}</div>
                 <span class="pb-img-overlay-label">Replace image</span>
@@ -5743,7 +5879,7 @@ PB._flexCarousel = function (variant, sec) {
           ${c.eyebrow ? `<p class="ufs-tile__topic-eyebrow">${c.eyebrow}</p>` : ''}
           <h3 class="ufs-tile__topic-title">${c.title}</h3>
           <p class="ufs-tile__topic-desc">${c.desc}</p>
-          <button type="button" class="ufs-tile__topic-link" onclick="event.stopPropagation()">Check All the Courses
+          <button type="button" class="ufs-tile__topic-link" onclick="event.stopPropagation()"><span data-pb-edit="${c.key}_cta">${PB._ov(sec, c.key + '_cta', 'Check All the Courses')}</span>
             <svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
@@ -5803,7 +5939,7 @@ PB._flexCarousel = function (variant, sec) {
           <div class="ufs-tile__chef-info">
             <div class="ufs-tile__chef-name-role"><p class="ufs-tile__chef-name">${c.name}</p><p class="ufs-tile__chef-role">${c.role}</p></div>
             <p class="ufs-tile__chef-quote">${c.quote}</p>
-            <p class="ufs-tile__chef-link">Check Chef&rsquo;s Profile<svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+            <p class="ufs-tile__chef-link"><span data-pb-edit="${c.key}_cta">${PB._ov(sec, c.key + '_cta', 'Check Chef&rsquo;s Profile')}</span><svg viewBox="0 0 16 16" fill="none"><polyline points="6 3 11 8 6 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
           </div>
         </div></div>
       </a></div>`;
@@ -5839,7 +5975,7 @@ PB._flexCarousel = function (variant, sec) {
         </button>
         <div class="ufs-video-embed__body">
           <p class="ufs-video-embed__title">${c.title}</p>
-          <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""><span>${c.duration}</span></div>
+          <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""><span data-pb-edit="${c.key}_duration">${PB._ov(sec, c.key + '_duration', c.duration)}</span></div>
         </div>
       </div>`;
     });
@@ -5867,9 +6003,9 @@ PB._flexCarousel = function (variant, sec) {
             <div class="pb-img-overlay"><div class="pb-img-overlay-icon">${uploadIcon}</div><span class="pb-img-overlay-label">Replace</span></div>
           </div>
           <div class="ufs-teaser__body">
-            <p class="ufs-teaser__eyebrow">${c.eyebrow}</p>
-            <div class="ufs-teaser__heading"><h3 class="ufs-teaser__title">${c.title}</h3><p class="ufs-teaser__desc">${c.desc}</p></div>
-            <a href="#" class="ufs-teaser__link">Learn more</a>
+            <p class="ufs-teaser__eyebrow" data-pb-edit="${c.key}_eyebrow">${PB._ov(sec, c.key + '_eyebrow', c.eyebrow)}</p>
+            <div class="ufs-teaser__heading"><h3 class="ufs-teaser__title" data-pb-edit="${c.key}_title">${PB._ov(sec, c.key + '_title', c.title)}</h3><p class="ufs-teaser__desc" data-pb-edit="${c.key}_desc">${PB._ov(sec, c.key + '_desc', c.desc)}</p></div>
+            <a href="#" class="ufs-teaser__link" data-pb-edit="${c.key}_cta" onclick="return false;">${PB._ov(sec, c.key + '_cta', 'Learn more')}</a>
           </div>
         </div>
       </div></div>`;
@@ -6143,6 +6279,16 @@ PB._bannerCarousel = function (variant, sec) {
     }).join('');
   }
 
+  // Card-level editable data (see the audit scope: product/recipe card
+  // copy stays fixed; rating counts, CTA labels and durations are
+  // editable). Field names are keyed per card (tile0_rating, fc2_cta…).
+  function ed(sec, field, def) {
+    return '<span data-pb-edit="' + field + '">' + PB._ov(sec, field, def) + '</span>';
+  }
+  function rating(sec, key, count) {
+    return '<div class="ufs-tile__rating"><span class="ufs-tile__stars">' + STARS5 + '</span><span>(' + ed(sec, key + '_rating', String(count)) + ')</span></div>';
+  }
+
   function imgSlot(sec, key, defaultSrc) {
     var src = (sec.images && sec.images[key]) || defaultSrc;
     return '<div class="ufs-tile__image pb-img-slot" onclick="event.stopPropagation();PB.replaceImage(\'' + sec.id + '\',\'' + key + '\',this)">'
@@ -6159,9 +6305,9 @@ PB._bannerCarousel = function (variant, sec) {
       + '<div class="ufs-tile__content"><div class="ufs-tile__body">'
       + '<div class="ufs-tile__eyebrow">' + eyebrow + '</div>'
       + '<h3 class="ufs-tile__title">' + title + '</h3>'
-      + '<div class="ufs-tile__rating"><span class="ufs-tile__stars">' + STARS5 + '</span><span>(' + count + ')</span></div>'
+      + rating(sec, key, count)
       + '<div class="ufs-tile__meta">' + metaTags(tags) + '</div>'
-      + '</div><div class="ufs-tile__cta"><button type="button" class="btn btn-primary">Buy it now</button></div></div>'
+      + '</div><div class="ufs-tile__cta"><button type="button" class="btn btn-primary" data-pb-edit="' + key + '_cta">' + PB._ov(sec, key + '_cta', 'Buy it now') + '</button></div></div>'
       + '</div>';
   }
 
@@ -6171,7 +6317,7 @@ PB._bannerCarousel = function (variant, sec) {
       + (badge ? '<span class="ufs-tile__badge">' + badge + '</span>' : '')
       + '<div class="ufs-tile__content"><div class="ufs-tile__body">'
       + '<h3 class="ufs-tile__title">' + title + '</h3>'
-      + '<div class="ufs-tile__rating"><span class="ufs-tile__stars">' + STARS5 + '</span><span>(' + count + ')</span></div>'
+      + rating(sec, key, count)
       + '<div class="ufs-tile__meta">' + metaTags(tags) + '</div>'
       + '</div></div>'
       + '</div>';
@@ -6184,8 +6330,8 @@ PB._bannerCarousel = function (variant, sec) {
       + '<div class="ufs-tile__content"><div class="ufs-tile__body">'
       + '<div class="ufs-tile__eyebrow">' + eyebrow + '</div>'
       + '<h3 class="ufs-tile__title">' + title + '</h3>'
-      + '<div class="ufs-tile__rating"><span class="ufs-tile__stars">' + STARS5 + '</span><span>(' + count + ')</span></div>'
-      + '<div class="ufs-tile__meta"><span class="ufs-tile__meta-item">' + PLAY_ICON + videos + '</span><span class="ufs-tile__meta-sep">&middot;</span><span class="ufs-tile__meta-item">' + BARS_ICON + difficulty + '</span></div>'
+      + rating(sec, key, count)
+      + '<div class="ufs-tile__meta"><span class="ufs-tile__meta-item">' + PLAY_ICON + ed(sec, key + '_videos', videos) + '</span><span class="ufs-tile__meta-sep">&middot;</span><span class="ufs-tile__meta-item">' + BARS_ICON + difficulty + '</span></div>'
       + '</div></div>'
       + '</div>';
   }
@@ -6197,7 +6343,7 @@ PB._bannerCarousel = function (variant, sec) {
       + '<div class="ufs-tile__content"><div class="ufs-tile__body">'
       + '<div class="ufs-tile__eyebrow">' + eyebrow + '</div>'
       + '<h3 class="ufs-tile__title">' + title + '</h3>'
-      + '<div class="ufs-tile__meta"><span class="ufs-tile__meta-item">' + readTime + '</span></div>'
+      + '<div class="ufs-tile__meta"><span class="ufs-tile__meta-item">' + ed(sec, key + '_read', readTime) + '</span></div>'
       + '</div></div>'
       + '</div>';
   }
@@ -6293,13 +6439,19 @@ PB._bannerCarousel = function (variant, sec) {
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
   };
 
-  function qtySpan(base, unit) {
-    return '<span class="ufs-ingredient-row__qty" data-base-qty="' + base + '" data-unit="' + unit + '">' + base + ' ' + unit + '</span>';
+  // Quantities are editable (data value). A typed quantity is free
+  // text ("2 kg", "to taste"…), so once overridden it drops out of the
+  // servings stepper's scaling (no data-base-qty) and stays as typed.
+  function qtySpan(sec, id, base, unit) {
+    var field = 'qty_' + id;
+    var typed = sec.overrides && sec.overrides[field];
+    if (typed) return '<span class="ufs-ingredient-row__qty" data-pb-edit="' + field + '">' + typed + '</span>';
+    return '<span class="ufs-ingredient-row__qty" data-pb-edit="' + field + '" data-base-qty="' + base + '" data-unit="' + unit + '">' + base + ' ' + unit + '</span>';
   }
 
-  function plainRow(name, base, unit) {
+  function plainRow(sec, id, name, base, unit) {
     return '<div class="ufs-ingredient-row"><div class="ufs-ingredient-row__main">'
-      + '<span class="ufs-ingredient-row__name">' + name + '</span>' + qtySpan(base, unit)
+      + '<span class="ufs-ingredient-row__name">' + name + '</span>' + qtySpan(sec, id, base, unit)
       + '</div></div>';
   }
 
@@ -6314,9 +6466,9 @@ PB._bannerCarousel = function (variant, sec) {
       + '<div class="ufs-tile__content"><div class="ufs-tile__body">'
       + '<div class="ufs-tile__eyebrow">Fats &amp; Oils</div>'
       + '<h3 class="ufs-tile__title">MEADOWLAND Professional Liquid Margarine, 10 L</h3>'
-      + '<div class="ufs-tile__rating"><span class="ufs-tile__stars"><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg></span><span>(332)</span></div>'
+      + '<div class="ufs-tile__rating"><span class="ufs-tile__stars"><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg><svg viewBox="0 0 20 20"><path d="M10 1.5l2.6 5.4 5.9.7-4.3 4.1 1.1 5.8L10 14.6l-5.3 2.9 1.1-5.8-4.3-4.1 5.9-.7z"/></svg></span><span>(<span data-pb-edit="ml_rating">' + PB._ov(sec, 'ml_rating', '332') + '</span>)</span></div>'
       + '<div class="ufs-tile__meta"><span class="ufs-tile__meta-item">Gluten Free</span><span class="ufs-tile__meta-sep">&middot;</span><span class="ufs-tile__meta-item">Vegetarian</span></div>'
-      + '</div><div class="ufs-tile__cta"><a href="#" class="btn btn-primary btn-sm" onclick="return false">Buy it now</a></div></div>'
+      + '</div><div class="ufs-tile__cta"><a href="#" class="btn btn-primary btn-sm" data-pb-edit="ml_cta" onclick="return false">' + PB._ov(sec, 'ml_cta', 'Buy it now') + '</a></div></div>'
       + '</div>';
   }
 
@@ -6327,7 +6479,7 @@ PB._bannerCarousel = function (variant, sec) {
     var qtyId = 'ing-qty-' + sec.id;
     return '<div style="padding:var(--space-10) var(--space-6);background:var(--color-salt)">'
       + '<div class="ufs-recipe-ingredients">'
-      + '<h2 class="ufs-recipe-ingredients__title">Ingredients</h2>'
+      + '<h2 class="ufs-recipe-ingredients__title" data-pb-edit="title">' + PB._ov(sec, 'title', 'Ingredients') + '</h2>'
       + '<div class="ufs-recipe-ingredients__servings">'
       + '<p class="ufs-recipe-ingredients__servings-label">Servings:</p>'
       + '<div class="fi-qty" id="' + qtyId + '" data-base-servings="10">'
@@ -6337,27 +6489,27 @@ PB._bannerCarousel = function (variant, sec) {
       + '</div></div>'
       + '<div class="ufs-recipe-ingredients__group">'
       + '<h3 class="ufs-recipe-ingredients__group-title">For the mash:</h3>'
-      + plainRow('Potatoes, peeled &amp; diced', 2000, 'g')
-      + plainRow('Water', 1500, 'ml')
-      + plainRow('Salt', 10, 'g')
+      + plainRow(sec, 0, 'Potatoes, peeled &amp; diced', 2000, 'g')
+      + plainRow(sec, 1, 'Water', 1500, 'ml')
+      + plainRow(sec, 2, 'Salt', 10, 'g')
       + '<div class="ufs-ingredient-row ufs-ingredient-row--linked is-open">'
       + '<div class="ufs-ingredient-row__main">'
       + '<button type="button" class="ufs-ingredient-row__trigger" aria-expanded="true" onclick="PB._ingToggleRow(this)">MEADOWLAND Professional<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>'
-      + qtySpan(200, 'g')
+      + qtySpan(sec, 'ml', 200, 'g')
       + '</div>'
       + '<div class="ufs-ingredient-row__panel"><div class="ufs-ingredient-row__panel-inner">' + meadowlandTile(sec) + '</div></div>'
       + '</div>'
-      + plainRow('Whole milk, warmed', 300, 'ml')
+      + plainRow(sec, 3, 'Whole milk, warmed', 300, 'ml')
       + '</div>'
       + '<div class="ufs-recipe-ingredients__group">'
       + '<h3 class="ufs-recipe-ingredients__group-title">For the seasoning:</h3>'
-      + plainRow('Knorr Professional Chicken Stock Granules', 40, 'g')
-      + plainRow('White pepper, ground', 4, 'g')
-      + plainRow('Nutmeg, ground', 2, 'g')
-      + plainRow('Chives, finely chopped', 15, 'g')
+      + plainRow(sec, 4, 'Knorr Professional Chicken Stock Granules', 40, 'g')
+      + plainRow(sec, 5, 'White pepper, ground', 4, 'g')
+      + plainRow(sec, 6, 'Nutmeg, ground', 2, 'g')
+      + plainRow(sec, 7, 'Chives, finely chopped', 15, 'g')
       + '</div>'
       + '<button type="button" class="btn btn-primary btn-icon-left ufs-recipe-ingredients__cta">'
-      + '<img src="icons/cart.svg" alt="" style="filter:brightness(0) invert(1)"/>Add all UFS Products to Cart</button>'
+      + '<img src="icons/cart.svg" alt="" style="filter:brightness(0) invert(1)"/><span data-pb-edit="cta">' + PB._ov(sec, 'cta', 'Add all UFS Products to Cart') + '</span></button>'
       + '</div></div>';
   };
 })();
@@ -6405,9 +6557,9 @@ PB._bannerCarousel = function (variant, sec) {
 
     return '<div style="padding:var(--space-10) var(--space-6);background:var(--color-salt)">'
       + '<div class="ufs-recipe-prep">'
-      + '<p class="ufs-recipe-prep__intro">A rich, silky mashed potato built for high-volume service &mdash; MEADOWLAND Professional keeps it glossy and stable under a bain-marie, while Knorr Professional Chicken Stock Granules rounds out the seasoning without extra prep. Scales cleanly from a la carte to full banquet covers.</p>'
+      + '<p class="ufs-recipe-prep__intro" data-pb-edit="intro">' + PB._ov(sec, 'intro', 'A rich, silky mashed potato built for high-volume service &mdash; MEADOWLAND Professional keeps it glossy and stable under a bain-marie, while Knorr Professional Chicken Stock Granules rounds out the seasoning without extra prep. Scales cleanly from a la carte to full banquet covers.') + '</p>'
       + '<div>'
-      + '<h2 class="ufs-recipe-prep__title" style="margin-bottom:var(--space-8)">Preparation</h2>'
+      + '<h2 class="ufs-recipe-prep__title" style="margin-bottom:var(--space-8)" data-pb-edit="title">' + PB._ov(sec, 'title', 'Preparation') + '</h2>'
       + '<ol class="ufs-recipe-steps">' + steps + '</ol>'
       + '</div>'
       + '</div></div>';
@@ -6503,7 +6655,7 @@ PB._bannerCarousel = function (variant, sec) {
       + '</div></div>'
 
       + '<div class="ufs-catalog-toolbar">'
-      + '<p class="ufs-catalog-results">261 recipes</p>'
+      + '<p class="ufs-catalog-results" data-pb-edit="results">' + PB._ov(sec, 'results', '261 recipes') + '</p>'
       + '<div class="ufs-catalog-sort">'
       + '<button type="button" class="ufs-catalog-sort__trigger" onclick="PB._filtersToggle(this)"><span>Sort by: A&ndash;Z</span><svg class="ufs-catalog-sort__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></button>'
       + '<div class="ufs-catalog-sort__panel" role="region" aria-label="Sort options">'
@@ -6548,17 +6700,17 @@ PB._bannerCarousel = function (variant, sec) {
       + '<div class="ufs-chef-tip is-expanded">'
       + '<div class="ufs-chef-tip__eyebrow">'
       + '<div class="ufs-chef-tip__eyebrow-icon"><img src="icons/flame.svg" alt=""/></div>'
-      + '<p class="ufs-chef-tip__eyebrow-text">Chef&rsquo;s tip</p>'
+      + '<p class="ufs-chef-tip__eyebrow-text" data-pb-edit="eyebrow">' + PB._ov(sec, 'eyebrow', 'Chef&rsquo;s tip') + '</p>'
       + '</div>'
-      + '<p class="ufs-chef-tip__heading">Keep it lump-free at scale</p>'
-      + '<p class="ufs-chef-tip__body">Whisk MEADOWLAND Professional into hot milk before folding it through the potatoes &mdash; adding it cold or straight from the block is the most common cause of lumps when this recipe is scaled up for bulk service. For an extra glossy finish under the bain-marie, stir in a knob of butter just before service rather than during mixing.</p>'
+      + '<p class="ufs-chef-tip__heading" data-pb-edit="title">' + PB._ov(sec, 'title', 'Keep it lump-free at scale') + '</p>'
+      + '<p class="ufs-chef-tip__body" data-pb-edit="body">' + PB._ov(sec, 'body', 'Whisk MEADOWLAND Professional into hot milk before folding it through the potatoes &mdash; adding it cold or straight from the block is the most common cause of lumps when this recipe is scaled up for bulk service. For an extra glossy finish under the bain-marie, stir in a knob of butter just before service rather than during mixing.') + '</p>'
       + '<div class="ufs-chef-tip__extra">'
       + '<div class="ufs-chef-tip__photo pb-img-slot" onclick="PB.replaceImage(\'' + sec.id + '\',\'photo\',this)">'
       + '<img src="' + src + '" alt="">'
       + '<div class="pb-img-overlay"><div class="pb-img-overlay-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div><span class="pb-img-overlay-label">Replace</span></div>'
       + '</div>'
-      + '<p class="ufs-chef-tip__link">Go to: <a href="#" onclick="return false">www.ufs.com/recipes</a></p>'
-      + '<a class="btn btn-secondary" href="#" onclick="return false">Example button</a>'
+      + '<p class="ufs-chef-tip__link">Go to: <a href="#" data-pb-edit="link" onclick="return false">' + PB._ov(sec, 'link', 'www.ufs.com/recipes') + '</a></p>'
+      + '<a class="btn btn-secondary" href="#" data-pb-edit="cta" onclick="return false">' + PB._ov(sec, 'cta', 'Example button') + '</a>'
       + '</div>'
       + '<button type="button" class="ufs-chef-tip__toggle" data-more-label="Read more" data-less-label="Read less" aria-expanded="true" onclick="PB._chefTipToggle(this)">Read less</button>'
       + '</div></div>';
@@ -6579,13 +6731,16 @@ PB._productTip = function(variant, sec) {
     { title: 'Fast to prep', desc: 'Dissolves quickly in hot water, no simmering from scratch.' },
     { title: 'Long shelf life', desc: 'Resealable tub stays fresh in dry storage, reducing waste.' }
   ];
-  var cardsHTML = tips.map(function(t) {
-    return '<div class="ufs-product-tip"><p class="ufs-product-tip__title">' + t.title + '</p><p class="ufs-product-tip__desc">' + t.desc + '</p></div>';
+  // Each tip is a headline unit (title + one-liner) — both editable,
+  // keyed per card (t0_title, t0_desc…).
+  var cardsHTML = tips.map(function(t, i) {
+    return '<div class="ufs-product-tip"><p class="ufs-product-tip__title" data-pb-edit="t' + i + '_title">' + PB._ov(sec, 't' + i + '_title', t.title) + '</p>'
+      + '<p class="ufs-product-tip__desc" data-pb-edit="t' + i + '_desc">' + PB._ov(sec, 't' + i + '_desc', t.desc) + '</p></div>';
   }).join('');
   return `<div class="pbf-product-tip-section">
     <div class="ufs-product-tips-rows">
       <div class="ufs-product-tips">${cardsHTML}</div>
-      <p class="ufs-product-tips__footnote">*Optional disclaimer, sits below every row.</p>
+      <p class="ufs-product-tips__footnote" data-pb-edit="footnote">${PB._ov(sec, 'footnote', '*Optional disclaimer, sits below every row.')}</p>
     </div>
   </div>`;
 };
@@ -6705,8 +6860,8 @@ PB._textBlock = function(variant, sec) {
             <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
           </button>
           <div class="ufs-video-embed__body">
-            <p class="ufs-video-embed__title">${defaults.video.title}</p>
-            <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""><span>${defaults.video.duration}</span></div>
+            <p class="ufs-video-embed__title" data-pb-edit="vtitle">${o.vtitle || defaults.video.title}</p>
+            <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""><span data-pb-edit="vduration">${o.vduration || defaults.video.duration}</span></div>
           </div>
         </div>
       </div>`;
@@ -6805,19 +6960,22 @@ PB._teaser = function(variant, sec) {
   var uploadIcon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><path d="M21 15l-5-5L5 21"></path></svg>';
   var cardsHTML = cards.map(function(c) {
     var src = (sec.images && sec.images[c.key]) || c.img;
+    // Each teaser is a headline unit — eyebrow/title/desc/CTA all
+    // editable, keyed per card (teaser-0_title…).
+    var f = function (k) { return c.key + '_' + k; };
     var ctaHTML = isButtonCta
-      ? '<a href="#" class="btn btn-primary ufs-teaser__cta">' + c.cta + '</a>'
-      : '<a href="#" class="ufs-teaser__link">Learn more</a>';
+      ? '<a href="#" class="btn btn-primary ufs-teaser__cta" data-pb-edit="' + f('cta') + '" onclick="return false;">' + PB._ov(sec, f('cta'), c.cta) + '</a>'
+      : '<a href="#" class="ufs-teaser__link" data-pb-edit="' + f('cta') + '" onclick="return false;">' + PB._ov(sec, f('cta'), 'Learn more') + '</a>';
     return '<div class="ufs-teaser">' +
       '<div class="ufs-teaser__image pb-img-slot" onclick="PB.replaceImage(\'' + sec.id + '\',\'' + c.key + '\',this)">' +
         '<img src="' + src + '" alt="">' +
         '<div class="pb-img-overlay"><div class="pb-img-overlay-icon">' + uploadIcon + '</div><span class="pb-img-overlay-label">Replace</span></div>' +
       '</div>' +
       '<div class="ufs-teaser__body">' +
-        '<p class="ufs-teaser__eyebrow">' + c.eyebrow + '</p>' +
+        '<p class="ufs-teaser__eyebrow" data-pb-edit="' + f('eyebrow') + '">' + PB._ov(sec, f('eyebrow'), c.eyebrow) + '</p>' +
         '<div class="ufs-teaser__heading">' +
-          '<h3 class="ufs-teaser__title">' + c.title + '</h3>' +
-          '<p class="ufs-teaser__desc">' + c.desc + '</p>' +
+          '<h3 class="ufs-teaser__title" data-pb-edit="' + f('title') + '">' + PB._ov(sec, f('title'), c.title) + '</h3>' +
+          '<p class="ufs-teaser__desc" data-pb-edit="' + f('desc') + '">' + PB._ov(sec, f('desc'), c.desc) + '</p>' +
         '</div>' +
         ctaHTML +
       '</div>' +
@@ -7020,8 +7178,8 @@ PB._videoEmbed = function(variant, sec) {
         <span class="ufs-video-embed__play-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
       </button>
       <div class="ufs-video-embed__body">
-        <p class="ufs-video-embed__title">Behind the Menu: Sourcing Seasonal Produce</p>
-        <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""><span>24 min</span></div>
+        <p class="ufs-video-embed__title" data-pb-edit="title">${PB._ov(sec, 'title', 'Behind the Menu: Sourcing Seasonal Produce')}</p>
+        <div class="ufs-video-embed__meta"><img src="icons/timer.svg" alt=""><span data-pb-edit="duration">${PB._ov(sec, 'duration', '24 min')}</span></div>
       </div>
     </div>
   </div>`;
