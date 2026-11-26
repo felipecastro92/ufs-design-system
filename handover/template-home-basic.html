@@ -5898,7 +5898,9 @@
         <h2 class="signin-panel-title">Create an account</h2>
         <div class="reg-email-chip">
           <span id="reg-email-display-2">email@email.com</span>
-          <button class="reg-email-edit" onclick="regEditEmail()">Edit</button>
+          <!-- Hidden in account-summary mode (newsletter hand-off): the
+               email was confirmed there and can't change here. -->
+          <button class="reg-email-edit" id="reg-password-email-edit" onclick="regEditEmail()">Edit</button>
         </div>
         <div class="reg-email-chip">
           <span id="reg-business-display">My restaurant</span>
@@ -6095,8 +6097,7 @@
           <!-- Business type / Job Title: same cascade + validation logic as
                the sign-up journey's reg-business-type/reg-job-title (see
                regBusinessTypeChange()) — "I don't have/work in a business"
-               skips Job Title; Job Title is required whenever it's shown.
-               This form stops at Job Title — no Business name field here. -->
+               skips Job Title, Business name and Mobile number. -->
           <div class="fi-wrap">
             <label class="fi-label" for="nl-business-type">Business type</label>
             <select class="fi-field fi-select" id="nl-business-type" onchange="nlBusinessTypeChange()">
@@ -6108,6 +6109,58 @@
               <option value="other">Other</option>
               <option value="none">I don't have/work in a business</option>
             </select>
+          </div>
+
+          <!-- Business name + its address/phone chain — same lookup,
+               confirmed-business card and Address/City/Postal/Phone
+               fallback as the sign-up journey's reg-business (see
+               regBusinessNameInput()/regApplyBusinessRecord()), on nl-*
+               ids via nlBiz*() below. Shown for every business type except
+               "I don't have/work in a business"; required while shown, and
+               so is Business Address whenever it's revealed. -->
+          <div class="fi-wrap reg-conditional-field" id="nl-business-wrap" style="position:relative">
+            <label class="fi-label" for="nl-business">Business name</label>
+            <input class="fi-field" type="text" id="nl-business" placeholder="Please enter your business name" autocomplete="off" oninput="nlBizNameInput(this.value); nlValidate()" onfocus="nlBizNameInput(this.value)" onblur="nlBizNameBlur()" onkeydown="nlBizNameEnter(event)"/>
+            <div class="reg-biz-suggest" id="nl-biz-suggest"></div>
+          </div>
+
+          <div class="reg-biz-card" id="nl-biz-card">
+            <svg class="reg-biz-card-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <polyline class="reg-biz-card-check" points="5 13 10 18 19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div class="reg-biz-card-body">
+              <div class="reg-biz-card-name" id="nl-biz-card-name"></div>
+              <div class="reg-biz-card-address" id="nl-biz-card-address"></div>
+              <div class="reg-biz-card-phone" id="nl-biz-card-phone"></div>
+            </div>
+          </div>
+
+          <div class="fi-wrap reg-conditional-field" id="nl-address-wrap"><label class="fi-label" for="nl-address">Business Address</label><input class="fi-field" type="text" id="nl-address" placeholder="Please enter your address" autocomplete="address-line1" oninput="this.classList.remove('is-invalid'); nlValidate()" onkeydown="regStepEnter(event,'nl-subscribe-btn')"/></div>
+
+          <div class="reg-extra-fields" id="nl-extra-fields">
+            <div class="fi-row">
+              <div class="fi-wrap"><label class="fi-label" for="nl-city">City</label><input class="fi-field" type="text" id="nl-city" placeholder="Enter your city" autocomplete="address-level2" oninput="this.classList.remove('is-invalid')" onkeydown="regStepEnter(event,'nl-subscribe-btn')"/></div>
+              <div class="fi-wrap"><label class="fi-label" for="nl-postal">Postal code</label><input class="fi-field" type="text" id="nl-postal" placeholder="e.g. 20121" autocomplete="postal-code" oninput="this.classList.remove('is-invalid')" onkeydown="regStepEnter(event,'nl-subscribe-btn')"/></div>
+            </div>
+            <div class="fi-wrap">
+              <label class="fi-label">Business phone number</label>
+              <div class="fi-phone-row">
+                <div class="reg-phone-code-wrap">
+                  <button type="button" class="fi-field fi-phone-code-trigger" id="nl-phone-code-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="Country code" onclick="regPhoneCodeToggle('nl-phone-code')">
+                    <span id="nl-phone-code-label">+39</span>
+                    <svg class="fi-phone-code-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 6 8 10 12 6"/></svg>
+                  </button>
+                  <div class="reg-phone-code-panel" id="nl-phone-code-panel" hidden>
+                    <div class="reg-phone-code-search-wrap">
+                      <input type="text" class="reg-phone-code-search" id="nl-phone-code-search" placeholder="Search country or code" aria-label="Search country or code" oninput="regPhoneCodeFilter('nl-phone-code', this.value)" onkeydown="regPhoneCodeSearchKeydown(event,'nl-phone-code')"/>
+                    </div>
+                    <ul class="reg-phone-code-list" id="nl-phone-code-list" role="listbox" aria-label="Country code"></ul>
+                  </div>
+                  <input type="hidden" id="nl-phone-code" value="+39"/>
+                </div>
+                <input class="fi-field fi-phone-number" type="tel" id="nl-phone" placeholder="e.g. 345 678 9012" autocomplete="tel-national" oninput="this.classList.remove('is-invalid')" onkeydown="regStepEnter(event,'nl-subscribe-btn')"/>
+              </div>
+            </div>
           </div>
 
           <div class="fi-wrap reg-conditional-field" id="nl-job-title-wrap">
@@ -6206,6 +6259,7 @@
           <p class="reg-success-sub">Unlock the best inspiration, loyalty rewards and professional training by finalising your account.</p>
 
           <div class="signin-usps">
+            <button class="btn btn-primary" style="width:100%; margin-bottom:var(--space-5)" onclick="nlFinishAccount()">Continue account creation</button>
             <div class="signin-usps-title">Why create an account?</div>
             <div class="signin-usp-item">
               <div class="signin-usp-item-icon"><img src="icons/products.svg" alt=""/></div>
@@ -6235,7 +6289,6 @@
                 <div class="signin-usp-item-desc">Free culinary training modules and certifications.</div>
               </div>
             </div>
-            <button class="btn btn-primary" style="width:100%; margin-top:var(--space-4)" onclick="nlFinishAccount()">Continue account creation</button>
           </div>
         </div>
       </div>
@@ -8181,6 +8234,9 @@
       // summary card now also shows — hide it here, same reasoning as the
       // four fields above.
       document.getElementById('reg-account-email-chip').style.display = on ? 'none' : '';
+      // Same reason the Password step's email chip loses its Edit: the
+      // address came from the newsletter form and is locked from here on.
+      document.getElementById('reg-password-email-edit').style.display = on ? 'none' : '';
       // Marketing consent AND age confirmation were both already answered
       // on the newsletter form — neither is asked again here.
       document.getElementById('reg-consent-group').style.display = on ? 'none' : '';
@@ -8373,6 +8429,14 @@
       document.getElementById('nl-email-input').blur();
     }
 
+    // Business name is required while shown, and Business Address whenever
+    // it's revealed (incomplete or new business) — same rule as regValidateStep2().
+    function nlBizIsValid() {
+      if (!document.getElementById('nl-business-wrap').classList.contains('is-visible')) return true;
+      if (!document.getElementById('nl-business').value.trim()) return false;
+      if (document.getElementById('nl-address-wrap').classList.contains('is-visible') && !document.getElementById('nl-address').value.trim()) return false;
+      return true;
+    }
     function nlValidate() {
       var bizType = document.getElementById('nl-business-type').value;
       // Job Title and Mobile number are both optional — same rule as
@@ -8387,6 +8451,7 @@
       var ok = document.getElementById('nl-name').value.trim()
         && document.getElementById('nl-lastname').value.trim()
         && bizType
+        && nlBizIsValid()
         && nlMobileIsValid()
         && document.getElementById('nl-age').checked
         && document.getElementById('nl-consent').checked;
@@ -8420,14 +8485,111 @@
       btn.setAttribute('aria-expanded', opening ? 'true' : 'false');
     }
 
-    // Business type → reveals Job Title + Mobile number together (any real
-    // business type, same as regBusinessTypeChange()). This form stops
-    // here — no Business name field to chain into.
+    // Business type → reveals Business name, Job Title + Mobile number
+    // together (any real business type, same as regBusinessTypeChange());
+    // "I don't have/work in a business" hides all three.
     function nlBusinessTypeChange() {
       var type = document.getElementById('nl-business-type').value;
       var showJobTitle = (type !== '' && type !== 'none');
       document.getElementById('nl-job-title-wrap').classList.toggle('is-visible', showJobTitle);
       document.getElementById('nl-mobile-wrap').classList.toggle('is-visible', showJobTitle);
+      // Business name (+ its card / address chain) follows the same rule;
+      // hiding it keeps whatever was typed, same as reg-business.
+      document.getElementById('nl-business-wrap').classList.toggle('is-visible', showJobTitle);
+      var chain = ['nl-biz-card', 'nl-address-wrap', 'nl-extra-fields'];
+      if (!showJobTitle) chain.forEach(function(id) { var el = document.getElementById(id); if (el.classList.contains('is-visible')) { el.dataset.nlHidden = '1'; el.classList.remove('is-visible'); } });
+      else chain.forEach(function(id) { var el = document.getElementById(id); if (el.dataset.nlHidden) { delete el.dataset.nlHidden; el.classList.add('is-visible'); } });
+      nlValidate();
+    }
+
+    // Business name lookup for the newsletter form — same behaviour as the
+    // sign-up journey's regBusinessNameInput()/regSelectBusiness()/
+    // regAddCustomBusiness()/regApplyBusinessRecord() (see their comments),
+    // on nl-* ids. Shares regBusinessSuggestions with the sign-up form.
+    var NL_BIZ_FIELDS = ['nl-address', 'nl-city', 'nl-postal', 'nl-phone'];
+    function nlBizClearFields() {
+      NL_BIZ_FIELDS.forEach(function(id) { document.getElementById(id).value = ''; });
+      regPhoneCodeSetValue('nl-phone-code', '+39');
+    }
+    function nlBizHideCard() {
+      document.getElementById('nl-biz-card').classList.remove('is-visible');
+      document.querySelector('#nl-biz-card .reg-biz-card-check').classList.remove('is-drawing');
+      ['nl-biz-card-name', 'nl-biz-card-address', 'nl-biz-card-phone'].forEach(function(id) { document.getElementById(id).textContent = ''; });
+      document.getElementById('nl-address-wrap').classList.remove('is-visible');
+      document.getElementById('nl-extra-fields').classList.remove('is-visible');
+      NL_BIZ_FIELDS.concat('nl-phone-code-trigger').forEach(function(id) { document.getElementById(id).disabled = false; });
+      NL_BIZ_FIELDS.forEach(function(id) { document.getElementById(id).classList.remove('is-invalid'); });
+    }
+    function nlBizApplyRecord(name, biz) {
+      if (biz.address && biz.city && biz.postal && biz.phone) {
+        document.getElementById('nl-address-wrap').classList.remove('is-visible');
+        document.getElementById('nl-extra-fields').classList.remove('is-visible');
+        document.getElementById('nl-biz-card-name').textContent    = name;
+        document.getElementById('nl-biz-card-address').textContent = [biz.address, biz.city, biz.postal].filter(Boolean).join(', ');
+        document.getElementById('nl-biz-card-phone').textContent   = biz.dialCode + ' ' + biz.phone;
+        document.getElementById('nl-biz-card').classList.add('is-visible');
+        var check = document.querySelector('#nl-biz-card .reg-biz-card-check');
+        check.classList.remove('is-drawing'); void check.getBoundingClientRect(); check.classList.add('is-drawing');
+        return;
+      }
+      // Incomplete record: real fields, pre-filled, locked only where a value is on file
+      nlBizHideCard();
+      document.getElementById('nl-address-wrap').classList.add('is-visible');
+      document.getElementById('nl-extra-fields').classList.add('is-visible');
+      document.getElementById('nl-address').value = biz.address;
+      document.getElementById('nl-city').value    = biz.city;
+      document.getElementById('nl-postal').value  = biz.postal;
+      regPhoneCodeSetValue('nl-phone-code', biz.dialCode);
+      document.getElementById('nl-phone').value   = biz.phone;
+      ['address', 'city', 'postal', 'phone'].forEach(function(k) {
+        var el = document.getElementById('nl-' + k);
+        el.disabled = !!biz[k];
+        el.classList.toggle('is-invalid', !biz[k]);
+      });
+      document.getElementById('nl-phone-code-trigger').disabled = !!biz.phone;
+    }
+    function nlBizNameInput(value) {
+      var typed = value.trim(), q = typed.toLowerCase();
+      var box = document.getElementById('nl-biz-suggest');
+      if (!q) {
+        box.classList.remove('is-open'); box.innerHTML = '';
+        nlBizHideCard(); nlBizClearFields();
+        return;
+      }
+      var html = regBusinessSuggestions.filter(function(b) { return b.name.toLowerCase().indexOf(q) !== -1; }).map(function(b) {
+        return '<div class="reg-biz-suggest-item" onmousedown="nlBizSelect(\'' + b.name.replace(/'/g, "\\'") + '\')">' + b.name + '</div>';
+      }).join('');
+      html += '<div class="reg-biz-suggest-item reg-biz-suggest-item--add" onmousedown="nlBizAddCustom()">Add &quot;' + regEscapeHtml(typed) + '&quot;</div>';
+      box.innerHTML = html;
+      box.classList.add('is-open');
+    }
+    function nlBizNameBlur() {
+      setTimeout(function() { var box = document.getElementById('nl-biz-suggest'); box.classList.remove('is-open'); box.innerHTML = ''; }, 150);
+    }
+    function nlBizNameEnter(event) {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      var box = document.getElementById('nl-biz-suggest'), first = box.querySelector('.reg-biz-suggest-item');
+      if (box.classList.contains('is-open') && first) {
+        if (first.classList.contains('reg-biz-suggest-item--add')) nlBizAddCustom(); else nlBizSelect(first.textContent);
+        return;
+      }
+      regStepEnter(event, 'nl-subscribe-btn');
+    }
+    function nlBizSelect(name) {
+      var biz = regBusinessSuggestions.filter(function(b) { return b.name === name; })[0];
+      document.getElementById('nl-business').value = name;
+      var box = document.getElementById('nl-biz-suggest'); box.classList.remove('is-open'); box.innerHTML = '';
+      if (!biz) return;
+      nlBizApplyRecord(name, biz);
+      nlValidate();
+    }
+    function nlBizAddCustom() {
+      var box = document.getElementById('nl-biz-suggest'); box.classList.remove('is-open'); box.innerHTML = '';
+      nlBizHideCard(); nlBizClearFields();
+      document.getElementById('nl-address-wrap').classList.add('is-visible');
+      document.getElementById('nl-extra-fields').classList.add('is-visible');
+      document.getElementById('nl-address').focus();
       nlValidate();
     }
 
@@ -8473,7 +8635,7 @@
     }
 
     function nlSetFieldsDisabled(v) {
-      ['nl-name', 'nl-lastname', 'nl-business-type', 'nl-job-title', 'nl-mobile', 'nl-consent', 'nl-age'].forEach(function(id) {
+      ['nl-name', 'nl-lastname', 'nl-business-type', 'nl-business', 'nl-job-title', 'nl-mobile', 'nl-consent', 'nl-age'].forEach(function(id) {
         document.getElementById(id).disabled = v;
       });
       document.querySelectorAll('.nl-consent-channel').forEach(function(cb) { cb.disabled = v; });
@@ -8546,6 +8708,23 @@
       // Business name stays genuinely editable — nothing here pre-fills it.
       regBusinessTypeChange();
 
+      // Business name (+ address/phone) is now asked on the newsletter form
+      // too — carry it over the same way it was entered: picked from the
+      // list (card or locked fields) or added as a new business (editable
+      // fields, pre-filled with whatever was typed). Still editable there.
+      var nlBiz = document.getElementById('nl-business').value.trim();
+      if (nlBiz && document.getElementById('nl-business-wrap').classList.contains('is-visible')) {
+        document.getElementById('reg-business').value = nlBiz;
+        var known = regBusinessSuggestions.filter(function(b) { return b.name === nlBiz; })[0];
+        if (known) regSelectBusiness(nlBiz);
+        else {
+          regAddCustomBusiness();
+          ['address', 'city', 'postal', 'phone'].forEach(function(k) { document.getElementById('reg-' + k).value = document.getElementById('nl-' + k).value; });
+          regPhoneCodeSetValue('reg-phone-code', document.getElementById('nl-phone-code').value);
+        }
+        regValidateStep2();
+      }
+
       // Mobile number was optional on the newsletter form — carry it over
       // only if they actually gave one; otherwise leave reg-account-mobile
       // blank, same as if they'd never been asked.
@@ -8589,6 +8768,10 @@
       document.getElementById('nl-business-type').value = '';
       document.getElementById('nl-job-title').value      = '';
       document.getElementById('nl-job-title-wrap').classList.remove('is-visible');
+      document.getElementById('nl-business').value       = '';
+      document.getElementById('nl-business-wrap').classList.remove('is-visible');
+      nlBizHideCard(); nlBizClearFields();
+      ['nl-biz-card', 'nl-address-wrap', 'nl-extra-fields'].forEach(function(id) { delete document.getElementById(id).dataset.nlHidden; });
       document.getElementById('nl-mobile').value         = '';
       document.getElementById('nl-mobile-wrap').classList.remove('is-visible');
       regPhoneCodeSetValue('nl-mobile-code', '+1');
