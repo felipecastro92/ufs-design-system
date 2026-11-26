@@ -225,6 +225,12 @@
     .pb-export-btn:hover:not(:disabled) { color: white; background: rgba(255,255,255,0.1); }
     .pb-export-btn:disabled { opacity: 0.5; cursor: wait; }
     .pb-export-btn svg { flex-shrink: 0; }
+    .pb-export-tags {
+      display: flex; align-items: center; gap: 5px; padding: 4px 8px;
+      font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.6);
+      cursor: pointer; user-select: none; white-space: nowrap;
+    }
+    .pb-export-tags input { margin: 0; accent-color: var(--color-leaf-500, #3c8a2e); cursor: pointer; }
 
     /* Applied to #pb-canvas only for the moment html2canvas is reading
        it — strips builder-only chrome (drag handle, toolbar, remove
@@ -3735,6 +3741,10 @@
           <option value="png">PNG</option>
           <option value="jpg">JPG</option>
         </select>
+        <label class="pb-export-tags" title="Tag each component with its name in a gutter beside it">
+          <input type="checkbox" id="pb-export-tags" checked>
+          Name tags
+        </label>
         <button class="pb-export-btn" id="pb-export-btn" onclick="PB.exportCanvas()" title="Save the current layout as an image">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 1v9M4.5 6.5L8 10l3.5-3.5M2 12.5v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1"/></svg>
           Export
@@ -4282,7 +4292,18 @@
         const bg = getComputedStyle(wrapEl).backgroundColor || '#ffffff';
         canvasEl.classList.add('pb-exporting');
 
-        html2canvas(canvasEl, { backgroundColor: bg, scale: 2, useCORS: true, logging: false })
+        const SCALE = 2;
+        // Name tags: measured now, while the sections are laid out exactly
+        // as html2canvas will see them (offsets relative to #pb-canvas).
+        const withTags = document.getElementById('pb-export-tags').checked;
+        const canvasTop = canvasEl.getBoundingClientRect().top;
+        const tags = withTags ? this.sections.map(sec => {
+          const el = document.getElementById('pbs-' + sec.id);
+          return el ? { text: this._exportTagLabel(sec), y: el.getBoundingClientRect().top - canvasTop } : null;
+        }).filter(Boolean) : [];
+
+        html2canvas(canvasEl, { backgroundColor: bg, scale: SCALE, useCORS: true, logging: false })
+          .then(shot => tags.length ? this._composeExportTags(shot, tags, bg, SCALE) : shot)
           .then(canvas => {
             const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
             const dataUrl = canvas.toDataURL(mime, format === 'jpg' ? 0.92 : undefined);
@@ -4312,6 +4333,78 @@
             btn.disabled = false;
             btn.innerHTML = originalLabel;
           });
+      },
+
+      /* Name-tag text for one section in the export: component name,
+         plus whatever the toolbar shows as its configuration (variant
+         when the type has more than one, card type, Split Row's two
+         slot types) — so the tag identifies the exact build, not just
+         the family. */
+      _exportTagLabel(sec) {
+        const parts = [this.LABELS[sec.type] || sec.type];
+        const vars = this.VARIANTS[sec.type] || [];
+        const v = sec.variant || this.DEFAULT_VARIANT[sec.type];
+        if (vars.length > 1 && v && v !== 'default') parts.push(this.VAR_LABELS[v] || v);
+        if (sec.type === 'flex-carousel') parts.push(PB._FLEX_CARD_LABELS[sec.cardType || 'recipe']);
+        if (sec.type === 'banner-carousel') {
+          const ct = sec.cardType || PB._BANNER_CAROUSEL_TILE_TYPE[sec.variant || 'default'] || 'recipe';
+          parts.push(PB._BANNER_CAROUSEL_CARD_LABELS[ct]);
+        }
+        if (sec.type === 'teaser' && sec.cols) parts.push(sec.cols + '-up');
+        if (sec.type === 'split-row') parts.push((this.LABELS[sec.leftType || 'ingredients-panel']) + ' + ' + (this.LABELS[sec.rightType || 'steps-panel']));
+        return parts.filter(Boolean).join(' · ').replace(/&amp;/g, '&').replace(/&rsquo;/g, '\u2019');
+      },
+
+      /* Paints the captured page onto a wider canvas with a left gutter,
+         and draws each section's name tag in that gutter, level with the
+         section's top edge and tied to it with a short leader line. A
+         gutter (rather than tags laid over the page) keeps every pixel
+         of the components themselves visible and leaves their layout
+         untouched — the page isn't reflowed to make room. */
+      _composeExportTags(shot, tags, bg, scale) {
+        const font = getComputedStyle(document.body).fontFamily;
+        const FS = 12, PADX = 10, H = 24, GAP = 16, LEAD = 14; // CSS px
+        const ctx0 = document.createElement('canvas').getContext('2d');
+        ctx0.font = `600 ${FS * scale}px ${font}`;
+        const maxW = Math.max(...tags.map(t => ctx0.measureText(t.text).width)) / scale;
+        const gutter = Math.ceil(GAP + maxW + PADX * 2 + LEAD);
+
+        const out = document.createElement('canvas');
+        out.width = shot.width + gutter * scale;
+        out.height = shot.height;
+        const ctx = out.getContext('2d');
+        ctx.fillStyle = '#f2f1ee';
+        ctx.fillRect(0, 0, out.width, out.height);
+        ctx.fillStyle = bg;
+        ctx.fillRect(gutter * scale, 0, shot.width, shot.height);
+        ctx.drawImage(shot, gutter * scale, 0);
+
+        ctx.scale(scale, scale);
+        ctx.font = `600 ${FS}px ${font}`;
+        ctx.textBaseline = 'middle';
+        let prevBottom = -Infinity;
+        tags.forEach(t => {
+          // Sections shorter than a tag (e.g. Announcement Banner, Utility
+          // Bar) sitting back to back: push the next tag down so tags
+          // never overlap, keeping the leader pointing at the real top.
+          const top = Math.max(t.y + 8, prevBottom + 6);
+          prevBottom = top + H;
+          const w = ctx.measureText(t.text).width + PADX * 2;
+          const x = gutter - LEAD - w;
+          const cy = top + H / 2;
+          ctx.strokeStyle = '#9a968e'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.moveTo(x + w, cy); ctx.lineTo(gutter - 3, cy);
+          if (Math.abs(cy - t.y) > 1) ctx.lineTo(gutter - 3, Math.max(t.y, 0) + 0.5);
+          ctx.lineTo(gutter, Math.max(t.y, 0) + 0.5);
+          ctx.stroke();
+          ctx.fillStyle = '#1a1a1a';
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(x, top, w, H, H / 2); else ctx.rect(x, top, w, H);
+          ctx.fill();
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(t.text, x + PADX, cy + 0.5);
+        });
+        return out;
       },
 
       /* ── Render ─────────────────────────────────────────────── */
